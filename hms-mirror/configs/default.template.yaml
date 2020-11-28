@@ -1,0 +1,24 @@
+# Config
+transferDbPrefix: "transfer_"
+exportBaseDirPrefix: "/apps/hive/warehouse/export_"
+overwriteTable: "true"
+clusters:
+  LOWER:
+    # Set for Hive 1/2 environments
+    legacyHive: "true"
+    hcfsNamespace: "<hdfs://namespace>"
+    jarFile: "<environment-specific-jdbc-standalone-driver>"
+    hiveServer2:
+      url: "<lower-cluster-jdbc-url>"
+      # Optional when using Kerberos Auth (Requires Kerb Ticket)
+      user: "<user>"
+      password: "<password>"
+  UPPER:
+    legacyHive: "false"
+    hcfsNamespace: "<hdfs://namespace>"
+    jarFile: "<environment-specific-jdbc-standalone-driver>"
+    hiveServer2:
+      url: "<upper-cluster-jdbc-url>"
+      # Optional when using Kerberos Auth (Requires Kerb Ticket)
+      user: "<username>"
+      password: "<password>"
