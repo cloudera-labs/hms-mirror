@@ -20,20 +20,47 @@ public class TableMirror {
         this.name = tablename;
     }
 
+
     // There are two environments (UPPER and LOWER)
     private Map<Environment, List<String>> tableDefinitions = new TreeMap<Environment, List<String>>();
+    private Map<Environment, Boolean> tablePartitioned = new TreeMap<Environment, Boolean>();
+    private Map<Environment, List<String>> tablePartitions = new TreeMap<Environment, List<String>>();
 
     // TODO: Partitions
+    public void setPartitioned(Environment environment, Boolean partitioned) {
+        tablePartitioned.put(environment, partitioned);
+    }
+
+    private Boolean isPartitioned(Environment environment) {
+        Boolean rtn = tablePartitioned.get(environment);
+        if (rtn != null) {
+            return rtn;
+        } else {
+            return Boolean.FALSE;
+        }
+    }
 
     public List<String> getTableDefinition(Environment environment) {
         return tableDefinitions.get(environment);
     }
 
-    public void setTableDef(Environment environment, List<String> tableDefList) {
+    public void setTableDefinition(Environment environment, List<String> tableDefList) {
         if (tableDefinitions.containsKey(environment)) {
             tableDefinitions.replace(environment, tableDefList);
         } else {
             tableDefinitions.put(environment, tableDefList);
+        }
+    }
+
+    public List<String> getPartitionDefinition(Environment environment) {
+        return tablePartitions.get(environment);
+    }
+
+    public void setPartitionDefinition(Environment environment, List<String> tablePartitionList) {
+        if (tablePartitions.containsKey(environment)) {
+            tablePartitions.replace(environment, tablePartitionList);
+        } else {
+            tablePartitions.put(environment, tablePartitionList);
         }
     }
 

@@ -17,6 +17,11 @@ clusters:
     legacyHive: "false"
     hcfsNamespace: "<hdfs://namespace>"
     jarFile: "<environment-specific-jdbc-standalone-driver>"
+    partitionDiscovery:
+      # Addition HMS configuration needed for this "discover.partitions"="true"
+      #     Set by default on IMPORT EXTERNAL.
+      auto: true
+      initMSCK: true
     hiveServer2:
       url: "<upper-cluster-jdbc-url>"
       # Optional when using Kerberos Auth (Requires Kerb Ticket)

@@ -21,3 +21,10 @@ When connecting via `kerberos`, you will need to include the `--hadoop-classpath
 - Add Stages
 - Add Check for existing table on upper cluster.
     - option for override def in stage 1.
+    
+    
+When the "EXTERNAL" tables are added to the UPPER cluster, they're added with "discover.partitions"="true".  But they
+don't appear to get fixed in CDP.  https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DDL#LanguageManualDDL-DiscoverPartitions
+
+This appears to be a feature in Hive 4.0.  Need to see about backport to CDP.
+When Hive Metastore Service (HMS) is started in remote service mode, a background thread (PartitionManagementTask) gets scheduled periodically every 300s (configurable via metastore.partition.management.task.frequency config) that looks for tables with "discover.partitions" table property set to true and performs msck repair in sync mode. If the table is a transactional table, then Exclusive Lock is obtained for that table before performing msck repair. With this table property, "MSCK REPAIR TABLE table_name SYNC PARTITIONS" is no longer required to be run manually. 

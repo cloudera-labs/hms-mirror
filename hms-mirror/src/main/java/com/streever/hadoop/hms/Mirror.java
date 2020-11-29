@@ -1,25 +1,18 @@
 package com.streever.hadoop.hms;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.streever.hadoop.hms.mirror.*;
-import com.streever.hadoop.hms.util.DriverShim;
-import com.streever.hadoop.hms.util.DriverUtils;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.charset.Charset;
-import java.sql.*;
-import java.util.*;
+import java.sql.SQLException;
+import java.util.Arrays;
 
 public class Mirror {
     private static Logger LOG = LogManager.getLogger(Mirror.class);
@@ -179,6 +172,9 @@ public class Mirror {
 
     public static void main(String[] args) {
         Mirror mirror = new Mirror();
+        LOG.info("===================================================");
+        LOG.info("Running: hms-mirror " + ReportingConf.substituteVariables("v.${Implementation-Version}"));
+        LOG.info("===================================================");
         mirror.init(args);
         mirror.start();
     }

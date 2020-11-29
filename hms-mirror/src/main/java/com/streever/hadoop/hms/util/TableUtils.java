@@ -10,6 +10,7 @@ public class TableUtils {
     private static Logger LOG = LogManager.getLogger(TableUtils.class);
 
     public static final String CREATE_TABLE = "CREATE TABLE";
+    public static final String PARTITIONED_BY = "PARTITIONED BY";
     public static final String TRANSACTIONAL = "transactional";
     public static final String LOCATION = "LOCATION";
     public static final String TBL_PROPERTIES = "TBLPROPERTIES (";
@@ -53,6 +54,18 @@ public class TableUtils {
                     }
                     break;
                 }
+            }
+        }
+        return rtn;
+    }
+
+    public static Boolean isPartitioned(String tableName, List<String> tableDefinition) {
+        Boolean rtn = Boolean.FALSE;
+        LOG.debug("Checking if table '" + tableName + "' is 'Partitioned'");
+        for (String line : tableDefinition) {
+            if (line.startsWith(PARTITIONED_BY)) {
+                rtn = Boolean.TRUE;
+                break;
             }
         }
         return rtn;

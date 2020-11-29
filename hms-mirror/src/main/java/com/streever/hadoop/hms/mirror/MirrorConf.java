@@ -3,7 +3,9 @@ package com.streever.hadoop.hms.mirror;
 public class MirrorConf {
     public static final String USE_DB = "USE {0}";
     public static final String SHOW_TABLES = "SHOW TABLES";
-    public static final String SHOW_CREATE_TABLE = "SHOW CREATE TABLE {0}";
+    public static final String SHOW_CREATE_TABLE = "SHOW CREATE TABLE {0}.{1}";
+    public static final String SHOW_PARTITIONS = "SHOW PARTITIONS {0}.{1}";
+    public static final String MSCK_REPAIR_TABLE = "MSCK REPAIR TABLE {0}.{1}";
     public static final String CREATE_DB =
             "CREATE DATABASE IF NOT EXISTS {0}";
     public static final String CREATE_LIKE =
@@ -25,5 +27,6 @@ public class MirrorConf {
     public static final String ALTER_TABLE_LOCATION =
             "ALTER TABLE {0}.{1} SET LOCATION \"{2}\"";
     public static final String LEGACY_MANAGED_FLAG = "hiveMirrorLegacyManaged";
+    public static final String HMS_MIRROR_STAGE_ONE_FLAG = "hiveMirrorConversionStage1";
 
 }

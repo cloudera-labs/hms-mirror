@@ -1,8 +1,8 @@
 package com.streever.hadoop.hms.mirror;
 
-import com.streever.hadoop.shell.commands.Env;
-
-import java.util.*;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 public class Config {
 
