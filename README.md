@@ -21,7 +21,8 @@ The _upper_ cluster should be used as a **READ-ONLY** view of the data, until _S
 On the Lower Cluster we need to extract metadata for the tables we want to use in the upper cluster.  There are a few limitations to note here:
 - We're NOT sharing metadata stores between the clusters
 - This technique is restricted to _external_ and _non-transactional managed_ tables.  **ACID Tables** are **NOT** supported.
-- Partitioned datasets will NOT be managed automatically in the upper clusters metastore during Stage 1.  They need to be updated manually with a tool like `msck`.
+- Partitioned datasets can be 'auto discovered' when the configuration `partitionDiscovery: true` is set.
+- Partitions that do NOT follow the standard directory structure and aren't discoverable via `msck` are NOT supported yet.
 
 - [Link Clusters](./link_clusters.md) so the Upper Cluster can distcp from the lower cluster.
 
