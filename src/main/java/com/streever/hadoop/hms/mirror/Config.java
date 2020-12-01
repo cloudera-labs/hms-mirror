@@ -12,6 +12,7 @@ public class Config {
     private String transferDbPrefix = "transfer_";
     private String exportBaseDirPrefix = "/apps/hive/warehouse/export_";
     private boolean overwriteTable = Boolean.TRUE;
+    private Integer parallelism = 4; // Default
 
     private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
 //    private Cluster lowerCluster = null;
@@ -39,6 +40,14 @@ public class Config {
 
     public void setOverwriteTable(boolean overwriteTable) {
         this.overwriteTable = overwriteTable;
+    }
+
+    public Integer getParallelism() {
+        return parallelism;
+    }
+
+    public void setParallelism(Integer parallelism) {
+        this.parallelism = parallelism;
     }
 
     public Map<Environment, Cluster> getClusters() {

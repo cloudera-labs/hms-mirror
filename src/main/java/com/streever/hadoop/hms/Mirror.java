@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.streever.hadoop.hms.mirror.*;
+import com.streever.hadoop.hms.stage.CreateDatabases;
+import com.streever.hadoop.hms.stage.GetTables;
+import com.streever.hadoop.hms.stage.Metadata;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
@@ -12,11 +15,18 @@ import org.apache.log4j.Logger;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.*;
 
 public class Mirror {
     private static Logger LOG = LogManager.getLogger(Mirror.class);
+    private ScheduledExecutorService threadPool;
+
     private String[] databases = null;
+    private Config config = null;
     private String configFile = null;
     private Stage stage = null;
 
@@ -71,28 +81,16 @@ public class Mirror {
             throw new RuntimeException("Couldn't locate configuration file: " + configFile);
         }
 
-    }
-
-    public void start() {
         LOG.info("Check log '" + System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/logs/hms-mirror.log'" +
                 " for progress.");
-        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        Config config = null;
+
         try {
-            File cfgFile = new File(configFile);
-            if (!cfgFile.exists()) {
-                throw new RuntimeException("Missing configuration file: " + configFile);
-            } else {
-                System.out.println("Using Config: " + configFile);
-            }
+            System.out.println("Using Config: " + configFile);
             String yamlCfgFile = FileUtils.readFileToString(cfgFile, Charset.forName("UTF-8"));
             config = mapper.readerFor(Config.class).readValue(yamlCfgFile);
         } catch (Throwable t) {
             t.printStackTrace();
         }
-
-        Conversion conversion = new Conversion();
 
         ConnectionPools connPools = new ConnectionPools();
         connPools.addHiveServer2(Environment.LOWER, config.getCluster(Environment.LOWER).getHiveServer2());
@@ -102,46 +100,77 @@ public class Mirror {
         config.getCluster(Environment.LOWER).setPools(connPools);
         config.getCluster(Environment.UPPER).setPools(connPools);
 
-        LOG.info("Start Processing for databases: " + Arrays.toString((databases)));
-        for (String database : databases) {
-            switch (stage) {
-                case METADATA:
-                    LOG.info("Processing Database: " + database);
-                    LOG.info("Building Lower Cluster");
-                    try {
-                        config.getCluster(Environment.LOWER).loadTables(conversion, database);
-                        config.getCluster(Environment.LOWER).buildTransferSchema(conversion, database, config);
-                        config.getCluster(Environment.LOWER).exportTransferSchema(conversion, database, config);
 
-                    } catch (SQLException throwables) {
-                        throwables.printStackTrace();
-                    }
+    }
 
-                    LOG.info("Building Upper Cluster");
-                    try {
-                        // Load Tables from the Upper Cluster.
-                        // Use this to compare with incoming tables.
-                        // NEED TO ADDRESS 'STAGE-1' here.
-                        config.getCluster(Environment.UPPER).loadTables(conversion, database);
-                    } catch (SQLException throwables) {
-                        // Most likely means the db doesn't exist.
-                        LOG.info(throwables.getMessage());
-                    }
-                    // CREATE DB ON UPPER CLUSTER.
-                    if (config.getCluster(Environment.UPPER).importTransferSchema(conversion, database, config)) {
-                        LOG.info("HMS Mirror for database: " + database + " complete.");
-                    } else {
-                        LOG.warn("HMS Mirror for database: " + database + " had issues.  Check logs");
-                    }
-                    break;
-                case STORAGE:
-                    // WIP
-                    LOG.warn("Stage 2, WIP - Under development");
-                    break;
-            }
-//        conversion.translate(config.getLowerCluster(),config.getUpperCluster(), database);
-            LOG.info("DB: " + database + " complete.");
+    protected ScheduledExecutorService getThreadPool() {
+        if (threadPool == null) {
+            threadPool = Executors.newScheduledThreadPool(config.getParallelism());
         }
+        return threadPool;
+    }
+
+    public void start() {
+        LOG.info("Start Processing for databases: " + Arrays.toString((databases)));
+        Conversion conversion = new Conversion();
+//        ConcurrentLinkedQueue<DBMirror> dbQueue = new ConcurrentLinkedQueue<DBMirror>();
+        List<ScheduledFuture> gtf = new ArrayList<ScheduledFuture>();
+        for (String database: databases) {
+            DBMirror dbMirror = conversion.addDatabase(database);
+            GetTables gt = new GetTables(config, dbMirror);
+            gtf.add(getThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
+//            dbQueue.add(dbMirror);
+        }
+
+        // Need to Create LOWER/UPPER Cluster Db(s).
+        CreateDatabases transitionCreateDatabases = new CreateDatabases(config, conversion, Boolean.TRUE);
+        CreateDatabases createDatabases = new CreateDatabases(config, conversion, Boolean.FALSE);
+
+        gtf.add(getThreadPool().schedule(transitionCreateDatabases, 1, TimeUnit.MILLISECONDS));
+        gtf.add(getThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
+
+        // When the tables have been gathered, complete the process for the METADATA Stage.
+        while (true) {
+            boolean check = true;
+            for (ScheduledFuture sf : gtf) {
+                if (!sf.isDone()) {
+                    check = false;
+                    break;
+                }
+            }
+            if (check)
+                break;
+        }
+
+        LOG.info("Building/Starting Transition.");
+        List<ScheduledFuture> mdf = new ArrayList<ScheduledFuture>();
+        Set<String> collectedDbs = conversion.getDatabases().keySet();
+        for (String database: collectedDbs) {
+            DBMirror dbMirror = conversion.getDatabase(database);
+            Set<String> tables = dbMirror.getTableMirrors().keySet();
+            for (String table: tables) {
+                TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
+                Metadata md = new Metadata(config, dbMirror, tblMirror);
+                mdf.add(getThreadPool().schedule(md,1,TimeUnit.MILLISECONDS));
+            }
+        }
+
+        LOG.info("Starting Transfer.");
+
+        while (true) {
+            boolean check = true;
+            for (ScheduledFuture sf : mdf) {
+                if (!sf.isDone()) {
+                    check = false;
+                    break;
+                }
+            }
+            if (check)
+                break;
+        }
+
+        getThreadPool().shutdown();
+
         LOG.info("Done.");
     }
 

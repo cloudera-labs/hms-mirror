@@ -18,6 +18,10 @@ public class DBMirror {
         this.database = database;
     }
 
+    public String getDatabase() {
+        return database;
+    }
+
     public TableMirror addTable(String table) {
         if (tableMirrors.containsKey(table)) {
             LOG.debug("Table object found in map: " + table);

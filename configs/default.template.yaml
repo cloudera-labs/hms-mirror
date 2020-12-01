@@ -2,6 +2,7 @@
 transferDbPrefix: "transfer_"
 exportBaseDirPrefix: "/apps/hive/warehouse/export_"
 overwriteTable: "true"
+parallelism: 4
 clusters:
   LOWER:
     # Set for Hive 1/2 environments

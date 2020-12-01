@@ -16,6 +16,10 @@ public class Conversion {
         }
     }
 
+    public Map<String, DBMirror> getDatabases() {
+        return databases;
+    }
+
     public DBMirror getDatabase(String database) {
         return databases.get(database);
     }
