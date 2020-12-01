@@ -110,6 +110,17 @@ public class Mirror {
     }
 
     public void start() {
+        switch (stage) {
+            case METADATA:
+                runMetadata();
+                break;
+            case STORAGE:
+                LOG.info("WIP");
+                break;
+        }
+    }
+
+    public void runMetadata() {
         Date startTime = new Date();
         LOG.info("Start Processing for databases: " + Arrays.toString((databases)));
         Conversion conversion = new Conversion();
