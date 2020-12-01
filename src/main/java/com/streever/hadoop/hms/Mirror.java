@@ -13,12 +13,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.File;
+import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.text.DecimalFormat;
+import java.util.*;
 import java.util.concurrent.*;
 
 public class Mirror {
@@ -111,6 +110,7 @@ public class Mirror {
     }
 
     public void start() {
+        Date startTime = new Date();
         LOG.info("Start Processing for databases: " + Arrays.toString((databases)));
         Conversion conversion = new Conversion();
 //        ConcurrentLinkedQueue<DBMirror> dbQueue = new ConcurrentLinkedQueue<DBMirror>();
@@ -170,8 +170,13 @@ public class Mirror {
         }
 
         getThreadPool().shutdown();
-
-        LOG.info("Done.");
+        LOG.info("==============================");
+        LOG.info(conversion.toString());
+        LOG.info("==============================");
+        Date endTime = new Date();
+        DecimalFormat df = new DecimalFormat("#.###");
+        df.setRoundingMode(RoundingMode.CEILING);
+        LOG.info("Completed in: " + df.format((Double)((endTime.getTime() - startTime.getTime())/(double)1000)) + " secs");
     }
 
     private Options getOptions() {

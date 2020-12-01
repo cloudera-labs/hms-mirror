@@ -31,4 +31,26 @@ public class Conversion {
 
         return 0;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Conversion:").append("\n");
+        sb.append("\tDatabases : ").append(databases.size()).append("\n");
+        int tables = 0;
+        int partitions = 0;
+        for (String database: databases.keySet()) {
+            DBMirror db = databases.get(database);
+            tables += db.getTableMirrors().size();
+            for (String table: db.getTableMirrors().keySet()) {
+                if (db.getTableMirrors().get(table).getPartitionDefinition(Environment.LOWER) != null) {
+                    partitions += db.getTableMirrors().get(table).getPartitionDefinition(Environment.LOWER).size();
+                }
+            }
+        }
+        sb.append("\tTables    : " + tables).append("\n");
+        sb.append("\tPartitions: " + partitions).append("\n");
+
+        return sb.toString();
+    }
 }
