@@ -30,7 +30,7 @@ public class Metadata implements Runnable {
 
     @Override
     public void run() {
-        LOG.info("Metadata: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+        LOG.info(dbMirror.getDatabase() + "." + tblMirror.getName() + ": Metadata");
         try {
             config.getCluster(Environment.LOWER).getTableDefinition(dbMirror.getDatabase(), tblMirror);
             config.getCluster(Environment.LOWER).buildTransferTableSchema(config, dbMirror, tblMirror);

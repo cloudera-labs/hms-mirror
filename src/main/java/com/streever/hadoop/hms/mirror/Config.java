@@ -6,17 +6,12 @@ import java.util.TreeMap;
 
 public class Config {
 
-    /*
-
-     */
     private String transferDbPrefix = "transfer_";
     private String exportBaseDirPrefix = "/apps/hive/warehouse/export_";
     private boolean overwriteTable = Boolean.TRUE;
     private Integer parallelism = 4; // Default
 
     private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
-//    private Cluster lowerCluster = null;
-//    private Cluster upperCluster = null;
 
     public String getTransferDbPrefix() {
         return transferDbPrefix;
