@@ -47,14 +47,14 @@ public class Mirror {
 
         databases = cmd.getOptionValues("db");
 
-        if (cmd.hasOption("s1")) {
-            stage = Stage.ONE;
-            System.out.println("Running Stage-1");
-            LOG.info("Running Stage-1");
-        } else if (cmd.hasOption("s2")) {
-            stage = Stage.TWO;
-            System.out.println("Running Stage-2");
-            LOG.info("Running Stage-2");
+        if (cmd.hasOption("m")) {
+            stage = Stage.METADATA;
+            System.out.println("Running Metadata");
+            LOG.info("Running Metadata");
+        } else if (cmd.hasOption("s")) {
+            stage = Stage.STORAGE;
+            System.out.println("Running Storage");
+            LOG.info("Running Storage");
         } else {
             throw new RuntimeException("Need to specify a 'stage'");
         }
@@ -93,10 +93,19 @@ public class Mirror {
         }
 
         Conversion conversion = new Conversion();
+
+        ConnectionPools connPools = new ConnectionPools();
+        connPools.addHiveServer2(Environment.LOWER, config.getCluster(Environment.LOWER).getHiveServer2());
+        connPools.addHiveServer2(Environment.UPPER, config.getCluster(Environment.UPPER).getHiveServer2());
+        connPools.init();
+
+        config.getCluster(Environment.LOWER).setPools(connPools);
+        config.getCluster(Environment.UPPER).setPools(connPools);
+
         LOG.info("Start Processing for databases: " + Arrays.toString((databases)));
         for (String database : databases) {
             switch (stage) {
-                case ONE:
+                case METADATA:
                     LOG.info("Processing Database: " + database);
                     LOG.info("Building Lower Cluster");
                     try {
@@ -125,7 +134,7 @@ public class Mirror {
                         LOG.warn("HMS Mirror for database: " + database + " had issues.  Check logs");
                     }
                     break;
-                case TWO:
+                case STORAGE:
                     // WIP
                     LOG.warn("Stage 2, WIP - Under development");
                     break;
@@ -140,8 +149,8 @@ public class Mirror {
         // create Options object
         Options options = new Options();
 
-        Option stageOne = new Option("s1", "stageOne", false, "Run HMS-Mirror Stage-1");
-        Option stageTwo = new Option("s2", "stageTwo", false, "Run HMS-Mirror Stage-2");
+        Option stageOne = new Option("m", "metastore", false, "Run HMS-Mirror Metadata");
+        Option stageTwo = new Option("s", "storage", false, "Run HMS-Mirror Storage");
 
         OptionGroup stageGroup = new OptionGroup();
         stageGroup.addOption(stageOne);
