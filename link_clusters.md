@@ -1,4 +1,4 @@
-# HDFS Integration Between HDP 2.6 and CDP Base
+# Linking Clusters Storage Layers
 
 ## Goal
 
@@ -8,10 +8,11 @@ Can that integration be used to support the Higher Clusters use of the Lower Clu
 
 ## Scenario #1
 
-### HDP 2.6.5
+### HDP 2.6.5 (Hadoop 2.7.x)
 Kerberized - sharing same KDC as CDP Base Cluster
 
 #### Configuration Changes
+
 _hdfs-site.xml_
 ```
 hadoop.rpc.protection=true
@@ -24,7 +25,7 @@ dfs.encrypt.data.transfer.algorithm=3des
 dfs.encrypt.data.transfer.cipher.key.bitlength=256
 ```
 
-### CDP 7.1.4
+### CDP 7.1.4 (Hadoop 3.1.x)
 Kerberized, TLS Enabled
 
 #### Configuration Changes
@@ -58,7 +59,9 @@ dfs.client.failover.proxy.provider.HDP50=org.apache.hadoop.hdfs.server.namenode.
 dfs.nameservices=HOME90,HDP50  
 ```
 
-### Running `distcp` from the Upper Cluster
+### Running `distcp` from the **UPPER** Cluster
+
+NOTE: Running `distcp` from the **LOWER** cluster isn't supported since the `hcfs client` is not forward compatible.
 
 Copy 'from' Lower Cluster
 
@@ -89,5 +92,3 @@ For table creation in the 'upper' clusters Metastore, a permissions check will b
 When the two clusters _share_ accounts and the same accounts are used between environment for users and service accounts, then access should be simple.
 
 When a different set of accounts are used, the 'principal' from the upper clusters service account for 'hive' and the 'user' principal will be used in the lower cluster.  Which means additional HDFS policies in the lower cluster may be required to support this cross environment work.
-
-#distcp #hdfs 
