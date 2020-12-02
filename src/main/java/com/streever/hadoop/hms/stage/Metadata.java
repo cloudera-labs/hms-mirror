@@ -31,15 +31,15 @@ public class Metadata implements Runnable {
     @Override
     public void run() {
         LOG.info(dbMirror.getDatabase() + "." + tblMirror.getName() + ": Metadata");
-        try {
-            config.getCluster(Environment.LOWER).getTableDefinition(dbMirror.getDatabase(), tblMirror);
+//        try {
+//            config.getCluster(Environment.LOWER).getTableDefinition(dbMirror.getDatabase(), tblMirror);
             config.getCluster(Environment.LOWER).buildTransferTableSchema(config, dbMirror, tblMirror);
             config.getCluster(Environment.LOWER).exportTransferSchema(config, dbMirror, tblMirror);
             config.getCluster(Environment.UPPER).importTransferSchema(config, dbMirror, tblMirror);
             successful = Boolean.TRUE;
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-            successful = Boolean.FALSE;
-        }
+//        } catch (SQLException throwables) {
+//            throwables.printStackTrace();
+//            successful = Boolean.FALSE;
+//        }
     }
 }

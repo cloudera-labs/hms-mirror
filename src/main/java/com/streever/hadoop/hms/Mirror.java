@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.streever.hadoop.hms.mirror.*;
 import com.streever.hadoop.hms.stage.CreateDatabases;
+import com.streever.hadoop.hms.stage.GetTableMetadata;
 import com.streever.hadoop.hms.stage.GetTables;
 import com.streever.hadoop.hms.stage.Metadata;
 import org.apache.commons.cli.*;
@@ -13,10 +14,14 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
+import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -27,6 +32,7 @@ public class Mirror {
     private String[] databases = null;
     private Config config = null;
     private String configFile = null;
+    private String reportOutputDir = null;
     private Stage stage = null;
 
     public void init(String[] args) {
@@ -75,6 +81,16 @@ public class Mirror {
             configFile = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/cfg/default.yaml";
         }
 
+        if (cmd.hasOption("o")) {
+            reportOutputDir = cmd.getOptionValue("o");
+        } else {
+            reportOutputDir = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/reports";
+        }
+        File reportDir = new File(reportOutputDir);
+        if (!reportDir.exists()) {
+            reportDir.mkdirs();
+        }
+
         File cfgFile = new File(configFile);
         if (!cfgFile.exists()) {
             throw new RuntimeException("Couldn't locate configuration file: " + configFile);
@@ -110,17 +126,29 @@ public class Mirror {
     }
 
     public void start() {
+        Conversion conversion = null;
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
         switch (stage) {
             case METADATA:
-                runMetadata();
+                conversion = runMetadata();
+                try {
+                    FileWriter reportFile = new FileWriter(reportOutputDir + System.getProperty("file.separator") + "hms-mirror-METADATA-" + df.format(new Date()) + ".md");
+                    reportFile.write(conversion.toReport());
+                    reportFile.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 break;
             case STORAGE:
                 LOG.info("WIP");
                 break;
         }
+        if (conversion != null) {
+
+        }
     }
 
-    public void runMetadata() {
+    public Conversion runMetadata() {
         Date startTime = new Date();
         LOG.info("Start Processing for databases: " + Arrays.toString((databases)));
         Conversion conversion = new Conversion();
@@ -153,9 +181,34 @@ public class Mirror {
                 break;
         }
 
+        LOG.info("Getting Table Metadata");
+        List<ScheduledFuture> tmdf = new ArrayList<ScheduledFuture>();
+        Set<String> collectedDbs = conversion.getDatabases().keySet();
+        for (String database: collectedDbs) {
+            DBMirror dbMirror = conversion.getDatabase(database);
+            Set<String> tables = dbMirror.getTableMirrors().keySet();
+            for (String table: tables) {
+                TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
+                GetTableMetadata tmd = new GetTableMetadata(config, dbMirror, tblMirror);
+                tmdf.add(getThreadPool().schedule(tmd,1,TimeUnit.MILLISECONDS));
+            }
+        }
+
+        while (true) {
+            boolean check = true;
+            for (ScheduledFuture sf : tmdf) {
+                if (!sf.isDone()) {
+                    check = false;
+                    break;
+                }
+            }
+            if (check)
+                break;
+        }
+
         LOG.info("Building/Starting Transition.");
         List<ScheduledFuture> mdf = new ArrayList<ScheduledFuture>();
-        Set<String> collectedDbs = conversion.getDatabases().keySet();
+//        Set<String> collectedDbs = conversion.getDatabases().keySet();
         for (String database: collectedDbs) {
             DBMirror dbMirror = conversion.getDatabase(database);
             Set<String> tables = dbMirror.getTableMirrors().keySet();
@@ -187,7 +240,9 @@ public class Mirror {
         Date endTime = new Date();
         DecimalFormat df = new DecimalFormat("#.###");
         df.setRoundingMode(RoundingMode.CEILING);
-        LOG.info("Completed in: " + df.format((Double)((endTime.getTime() - startTime.getTime())/(double)1000)) + " secs");
+        LOG.info("METADATA Completed in: " + df.format((Double)((endTime.getTime() - startTime.getTime())/(double)1000)) + " secs");
+
+        return conversion;
     }
 
     private Options getOptions() {
@@ -208,6 +263,11 @@ public class Mirror {
                 "Help");
         helpOption.setRequired(false);
         options.addOption(helpOption);
+
+        Option outputOption = new Option("o", "output-dir", false,
+                "Output Directory (default: $HOME/.hms-mirror/report/hms-mirror-<stage>-<timestamp>.md");
+        outputOption.setRequired(false);
+        options.addOption(outputOption);
 
         Option dbOption = new Option("db", "database", true,
                 "Comma separated list of Databases (upto 100).");

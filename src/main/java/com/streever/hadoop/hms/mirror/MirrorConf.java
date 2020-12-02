@@ -26,7 +26,8 @@ public class MirrorConf {
             "ALTER TABLE {0}.{1} UNSET TBLPROPERTIES (\"{2}\")";
     public static final String ALTER_TABLE_LOCATION =
             "ALTER TABLE {0}.{1} SET LOCATION \"{2}\"";
-    public static final String LEGACY_MANAGED_FLAG = "hiveMirror_LegacyManaged";
-    public static final String HMS_MIRROR_STAGE_ONE_FLAG = "hiveMirror_ConversionStage1";
+    public static final String LEGACY_MANAGED_FLAG = "hmsMirror_LegacyManaged";
+    public static final String HMS_MIRROR_STAGE_ONE_FLAG = "hmsMirror_ConversionStage1";
+    public static final String HMS_MIRROR_CONVERTED_FLAG = "hmsMirror_Converted";
 
 }

@@ -10,6 +10,15 @@ import java.util.TreeMap;
 public class TableMirror {
     private DBMirror database;
     private String name;
+    private boolean overwrite = Boolean.FALSE;
+    private boolean transitionCreated = Boolean.FALSE;
+    private boolean exportCreated = Boolean.FALSE;
+    private boolean existingTableDropped = Boolean.FALSE;
+    private boolean imported = Boolean.FALSE;
+    private boolean locationAdjusted = Boolean.FALSE;
+    private boolean discoverPartitions = Boolean.FALSE;
+    private List<String> issues = new ArrayList<String>();
+    private List<String> propAdd = new ArrayList<String>();
 
     public String getName() {
         return name;
@@ -20,6 +29,85 @@ public class TableMirror {
         this.name = tablename;
     }
 
+    public boolean isThereAnIssue() {
+        return issues.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
+    }
+
+    public boolean whereTherePropsAdded() {
+        return propAdd.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
+    }
+
+    public boolean isOverwrite() {
+        return overwrite;
+    }
+
+    public void setOverwrite(boolean overwrite) {
+        this.overwrite = overwrite;
+    }
+
+    public boolean isDiscoverPartitions() {
+        return discoverPartitions;
+    }
+
+    public void setDiscoverPartitions(boolean discoverPartitions) {
+        this.discoverPartitions = discoverPartitions;
+    }
+
+    public boolean isLocationAdjusted() {
+        return locationAdjusted;
+    }
+
+    public void setLocationAdjusted(boolean locationAdjusted) {
+        this.locationAdjusted = locationAdjusted;
+    }
+
+    public boolean isTransitionCreated() {
+        return transitionCreated;
+    }
+
+    public void setTransitionCreated(boolean transitionCreated) {
+        this.transitionCreated = transitionCreated;
+    }
+
+    public boolean isExportCreated() {
+        return exportCreated;
+    }
+
+    public void setExportCreated(boolean exportCreated) {
+        this.exportCreated = exportCreated;
+    }
+
+    public boolean isExistingTableDropped() {
+        return existingTableDropped;
+    }
+
+    public void setExistingTableDropped(boolean existingTableDropped) {
+        this.existingTableDropped = existingTableDropped;
+    }
+
+    public boolean isImported() {
+        return imported;
+    }
+
+    public void setImported(boolean imported) {
+        this.imported = imported;
+    }
+
+    public List<String> getIssues() {
+        return issues;
+    }
+
+    public List<String> getPropAdd() {
+        return propAdd;
+    }
+
+    public void addIssue(String issue) {
+        getIssues().add(issue);
+    }
+
+    public void addProp(String propAdd) {
+        getPropAdd().add(propAdd);
+    }
 
     // There are two environments (UPPER and LOWER)
     private Map<Environment, List<String>> tableDefinitions = new TreeMap<Environment, List<String>>();
