@@ -24,6 +24,9 @@ usage: hive-mirror
  -db,--database <arg>   Comma separated list of Databases (upto 100).
  -h,--help              Help
  -m,--metastore         Run HMS-Mirror Metadata
+ -o,--output-dir        Output Directory (default:
+                        $HOME/.hms-mirror/reports/hms-mirror-<stage>-<times
+                        tamp>.md
  -s,--storage           Run HMS-Mirror Storage
 ```
 

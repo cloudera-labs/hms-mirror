@@ -153,6 +153,11 @@ public class Cluster implements Comparable<Cluster> {
                     tblDef.add(resultSet.getString(1));
                 }
                 tableMirror.setTableDefinition(getEnvironment(), tblDef);
+                if (TableUtils.isACID(tableMirror.getName(), tblDef)) {
+                    tableMirror.setTransactional(Boolean.TRUE);
+                    tableMirror.addIssue("Transactional/ACID tables are NOT currently supported by 'hms-mirror'");
+                }
+
                 Boolean partitioned = TableUtils.isPartitioned(tableMirror.getName(), tblDef);
                 tableMirror.setPartitioned(getEnvironment(), partitioned);
                 if (partitioned) {

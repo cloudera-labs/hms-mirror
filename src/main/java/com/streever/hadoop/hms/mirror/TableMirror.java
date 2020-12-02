@@ -11,6 +11,7 @@ public class TableMirror {
     private DBMirror database;
     private String name;
     private boolean overwrite = Boolean.FALSE;
+    private boolean transactional = Boolean.FALSE;
     private boolean transitionCreated = Boolean.FALSE;
     private boolean exportCreated = Boolean.FALSE;
     private boolean existingTableDropped = Boolean.FALSE;
@@ -43,6 +44,14 @@ public class TableMirror {
 
     public void setOverwrite(boolean overwrite) {
         this.overwrite = overwrite;
+    }
+
+    public boolean isTransactional() {
+        return transactional;
+    }
+
+    public void setTransactional(boolean transactional) {
+        this.transactional = transactional;
     }
 
     public boolean isDiscoverPartitions() {

@@ -1,5 +1,7 @@
 package com.streever.hadoop.hms.mirror;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class Conversion {
@@ -34,7 +36,13 @@ public class Conversion {
     public String toReport() {
         StringBuilder sb = new StringBuilder();
         Set<String> databaseSet = databases.keySet();
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        sb.append("# hms-mirror\n");
+        sb.append(ReportingConf.substituteVariables("v.${Implementation-Version}")).append("\n");
+        sb.append("Run Date: " + df.format(new Date())).append("\n\n");
 
+        sb.append("**Legend**\n");
+        sb.append("- ACID - Transactional/ACID Table").append("\n");
         sb.append("- PC - Partition Count").append("\n");
         sb.append("- TC - Transition Table Created").append("\n");
         sb.append("- EC - Export Created").append("\n");
@@ -48,11 +56,12 @@ public class Conversion {
 
 
         for (String database : databaseSet) {
-            sb.append("# ").append(database).append("\n");
+            sb.append("## ").append(database).append("\n");
             DBMirror dbMirror = databases.get(database);
             sb.append("\n");
 
             sb.append("|").append(" Table ").append("|")
+                    .append(" ACID ").append("|")
                     .append(" PC ").append("|")
                     .append(" TC ").append("|")
                     .append(" EC ").append("|")
@@ -65,6 +74,7 @@ public class Conversion {
                     .append(" Issues ").append("|")
                     .append("\n");
             sb.append("|").append(":---").append("|")
+                    .append(":---:").append("|")
                     .append(":---:").append("|")
                     .append("---:").append("|")
                     .append(":---:").append("|")
@@ -79,6 +89,7 @@ public class Conversion {
             for (String table : tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
                 sb.append("|").append(table).append("|");
+                sb.append(tblMirror.isTransactional() ? "X":" ").append("|");
                 sb.append(tblMirror.getPartitionDefinition(Environment.LOWER) != null ?
                         tblMirror.getPartitionDefinition(Environment.LOWER).size() : " ").append("|");
                 sb.append(tblMirror.isTransitionCreated() ? "X" : " ").append("|");

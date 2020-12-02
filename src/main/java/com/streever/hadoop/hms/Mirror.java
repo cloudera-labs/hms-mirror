@@ -189,8 +189,10 @@ public class Mirror {
             Set<String> tables = dbMirror.getTableMirrors().keySet();
             for (String table: tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
-                GetTableMetadata tmd = new GetTableMetadata(config, dbMirror, tblMirror);
-                tmdf.add(getThreadPool().schedule(tmd,1,TimeUnit.MILLISECONDS));
+                if (!tblMirror.isTransactional()) {
+                    GetTableMetadata tmd = new GetTableMetadata(config, dbMirror, tblMirror);
+                    tmdf.add(getThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
+                }
             }
         }
 
@@ -214,8 +216,10 @@ public class Mirror {
             Set<String> tables = dbMirror.getTableMirrors().keySet();
             for (String table: tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
-                Metadata md = new Metadata(config, dbMirror, tblMirror);
-                mdf.add(getThreadPool().schedule(md,1,TimeUnit.MILLISECONDS));
+                if (!tblMirror.isTransactional()) {
+                    Metadata md = new Metadata(config, dbMirror, tblMirror);
+                    mdf.add(getThreadPool().schedule(md, 1, TimeUnit.MILLISECONDS));
+                }
             }
         }
 
@@ -265,7 +269,7 @@ public class Mirror {
         options.addOption(helpOption);
 
         Option outputOption = new Option("o", "output-dir", false,
-                "Output Directory (default: $HOME/.hms-mirror/report/hms-mirror-<stage>-<timestamp>.md");
+                "Output Directory (default: $HOME/.hms-mirror/reports/hms-mirror-<stage>-<timestamp>.md");
         outputOption.setRequired(false);
         options.addOption(outputOption);
 
