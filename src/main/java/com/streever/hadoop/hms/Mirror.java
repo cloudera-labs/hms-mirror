@@ -107,6 +107,13 @@ public class Mirror {
             t.printStackTrace();
         }
 
+        if (cmd.hasOption("dr")) {
+            LOG.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+            LOG.info("DRY-RUN has been set.  No ACTIONS will be performed, the process output will be recorded in the log.");
+            LOG.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+            config.setDryrun(Boolean.TRUE);
+        }
+
         ConnectionPools connPools = new ConnectionPools();
         connPools.addHiveServer2(Environment.LOWER, config.getCluster(Environment.LOWER).getHiveServer2());
         connPools.addHiveServer2(Environment.UPPER, config.getCluster(Environment.UPPER).getHiveServer2());
@@ -154,7 +161,7 @@ public class Mirror {
         Conversion conversion = new Conversion();
 //        ConcurrentLinkedQueue<DBMirror> dbQueue = new ConcurrentLinkedQueue<DBMirror>();
         List<ScheduledFuture> gtf = new ArrayList<ScheduledFuture>();
-        for (String database: databases) {
+        for (String database : databases) {
             DBMirror dbMirror = conversion.addDatabase(database);
             GetTables gt = new GetTables(config, dbMirror);
             gtf.add(getThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
@@ -184,10 +191,10 @@ public class Mirror {
         LOG.info("Getting Table Metadata");
         List<ScheduledFuture> tmdf = new ArrayList<ScheduledFuture>();
         Set<String> collectedDbs = conversion.getDatabases().keySet();
-        for (String database: collectedDbs) {
+        for (String database : collectedDbs) {
             DBMirror dbMirror = conversion.getDatabase(database);
             Set<String> tables = dbMirror.getTableMirrors().keySet();
-            for (String table: tables) {
+            for (String table : tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
                 if (!tblMirror.isTransactional()) {
                     GetTableMetadata tmd = new GetTableMetadata(config, dbMirror, tblMirror);
@@ -211,10 +218,10 @@ public class Mirror {
         LOG.info("Building/Starting Transition.");
         List<ScheduledFuture> mdf = new ArrayList<ScheduledFuture>();
 //        Set<String> collectedDbs = conversion.getDatabases().keySet();
-        for (String database: collectedDbs) {
+        for (String database : collectedDbs) {
             DBMirror dbMirror = conversion.getDatabase(database);
             Set<String> tables = dbMirror.getTableMirrors().keySet();
-            for (String table: tables) {
+            for (String table : tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
                 if (!tblMirror.isTransactional()) {
                     Metadata md = new Metadata(config, dbMirror, tblMirror);
@@ -244,7 +251,7 @@ public class Mirror {
         Date endTime = new Date();
         DecimalFormat df = new DecimalFormat("#.###");
         df.setRoundingMode(RoundingMode.CEILING);
-        LOG.info("METADATA Completed in: " + df.format((Double)((endTime.getTime() - startTime.getTime())/(double)1000)) + " secs");
+        LOG.info("METADATA Completed in: " + df.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
 
         return conversion;
     }
@@ -272,6 +279,11 @@ public class Mirror {
                 "Output Directory (default: $HOME/.hms-mirror/reports/hms-mirror-<stage>-<timestamp>.md");
         outputOption.setRequired(false);
         options.addOption(outputOption);
+
+        Option dryrunOption = new Option("dr", "dry-run", false,
+                "No actions are performed, just the output of the commands in the logs.");
+        dryrunOption.setRequired(false);
+        options.addOption(dryrunOption);
 
         Option dbOption = new Option("db", "database", true,
                 "Comma separated list of Databases (upto 100).");

@@ -1,0 +1,33 @@
+# Config
+dryrun: false
+transferDbPrefix: "transfer_"
+exportBaseDirPrefix: "/apps/hive/warehouse/export_"
+overwriteTable: "true"
+parallelism: 4
+clusters:
+  LOWER:
+    # Current EMR environment
+    legacyHive: "false"
+    hcfsNamespace: "s3a://my_team_bucket"
+    hiveServer2:
+      jarFile: "/Users/dstreev/.hms-mirror/aux_libs/ext/hive-jdbc-3.1.3000.7.1.4.0-203-standalone.jar"
+      uri: "jdbc:hive2://k02.streever.local:10000/perf_test"
+      # Optional when using Kerberos Auth (Requires Kerb Ticket)
+      connectionPropertites:
+        user: "dstreev"
+        password: "my-password"
+  UPPER:
+    legacyHive: "false"
+    hcfsNamespace: "s3a://my_team_bucket"
+    partitionDiscovery:
+      # Addition HMS configuration needed for this "discover.partitions"="true"
+      #     Set by default on IMPORT EXTERNAL.
+      auto: true
+      initMSCK: true
+    hiveServer2:
+      jarFile: "/Users/dstreev/.hms-mirror/aux_libs/ext/hive-jdbc-3.1.3000.7.1.4.0-203-standalone.jar"
+      uri: "jdbc:hive2://s03.streever.local:8443/perf_test;ssl=true;transportMode=http;httpPath=gateway/cdp-proxy-api/hive;sslTrustStore=/Users/dstreev/bin/certs/gateway-client-trust.jks;trustStorePassword=changeit"
+      # Optional when using Kerberos Auth (Requires Kerb Ticket)
+      connectionProperties:
+        user: "dstreev"
+        password: "my-password"

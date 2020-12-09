@@ -1,17 +1,35 @@
 package com.streever.hadoop.hms.mirror;
 
+import com.streever.hadoop.hms.Mirror;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
 public class Config {
 
+    private static Logger LOG = LogManager.getLogger(Mirror.class);
+
+    private boolean dryrun = Boolean.FALSE;
     private String transferDbPrefix = "transfer_";
     private String exportBaseDirPrefix = "/apps/hive/warehouse/export_";
     private boolean overwriteTable = Boolean.TRUE;
     private Integer parallelism = 4; // Default
 
     private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
+
+    public boolean isDryrun() {
+        if (dryrun) {
+            LOG.debug("Dry-run: ON");
+        }
+        return dryrun;
+    }
+
+    public void setDryrun(boolean dryrun) {
+        this.dryrun = dryrun;
+    }
 
     public String getTransferDbPrefix() {
         return transferDbPrefix;

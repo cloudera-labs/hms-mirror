@@ -38,10 +38,10 @@ public class CreateDatabases implements Runnable {
         for (String database : databases) {
             if (transition) {
                 LOG.debug("Creating (LOWER) Transition Database: " + database);
-                config.getCluster(Environment.LOWER).createDatabase(config.getTransferDbPrefix() + database);
+                config.getCluster(Environment.LOWER).createDatabase(config, config.getTransferDbPrefix() + database);
             } else {
                 LOG.debug("Creating (UPPER) Database: " + database);
-                config.getCluster(Environment.UPPER).createDatabase(database);
+                config.getCluster(Environment.UPPER).createDatabase(config, database);
             }
         }
         successful = Boolean.TRUE;
