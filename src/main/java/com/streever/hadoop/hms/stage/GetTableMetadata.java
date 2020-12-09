@@ -37,7 +37,7 @@ public class GetTableMetadata implements Runnable {
 
     @Override
     public void run() {
-        LOG.info(dbMirror.getDatabase() + ":Get Tables");
+        LOG.debug("Getting table definition for: " + dbMirror.getDatabase() + "." + tblMirror.getName());
         try {
             config.getCluster(Environment.LOWER).getTableDefinition(dbMirror.getDatabase(), tblMirror);
             config.getCluster(Environment.UPPER).getTableDefinition(dbMirror.getDatabase(), tblMirror);

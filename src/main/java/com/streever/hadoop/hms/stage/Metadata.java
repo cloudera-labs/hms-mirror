@@ -9,6 +9,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.sql.SQLException;
+import java.util.Date;
 
 public class Metadata implements Runnable {
     private static Logger LOG = LogManager.getLogger(Metadata.class);
@@ -30,16 +31,14 @@ public class Metadata implements Runnable {
 
     @Override
     public void run() {
-        LOG.info(dbMirror.getDatabase() + "." + tblMirror.getName() + ": Metadata");
-//        try {
-//            config.getCluster(Environment.LOWER).getTableDefinition(dbMirror.getDatabase(), tblMirror);
-            config.getCluster(Environment.LOWER).buildTransferTableSchema(config, dbMirror, tblMirror);
-            config.getCluster(Environment.LOWER).exportTransferSchema(config, dbMirror, tblMirror);
-            config.getCluster(Environment.UPPER).importTransferSchema(config, dbMirror, tblMirror);
-            successful = Boolean.TRUE;
-//        } catch (SQLException throwables) {
-//            throwables.printStackTrace();
-//            successful = Boolean.FALSE;
-//        }
+        Date start = new Date();
+        LOG.info("METADATA: Migrating " + dbMirror.getDatabase() + "." + tblMirror.getName());
+        config.getCluster(Environment.LOWER).buildTransferTableSchema(config, dbMirror, tblMirror);
+        config.getCluster(Environment.LOWER).exportTransferSchema(config, dbMirror, tblMirror);
+        config.getCluster(Environment.UPPER).importTransferSchema(config, dbMirror, tblMirror);
+        successful = Boolean.TRUE;
+        Date end = new Date();
+        LOG.info("METADATA: Migration complete for " + dbMirror.getDatabase() + "." + tblMirror.getName() + " in " +
+                Long.toString(end.getTime() - start.getTime()) + "ms");
     }
 }

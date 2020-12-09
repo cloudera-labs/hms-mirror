@@ -64,12 +64,10 @@ public class Mirror {
 
         if (cmd.hasOption("m")) {
             stage = Stage.METADATA;
-            System.out.println("Running Metadata");
-            LOG.info("Running Metadata");
+            LOG.info("Running METADATA");
         } else if (cmd.hasOption("s")) {
             stage = Stage.STORAGE;
-            System.out.println("Running Storage");
-            LOG.info("Running Storage");
+            LOG.info("Running STORAGE");
         } else {
             throw new RuntimeException("Need to specify a 'stage'");
         }
@@ -139,15 +137,25 @@ public class Mirror {
             case METADATA:
                 conversion = runMetadata();
                 try {
-                    FileWriter reportFile = new FileWriter(reportOutputDir + System.getProperty("file.separator") + "hms-mirror-METADATA-" + df.format(new Date()) + ".md");
+                    String reportFileStr = reportOutputDir + System.getProperty("file.separator") + "hms-mirror-METADATA-" + df.format(new Date()) + ".md";
+                    FileWriter reportFile = new FileWriter(reportFileStr);
                     reportFile.write(conversion.toReport());
                     reportFile.close();
+                    LOG.info("Status Report of 'hms-mirror' is here: " + reportFileStr.toString());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 break;
             case STORAGE:
                 LOG.info("WIP");
+                // Need to run the METADATA process first to ensure the schemas are CURRENT.
+                // Then run the STORAGE (transfer) stage.
+                // NOTE: When the hcfsNamespace is the same between the clusters, that means they are using the
+                //          same location (cloud storage) between the clusters.
+                //          In this case, don't move any data, BUT we do need to change the source and target table
+                //              definitions to show that legacy managed traits transfer to the upper cluster.
+                //              So, for the lower cluster the table should be converted to EXTERNAL and the UPPER
+                //                  cluster should be set to 'external.table.purge'='true'
                 break;
         }
         if (conversion != null) {
@@ -157,15 +165,14 @@ public class Mirror {
 
     public Conversion runMetadata() {
         Date startTime = new Date();
-        LOG.info("Start Processing for databases: " + Arrays.toString((databases)));
+        LOG.info(">>>>>>>>>>> Start Processing for databases: " + Arrays.toString((databases)));
         Conversion conversion = new Conversion();
-//        ConcurrentLinkedQueue<DBMirror> dbQueue = new ConcurrentLinkedQueue<DBMirror>();
+
         List<ScheduledFuture> gtf = new ArrayList<ScheduledFuture>();
         for (String database : databases) {
             DBMirror dbMirror = conversion.addDatabase(database);
             GetTables gt = new GetTables(config, dbMirror);
             gtf.add(getThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
-//            dbQueue.add(dbMirror);
         }
 
         // Need to Create LOWER/UPPER Cluster Db(s).
@@ -188,7 +195,7 @@ public class Mirror {
                 break;
         }
 
-        LOG.info("Getting Table Metadata");
+        LOG.info(">>>>>>>>>>> Getting Table Metadata");
         List<ScheduledFuture> tmdf = new ArrayList<ScheduledFuture>();
         Set<String> collectedDbs = conversion.getDatabases().keySet();
         for (String database : collectedDbs) {
@@ -215,7 +222,7 @@ public class Mirror {
                 break;
         }
 
-        LOG.info("Building/Starting Transition.");
+        LOG.info(">>>>>>>>>>> Building/Starting Transition.");
         List<ScheduledFuture> mdf = new ArrayList<ScheduledFuture>();
 //        Set<String> collectedDbs = conversion.getDatabases().keySet();
         for (String database : collectedDbs) {
@@ -230,7 +237,7 @@ public class Mirror {
             }
         }
 
-        LOG.info("Starting Transfer.");
+        LOG.info(">>>>>>>>>>> Starting Transfer.");
 
         while (true) {
             boolean check = true;

@@ -35,7 +35,7 @@ public class GetTables implements Runnable {
 
     @Override
     public void run() {
-        LOG.info(dbMirror.getDatabase() + ":Get Tables");
+        LOG.debug("Getting table for: " +dbMirror.getDatabase());
         try {
             config.getCluster(Environment.LOWER).getTables(dbMirror);
             successful = Boolean.TRUE;

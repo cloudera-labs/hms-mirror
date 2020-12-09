@@ -33,7 +33,7 @@ public class CreateDatabases implements Runnable {
 
     @Override
     public void run() {
-        LOG.info("Create Databases");
+        LOG.debug("Create Databases");
         Set<String> databases = conversion.getDatabases().keySet();
         for (String database : databases) {
             if (transition) {

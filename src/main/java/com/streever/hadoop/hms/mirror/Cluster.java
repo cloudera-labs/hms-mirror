@@ -96,7 +96,7 @@ public class Cluster implements Comparable<Cluster> {
         try {
             conn = getConnection();
 
-            LOG.info(getEnvironment() + ":" + dbMirror.getDatabase() + ": Loading tables for database");
+            LOG.debug(getEnvironment() + ":" + dbMirror.getDatabase() + ": Loading tables for database");
 
             Statement stmt = null;
             ResultSet resultSet = null;
@@ -144,7 +144,7 @@ public class Cluster implements Comparable<Cluster> {
             ResultSet resultSet = null;
             try {
                 stmt = conn.createStatement();
-                LOG.info(getEnvironment() + ":" + database + "." + tableMirror.getName() +
+                LOG.debug(getEnvironment() + ":" + database + "." + tableMirror.getName() +
                         ": Loading Table Definition");
                 resultSet = stmt.executeQuery(MessageFormat.format(MirrorConf.SHOW_CREATE_TABLE, database, tableMirror.getName()));
                 List<String> tblDef = new ArrayList<String>();
@@ -197,7 +197,7 @@ public class Cluster implements Comparable<Cluster> {
             ResultSet resultSet = null;
             try {
                 stmt = conn.createStatement();
-                LOG.info(getEnvironment() + ":" + database + "." + tableMirror.getName() +
+                LOG.debug(getEnvironment() + ":" + database + "." + tableMirror.getName() +
                         ": Loading Partitions");
 
                 resultSet = stmt.executeQuery(MessageFormat.format(MirrorConf.SHOW_PARTITIONS, database, tableMirror.getName()));
@@ -240,7 +240,7 @@ public class Cluster implements Comparable<Cluster> {
         try {
             conn = getConnection();
 
-            LOG.info(getEnvironment() + ":" + database + "." + tableName +
+            LOG.debug(getEnvironment() + ":" + database + "." + tableName +
                     ": Building Transfer Schema");
             try {
                 stmt = conn.createStatement();
@@ -276,7 +276,7 @@ public class Cluster implements Comparable<Cluster> {
                     config.getTransferDbPrefix() + dbMirror.getDatabase(), tblMirror.getName(),
                     dbMirror.getDatabase(), tblMirror.getName());
 
-            LOG.info(getEnvironment() + ":" + database + "." + tableName +
+            LOG.debug(getEnvironment() + ":" + database + "." + tableName +
                     ": Creating transfer schema for table");
             LOG.debug(getEnvironment() + "(SQL)" + transferCreateTable);
             try {
@@ -344,7 +344,7 @@ public class Cluster implements Comparable<Cluster> {
             String database = dbMirror.getDatabase();
             String tableName = tblMirror.getName();
 
-            LOG.info(getEnvironment() + ":" + config.getTransferDbPrefix() + database + "." + tableName +
+            LOG.debug(getEnvironment() + ":" + config.getTransferDbPrefix() + database + "." + tableName +
                     ": Exporting Transfer Schema");
 
             try {
@@ -359,7 +359,7 @@ public class Cluster implements Comparable<Cluster> {
 
             // Get the definition for this environment.
             List<String> tblDef = tblMirror.getTableDefinition(getEnvironment());
-            LOG.info(getEnvironment() + ":" + config.getTransferDbPrefix() + database + "." +
+            LOG.debug(getEnvironment() + ":" + config.getTransferDbPrefix() + database + "." +
                     tableName + ": Exporting Table to " + config.getCluster(Environment.LOWER).hcfsNamespace + config.getExportBaseDirPrefix() + database + "/" + tableName);
             String exportTransferSchema = MessageFormat.format(MirrorConf.EXPORT_TABLE,
                     config.getTransferDbPrefix() + database, tableName,
@@ -402,7 +402,7 @@ public class Cluster implements Comparable<Cluster> {
             conn = getConnection();
 
 
-            LOG.info(getEnvironment() + " - Create Database: " +
+            LOG.debug(getEnvironment() + " - Create Database: " +
                     database);
 
             Statement stmt = null;
@@ -417,7 +417,7 @@ public class Cluster implements Comparable<Cluster> {
                 // CREATE DB.
                 String createDb = MessageFormat.format(MirrorConf.CREATE_DB, database);
                 try {
-                    LOG.info(createDb);
+                    LOG.debug(createDb);
                     if (!config.isDryrun())
                         stmt.execute(createDb);
                 } catch (SQLException throwables) {
@@ -458,7 +458,7 @@ public class Cluster implements Comparable<Cluster> {
                 String database = dbMirror.getDatabase();
                 String tableName = tblMirror.getName();
 
-                LOG.info(getEnvironment() + ":" + database + "." + tableName + ": Importing Transfer Schema");
+                LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Importing Transfer Schema");
 
                 try {
                     stmt = conn.createStatement();
@@ -484,7 +484,7 @@ public class Cluster implements Comparable<Cluster> {
                 if (config.isOverwriteTable()) {
                     // Check if table exist.
                     if (tblMirror.getTableDefinition(Environment.UPPER) != null) {
-                        LOG.info(getEnvironment() + ":" + database + "." + tableName + ": Overwrite ON: Dropping table (if exists)");
+                        LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Overwrite ON: Dropping table (if exists)");
                         tblMirror.setOverwrite(Boolean.TRUE);
                         // Table Exists.
                         // Check that it was put there by 'hms-mirror'.  If not, we won't replace it.
@@ -525,7 +525,7 @@ public class Cluster implements Comparable<Cluster> {
 
                             }
 
-                            LOG.info(getEnvironment() + ":" + database + "." + tableName + ": Dropping table");
+                            LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Dropping table");
                             // It was created by HMS Mirror, safe to drop.
                             String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
                             LOG.debug(getEnvironment() + "(SQL)" + dropTable);
@@ -567,7 +567,7 @@ public class Cluster implements Comparable<Cluster> {
 
                 // Get the definition for this environment.
                 List<String> tblDef = tblMirror.getTableDefinition(getEnvironment());
-                LOG.info(getEnvironment() + ":" + database + "." + tableName + ": Importing Table from " +
+                LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Importing Table from " +
                         config.getCluster(Environment.LOWER).getHcfsNamespace() + config.getExportBaseDirPrefix() + database + "/" + tableName);
 
                 String importTransferSchema = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE,
@@ -590,7 +590,7 @@ public class Cluster implements Comparable<Cluster> {
                 // Alter Table Data Location back to the original table.
                 String originalLocation = TableUtils.getLocation(tableName, tblMirror.getTableDefinition(Environment.LOWER));
                 String alterTableLocSql = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, database, tableName, originalLocation);
-                LOG.info(getEnvironment() + ":" + database + "." + tableName + ": Altering table Location to original table in lower cluster");
+                LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Altering table Location to original table in lower cluster");
                 LOG.debug(getEnvironment() + "(SQL)" + alterTableLocSql);
                 try {
                     if (!config.isDryrun())
@@ -606,7 +606,7 @@ public class Cluster implements Comparable<Cluster> {
                 String flagDate = df.format(new Date());
                 String hmsMirrorFlagStage1 = MessageFormat.format(MirrorConf.ADD_TBL_PROP, database, tblMirror.getName(),
                         MirrorConf.HMS_MIRROR_STAGE_ONE_FLAG, flagDate);
-                LOG.info(getEnvironment() + ":" + database + "." + tableName +
+                LOG.debug(getEnvironment() + ":" + database + "." + tableName +
                         ": Setting table property to identify as 'Stage-1' conversion.");
                 LOG.debug(getEnvironment() + "(SQL)" + hmsMirrorFlagStage1);
                 try {
@@ -622,7 +622,7 @@ public class Cluster implements Comparable<Cluster> {
 
                 String hmsMirrorConverted = MessageFormat.format(MirrorConf.ADD_TBL_PROP, database, tblMirror.getName(),
                         MirrorConf.HMS_MIRROR_CONVERTED_FLAG, "true");
-                LOG.info(getEnvironment() + ":" + database + "." + tableName +
+                LOG.debug(getEnvironment() + ":" + database + "." + tableName +
                         ": Setting table property to identify as 'hms-mirror' converted");
                 LOG.debug(getEnvironment() + "(SQL)" + hmsMirrorConverted);
                 try {
@@ -645,7 +645,7 @@ public class Cluster implements Comparable<Cluster> {
                     //       When the tables are imported, the setting is automatically added in CDP 7.1.4
 
                     if (this.getPartitionDiscovery().getInitMSCK()) {
-                        LOG.info(getEnvironment() + ":" + database + "." + tableName +
+                        LOG.debug(getEnvironment() + ":" + database + "." + tableName +
                                 ": Discovering " + tblMirror.getPartitionDefinition(Environment.LOWER).size() + " partitions");
                         String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, database, tblMirror.getName());
                         LOG.debug(getEnvironment() + "(SQL)" + msckStmt);

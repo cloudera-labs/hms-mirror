@@ -138,7 +138,7 @@ public class Conversion {
             }
         }
         sb.append("\tTables    : " + tables).append("\n");
-        sb.append("\tPartitions: " + partitions).append("\n");
+        sb.append("\tPartitions: " + partitions);
 
         return sb.toString();
     }

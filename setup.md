@@ -10,9 +10,9 @@ Produces a 'tarball' that can be distributed.  Copy the `target/hms-mirror-<vers
 
 ### Obtaining Pre-Built Binary
 
-** WIP **
+[![Download the LATEST Binary](./images/download.png)](https://github.com/dstreev/hms-mirror/releases)
 
-## HMS-Mirror Setup
+## HMS-Mirror Setup from Binary Distribution
 
 On the edgenode:
 - Expand the tarball `tar zxvf hms-mirror-<version>-dist.tar.gz`.  
