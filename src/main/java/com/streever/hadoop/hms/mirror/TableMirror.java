@@ -2,10 +2,9 @@ package com.streever.hadoop.hms.mirror;
 
 import com.streever.hadoop.hms.util.TableUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class TableMirror {
     private DBMirror database;
@@ -122,6 +121,56 @@ public class TableMirror {
     private Map<Environment, List<String>> tableDefinitions = new TreeMap<Environment, List<String>>();
     private Map<Environment, Boolean> tablePartitioned = new TreeMap<Environment, Boolean>();
     private Map<Environment, List<String>> tablePartitions = new TreeMap<Environment, List<String>>();
+
+    public boolean buildUpperSchema() {
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        List<String> lowerTD = tableDefinitions.get(Environment.LOWER);
+        List<String> upperTD = new ArrayList<String>();
+        // Copy lower table definition to upper table def.
+        upperTD.addAll(lowerTD);
+
+        // Rules
+        // 1. Strip db from create state.  It's broken anyway with the way
+        //      the quotes are.  And we're setting the target db in the context anyways.
+        TableUtils.stripDatabase(this.getName(), upperTD);
+
+        // 1. If Managed, convert to EXTERNAL
+        Boolean converted = TableUtils.makeExternal(this.getName(), upperTD);
+        // 2. Set mirror stage one flag
+        TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_STAGE_ONE_FLAG, df.format(new Date()), upperTD);
+        // 3. setting legacy flag - At a later date, we'll convert this to
+        //     'external.table.purge'='true'
+        if (converted)
+            TableUtils.upsertTblProperty(MirrorConf.LEGACY_MANAGED_FLAG, converted.toString(), upperTD);
+        // 4. identify this table as being converted by hms-mirror
+        TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, Boolean.TRUE.toString(), upperTD);
+        // 5. Location Adjustments
+        //    Since we are looking at the same data as the original, we're not changing this now.
+        //    Any changes to data location are a part of stage-2 (STORAGE).
+
+        this.setTableDefinition(Environment.UPPER, upperTD);
+
+        return Boolean.TRUE;
+    }
+
+    public String getCreateStatement(Environment environment) {
+        StringBuilder createStatement = new StringBuilder();
+        List<String> tblDef = this.getTableDefinition(environment);
+        if (tblDef != null) {
+            Iterator<String> iter = tblDef.iterator();
+            while (iter.hasNext()) {
+                String line = iter.next();
+                createStatement.append(line);
+                if (iter.hasNext()) {
+                    createStatement.append("\n");
+                }
+            }
+        } else {
+            throw new RuntimeException("Couldn't location definition for table: " + getName() +
+                    " in environment: " + environment.toString());
+        }
+        return createStatement.toString();
+    }
 
     // TODO: Partitions
     public void setPartitioned(Environment environment, Boolean partitioned) {

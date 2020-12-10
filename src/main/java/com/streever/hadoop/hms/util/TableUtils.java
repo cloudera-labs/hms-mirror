@@ -10,6 +10,7 @@ import java.util.List;
 public class TableUtils {
     private static Logger LOG = LogManager.getLogger(TableUtils.class);
 
+    public static final String CREATE = "CREATE";
     public static final String CREATE_TABLE = "CREATE TABLE";
     public static final String CREATE_EXTERNAL_TABLE = "CREATE EXTERNAL TABLE";
     public static final String PARTITIONED_BY = "PARTITIONED BY";
@@ -37,6 +38,42 @@ public class TableUtils {
             if (line.startsWith(CREATE_TABLE)) {
                 rtn = Boolean.TRUE;
                 break;
+            }
+        }
+        return rtn;
+    }
+
+    public static void stripDatabase(String tableName, List<String> tableDefinition) {
+        for (String line: tableDefinition) {
+            if (line.startsWith(CREATE)) {
+                int indexCT = tableDefinition.indexOf(line);
+                // Split on the period between the db and table
+                String[] parts = line.split("\\.");
+                if (parts.length == 2) {
+                    // Now split on the `
+                    String[] parts01 = parts[0].split("`");
+                    if (parts01.length == 2) {
+                        String newCreate = parts01[0] + "`" + parts[1];
+                        tableDefinition.set(indexCT, newCreate);
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    public static Boolean makeExternal(String tableName, List<String> tableDefinition) {
+        Boolean rtn = Boolean.FALSE;
+        if (isManaged(tableName, tableDefinition)) {
+            LOG.debug("Converting table: " + tableName + " to EXTERNAL");
+            for (String line: tableDefinition) {
+                if (line.startsWith(CREATE_TABLE)) {
+                    int indexCT = tableDefinition.indexOf(line);
+                    String cet = line.replace(CREATE_TABLE, CREATE_EXTERNAL_TABLE);
+                    tableDefinition.set(indexCT, cet);
+                    rtn = Boolean.TRUE;
+                    break;
+                }
             }
         }
         return rtn;
@@ -159,26 +196,37 @@ public class TableUtils {
         return rtn;
     }
 
-    public static void updateTblProperty(String key, String value, List<String> tableDefinition) {
+    public static void upsertTblProperty(String key, String value, List<String> tableDefinition) {
         // Search for property first.
         int tpIdx = tableDefinition.indexOf(TBL_PROPERTIES);
-
-        for (int i = tpIdx + 1; i < tableDefinition.size() - 1; i++) {
-            String line = tableDefinition.get(i).trim();
-            String[] checkProperty = line.split("=");
-            String checkKey = checkProperty[0].replace("'", "");
-            if (checkKey.equals(key)) {
-                // Found existing Property, replace it.
-                tableDefinition.remove(i);
-                StringBuilder sb = new StringBuilder();
-                sb.append("'").append(key).append("'='");
-                sb.append(value).append("'");
-                if (line.trim().endsWith(",")) {
-                    sb.append(",");
+        if (tpIdx != -1) {
+            boolean found = false;
+            for (int i = tpIdx + 1; i < tableDefinition.size() - 1; i++) {
+                String line = tableDefinition.get(i).trim();
+                String[] checkProperty = line.split("=");
+                String checkKey = checkProperty[0].replace("'", "");
+                if (checkKey.equals(key)) {
+                    // Found existing Property, replace it.
+                    tableDefinition.remove(i);
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("'").append(key).append("'='");
+                    sb.append(value).append("'");
+                    if (line.trim().endsWith(",")) {
+                        sb.append(",");
+                    }
+                    tableDefinition.add(i, sb.toString());
+                    found = true;
+                    break;
                 }
-                tableDefinition.add(i, sb.toString());
-                break;
             }
+            if (!found) {
+                // Add Property.
+                String newProp = "'" + key + "'='" + value + "',";
+                tableDefinition.add(tpIdx + 1, newProp);
+            }
+        } else {
+            // TODO: Need to be more aggressive here with this error
+            LOG.error("Issue locating TBLPROPERTIES for table");
         }
     }
 

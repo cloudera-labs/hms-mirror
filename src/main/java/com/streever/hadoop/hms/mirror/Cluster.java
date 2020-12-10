@@ -446,6 +446,209 @@ public class Cluster implements Comparable<Cluster> {
         }
     }
 
+    protected Boolean checkAndDoOverwrite(Statement stmt, Config config, DBMirror dbMirror, TableMirror tblMirror) {
+        Boolean rtn = Boolean.TRUE;
+
+        String database = dbMirror.getDatabase();
+        String tableName = tblMirror.getName();
+
+        // Check if we should overwrite existing table.
+        if (config.isOverwriteTable()) {
+            // Check if table exist.
+            if (tblMirror.getTableDefinition(Environment.UPPER) != null) {
+                LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Overwrite ON: Dropping table (if exists)");
+                tblMirror.setOverwrite(Boolean.TRUE);
+                // Table Exists.
+                // Check that it was put there by 'hms-mirror'.  If not, we won't replace it.
+                if (TableUtils.isHMSConverted(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
+                    // Check if the table has been converted to an ACID table.
+                    if (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
+                        String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Has been converted to " +
+                                "a 'transactional' table.  And isn't safe to drop before re-importing. " +
+                                "Review the table and remove manually before running process again.";
+                        tblMirror.addIssue(errorMsg);
+                        LOG.error(errorMsg);
+                        // No need to continue.
+                        rtn = Boolean.FALSE;
+                    }
+                    // Check if the table is "Managing" data.  If so, we can't safety drop the table without effecting
+                    // the data.
+                    if (!TableUtils.isHive3Standard(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
+                        String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Is a 'Managed Non-Transactional' " +
+                                "which is a non-standard configuration in Hive 3.  Regardless, the data is " +
+                                "managed and it's not safe to proceed with converting this table. " +
+                                "Review the table and remove manually before running process again.";
+                        tblMirror.addIssue(errorMsg);
+                        LOG.error(errorMsg);
+                        // No need to continue.
+                        rtn = Boolean.FALSE;
+                    }
+
+                    // Ensure the table purge flag hasn't been set.
+                    if (TableUtils.isExternalPurge(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
+                        String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Is a 'Purge' " +
+                                "enabled 'EXTERNAL' table.  The data is " +
+                                "managed and it's not safe to proceed with converting this table. " +
+                                "Review the table and remove manually before running process again.";
+                        tblMirror.addIssue(errorMsg);
+                        LOG.error(errorMsg);
+                        // No need to continue.
+                        rtn = Boolean.FALSE;
+                    }
+
+                    LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Dropping table");
+                    // It was created by HMS Mirror, safe to drop.
+                    String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
+                    LOG.debug(getEnvironment() + "(SQL)" + dropTable);
+                    try {
+                        if (!config.isDryrun())
+                            stmt.execute(dropTable);
+                        tblMirror.setExistingTableDropped(Boolean.TRUE);
+                    } catch (SQLException throwables) {
+                        String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": DROP Table";
+                        tblMirror.addIssue(errorMsg + throwables.getMessage());
+                        LOG.error(errorMsg, throwables);
+                        // No need to continue.
+                        rtn = Boolean.FALSE;
+                    }
+                } else {
+                    // It was NOT created by HMS Mirror.  The table will need to be manually dropped after review.
+                    // No need to continue.
+                    String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Was NOT originally " +
+                            "created by the 'hms-mirror' process and isn't safe to proceed. " +
+                            "The table will need to be reviewed and dropped manually and the process run again.";
+                    tblMirror.addIssue(errorMsg);
+                    LOG.error(errorMsg);
+                    rtn = Boolean.FALSE;
+                }
+            }
+
+        } else {
+            if (tblMirror.getTableDefinition(Environment.UPPER) != null) {
+                // Overwrite is not on and table exists.  Skip.
+                String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Exists already " +
+                        "and the 'overwrite' flag isn't set.  This import was NOT done. ";
+                tblMirror.addIssue(errorMsg);
+                LOG.error(errorMsg);
+                // No need to continue.
+                rtn = Boolean.FALSE;
+            }
+        }
+        return rtn;
+    }
+
+    public void importSchema(Config config, DBMirror dbMirror, TableMirror tblMirror) {
+        // Open the connection and ensure we are running this on the "UPPER" cluster.
+        if (this.getEnvironment() == Environment.UPPER) {
+            Connection conn = null;
+            Statement stmt = null;
+            ResultSet resultSet = null;
+            try {
+                conn = getConnection();
+
+                String database = dbMirror.getDatabase();
+                String tableName = tblMirror.getName();
+
+                LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Importing Transfer Schema");
+
+                try {
+                    stmt = conn.createStatement();
+                } catch (SQLException throwables) {
+                    LOG.error("Issue building statement", throwables);
+                    tblMirror.addIssue("Issue building statement: " + throwables.getMessage());
+                    return;
+                }
+
+                // Set db context;
+                String useDb = MessageFormat.format(MirrorConf.USE, database);
+                try {
+                    LOG.debug(useDb);
+                    if (!config.isDryrun())
+                        stmt.execute(useDb);
+                } catch (SQLException throwables) {
+                    LOG.error("USE DB", throwables);
+                    tblMirror.addIssue("(SQL)" + useDb + throwables.getMessage());
+                    return;
+                }
+
+                if (!checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
+                    // Stop processing
+                    return;
+                }
+
+                Boolean buildUpper = tblMirror.buildUpperSchema();
+
+                // Get the Create State for this environment.
+                String createTable = tblMirror.getCreateStatement(this.getEnvironment());
+                LOG.debug(getEnvironment() + "(SQL)" + createTable);
+                try {
+                    if (!config.isDryrun())
+                        stmt.execute(createTable);
+                    tblMirror.setImported(Boolean.TRUE);
+                } catch (SQLException throwables) {
+                    String errorMsg = getEnvironment() + ":" + database + "." +
+                            tableName + ": Issue creating table";
+                    tblMirror.addIssue(errorMsg + ": " + throwables.getMessage());
+                    LOG.error(errorMsg, throwables);
+
+                }
+
+                // Need to check if table is partitioned
+                if (TableUtils.isPartitioned(tableName, tblMirror.getTableDefinition(Environment.LOWER))) {
+
+                    // TODO: Address the "discover.partitions"="true" setting.  We have it in the configs, but something
+                    //       else needs to be configured in CDP for it to be picked up.
+                    //       When the tables are imported, the setting is automatically added in CDP 7.1.4
+
+                    if (this.getPartitionDiscovery().getInitMSCK()) {
+                        LOG.debug(getEnvironment() + ":" + database + "." + tableName +
+                                ": Discovering " + tblMirror.getPartitionDefinition(Environment.LOWER).size() + " partitions");
+                        String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, database, tblMirror.getName());
+                        LOG.debug(getEnvironment() + "(SQL)" + msckStmt);
+                        try {
+                            if (!config.isDryrun())
+                                stmt.execute(msckStmt);
+                            tblMirror.setDiscoverPartitions(Boolean.TRUE);
+                        } catch (SQLException throwables) {
+                            String errorMsg = getEnvironment() + ":" + database + "." + tableName +
+                                    ": Issue discovering partitions, data may not be available for new table";
+                            tblMirror.addIssue(errorMsg + ": " + throwables.getMessage());
+                            LOG.error(errorMsg, throwables);
+                        }
+                    } else {
+                        String msg = getEnvironment() + ":" + database + "." + tableName + ": Has " + tblMirror.getPartitionDefinition(Environment.LOWER).size() +
+                                " partitions.  Data may not be available until the partition metadata is rebuilt.";
+                        tblMirror.addIssue(msg);
+                        LOG.info(msg);
+                    }
+                }
+            } catch (SQLException throwables) {
+                LOG.error("Issue", throwables);
+            } catch (RuntimeException throwables) {
+                LOG.error("Issue", throwables);
+            } finally {
+                try {
+                    if (resultSet != null)
+                        resultSet.close();
+                } catch (SQLException sqlException) {
+                    // ignore
+                }
+                try {
+                    if (stmt != null)
+                        stmt.close();
+                } catch (SQLException sqlException) {
+                    // ignore
+                }
+                try {
+                    if (conn != null)
+                        conn.close();
+                } catch (SQLException throwables) {
+                    //
+                }
+            }
+        }
+    }
+
     public void importTransferSchema(Config config, DBMirror dbMirror, TableMirror tblMirror) {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         if (this.getEnvironment() == Environment.UPPER) {
@@ -480,89 +683,9 @@ public class Cluster implements Comparable<Cluster> {
                     return;
                 }
 
-                // Check if we should overwrite existing table.
-                if (config.isOverwriteTable()) {
-                    // Check if table exist.
-                    if (tblMirror.getTableDefinition(Environment.UPPER) != null) {
-                        LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Overwrite ON: Dropping table (if exists)");
-                        tblMirror.setOverwrite(Boolean.TRUE);
-                        // Table Exists.
-                        // Check that it was put there by 'hms-mirror'.  If not, we won't replace it.
-                        if (TableUtils.isHMSConverted(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
-                            // Check if the table has been converted to an ACID table.
-                            if (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
-                                String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Has been converted to " +
-                                        "a 'transactional' table.  And isn't safe to drop before re-importing. " +
-                                        "Review the table and remove manually before running process again.";
-                                tblMirror.addIssue(errorMsg);
-                                LOG.error(errorMsg);
-                                // No need to continue.
-                                return;
-                            }
-                            // Check if the table is "Managing" data.  If so, we can't safety drop the table without effecting
-                            // the data.
-                            if (!TableUtils.isHive3Standard(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
-                                String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Is a 'Managed Non-Transactional' " +
-                                        "which is a non-standard configuration in Hive 3.  Regardless, the data is " +
-                                        "managed and it's not safe to proceed with converting this table. " +
-                                        "Review the table and remove manually before running process again.";
-                                tblMirror.addIssue(errorMsg);
-                                LOG.error(errorMsg);
-                                // No need to continue.
-                                return;
-                            }
-
-                            // Ensure the table purge flag hasn't been set.
-                            if (TableUtils.isExternalPurge(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
-                                String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Is a 'Purge' " +
-                                        "enabled 'EXTERNAL' table.  The data is " +
-                                        "managed and it's not safe to proceed with converting this table. " +
-                                        "Review the table and remove manually before running process again.";
-                                tblMirror.addIssue(errorMsg);
-                                LOG.error(errorMsg);
-                                // No need to continue.
-                                return;
-
-                            }
-
-                            LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Dropping table");
-                            // It was created by HMS Mirror, safe to drop.
-                            String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
-                            LOG.debug(getEnvironment() + "(SQL)" + dropTable);
-                            try {
-                                if (!config.isDryrun())
-                                    stmt.execute(dropTable);
-                                tblMirror.setExistingTableDropped(Boolean.TRUE);
-                            } catch (SQLException throwables) {
-                                String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": DROP Table";
-                                tblMirror.addIssue(errorMsg + throwables.getMessage());
-                                LOG.error(errorMsg, throwables);
-                                // No need to continue.
-                                return;
-                            }
-                        } else {
-                            // It was NOT created by HMS Mirror.  The table will need to be manually dropped after review.
-                            // No need to continue.
-                            String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Was NOT originally " +
-                                    "created by the 'hms-mirror' process and isn't safe to proceed. " +
-                                    "The table will need to be reviewed and dropped manually and the process run again.";
-                            tblMirror.addIssue(errorMsg);
-                            LOG.error(errorMsg);
-                            return;
-                        }
-                    }
-
-                } else {
-                    if (tblMirror.getTableDefinition(Environment.UPPER) != null) {
-                        // Overwrite is not on and table exists.  Skip.
-                        String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Exists already " +
-                                "and the 'overwrite' flag isn't set.  This import was NOT done. ";
-                        tblMirror.addIssue(errorMsg);
-                        LOG.error(errorMsg);
-                        // No need to continue.
-                        return;
-
-                    }
+                if (!checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
+                    // Stop processing
+                    return;
                 }
 
                 // Get the definition for this environment.

@@ -33,9 +33,16 @@ public class Metadata implements Runnable {
     public void run() {
         Date start = new Date();
         LOG.info("METADATA: Migrating " + dbMirror.getDatabase() + "." + tblMirror.getName());
-        config.getCluster(Environment.LOWER).buildTransferTableSchema(config, dbMirror, tblMirror);
-        config.getCluster(Environment.LOWER).exportTransferSchema(config, dbMirror, tblMirror);
-        config.getCluster(Environment.UPPER).importTransferSchema(config, dbMirror, tblMirror);
+        /*
+        Method supporting a transfer Schema.  Had issues with this on EMR and the EXPORT process.
+        Could get the EXPORT the right permissions to write to S3, so the export would fail.
+//        config.getCluster(Environment.LOWER).buildTransferTableSchema(config, dbMirror, tblMirror);
+//        config.getCluster(Environment.LOWER).exportTransferSchema(config, dbMirror, tblMirror);
+//        config.getCluster(Environment.UPPER).importTransferSchema(config, dbMirror, tblMirror);
+         */
+        // This method will skip the EXPORT transition step and build the schema from
+        // the SOURCE table def.
+        config.getCluster(Environment.UPPER).importSchema(config, dbMirror, tblMirror);
         successful = Boolean.TRUE;
         Date end = new Date();
         LOG.info("METADATA: Migration complete for " + dbMirror.getDatabase() + "." + tblMirror.getName() + " in " +
