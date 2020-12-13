@@ -1,44 +1,60 @@
 package com.streever.hadoop.hms.stage;
 
 import com.streever.hadoop.hms.mirror.Config;
-import com.streever.hadoop.hms.mirror.Conversion;
 import com.streever.hadoop.hms.mirror.Environment;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-
-import java.util.Set;
 
 public class CreateDatabases implements Runnable {
     private static Logger LOG = LogManager.getLogger(CreateDatabases.class);
 
     private Config config = null;
-    private Conversion conversion = null;
     // Flag use to determine is creating transition db in lower cluster
     // or target db in upper cluster.
-    private boolean transition = Boolean.FALSE;
     private boolean successful = Boolean.FALSE;
 
     public boolean isSuccessful() {
         return successful;
     }
 
-    public CreateDatabases(Config config, Conversion conversion, Boolean transition) {
+    public CreateDatabases(Config config) {
         this.config = config;
-        this.conversion = conversion;
-        this.transition = transition;
     }
 
     @Override
     public void run() {
         LOG.debug("Create Databases");
-        Set<String> databases = conversion.getDatabases().keySet();
-        for (String database : databases) {
-            if (transition) {
-                LOG.debug("Creating (LOWER) Transition Database: " + database);
-                config.getCluster(Environment.LOWER).createDatabase(config, config.getTransferDbPrefix() + database);
-            } else {
-                LOG.debug("Creating (UPPER) Database: " + database);
-                config.getCluster(Environment.UPPER).createDatabase(config, database);
+
+        for (String database : config.getDatabases()) {
+            switch (config.getStage()) {
+                case METADATA:
+                    switch (config.getMetadata().getStrategy()) {
+                        case TRANSITION:
+                            // Create transition in LOWER
+                            config.getCluster(Environment.LOWER).createDatabase(config, config.getTransferPrefix() + database);
+                        case DIRECT:
+                            // Create target DB in UPPER
+                            config.getCluster(Environment.UPPER).createDatabase(config, database);
+                            break;
+                    }
+                    break;
+                case STORAGE:
+                    switch (config.getStorage().getStrategy()) {
+                        case HYBRID:
+                        case SQL:
+                            // Create transition DB in UPPER
+                            // 86 this.  Can't move tables between db's.  So we'll create a transition table in the
+                            //    target db.
+//                            config.getCluster(Environment.UPPER).createDatabase(config, config.getTransferDbPrefix() + database);
+                        case EXPORT_IMPORT:
+                            // Create target DB in UPPER
+                            config.getCluster(Environment.UPPER).createDatabase(config, database);
+                            break;
+                        case DISTCP:
+                            // WIP
+                            break;
+                    }
+                    break;
             }
         }
         successful = Boolean.TRUE;

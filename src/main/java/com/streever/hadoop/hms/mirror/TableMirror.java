@@ -162,6 +162,31 @@ public class TableMirror {
         return Boolean.TRUE;
     }
 
+    public String getCreateStatement(Environment environment, String prefix) {
+        StringBuilder createStatement = new StringBuilder();
+        List<String> tblDef = this.getTableDefinition(environment);
+        if (tblDef != null) {
+
+            List<String> tblDefCopy = new ArrayList<String>();
+            tblDefCopy.addAll(tblDef);
+            TableUtils.prefixTableName(this.getName(), prefix, tblDefCopy);
+
+            Iterator<String> iter = tblDefCopy.iterator();
+            while (iter.hasNext()) {
+                String line = iter.next();
+                createStatement.append(line);
+                if (iter.hasNext()) {
+                    createStatement.append("\n");
+                }
+            }
+        } else {
+            throw new RuntimeException("Couldn't location definition for table: " + getName() +
+                    " in environment: " + environment.toString());
+        }
+        return createStatement.toString();
+    }
+
+
     public String getCreateStatement(Environment environment) {
         StringBuilder createStatement = new StringBuilder();
         List<String> tblDef = this.getTableDefinition(environment);

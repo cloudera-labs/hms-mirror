@@ -5,6 +5,7 @@ import com.streever.hadoop.hms.mirror.MirrorConf;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class TableUtils {
@@ -31,6 +32,19 @@ public class TableUtils {
         }
     }
 
+//    public static Boolean changeLocationNamespace(String tableName, List<String> tableDefinition, String oldNamespace, String newNamespace) {
+//        LOG.trace("Changing table location namespace for: " + tableName);
+//        int locIdx = tableDefinition.indexOf(LOCATION);
+//        if (locIdx > 0) {
+//            String location = tableDefinition.get(locIdx + 1).trim().replace("'", "");
+//
+//            return location;
+//        } else {
+//            return null;
+//        }
+//
+//    }
+
     public static Boolean isManaged(String tableName, List<String> tableDefinition) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Checking if table '" + tableName + "' is 'managed'");
@@ -44,7 +58,7 @@ public class TableUtils {
     }
 
     public static void stripDatabase(String tableName, List<String> tableDefinition) {
-        for (String line: tableDefinition) {
+        for (String line : tableDefinition) {
             if (line.startsWith(CREATE)) {
                 int indexCT = tableDefinition.indexOf(line);
                 // Split on the period between the db and table
@@ -62,11 +76,32 @@ public class TableUtils {
         }
     }
 
+    public static Boolean prefixTableName(String tableName, String prefix, List<String> tableDefinition) {
+        Boolean rtn = Boolean.FALSE;
+        LOG.debug("Prefixing table: " + tableName + " with " + prefix);
+        for (String line : tableDefinition) {
+            if (line.startsWith(CREATE)) {
+                int indexCT = tableDefinition.indexOf(line);
+                String[] parts = line.split("`");
+                if (parts.length == 3) {
+                    parts[1] = prefix + parts[1];
+                    String newCreateline = String.join("`", parts);
+                    tableDefinition.set(indexCT, newCreateline);
+                    rtn = Boolean.TRUE;
+                    break;
+                } else {
+                    // problem
+                }
+            }
+        }
+        return rtn;
+    }
+
     public static Boolean makeExternal(String tableName, List<String> tableDefinition) {
         Boolean rtn = Boolean.FALSE;
         if (isManaged(tableName, tableDefinition)) {
             LOG.debug("Converting table: " + tableName + " to EXTERNAL");
-            for (String line: tableDefinition) {
+            for (String line : tableDefinition) {
                 if (line.startsWith(CREATE_TABLE)) {
                     int indexCT = tableDefinition.indexOf(line);
                     String cet = line.replace(CREATE_TABLE, CREATE_EXTERNAL_TABLE);
@@ -111,7 +146,7 @@ public class TableUtils {
                     String value = prop[1].replace("'", "").trim();
                     // Remove trailing , or )
                     if (value.endsWith(",") || value.endsWith(")")) {
-                        value = value.substring(0,value.length()-1);
+                        value = value.substring(0, value.length() - 1);
                     }
                     if (Boolean.valueOf(value)) {
                         rtn = Boolean.TRUE;
@@ -137,7 +172,7 @@ public class TableUtils {
                         String value = prop[1].replace("'", "").trim();
                         // Remove trailing , or )
                         if (value.endsWith(",") || value.endsWith(")")) {
-                            value = value.substring(0,value.length()-1);
+                            value = value.substring(0, value.length() - 1);
                         }
                         if (Boolean.valueOf(value)) {
                             rtn = Boolean.TRUE;
@@ -163,7 +198,7 @@ public class TableUtils {
                         String value = prop[1].replace("'", "").trim();
                         // Remove trailing , or )
                         if (value.endsWith(",") || value.endsWith(")")) {
-                            value = value.substring(0,value.length()-1);
+                            value = value.substring(0, value.length() - 1);
                         }
                         if (Boolean.valueOf(value)) {
                             rtn = Boolean.TRUE;

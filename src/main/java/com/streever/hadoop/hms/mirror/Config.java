@@ -7,13 +7,20 @@ import org.apache.log4j.Logger;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class Config {
 
     private static Logger LOG = LogManager.getLogger(Mirror.class);
 
+    private ScheduledExecutorService metadataThreadPool;
+    private ScheduledExecutorService storageThreadPool;
+
     private boolean dryrun = Boolean.FALSE;
-    private String transferDbPrefix = "transfer_";
+    private Stage stage = null;
+    private String[] databases = null;
+    private String transferPrefix = "transfer_";
     private String exportBaseDirPrefix = "/apps/hive/warehouse/export_";
     private boolean overwriteTable = Boolean.TRUE;
     private MetadataConfig metadata = new MetadataConfig();
@@ -28,16 +35,46 @@ public class Config {
         return dryrun;
     }
 
+    public ScheduledExecutorService getMetadataThreadPool() {
+        if (metadataThreadPool == null) {
+            metadataThreadPool = Executors.newScheduledThreadPool(getMetadata().getConcurrency());
+        }
+        return metadataThreadPool;
+    }
+
+    public ScheduledExecutorService getStorageThreadPool() {
+        if (storageThreadPool == null) {
+            storageThreadPool = Executors.newScheduledThreadPool(getStorage().getConcurrency());
+        }
+        return storageThreadPool;
+    }
+
+    public String[] getDatabases() {
+        return databases;
+    }
+
+    public void setDatabases(String[] databases) {
+        this.databases = databases;
+    }
+
+    public Stage getStage() {
+        return stage;
+    }
+
+    public void setStage(Stage stage) {
+        this.stage = stage;
+    }
+
     public void setDryrun(boolean dryrun) {
         this.dryrun = dryrun;
     }
 
-    public String getTransferDbPrefix() {
-        return transferDbPrefix;
+    public String getTransferPrefix() {
+        return transferPrefix;
     }
 
-    public void setTransferDbPrefix(String transferDbPrefix) {
-        this.transferDbPrefix = transferDbPrefix;
+    public void setTransferPrefix(String transferPrefix) {
+        this.transferPrefix = transferPrefix;
     }
 
     public String getExportBaseDirPrefix() {

@@ -4,10 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.streever.hadoop.hms.mirror.*;
-import com.streever.hadoop.hms.stage.CreateDatabases;
-import com.streever.hadoop.hms.stage.GetTableMetadata;
-import com.streever.hadoop.hms.stage.GetTables;
-import com.streever.hadoop.hms.stage.Metadata;
+import com.streever.hadoop.hms.stage.*;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
@@ -26,14 +23,14 @@ import java.util.concurrent.*;
 
 public class Mirror {
     private static Logger LOG = LogManager.getLogger(Mirror.class);
-    private ScheduledExecutorService metadataThreadPool;
-    private ScheduledExecutorService storageThreadPool;
+//    private ScheduledExecutorService metadataThreadPool;
+//    private ScheduledExecutorService storageThreadPool;
 
-    private String[] databases = null;
+//    private String[] databases = null;
     private Config config = null;
     private String configFile = null;
     private String reportOutputDir = null;
-    private Stage stage = null;
+//    private Stage stage = null;
 
     public void init(String[] args) {
 
@@ -60,17 +57,6 @@ public class Mirror {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        databases = cmd.getOptionValues("db");
-
-        if (cmd.hasOption("m")) {
-            stage = Stage.METADATA;
-            LOG.info("Running METADATA");
-        } else if (cmd.hasOption("s")) {
-            stage = Stage.STORAGE;
-            LOG.info("Running STORAGE");
-        } else {
-            throw new RuntimeException("Need to specify a 'stage'");
-        }
 
         // Initialize with config and output directory.
         if (cmd.hasOption("cfg")) {
@@ -105,6 +91,37 @@ public class Mirror {
             t.printStackTrace();
         }
 
+        if (cmd.hasOption("m")) {
+            config.setStage(Stage.METADATA);
+            String mdirective = cmd.getOptionValue("m");
+            if (mdirective != null) {
+                MetadataConfig.Strategy strategy = MetadataConfig.Strategy.valueOf(mdirective.toUpperCase(Locale.ROOT));
+                config.getMetadata().setStrategy(strategy);
+            }
+            LOG.info("Running METADATA");
+        } else if (cmd.hasOption("s")) {
+            config.setStage(Stage.STORAGE);
+            String sdirective = cmd.getOptionValue("s");
+            if (sdirective != null) {
+                StorageConfig.Strategy strategy = StorageConfig.Strategy.valueOf(sdirective.toUpperCase(Locale.ROOT));
+                config.getStorage().setStrategy(strategy);
+            }
+            LOG.info("Running STORAGE");
+        }
+
+        if (config.getStage() == null) {
+            throw new RuntimeException("Stage (METADATA|STORAGE) has not been specified.");
+        }
+
+        String[] databases = cmd.getOptionValues("db");
+        if (databases != null)
+            config.setDatabases(databases);
+
+        if (config.getDatabases() == null || config.getDatabases().length == 0) {
+            LOG.error("No databases specified");
+            throw new RuntimeException("No databases specified");
+        }
+
         if (cmd.hasOption("dr")) {
             LOG.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
             LOG.info("DRY-RUN has been set.  No ACTIONS will be performed, the process output will be recorded in the log.");
@@ -123,39 +140,22 @@ public class Mirror {
 
     }
 
-    protected ScheduledExecutorService getMetadataThreadPool() {
-        if (metadataThreadPool == null) {
-            metadataThreadPool = Executors.newScheduledThreadPool(config.getMetadata().getConcurrency());
-        }
-        return metadataThreadPool;
-    }
-
-    protected ScheduledExecutorService getStorageThreadPool() {
-        if (storageThreadPool == null) {
-            storageThreadPool = Executors.newScheduledThreadPool(config.getStorage().getConcurrency());
-        }
-        return storageThreadPool;
-    }
-
-
     public void start() {
-        Conversion conversion = null;
+        Conversion conversion = new Conversion();
+        Date startTime = new Date();
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
-        switch (stage) {
+
+        Setup setup = new Setup(config, conversion);
+        setup.run();
+
+        switch (config.getStage()) {
             case METADATA:
-                conversion = runMetadata();
-                try {
-                    String reportFileStr = reportOutputDir + System.getProperty("file.separator") + "hms-mirror-METADATA-" + df.format(new Date()) + ".md";
-                    FileWriter reportFile = new FileWriter(reportFileStr);
-                    reportFile.write(conversion.toReport());
-                    reportFile.close();
-                    LOG.info("Status Report of 'hms-mirror' is here: " + reportFileStr.toString());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                conversion = runMetadata(conversion);
                 break;
             case STORAGE:
                 LOG.info("WIP");
+                // We run the Metadata
+                conversion = runStorage(conversion);
                 // Need to run the METADATA process first to ensure the schemas are CURRENT.
                 // Then run the STORAGE (transfer) stage.
                 // NOTE: When the hcfsNamespace is the same between the clusters, that means they are using the
@@ -166,45 +166,102 @@ public class Mirror {
                 //                  cluster should be set to 'external.table.purge'='true'
                 break;
         }
-        if (conversion != null) {
+        try {
+            String reportFileStr = reportOutputDir + System.getProperty("file.separator") + "hms-mirror-METADATA-" + df.format(new Date()) + ".md";
+            FileWriter reportFile = new FileWriter(reportFileStr);
+            reportFile.write(conversion.toReport());
+            reportFile.close();
+            LOG.info("Status Report of 'hms-mirror' is here: " + reportFileStr.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            Date endTime = new Date();
+            DecimalFormat decf = new DecimalFormat("#.###");
+            decf.setRoundingMode(RoundingMode.CEILING);
+            LOG.info("HMS-Mirror: Completed in " +
+                    decf.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
 
         }
     }
 
-    public Conversion runMetadata() {
+//    public Conversion setup(Conversion conversion) {
+//        Date startTime = new Date();
+//        LOG.info("GATHERING METADATA: Start Processing for databases: " + Arrays.toString((databases)));
+//
+//        List<ScheduledFuture> gtf = new ArrayList<ScheduledFuture>();
+//        for (String database : databases) {
+//            DBMirror dbMirror = conversion.addDatabase(database);
+//            GetTables gt = new GetTables(config, dbMirror);
+//            gtf.add(config.getMetadataThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
+//        }
+//
+//        // Need to Create LOWER/UPPER Cluster Db(s).
+//        if (config.getMetadata().getStrategy().equals(MetadataConfig.Strategy.TRANSITION)) {
+//            CreateDatabases transitionCreateDatabases = new CreateDatabases(config, conversion, Boolean.TRUE);
+//            gtf.add(config.getMetadataThreadPool().schedule(transitionCreateDatabases, 1, TimeUnit.MILLISECONDS));
+//        }
+//
+//        CreateDatabases createDatabases = new CreateDatabases(config, conversion, Boolean.FALSE);
+//        gtf.add(config.getMetadataThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
+//
+//        // When the tables have been gathered, complete the process for the METADATA Stage.
+//        while (true) {
+//            boolean check = true;
+//            for (ScheduledFuture sf : gtf) {
+//                if (!sf.isDone()) {
+//                    check = false;
+//                    break;
+//                }
+//            }
+//            if (check)
+//                break;
+//        }
+//
+//        LOG.info(">>>>>>>>>>> Getting Table Metadata");
+//        List<ScheduledFuture> tmdf = new ArrayList<ScheduledFuture>();
+//        Set<String> collectedDbs = conversion.getDatabases().keySet();
+//        for (String database : collectedDbs) {
+//            DBMirror dbMirror = conversion.getDatabase(database);
+//            Set<String> tables = dbMirror.getTableMirrors().keySet();
+//            for (String table : tables) {
+//                TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
+//                if (!tblMirror.isTransactional()) {
+//                    GetTableMetadata tmd = new GetTableMetadata(config, dbMirror, tblMirror);
+//                    tmdf.add(config.getMetadataThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
+//                }
+//            }
+//        }
+//
+//        while (true) {
+//            boolean check = true;
+//            for (ScheduledFuture sf : tmdf) {
+//                if (!sf.isDone()) {
+//                    check = false;
+//                    break;
+//                }
+//            }
+//            if (check)
+//                break;
+//        }
+//
+//        LOG.info("==============================");
+//        LOG.info(conversion.toString());
+//        LOG.info("==============================");
+//        Date endTime = new Date();
+//        DecimalFormat df = new DecimalFormat("#.###");
+//        df.setRoundingMode(RoundingMode.CEILING);
+//        LOG.info("GATHERING METADATA: Completed in " + df.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
+//
+//        return conversion;
+//    }
+
+    public Conversion runStorage(Conversion conversion) {
         Date startTime = new Date();
-        LOG.info(">>>>>>>>>>> Start Processing for databases: " + Arrays.toString((databases)));
-        Conversion conversion = new Conversion();
+        LOG.info("STORAGE-STAGE: Start Processing for databases: " + Arrays.toString((config.getDatabases())));
 
-        List<ScheduledFuture> gtf = new ArrayList<ScheduledFuture>();
-        for (String database : databases) {
-            DBMirror dbMirror = conversion.addDatabase(database);
-            GetTables gt = new GetTables(config, dbMirror);
-            gtf.add(getMetadataThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
-        }
+        LOG.info(">>>>>>>>>>> Building/Starting Storage.");
+        List<ScheduledFuture> sdf = new ArrayList<ScheduledFuture>();
 
-        // Need to Create LOWER/UPPER Cluster Db(s).
-        CreateDatabases transitionCreateDatabases = new CreateDatabases(config, conversion, Boolean.TRUE);
-        CreateDatabases createDatabases = new CreateDatabases(config, conversion, Boolean.FALSE);
-
-        gtf.add(getMetadataThreadPool().schedule(transitionCreateDatabases, 1, TimeUnit.MILLISECONDS));
-        gtf.add(getMetadataThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
-
-        // When the tables have been gathered, complete the process for the METADATA Stage.
-        while (true) {
-            boolean check = true;
-            for (ScheduledFuture sf : gtf) {
-                if (!sf.isDone()) {
-                    check = false;
-                    break;
-                }
-            }
-            if (check)
-                break;
-        }
-
-        LOG.info(">>>>>>>>>>> Getting Table Metadata");
-        List<ScheduledFuture> tmdf = new ArrayList<ScheduledFuture>();
         Set<String> collectedDbs = conversion.getDatabases().keySet();
         for (String database : collectedDbs) {
             DBMirror dbMirror = conversion.getDatabase(database);
@@ -212,15 +269,17 @@ public class Mirror {
             for (String table : tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
                 if (!tblMirror.isTransactional()) {
-                    GetTableMetadata tmd = new GetTableMetadata(config, dbMirror, tblMirror);
-                    tmdf.add(getMetadataThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
+                    Storage sd = new Storage(config, dbMirror, tblMirror);
+                    sdf.add(config.getStorageThreadPool().schedule(sd, 1, TimeUnit.MILLISECONDS));
                 }
             }
         }
 
+        LOG.info(">>>>>>>>>>> Starting Transfer.");
+
         while (true) {
             boolean check = true;
-            for (ScheduledFuture sf : tmdf) {
+            for (ScheduledFuture sf : sdf) {
                 if (!sf.isDone()) {
                     check = false;
                     break;
@@ -230,9 +289,28 @@ public class Mirror {
                 break;
         }
 
+        config.getStorageThreadPool().shutdown();
+
+        LOG.info("==============================");
+        LOG.info(conversion.toString());
+        LOG.info("==============================");
+        Date endTime = new Date();
+        DecimalFormat df = new DecimalFormat("#.###");
+        df.setRoundingMode(RoundingMode.CEILING);
+        LOG.info("STORAGE-STAGE: Completed in " + df.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
+
+        return conversion;
+    }
+
+    public Conversion runMetadata(Conversion conversion) {
+        Date startTime = new Date();
+        LOG.info("METADATA-STAGE: Start Processing for databases: " + Arrays.toString((config.getDatabases())));
+//        Conversion conversion = new Conversion();
+
         LOG.info(">>>>>>>>>>> Building/Starting Transition.");
         List<ScheduledFuture> mdf = new ArrayList<ScheduledFuture>();
-//        Set<String> collectedDbs = conversion.getDatabases().keySet();
+
+        Set<String> collectedDbs = conversion.getDatabases().keySet();
         for (String database : collectedDbs) {
             DBMirror dbMirror = conversion.getDatabase(database);
             Set<String> tables = dbMirror.getTableMirrors().keySet();
@@ -240,7 +318,7 @@ public class Mirror {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
                 if (!tblMirror.isTransactional()) {
                     Metadata md = new Metadata(config, dbMirror, tblMirror);
-                    mdf.add(getMetadataThreadPool().schedule(md, 1, TimeUnit.MILLISECONDS));
+                    mdf.add(config.getMetadataThreadPool().schedule(md, 1, TimeUnit.MILLISECONDS));
                 }
             }
         }
@@ -259,14 +337,15 @@ public class Mirror {
                 break;
         }
 
-        getMetadataThreadPool().shutdown();
+        config.getMetadataThreadPool().shutdown();
+
         LOG.info("==============================");
         LOG.info(conversion.toString());
         LOG.info("==============================");
         Date endTime = new Date();
         DecimalFormat df = new DecimalFormat("#.###");
         df.setRoundingMode(RoundingMode.CEILING);
-        LOG.info("METADATA Completed in: " + df.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
+        LOG.info("METADATA-STAGE: Completed in " + df.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
 
         return conversion;
     }
@@ -275,13 +354,16 @@ public class Mirror {
         // create Options object
         Options options = new Options();
 
-        Option stageOne = new Option("m", "metastore", false, "Run HMS-Mirror Metadata");
-        Option stageTwo = new Option("s", "storage", true, "Run HMS-Mirror Storage ('sql|export' only supported options currently)");
-        stageTwo.setArgName("sql|export|distcp|owner");
+        Option metadataStage = new Option("m", "metastore", true, "Run HMS-Mirror Metadata");
+        metadataStage.setOptionalArg(Boolean.TRUE);
+        metadataStage.setArgName("DIRECT(default)|TRANSITION");
+        Option storageStage = new Option("s", "storage", true, "Run HMS-Mirror Storage ('sql|export' only supported options currently)");
+        storageStage.setArgName("SQL|EXPORT_IMPORT|HYBRID|DISTCP");
+        storageStage.setOptionalArg(Boolean.TRUE);
 
         OptionGroup stageGroup = new OptionGroup();
-        stageGroup.addOption(stageOne);
-        stageGroup.addOption(stageTwo);
+        stageGroup.addOption(metadataStage);
+        stageGroup.addOption(storageStage);
 
         stageGroup.setRequired(true);
         options.addOptionGroup(stageGroup);

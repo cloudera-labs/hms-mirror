@@ -9,8 +9,8 @@ import org.apache.log4j.Logger;
 
 import java.util.Date;
 
-public class Metadata implements Runnable {
-    private static Logger LOG = LogManager.getLogger(Metadata.class);
+public class Storage implements Runnable {
+    private static Logger LOG = LogManager.getLogger(Storage.class);
 
     private Config config = null;
     private DBMirror dbMirror = null;
@@ -21,7 +21,7 @@ public class Metadata implements Runnable {
         return successful;
     }
 
-    public Metadata(Config config, DBMirror dbMirror, TableMirror tblMirror) {
+    public Storage(Config config, DBMirror dbMirror, TableMirror tblMirror) {
         this.config = config;
         this.dbMirror = dbMirror;
         this.tblMirror = tblMirror;
@@ -30,23 +30,36 @@ public class Metadata implements Runnable {
     @Override
     public void run() {
         Date start = new Date();
-        LOG.info("METADATA: Migrating " + dbMirror.getDatabase() + "." + tblMirror.getName());
+        LOG.info("STORAGE: Migrating " + dbMirror.getDatabase() + "." + tblMirror.getName());
 
         // Set Database to Transfer DB.
 
-        switch (config.getMetadata().getStrategy()) {
-            case DIRECT:
-                // This method will skip the EXPORT transition step and build the schema from
-                // the SOURCE table def.
+        switch (config.getStorage().getStrategy()) {
+            case SQL:
+                // Build the Transfer table (with prefix)
+                config.getCluster(Environment.UPPER).buildUpperTransferTable(config, dbMirror, tblMirror);
+                // Like the DIRECT METASTORE method.
+                // Create table in new cluster.
+                    // Associate data to original cluster data.
                 config.getCluster(Environment.UPPER).buildUpperSchemaUsingLowerData(config, dbMirror, tblMirror);
+
+                // Create a Transition table that is in the target db.
+
+                // sql to move data.
+                config.getCluster(Environment.UPPER).sqlDataTransfer(config, dbMirror, tblMirror);
+
+                // sql to drop (if exists) target table
+
+                // rename move table to target table.
+
                 break;
-            case TRANSITION:
+            case EXPORT_IMPORT:
                 String database = config.getTransferPrefix() + dbMirror.getDatabase();
-                // Method supporting a transfer Schema.  Had issues with this on EMR and the EXPORT process.
-                // Could get the EXPORT the right permissions to write to S3, so the export would fail.
-                config.getCluster(Environment.LOWER).buildTransferTableSchema(config, database, dbMirror, tblMirror);
-                config.getCluster(Environment.LOWER).exportSchema(config, database, dbMirror, tblMirror);
-                config.getCluster(Environment.UPPER).importTransferSchemaUsingLowerData(config, dbMirror, tblMirror);
+
+                break;
+            case HYBRID:
+                break;
+            case DISTCP:
                 break;
         }
         /*
