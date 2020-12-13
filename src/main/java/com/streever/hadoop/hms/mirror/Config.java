@@ -16,7 +16,8 @@ public class Config {
     private String transferDbPrefix = "transfer_";
     private String exportBaseDirPrefix = "/apps/hive/warehouse/export_";
     private boolean overwriteTable = Boolean.TRUE;
-    private Integer parallelism = 4; // Default
+    private MetadataConfig metadata = new MetadataConfig();
+    private StorageConfig storage = new StorageConfig();
 
     private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
 
@@ -55,13 +56,37 @@ public class Config {
         this.overwriteTable = overwriteTable;
     }
 
-    public Integer getParallelism() {
-        return parallelism;
+    public MetadataConfig getMetadata() {
+        return metadata;
     }
 
-    public void setParallelism(Integer parallelism) {
-        this.parallelism = parallelism;
+    public void setMetadata(MetadataConfig metadata) {
+        this.metadata = metadata;
     }
+
+    public StorageConfig getStorage() {
+        return storage;
+    }
+
+    public void setStorage(StorageConfig storage) {
+        this.storage = storage;
+    }
+
+//    public Concurrency getConcurrency() {
+//        return concurrency;
+//    }
+//
+//    public void setConcurrency(Concurrency concurrency) {
+//        this.concurrency = concurrency;
+//    }
+
+    //    public Integer getParallelism() {
+//        return parallelism;
+//    }
+//
+//    public void setParallelism(Integer parallelism) {
+//        this.parallelism = parallelism;
+//    }
 
     public Map<Environment, Cluster> getClusters() {
         return clusters;

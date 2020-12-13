@@ -20,6 +20,8 @@ public class MirrorConf {
             "IMPORT EXTERNAL TABLE {0}.{1} FROM \"{2}\"";
     public static final String IMPORT_TABLE =
             "IMPORT TABLE {0}.{1} FROM \"{2}\"";
+    public static final String IMPORT_EXTERNAL_TABLE_LOCATION =
+            "IMPORT EXTERNAL TABLE {0}.{1} FROM \"{2}\" LOCATION \"{3}\"";
     public static final String ADD_TBL_PROP =
             "ALTER TABLE {0}.{1} SET TBLPROPERTIES (\"{2}\"=\"{3}\")";
     public static final String REMOVE_TBL_PROP =
@@ -27,7 +29,43 @@ public class MirrorConf {
     public static final String ALTER_TABLE_LOCATION =
             "ALTER TABLE {0}.{1} SET LOCATION \"{2}\"";
     public static final String LEGACY_MANAGED_FLAG = "hmsMirror_LegacyManaged";
-    public static final String HMS_MIRROR_STAGE_ONE_FLAG = "hmsMirror_ConversionStage1";
+
+    /*
+    METADATA Transfer Flag
+     */
+    public static final String HMS_MIRROR_METADATA_FLAG = "hmsMirror_Metadata_Stage1";
     public static final String HMS_MIRROR_CONVERTED_FLAG = "hmsMirror_Converted";
+
+    // Data Migration Flags
+    /*
+    Didn't move data (cloud storage scenario), but UPPER cluster managed data flags
+    converted to upper cluster AND reset/unset in lower cluster.
+    */
+    public static final String HMS_MIRROR_STORAGE_OWNER_FLAG = "hmsMirror_Storage_OWNER_Stage2";
+    /*
+    Migrate Metadata only and use a temp table in the UPPER cluster with a reference to the data
+    in the LOWER cluster and USE SQL to migrated the data from the temp table to a target table
+    in the UPPER cluster that matches the LOWER cluster relative location.
+     */
+    public static final String HMS_MIRROR_STORAGE_SQL_FLAG = "hmsMirror_Storage_SQL_Stage2";
+    /*
+    Using Hive EXPORT to build a transferrable package of the schema and data in the lower cluster.
+    In the UPPER cluster, with access to the LOWER cluster EXPORT location, IMPORT the table and data
+    into the UPPER cluster.
+    Purge/Managed Adjustments: TBD
+     */
+    public static final String HMS_MIRROR_STORAGE_IMPORT_FLAG = "hmsMirror_Storage_IMPORT_Stage2";
+    /*
+    A mixed of SQL and IMPORT.  Using table characteristics like partition count and data sizes to
+    determine whether to use SQL or EXPORT/IMPORT to move data.
+    Purge/Managed Adjustments: TBD
+     */
+    public static final String HMS_MIRROR_STORAGE_HYBRID_FLAG = "hmsMirror_Storage_HYBRID_Stage2";
+    /*
+    Build the schema in the upper cluster via the Metadata Mirror process.  Then an 'external' process
+    uses 'distcp' to migrate the data in the background.
+    Requires EXTERNAL intervention.
+     */
+    public static final String HMS_MIRROR_STORAGE_DISTCP_FLAG = "hmsMirror_Storage_DISTCP_Stage2";
 
 }

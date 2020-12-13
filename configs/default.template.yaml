@@ -5,7 +5,14 @@ transferDbPrefix: "transfer_"
 # This directory is appended to the 'clusters:...:hcfsNamespace' value to store the transfer package for hive export/import.
 exportBaseDirPrefix: "/apps/hive/warehouse/export_"
 overwriteTable: "true"
-parallelism: 4
+# Metadata is Optional, when not specified defaults are used.  Defaults below.
+metadata:
+  concurrency: 4
+  strategy: DIRECT
+# Storage is Optional, when not specified defaults are used.  Defaults below.
+storage:
+  concurrency: 4
+  strategy: SQL
 clusters:
   LOWER:
     # Set for Hive 1/2 environments

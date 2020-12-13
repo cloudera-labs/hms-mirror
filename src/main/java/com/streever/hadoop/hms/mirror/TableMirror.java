@@ -14,7 +14,8 @@ public class TableMirror {
     private boolean transitionCreated = Boolean.FALSE;
     private boolean exportCreated = Boolean.FALSE;
     private boolean existingTableDropped = Boolean.FALSE;
-    private boolean imported = Boolean.FALSE;
+    private boolean schemaImported = Boolean.FALSE;
+    private boolean dataMigrated = Boolean.FALSE;
     private boolean locationAdjusted = Boolean.FALSE;
     private boolean discoverPartitions = Boolean.FALSE;
     private List<String> issues = new ArrayList<String>();
@@ -93,12 +94,20 @@ public class TableMirror {
         this.existingTableDropped = existingTableDropped;
     }
 
-    public boolean isImported() {
-        return imported;
+    public boolean isSchemaImported() {
+        return schemaImported;
     }
 
-    public void setImported(boolean imported) {
-        this.imported = imported;
+    public void setSchemaImported(boolean schemaImported) {
+        this.schemaImported = schemaImported;
+    }
+
+    public boolean isDataMigrated() {
+        return dataMigrated;
+    }
+
+    public void setDataMigrated(boolean dataMigrated) {
+        this.dataMigrated = dataMigrated;
     }
 
     public List<String> getIssues() {
@@ -137,7 +146,7 @@ public class TableMirror {
         // 1. If Managed, convert to EXTERNAL
         Boolean converted = TableUtils.makeExternal(this.getName(), upperTD);
         // 2. Set mirror stage one flag
-        TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_STAGE_ONE_FLAG, df.format(new Date()), upperTD);
+        TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_METADATA_FLAG, df.format(new Date()), upperTD);
         // 3. setting legacy flag - At a later date, we'll convert this to
         //     'external.table.purge'='true'
         if (converted)

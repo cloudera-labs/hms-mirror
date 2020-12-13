@@ -96,7 +96,7 @@ public class Conversion {
                 sb.append(tblMirror.isExportCreated() ? "X" : " ").append("|")
                         .append(tblMirror.isOverwrite() ? "X" : " ").append("|")
                         .append(tblMirror.isExistingTableDropped() ? "X" : " ").append("|")
-                        .append(tblMirror.isImported() ? "X" : " ").append("|")
+                        .append(tblMirror.isSchemaImported() ? "X" : " ").append("|")
                         .append(tblMirror.isLocationAdjusted() ? "X" : " ").append("|")
                         .append(tblMirror.isDiscoverPartitions() ? "X" : " ").append("|");
                 if (tblMirror.whereTherePropsAdded()) {

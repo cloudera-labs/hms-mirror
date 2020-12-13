@@ -18,7 +18,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
-import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -27,7 +26,8 @@ import java.util.concurrent.*;
 
 public class Mirror {
     private static Logger LOG = LogManager.getLogger(Mirror.class);
-    private ScheduledExecutorService threadPool;
+    private ScheduledExecutorService metadataThreadPool;
+    private ScheduledExecutorService storageThreadPool;
 
     private String[] databases = null;
     private Config config = null;
@@ -123,12 +123,20 @@ public class Mirror {
 
     }
 
-    protected ScheduledExecutorService getThreadPool() {
-        if (threadPool == null) {
-            threadPool = Executors.newScheduledThreadPool(config.getParallelism());
+    protected ScheduledExecutorService getMetadataThreadPool() {
+        if (metadataThreadPool == null) {
+            metadataThreadPool = Executors.newScheduledThreadPool(config.getMetadata().getConcurrency());
         }
-        return threadPool;
+        return metadataThreadPool;
     }
+
+    protected ScheduledExecutorService getStorageThreadPool() {
+        if (storageThreadPool == null) {
+            storageThreadPool = Executors.newScheduledThreadPool(config.getStorage().getConcurrency());
+        }
+        return storageThreadPool;
+    }
+
 
     public void start() {
         Conversion conversion = null;
@@ -172,15 +180,15 @@ public class Mirror {
         for (String database : databases) {
             DBMirror dbMirror = conversion.addDatabase(database);
             GetTables gt = new GetTables(config, dbMirror);
-            gtf.add(getThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
+            gtf.add(getMetadataThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
         }
 
         // Need to Create LOWER/UPPER Cluster Db(s).
         CreateDatabases transitionCreateDatabases = new CreateDatabases(config, conversion, Boolean.TRUE);
         CreateDatabases createDatabases = new CreateDatabases(config, conversion, Boolean.FALSE);
 
-        gtf.add(getThreadPool().schedule(transitionCreateDatabases, 1, TimeUnit.MILLISECONDS));
-        gtf.add(getThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
+        gtf.add(getMetadataThreadPool().schedule(transitionCreateDatabases, 1, TimeUnit.MILLISECONDS));
+        gtf.add(getMetadataThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
 
         // When the tables have been gathered, complete the process for the METADATA Stage.
         while (true) {
@@ -205,7 +213,7 @@ public class Mirror {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
                 if (!tblMirror.isTransactional()) {
                     GetTableMetadata tmd = new GetTableMetadata(config, dbMirror, tblMirror);
-                    tmdf.add(getThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
+                    tmdf.add(getMetadataThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
                 }
             }
         }
@@ -232,7 +240,7 @@ public class Mirror {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
                 if (!tblMirror.isTransactional()) {
                     Metadata md = new Metadata(config, dbMirror, tblMirror);
-                    mdf.add(getThreadPool().schedule(md, 1, TimeUnit.MILLISECONDS));
+                    mdf.add(getMetadataThreadPool().schedule(md, 1, TimeUnit.MILLISECONDS));
                 }
             }
         }
@@ -251,7 +259,7 @@ public class Mirror {
                 break;
         }
 
-        getThreadPool().shutdown();
+        getMetadataThreadPool().shutdown();
         LOG.info("==============================");
         LOG.info(conversion.toString());
         LOG.info("==============================");
@@ -268,7 +276,8 @@ public class Mirror {
         Options options = new Options();
 
         Option stageOne = new Option("m", "metastore", false, "Run HMS-Mirror Metadata");
-        Option stageTwo = new Option("s", "storage", false, "Run HMS-Mirror Storage");
+        Option stageTwo = new Option("s", "storage", true, "Run HMS-Mirror Storage ('sql|export' only supported options currently)");
+        stageTwo.setArgName("sql|export|distcp|owner");
 
         OptionGroup stageGroup = new OptionGroup();
         stageGroup.addOption(stageOne);

@@ -1,14 +1,11 @@
 package com.streever.hadoop.hms.stage;
 
-import com.streever.hadoop.hms.Mirror;
 import com.streever.hadoop.hms.mirror.Config;
 import com.streever.hadoop.hms.mirror.Conversion;
-import com.streever.hadoop.hms.mirror.DBMirror;
 import com.streever.hadoop.hms.mirror.Environment;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import java.sql.SQLException;
 import java.util.Set;
 
 public class CreateDatabases implements Runnable {
