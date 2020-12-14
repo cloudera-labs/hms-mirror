@@ -32,18 +32,20 @@ public class TableUtils {
         }
     }
 
-//    public static Boolean changeLocationNamespace(String tableName, List<String> tableDefinition, String oldNamespace, String newNamespace) {
-//        LOG.trace("Changing table location namespace for: " + tableName);
-//        int locIdx = tableDefinition.indexOf(LOCATION);
-//        if (locIdx > 0) {
-//            String location = tableDefinition.get(locIdx + 1).trim().replace("'", "");
-//
-//            return location;
-//        } else {
-//            return null;
-//        }
-//
-//    }
+    public static Boolean changeLocationNamespace(String tableName, List<String> tableDefinition,
+                                                  String oldNamespace, String newNamespace) {
+        LOG.trace("Changing table location namespace for: " + tableName);
+        int locIdx = tableDefinition.indexOf(LOCATION);
+        if (locIdx > 0) {
+            String location = tableDefinition.get(locIdx + 1);
+            String newLocation = location.replace(oldNamespace, newNamespace);
+            tableDefinition.set(locIdx + 1, newLocation);
+            return Boolean.TRUE;
+        } else {
+            return null;
+        }
+
+    }
 
     public static Boolean isManaged(String tableName, List<String> tableDefinition) {
         Boolean rtn = Boolean.FALSE;

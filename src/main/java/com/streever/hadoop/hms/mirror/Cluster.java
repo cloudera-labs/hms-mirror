@@ -775,6 +775,10 @@ public class Cluster implements Comparable<Cluster> {
 
                 Boolean buildUpper = tblMirror.buildUpperSchema();
 
+                TableUtils.changeLocationNamespace(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER),
+                        config.getCluster(Environment.LOWER).getHcfsNamespace(),
+                        config.getCluster(Environment.UPPER).getHcfsNamespace());
+
                 // Get the Create State for this environment.
                 String createTable = tblMirror.getCreateStatement(this.getEnvironment());
                 LOG.debug(getEnvironment() + "(SQL)" + createTable);
@@ -790,6 +794,21 @@ public class Cluster implements Comparable<Cluster> {
                     return;
                 }
 
+                String originalLocation = TableUtils.getLocation(tableName, tblMirror.getTableDefinition(Environment.LOWER));
+                String alterTableLocSql = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, database, tableName, originalLocation);
+                LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Altering table Location to original table in lower cluster");
+                LOG.debug(getEnvironment() + "(SQL)" + alterTableLocSql);
+                try {
+                    if (!config.isDryrun())
+                        stmt.execute(alterTableLocSql);
+                    tblMirror.setLocationAdjusted(Boolean.TRUE);
+                } catch (SQLException throwables) {
+                    String errorMsg = getEnvironment() + ":" + database + "." + tableName +
+                            ": Issue adjusting table location, data may not be available for new table";
+                    tblMirror.addIssue(errorMsg + ": " + throwables.getMessage());
+                    LOG.error(errorMsg, throwables);
+                }
+
                 // Need to check if table is partitioned
                 if (TableUtils.isPartitioned(tableName, tblMirror.getTableDefinition(Environment.LOWER))) {
 
@@ -798,7 +817,7 @@ public class Cluster implements Comparable<Cluster> {
                     //       When the tables are imported, the setting is automatically added in CDP 7.1.4
 
                     if (this.getPartitionDiscovery().getInitMSCK()) {
-                        LOG.debug(getEnvironment() + ":" + database + "." + tableName +
+                        LOG.info(getEnvironment() + ":" + database + "." + tableName +
                                 ": Discovering " + tblMirror.getPartitionDefinition(Environment.LOWER).size() + " partitions");
                         String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, database, tblMirror.getName());
                         LOG.debug(getEnvironment() + "(SQL)" + msckStmt);
@@ -806,6 +825,8 @@ public class Cluster implements Comparable<Cluster> {
                             if (!config.isDryrun())
                                 stmt.execute(msckStmt);
                             tblMirror.setDiscoverPartitions(Boolean.TRUE);
+                            LOG.info(getEnvironment() + ":" + database + "." + tableName +
+                                    ": Partitions Discovered");
                         } catch (SQLException throwables) {
                             String errorMsg = getEnvironment() + ":" + database + "." + tableName +
                                     ": Issue discovering partitions, data may not be available for new table";
