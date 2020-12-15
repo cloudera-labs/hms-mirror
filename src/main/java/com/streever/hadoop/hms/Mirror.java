@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.streever.hadoop.hms.mirror.*;
 import com.streever.hadoop.hms.stage.*;
+import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
@@ -26,7 +27,7 @@ public class Mirror {
 //    private ScheduledExecutorService metadataThreadPool;
 //    private ScheduledExecutorService storageThreadPool;
 
-//    private String[] databases = null;
+    //    private String[] databases = null;
     private Config config = null;
     private String configFile = null;
     private String reportOutputDir = null;
@@ -169,7 +170,7 @@ public class Mirror {
         try {
             String reportFileStr = reportOutputDir + System.getProperty("file.separator") + "hms-mirror-METADATA-" + df.format(new Date()) + ".md";
             FileWriter reportFile = new FileWriter(reportFileStr);
-            reportFile.write(conversion.toReport());
+            reportFile.write(conversion.toReport(config));
             reportFile.close();
             LOG.info("Status Report of 'hms-mirror' is here: " + reportFileStr.toString());
         } catch (IOException e) {
@@ -184,77 +185,6 @@ public class Mirror {
         }
     }
 
-//    public Conversion setup(Conversion conversion) {
-//        Date startTime = new Date();
-//        LOG.info("GATHERING METADATA: Start Processing for databases: " + Arrays.toString((databases)));
-//
-//        List<ScheduledFuture> gtf = new ArrayList<ScheduledFuture>();
-//        for (String database : databases) {
-//            DBMirror dbMirror = conversion.addDatabase(database);
-//            GetTables gt = new GetTables(config, dbMirror);
-//            gtf.add(config.getMetadataThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
-//        }
-//
-//        // Need to Create LOWER/UPPER Cluster Db(s).
-//        if (config.getMetadata().getStrategy().equals(MetadataConfig.Strategy.TRANSITION)) {
-//            CreateDatabases transitionCreateDatabases = new CreateDatabases(config, conversion, Boolean.TRUE);
-//            gtf.add(config.getMetadataThreadPool().schedule(transitionCreateDatabases, 1, TimeUnit.MILLISECONDS));
-//        }
-//
-//        CreateDatabases createDatabases = new CreateDatabases(config, conversion, Boolean.FALSE);
-//        gtf.add(config.getMetadataThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
-//
-//        // When the tables have been gathered, complete the process for the METADATA Stage.
-//        while (true) {
-//            boolean check = true;
-//            for (ScheduledFuture sf : gtf) {
-//                if (!sf.isDone()) {
-//                    check = false;
-//                    break;
-//                }
-//            }
-//            if (check)
-//                break;
-//        }
-//
-//        LOG.info(">>>>>>>>>>> Getting Table Metadata");
-//        List<ScheduledFuture> tmdf = new ArrayList<ScheduledFuture>();
-//        Set<String> collectedDbs = conversion.getDatabases().keySet();
-//        for (String database : collectedDbs) {
-//            DBMirror dbMirror = conversion.getDatabase(database);
-//            Set<String> tables = dbMirror.getTableMirrors().keySet();
-//            for (String table : tables) {
-//                TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
-//                if (!tblMirror.isTransactional()) {
-//                    GetTableMetadata tmd = new GetTableMetadata(config, dbMirror, tblMirror);
-//                    tmdf.add(config.getMetadataThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
-//                }
-//            }
-//        }
-//
-//        while (true) {
-//            boolean check = true;
-//            for (ScheduledFuture sf : tmdf) {
-//                if (!sf.isDone()) {
-//                    check = false;
-//                    break;
-//                }
-//            }
-//            if (check)
-//                break;
-//        }
-//
-//        LOG.info("==============================");
-//        LOG.info(conversion.toString());
-//        LOG.info("==============================");
-//        Date endTime = new Date();
-//        DecimalFormat df = new DecimalFormat("#.###");
-//        df.setRoundingMode(RoundingMode.CEILING);
-//        LOG.info("GATHERING METADATA: Completed in " + df.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
-//
-//        return conversion;
-//    }
-
     public Conversion runStorage(Conversion conversion) {
         Date startTime = new Date();
         LOG.info("STORAGE-STAGE: Start Processing for databases: " + Arrays.toString((config.getDatabases())));
@@ -268,10 +198,8 @@ public class Mirror {
             Set<String> tables = dbMirror.getTableMirrors().keySet();
             for (String table : tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
-                if (!tblMirror.isTransactional()) {
-                    Storage sd = new Storage(config, dbMirror, tblMirror);
-                    sdf.add(config.getStorageThreadPool().schedule(sd, 1, TimeUnit.MILLISECONDS));
-                }
+                Storage sd = new Storage(config, dbMirror, tblMirror);
+                sdf.add(config.getStorageThreadPool().schedule(sd, 1, TimeUnit.MILLISECONDS));
             }
         }
 
@@ -316,9 +244,11 @@ public class Mirror {
             Set<String> tables = dbMirror.getTableMirrors().keySet();
             for (String table : tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
-                if (!tblMirror.isTransactional()) {
+                if (!TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER))) {
                     Metadata md = new Metadata(config, dbMirror, tblMirror);
                     mdf.add(config.getMetadataThreadPool().schedule(md, 1, TimeUnit.MILLISECONDS));
+                } else {
+                    tblMirror.addIssue("ACID Table not supported for METADATA phase");
                 }
             }
         }

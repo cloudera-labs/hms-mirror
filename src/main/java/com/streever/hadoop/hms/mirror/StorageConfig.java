@@ -21,6 +21,7 @@ public class StorageConfig {
          */
         DISTCP;
     }
+
     private int concurrency = 4;
     private StorageConfig.Strategy strategy = StorageConfig.Strategy.SQL;
 
@@ -42,6 +43,14 @@ public class StorageConfig {
 
         public void setSqlSizeLimit(long sqlSizeLimit) {
             this.sqlSizeLimit = sqlSizeLimit;
+        }
+
+        @Override
+        public String toString() {
+            return "Hybrid{" +
+                    "sqlPartitionLimit=" + sqlPartitionLimit +
+                    ", sqlSizeLimit=" + sqlSizeLimit +
+                    '}';
         }
     }
 
@@ -69,5 +78,14 @@ public class StorageConfig {
 
     public void setHybrid(Hybrid hybrid) {
         this.hybrid = hybrid;
+    }
+
+    @Override
+    public String toString() {
+        return "StorageConfig{" +
+                "concurrency=" + concurrency +
+                ", strategy=" + strategy +
+                ", hybrid=" + hybrid +
+                '}';
     }
 }

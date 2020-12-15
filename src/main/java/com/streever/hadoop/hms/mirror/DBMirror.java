@@ -42,13 +42,4 @@ public class DBMirror {
         return tableMirrors.get(table);
     }
 
-    public Integer translate(Cluster from, Cluster to) {
-        // loop through tables.
-        Set<String> tables = tableMirrors.keySet();
-        for (String table: tables) {
-            TableMirror tableMirror = tableMirrors.get(table);
-            tableMirror.translate(table, from, to);
-        }
-        return 0;
-    }
 }

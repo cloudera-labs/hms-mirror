@@ -29,6 +29,7 @@ public class MirrorConf {
     public static final String ALTER_TABLE_LOCATION =
             "ALTER TABLE {0}.{1} SET LOCATION \"{2}\"";
     public static final String LEGACY_MANAGED_FLAG = "hmsMirror_LegacyManaged";
+    public static final String DISCOVER_PARTITIONS = "discover.partitions";
 
     /*
     METADATA Transfer Flag

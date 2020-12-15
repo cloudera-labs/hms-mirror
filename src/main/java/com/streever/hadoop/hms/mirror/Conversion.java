@@ -1,5 +1,10 @@
 package com.streever.hadoop.hms.mirror;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -25,80 +30,62 @@ public class Conversion {
         return databases.get(database);
     }
 
-    public Integer translate(Cluster from, Cluster to, String database) {
-        DBMirror dbMirror = databases.get(database);
-        dbMirror.translate(from, to);
-
-
-        return 0;
-    }
-
-    public String toReport() {
+    public String toReport(Config config) throws JsonProcessingException {
         StringBuilder sb = new StringBuilder();
         Set<String> databaseSet = databases.keySet();
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         sb.append("# hms-mirror\n");
         sb.append(ReportingConf.substituteVariables("v.${Implementation-Version}")).append("\n");
-        sb.append("Run Date: " + df.format(new Date())).append("\n\n");
+        sb.append("---\n").append("# Run State\n");
+        sb.append("Date: " + df.format(new Date())).append("\n\n");
+        sb.append("## Config:\n");
 
-        sb.append("**Legend**\n");
-        sb.append("- ACID - Transactional/ACID Table").append("\n");
-        sb.append("- PC - Partition Count").append("\n");
-        sb.append("- TC - Transition Table Created").append("\n");
-        sb.append("- EC - Export Created").append("\n");
-        sb.append("- OW - Overwrite UPPER Cluster Table").append("\n");
-        sb.append("- ETD - Existing Table Dropped").append("\n");
-        sb.append("- IMPORTED - Upper Table Created").append("\n");
-        sb.append("- DP - Discover Partitions(MSCK)").append("\n");
-        sb.append("- LOC_ADJ - Location Adjusted to LOWER Cluster Storage").append("\n");
-        sb.append("- PROP ADD - Properties Added").append("\n");
-        sb.append("\n");
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        String yamlStr = mapper.writeValueAsString(config);
+        sb.append("```\n");
+        sb.append(yamlStr).append("\n");
+        sb.append("```\n");
 
-
+        sb.append("## Databases\n");
         for (String database : databaseSet) {
             sb.append("## ").append(database).append("\n");
             DBMirror dbMirror = databases.get(database);
             sb.append("\n");
 
             sb.append("|").append(" Table ").append("|")
-                    .append(" ACID ").append("|")
-                    .append(" PC ").append("|")
-                    .append(" TC ").append("|")
-                    .append(" EC ").append("|")
-                    .append(" OW ").append("|")
-                    .append(" ETD ").append("|")
-                    .append(" IMPORTED ").append("|")
-                    .append(" LOC_ADJ ").append("|")
-                    .append(" DP ").append("|")
-                    .append(" PROP ADD ").append("|")
-                    .append(" Issues ").append("|")
+                    .append("Phase<br/>Success").append("|")
+                    .append("Partition<br/>Count").append("|")
+                    .append("Actions").append("|")
+                    .append("Added<br/>Properties").append("|")
+                    .append("Issues").append("|")
                     .append("\n");
             sb.append("|").append(":---").append("|")
-                    .append(":---:").append("|")
-                    .append(":---:").append("|")
+                    .append(":---").append("|")
                     .append("---:").append("|")
-                    .append(":---:").append("|")
-                    .append(":---:").append("|")
-                    .append(":---:").append("|")
-                    .append(":---:").append("|")
-                    .append(":---:").append("|")
+                    .append(":---").append("|")
                     .append(":---").append("|")
                     .append(":---").append("|")
                     .append("\n");
             Set<String> tables = dbMirror.getTableMirrors().keySet();
             for (String table : tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
-                sb.append("|").append(table).append("|");
-                sb.append(tblMirror.isTransactional() ? "X":" ").append("|");
+                sb.append("|").append(table).append("|")
+                        .append(tblMirror.getPhaseSuccess().toString()).append("|");
                 sb.append(tblMirror.getPartitionDefinition(Environment.LOWER) != null ?
                         tblMirror.getPartitionDefinition(Environment.LOWER).size() : " ").append("|");
-                sb.append(tblMirror.isTransitionCreated() ? "X" : " ").append("|");
-                sb.append(tblMirror.isExportCreated() ? "X" : " ").append("|")
-                        .append(tblMirror.isOverwrite() ? "X" : " ").append("|")
-                        .append(tblMirror.isExistingTableDropped() ? "X" : " ").append("|")
-                        .append(tblMirror.isSchemaImported() ? "X" : " ").append("|")
-                        .append(tblMirror.isLocationAdjusted() ? "X" : " ").append("|")
-                        .append(tblMirror.isDiscoverPartitions() ? "X" : " ").append("|");
+                // Actions
+                Iterator<Map.Entry<String, Object>> aIter = tblMirror.getActions().entrySet().iterator();
+                while (aIter.hasNext()) {
+                    Map.Entry<String, Object> item = aIter.next();
+                    sb.append(item.getKey()).append(" -> ");
+                    if (item.getValue() != null)
+                        sb.append(item.getValue().toString());
+                    if (aIter.hasNext())
+                        sb.append("<br/>");
+                }
+                sb.append("|");
+                // Properties
                 if (tblMirror.whereTherePropsAdded()) {
                     for (String propAdd : tblMirror.getPropAdd()) {
                         sb.append(propAdd).append("<br/>");
@@ -107,6 +94,7 @@ public class Conversion {
                     sb.append(" ");
                 }
                 sb.append("|");
+                // Issues
                 if (tblMirror.isThereAnIssue()) {
                     for (String issue : tblMirror.getIssues()) {
                         sb.append(issue).append("<br/>");

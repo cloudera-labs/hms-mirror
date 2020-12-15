@@ -1,9 +1,12 @@
 package com.streever.hadoop.hms.mirror;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streever.hadoop.hms.Mirror;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.beans.Transient;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -14,7 +17,9 @@ public class Config {
 
     private static Logger LOG = LogManager.getLogger(Mirror.class);
 
+    @JsonIgnore
     private ScheduledExecutorService metadataThreadPool;
+    @JsonIgnore
     private ScheduledExecutorService storageThreadPool;
 
     private boolean dryrun = Boolean.FALSE;
@@ -109,22 +114,6 @@ public class Config {
         this.storage = storage;
     }
 
-//    public Concurrency getConcurrency() {
-//        return concurrency;
-//    }
-//
-//    public void setConcurrency(Concurrency concurrency) {
-//        this.concurrency = concurrency;
-//    }
-
-    //    public Integer getParallelism() {
-//        return parallelism;
-//    }
-//
-//    public void setParallelism(Integer parallelism) {
-//        this.parallelism = parallelism;
-//    }
-
     public Map<Environment, Cluster> getClusters() {
         return clusters;
     }
@@ -148,5 +137,19 @@ public class Config {
             Cluster cluster = clusters.get(environment);
             cluster.setEnvironment(environment);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "Config{" +
+                "dryrun=" + dryrun +
+                ", stage=" + stage +
+                ", databases=" + Arrays.toString(databases) +
+                ", transferPrefix='" + transferPrefix + '\'' +
+                ", exportBaseDirPrefix='" + exportBaseDirPrefix + '\'' +
+                ", overwriteTable=" + overwriteTable +
+                ", metadata=" + metadata +
+                ", storage=" + storage +
+                '}';
     }
 }

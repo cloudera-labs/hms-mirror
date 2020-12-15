@@ -1,12 +1,17 @@
 package com.streever.hadoop.hms.mirror;
 
 public class PartitionDiscovery {
-    // "discover.partitions"="true" won't be available till Hive 4.0?
+
+    /*
+    Partition Discovery is NOT enable by default in most cluster.  On the Metastore Leader, the `PartitionManagementTask`
+    will run when
+     */
     private Boolean auto = Boolean.TRUE;
+    /*
+    Setting this will trigger an immediate msck on the table, which will affect performance of this job.  Consider
+    using `auto`, to set the 'discovery'.  Make sure you activate and size the PartitionManagementTask process.
+     */
     private Boolean initMSCK = Boolean.TRUE;
-//    private PartitionDiscoveryStrategy defaultStrategy = PartitionDiscoveryStrategy.TRANSLATE;
-//    private Integer limit = null;
-//    private PartitionDiscoveryStrategy limitStrategy = null;
 
     public Boolean getAuto() {
         return auto;
@@ -24,27 +29,4 @@ public class PartitionDiscovery {
         this.initMSCK = initMSCK;
     }
 
-    //    public PartitionDiscoveryStrategy getDefaultStrategy() {
-//        return defaultStrategy;
-//    }
-//
-//    public void setDefaultStrategy(PartitionDiscoveryStrategy defaultStrategy) {
-//        this.defaultStrategy = defaultStrategy;
-//    }
-//
-//    public Integer getLimit() {
-//        return limit;
-//    }
-//
-//    public void setLimit(Integer limit) {
-//        this.limit = limit;
-//    }
-//
-//    public PartitionDiscoveryStrategy getLimitStrategy() {
-//        return limitStrategy;
-//    }
-//
-//    public void setLimitStrategy(PartitionDiscoveryStrategy limitStrategy) {
-//        this.limitStrategy = limitStrategy;
-//    }
 }

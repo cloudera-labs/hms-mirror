@@ -9,15 +9,19 @@ import java.util.*;
 public class TableMirror {
     private DBMirror database;
     private String name;
-    private boolean overwrite = Boolean.FALSE;
-    private boolean transactional = Boolean.FALSE;
-    private boolean transitionCreated = Boolean.FALSE;
-    private boolean exportCreated = Boolean.FALSE;
-    private boolean existingTableDropped = Boolean.FALSE;
-    private boolean schemaImported = Boolean.FALSE;
-    private boolean dataMigrated = Boolean.FALSE;
-    private boolean locationAdjusted = Boolean.FALSE;
-    private boolean discoverPartitions = Boolean.FALSE;
+    private Map<String, Object> actions = new LinkedHashMap<String, Object>();
+
+    private Boolean phaseSuccess = Boolean.FALSE;
+
+//    private boolean overwrite = Boolean.FALSE;
+//    private boolean transactional = Boolean.FALSE;
+//    private boolean transitionCreated = Boolean.FALSE;
+//    private boolean exportCreated = Boolean.FALSE;
+//    private boolean existingTableDropped = Boolean.FALSE;
+//    private boolean schemaImported = Boolean.FALSE;
+//    private boolean dataMigrated = Boolean.FALSE;
+//    private boolean locationAdjusted = Boolean.FALSE;
+//    private boolean discoverPartitions = Boolean.FALSE;
     private List<String> issues = new ArrayList<String>();
     private List<String> propAdd = new ArrayList<String>();
 
@@ -25,9 +29,25 @@ public class TableMirror {
         return name;
     }
 
+    public Boolean getPhaseSuccess() {
+        return phaseSuccess;
+    }
+
+    public void setPhaseSuccess(Boolean phaseSuccess) {
+        this.phaseSuccess = phaseSuccess;
+    }
+
     public TableMirror(DBMirror database, String tablename) {
         this.database = database;
         this.name = tablename;
+    }
+
+    public void addAction(String key, Object value) {
+        actions.put(key, value);
+    }
+
+    public Map<String, Object> getActions() {
+        return actions;
     }
 
     public boolean isThereAnIssue() {
@@ -38,77 +58,77 @@ public class TableMirror {
         return propAdd.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
     }
 
-    public boolean isOverwrite() {
-        return overwrite;
-    }
-
-    public void setOverwrite(boolean overwrite) {
-        this.overwrite = overwrite;
-    }
-
-    public boolean isTransactional() {
-        return transactional;
-    }
-
-    public void setTransactional(boolean transactional) {
-        this.transactional = transactional;
-    }
-
-    public boolean isDiscoverPartitions() {
-        return discoverPartitions;
-    }
-
-    public void setDiscoverPartitions(boolean discoverPartitions) {
-        this.discoverPartitions = discoverPartitions;
-    }
-
-    public boolean isLocationAdjusted() {
-        return locationAdjusted;
-    }
-
-    public void setLocationAdjusted(boolean locationAdjusted) {
-        this.locationAdjusted = locationAdjusted;
-    }
-
-    public boolean isTransitionCreated() {
-        return transitionCreated;
-    }
-
-    public void setTransitionCreated(boolean transitionCreated) {
-        this.transitionCreated = transitionCreated;
-    }
-
-    public boolean isExportCreated() {
-        return exportCreated;
-    }
-
-    public void setExportCreated(boolean exportCreated) {
-        this.exportCreated = exportCreated;
-    }
-
-    public boolean isExistingTableDropped() {
-        return existingTableDropped;
-    }
-
-    public void setExistingTableDropped(boolean existingTableDropped) {
-        this.existingTableDropped = existingTableDropped;
-    }
-
-    public boolean isSchemaImported() {
-        return schemaImported;
-    }
-
-    public void setSchemaImported(boolean schemaImported) {
-        this.schemaImported = schemaImported;
-    }
-
-    public boolean isDataMigrated() {
-        return dataMigrated;
-    }
-
-    public void setDataMigrated(boolean dataMigrated) {
-        this.dataMigrated = dataMigrated;
-    }
+//    public boolean isOverwrite() {
+//        return overwrite;
+//    }
+//
+//    public void setOverwrite(boolean overwrite) {
+//        this.overwrite = overwrite;
+//    }
+//
+//    public boolean isTransactional() {
+//        return transactional;
+//    }
+//
+//    public void setTransactional(boolean transactional) {
+//        this.transactional = transactional;
+//    }
+//
+//    public boolean isDiscoverPartitions() {
+//        return discoverPartitions;
+//    }
+//
+//    public void setDiscoverPartitions(boolean discoverPartitions) {
+//        this.discoverPartitions = discoverPartitions;
+//    }
+//
+//    public boolean isLocationAdjusted() {
+//        return locationAdjusted;
+//    }
+//
+//    public void setLocationAdjusted(boolean locationAdjusted) {
+//        this.locationAdjusted = locationAdjusted;
+//    }
+//
+//    public boolean isTransitionCreated() {
+//        return transitionCreated;
+//    }
+//
+//    public void setTransitionCreated(boolean transitionCreated) {
+//        this.transitionCreated = transitionCreated;
+//    }
+//
+//    public boolean isExportCreated() {
+//        return exportCreated;
+//    }
+//
+//    public void setExportCreated(boolean exportCreated) {
+//        this.exportCreated = exportCreated;
+//    }
+//
+//    public boolean isExistingTableDropped() {
+//        return existingTableDropped;
+//    }
+//
+//    public void setExistingTableDropped(boolean existingTableDropped) {
+//        this.existingTableDropped = existingTableDropped;
+//    }
+//
+//    public boolean isSchemaImported() {
+//        return schemaImported;
+//    }
+//
+//    public void setSchemaImported(boolean schemaImported) {
+//        this.schemaImported = schemaImported;
+//    }
+//
+//    public boolean isDataMigrated() {
+//        return dataMigrated;
+//    }
+//
+//    public void setDataMigrated(boolean dataMigrated) {
+//        this.dataMigrated = dataMigrated;
+//    }
 
     public List<String> getIssues() {
         return issues;
@@ -125,13 +145,16 @@ public class TableMirror {
     public void addProp(String propAdd) {
         getPropAdd().add(propAdd);
     }
+    public void addProp(String prop, String value) {
+        getPropAdd().add(prop + "=" + value);
+    }
 
     // There are two environments (UPPER and LOWER)
     private Map<Environment, List<String>> tableDefinitions = new TreeMap<Environment, List<String>>();
     private Map<Environment, Boolean> tablePartitioned = new TreeMap<Environment, Boolean>();
     private Map<Environment, List<String>> tablePartitions = new TreeMap<Environment, List<String>>();
 
-    public boolean buildUpperSchema() {
+    public boolean buildUpperSchema(Config config) {
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         List<String> lowerTD = tableDefinitions.get(Environment.LOWER);
         List<String> upperTD = new ArrayList<String>();
@@ -145,14 +168,35 @@ public class TableMirror {
 
         // 1. If Managed, convert to EXTERNAL
         Boolean converted = TableUtils.makeExternal(this.getName(), upperTD);
+
         // 2. Set mirror stage one flag
-        TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_METADATA_FLAG, df.format(new Date()), upperTD);
+//        TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_METADATA_FLAG, df.format(new Date()), upperTD);
+
         // 3. setting legacy flag - At a later date, we'll convert this to
         //     'external.table.purge'='true'
-        if (converted)
+        if (converted) {
             TableUtils.upsertTblProperty(MirrorConf.LEGACY_MANAGED_FLAG, converted.toString(), upperTD);
+            addProp(MirrorConf.LEGACY_MANAGED_FLAG, converted.toString());
+        }
+
         // 4. identify this table as being converted by hms-mirror
         TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, Boolean.TRUE.toString(), upperTD);
+        addProp(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, converted.toString());
+
+        // 5. Strip stat properties
+        TableUtils.removeTblProperty("COLUMN_STATS_ACCURATE", upperTD);
+        TableUtils.removeTblProperty("numFiles", upperTD);
+        TableUtils.removeTblProperty("numRows", upperTD);
+        TableUtils.removeTblProperty("rawDataSize", upperTD);
+        TableUtils.removeTblProperty("totalSize", upperTD);
+        TableUtils.removeTblProperty("discover.partitions", upperTD);
+
+        // 6. Set 'discover.partitions' if config
+        if (config.getCluster(Environment.UPPER).getPartitionDiscovery().getAuto()) {
+            TableUtils.upsertTblProperty(MirrorConf.DISCOVER_PARTITIONS, "true", upperTD);
+            addProp(MirrorConf.DISCOVER_PARTITIONS, converted.toString());
+        }
+
         // 5. Location Adjustments
         //    Since we are looking at the same data as the original, we're not changing this now.
         //    Any changes to data location are a part of stage-2 (STORAGE).
@@ -246,7 +290,6 @@ public class TableMirror {
 
     /*
     Build upper environment table def from lower environment definition.
-     */
     public void translate(String tableName, Cluster from, Cluster to) {
         List<String> tblDef = null;
 
@@ -289,5 +332,6 @@ public class TableMirror {
         }
 
     }
+     */
 
 }

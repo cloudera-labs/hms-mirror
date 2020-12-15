@@ -41,6 +41,15 @@ Follow workaround above or add use the 'hdfs' group. Or use Ranger to allow all 
 `sudo ./configs.py --host=k01.streever.local --port=8080 -u admin -p admin -n hdp50 -c hdfs-site -a set -k dfs.permissions.superusergroup -v hdfs_admin`
 
 
-## Tip 1
+## Tip 1 (not validated)
 
 Increase the 'hive_on_tez' `hive.msck.repair.batch.size` to improve partition discovery times.
+
+HMS:
+`hive.exec.input.listing.max.threads`
+`hive.load.dynamic.partitions.thread`
+`hive.metastore.fshandler.threads` (seemed to be the only one the cm noticed on restart)
+
+## Tip 2
+
+It seems that when there are ".hive-staging..." files in a table directory that is having partitions build for either by MSCK or ALTER SET LOCATION, it REALLY slows down the process.

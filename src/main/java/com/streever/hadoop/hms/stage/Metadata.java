@@ -4,6 +4,7 @@ import com.streever.hadoop.hms.mirror.Config;
 import com.streever.hadoop.hms.mirror.DBMirror;
 import com.streever.hadoop.hms.mirror.Environment;
 import com.streever.hadoop.hms.mirror.TableMirror;
+import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -38,20 +39,30 @@ public class Metadata implements Runnable {
             case DIRECT:
                 // This method will skip the EXPORT transition step and build the schema from
                 // the SOURCE table def.
-                config.getCluster(Environment.UPPER).buildUpperSchemaUsingLowerData(config, dbMirror, tblMirror);
+                successful = config.getCluster(Environment.UPPER).buildUpperSchemaUsingLowerData(config, dbMirror, tblMirror);
+                if (successful) {
+                    successful = config.getCluster(Environment.UPPER).partitionMaintenance(config, dbMirror, tblMirror);
+                }
                 break;
             case TRANSITION:
-                String database = config.getTransferPrefix() + dbMirror.getDatabase();
+                String transitionDatabase = config.getTransferPrefix() + dbMirror.getDatabase();
                 // Method supporting a transfer Schema.  Had issues with this on EMR and the EXPORT process.
                 // Could get the EXPORT the right permissions to write to S3, so the export would fail.
-                config.getCluster(Environment.LOWER).buildTransferTableSchema(config, database, dbMirror, tblMirror);
-                config.getCluster(Environment.LOWER).exportSchema(config, database, dbMirror, tblMirror);
-                config.getCluster(Environment.UPPER).importTransferSchemaUsingLowerData(config, dbMirror, tblMirror);
+                successful = config.getCluster(Environment.LOWER).buildTransferTableSchema(config, transitionDatabase, dbMirror, tblMirror);
+                if (successful) {
+                    successful = config.getCluster(Environment.LOWER).exportSchema(config, transitionDatabase, dbMirror, tblMirror);
+                }
+                if (successful) {
+                    successful = config.getCluster(Environment.UPPER).importTransferSchemaUsingLowerData(config, dbMirror, tblMirror);
+                }
+                if (successful) {
+                    successful = config.getCluster(Environment.UPPER).partitionMaintenance(config, dbMirror, tblMirror);
+                }
                 break;
         }
-        /*
-         */
-        successful = Boolean.TRUE;
+
+        tblMirror.setPhaseSuccess(successful);
+
         Date end = new Date();
         LOG.info("METADATA: Migration complete for " + dbMirror.getDatabase() + "." + tblMirror.getName() + " in " +
                 Long.toString(end.getTime() - start.getTime()) + "ms");

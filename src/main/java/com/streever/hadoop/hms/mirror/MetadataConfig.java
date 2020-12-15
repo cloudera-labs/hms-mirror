@@ -34,4 +34,12 @@ public class MetadataConfig {
     public void setStrategy(Strategy strategy) {
         this.strategy = strategy;
     }
+
+    @Override
+    public String toString() {
+        return "MetadataConfig{" +
+                "concurrency=" + concurrency +
+                ", strategy=" + strategy +
+                '}';
+    }
 }
