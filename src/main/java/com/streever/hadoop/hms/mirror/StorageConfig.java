@@ -23,7 +23,8 @@ public class StorageConfig {
     }
 
     private int concurrency = 4;
-    private StorageConfig.Strategy strategy = StorageConfig.Strategy.SQL;
+    private StorageConfig.Strategy strategy = StorageConfig.Strategy.HYBRID;
+    private Boolean migrateACID = Boolean.FALSE;
 
     public class Hybrid {
         private int sqlPartitionLimit = 100;
@@ -78,6 +79,14 @@ public class StorageConfig {
 
     public void setHybrid(Hybrid hybrid) {
         this.hybrid = hybrid;
+    }
+
+    public Boolean getMigrateACID() {
+        return migrateACID;
+    }
+
+    public void setMigrateACID(Boolean migrateACID) {
+        this.migrateACID = migrateACID;
     }
 
     @Override

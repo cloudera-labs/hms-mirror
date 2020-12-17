@@ -276,7 +276,7 @@ public class Cluster implements Comparable<Cluster> {
                         // Check that it was put there by 'hms-mirror'.  If not, we won't replace it.
                         if (TableUtils.isHMSConverted(tableName, tblMirror.getTableDefinition(Environment.UPPER))) {
                             // Check if the table has been converted to an ACID table.
-                            if (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
+                            if (config.getStage().equals(Stage.METADATA) && TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
                                 String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Has been converted to " +
                                         "a 'transactional' table.  And isn't safe to drop before re-importing. " +
                                         "Review the table and remove manually before running process again.";
@@ -310,6 +310,21 @@ public class Cluster implements Comparable<Cluster> {
                                 LOG.error(errorMsg);
                                 // No need to continue.
                                 rtn = Boolean.FALSE;
+                            }
+
+                            // Attempt to set a table property for current external tables that 'exist' and we're
+                            // trying to replace during the STORAGE phase.
+                            if (rtn && config.getStage().equals(Stage.STORAGE) &&
+                                    !TableUtils.isExternalPurge(tblMirror.getName(),
+                                            tblMirror.getTableDefinition(Environment.UPPER))) {
+                                String externalPurge = MessageFormat.format(MirrorConf.ADD_TBL_PROP,
+                                        database, tblMirror.getName(),
+                                        MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+                                if (!config.isDryrun())
+                                    stmt.execute(externalPurge);
+                                tblMirror.addIssue(getEnvironment().toString() + ":" +
+                                        MirrorConf.EXTERNAL_TABLE_PURGE +
+                                        "=true set to facilitate table/data drop for NEW IMPORT");
                             }
                         } else {
                             // It was NOT created by HMS Mirror.  The table will need to be manually dropped after review.
@@ -414,7 +429,8 @@ public class Cluster implements Comparable<Cluster> {
     //   METADATA MOVEMENT
     //////////////////////////
 
-    public Boolean buildTransferTableSchema(Config config, String transferDatabase, DBMirror dbMirror, TableMirror tblMirror) {
+    public Boolean buildTransferTableSchema(Config config, String transferDatabase, DBMirror dbMirror, TableMirror
+            tblMirror) {
         Connection conn = null;
         Statement stmt = null;
         Boolean rtn = Boolean.FALSE;

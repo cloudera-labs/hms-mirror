@@ -180,8 +180,10 @@ public class Mirror {
                 break;
             case STORAGE:
                 // Make / override any conflicting settings.
-                Storage.fixConfig(config);
-                conversion = runStorage(conversion);
+                Boolean rtn = Storage.fixConfig(config);
+                if (rtn) {
+                    conversion = runStorage(conversion);
+                }
                 // Need to run the METADATA process first to ensure the schemas are CURRENT.
                 // Then run the STORAGE (transfer) stage.
                 // NOTE: When the hcfsNamespace is the same between the clusters, that means they are using the

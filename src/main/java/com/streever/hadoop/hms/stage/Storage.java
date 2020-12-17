@@ -42,8 +42,16 @@ public class Storage implements Runnable {
             //   from the LOWER cluster location.
             if (config.getCluster(Environment.LOWER).getHcfsNamespace() == null ||
                     config.getCluster(Environment.UPPER).getHcfsNamespace() == null) {
+                LOG.error("The LOWER and UPPER cluster 'hcfsNamespace' values must be set to support " +
+                        "the EXPORT_IMPORT migration strategy.");
                 rtn = Boolean.FALSE;
             }
+        }
+        if ((config.getStorage().getStrategy() == StorageConfig.Strategy.SQL ||
+                config.getStorage().getStrategy() == StorageConfig.Strategy.DISTCP) &&
+                config.getStorage().getMigrateACID()) {
+            LOG.error("Migrating ACID tables is only supported via EXPORT_IMPORT storage strategy.");
+            rtn = Boolean.FALSE;
         }
         return rtn;
     }
@@ -58,26 +66,33 @@ public class Storage implements Runnable {
         switch (config.getStorage().getStrategy()) {
             case SQL:
                 if (!TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER))) {
-                    doSQL(dbMirror, tblMirror);
+                    successful = doSQL(dbMirror, tblMirror);
                 } else {
                     // ACID Table support ONLY available via EXPORT_IMPORT.
-                    LOG.debug("ACID Table STORAGE support only available via EXPORT/IMPORT: " +
-                            dbMirror.getDatabase() + "." + tblMirror.getName());
-                    successful = doExportImport(dbMirror, tblMirror);
+                    String errmsg = "ACID Table STORAGE support only available via EXPORT/IMPORT";
+                    tblMirror.addIssue(errmsg);
+                    LOG.debug(dbMirror.getDatabase() + "." + tblMirror.getName() + ":" +
+                            "ACID Table STORAGE support only available via EXPORT/IMPORT");
                 }
                 break;
             case EXPORT_IMPORT:
-                successful = doExportImport(dbMirror, tblMirror);
+                // Convert NON-ACID tables.
+                    successful = doExportImport(dbMirror, tblMirror);
                 break;
             case HYBRID:
                 // Check the Size of the volume where the data is stored on the lower cluster.
-                // Num files
-                // Num of Partitions
-                // Volume
-                // then select
-                // doSQL
-                // or
-                // doExportImport
+                // TODO: Num files
+                // TODO: Volume
+                // DONE: ACID Tables
+                // DONE: Num of Partitions sqlPartitionLimit
+                if (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER)) ||
+                        (TableUtils.isPartitioned(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER)) &&
+                                tblMirror.getPartitionDefinition(Environment.LOWER).size() >
+                                        config.getStorage().getHybrid().getSqlPartitionLimit())) {
+                    successful = doExportImport(dbMirror, tblMirror);
+                } else {
+                    successful = doSQL(dbMirror, tblMirror);
+                }
 
                 break;
             case DISTCP:
@@ -94,6 +109,7 @@ public class Storage implements Runnable {
     protected Boolean doSQL(DBMirror dbMirror, TableMirror tblMirror) {
         tblMirror.addAction("STORAGE", "via SQL");
         Boolean rtn = Boolean.FALSE;
+        tblMirror.addAction("STRATEGY", "SQL");
         // Create table in new cluster.
         // Associate data to original cluster data.
         rtn = config.getCluster(Environment.UPPER).buildUpperSchemaUsingLowerData(config, dbMirror, tblMirror);
@@ -124,12 +140,21 @@ public class Storage implements Runnable {
     }
 
     protected Boolean doExportImport(DBMirror dbMirror, TableMirror tblMirror) {
-        tblMirror.addAction("STORAGE", "via EXPORT/IMPORT");
         Boolean rtn = Boolean.FALSE;
+        tblMirror.addAction("STORAGE", "EXPORT/IMPORT");
+        // Convert NON-ACID tables.
+        // Convert ACID tables WHEN 'migrateACID' is set.
+        if (!TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER)) ||
+                (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER)) &&
+                        config.getStorage().getMigrateACID())) {
 
-        rtn = config.getCluster(Environment.LOWER).exportSchema(config, dbMirror.getDatabase(), dbMirror, tblMirror);
-        if (rtn) {
-            rtn = config.getCluster(Environment.UPPER).importSchemaWithData(config, dbMirror, tblMirror);
+            rtn = config.getCluster(Environment.LOWER).exportSchema(config, dbMirror.getDatabase(), dbMirror, tblMirror);
+            if (rtn) {
+                rtn = config.getCluster(Environment.UPPER).importSchemaWithData(config, dbMirror, tblMirror);
+            }
+        } else {
+            String issuemsg = "ACID table migration only support when storage:migrateACID=true";
+            tblMirror.addIssue(issuemsg);
         }
 
         return rtn;
