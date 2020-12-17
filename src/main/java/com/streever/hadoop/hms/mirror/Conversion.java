@@ -55,6 +55,7 @@ public class Conversion {
 
             sb.append("|").append(" Table ").append("|")
                     .append("Phase<br/>Success").append("|")
+                    .append("Phase<br/>Duration").append("|")
                     .append("Partition<br/>Count").append("|")
                     .append("Actions").append("|")
                     .append("Added<br/>Properties").append("|")
@@ -62,6 +63,7 @@ public class Conversion {
                     .append("\n");
             sb.append("|").append(":---").append("|")
                     .append(":---").append("|")
+                    .append("---:").append("|")
                     .append("---:").append("|")
                     .append(":---").append("|")
                     .append(":---").append("|")
@@ -74,6 +76,7 @@ public class Conversion {
                         .append(tblMirror.getPhaseSuccess().toString()).append("|");
                 sb.append(tblMirror.getPartitionDefinition(Environment.LOWER) != null ?
                         tblMirror.getPartitionDefinition(Environment.LOWER).size() : " ").append("|");
+                sb.append(tblMirror.getStageDuration().toString()).append(" |");
                 // Actions
                 Iterator<Map.Entry<String, Object>> aIter = tblMirror.getActions().entrySet().iterator();
                 while (aIter.hasNext()) {

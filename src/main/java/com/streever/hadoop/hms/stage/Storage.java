@@ -102,14 +102,13 @@ public class Storage implements Runnable {
         tblMirror.setPhaseSuccess(successful);
 
         Date end = new Date();
-        LOG.info("METADATA: Migration complete for " + dbMirror.getDatabase() + "." + tblMirror.getName() + " in " +
+        LOG.info("STORAGE: Migration complete for " + dbMirror.getDatabase() + "." + tblMirror.getName() + " in " +
                 Long.toString(end.getTime() - start.getTime()) + "ms");
     }
 
     protected Boolean doSQL(DBMirror dbMirror, TableMirror tblMirror) {
         tblMirror.addAction("STORAGE", "via SQL");
         Boolean rtn = Boolean.FALSE;
-        tblMirror.addAction("STRATEGY", "SQL");
         // Create table in new cluster.
         // Associate data to original cluster data.
         rtn = config.getCluster(Environment.UPPER).buildUpperSchemaUsingLowerData(config, dbMirror, tblMirror);

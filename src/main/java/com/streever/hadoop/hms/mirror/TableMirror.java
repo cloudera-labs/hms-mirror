@@ -12,6 +12,7 @@ public class TableMirror {
     private Map<String, Object> actions = new LinkedHashMap<String, Object>();
 
     private Boolean phaseSuccess = Boolean.FALSE;
+    private Long stageDuration = 0l;
 
 //    private boolean overwrite = Boolean.FALSE;
 //    private boolean transactional = Boolean.FALSE;
@@ -35,6 +36,14 @@ public class TableMirror {
 
     public void setPhaseSuccess(Boolean phaseSuccess) {
         this.phaseSuccess = phaseSuccess;
+    }
+
+    public Long getStageDuration() {
+        return stageDuration;
+    }
+
+    public void setStageDuration(Long stageDuration) {
+        this.stageDuration = stageDuration;
     }
 
     public TableMirror(DBMirror database, String tablename) {

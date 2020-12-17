@@ -87,4 +87,17 @@ public class ConnectionPools {
         return dataSources.get(environment);
     }
 
+    public void close() {
+        try {
+            dataSources.get(Environment.LOWER).close();
+        } catch (SQLException throwables) {
+            //
+        }
+        try {
+            dataSources.get(Environment.UPPER).close();
+        } catch (SQLException throwables) {
+            //
+        }
+    }
+
 }

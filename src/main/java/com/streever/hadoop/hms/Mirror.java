@@ -67,29 +67,6 @@ public class Mirror {
             configFile = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/cfg/default.yaml";
         }
 
-        if (cmd.hasOption("f")) {
-            reportOutputFile = cmd.getOptionValue("f");
-        } else {
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
-            reportOutputFile = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/reports/" +
-                    "hms-mirror-METADATA-" + df.format(new Date()) + ".md";
-        }
-
-        String reportPath = reportOutputFile.substring(0,reportOutputFile.lastIndexOf(System.getProperty("file.separator")));
-        File reportPathDir = new File(reportPath);
-        if (!reportPathDir.exists()) {
-            reportPathDir.mkdirs();
-        }
-
-        File reportFile = new File(reportOutputFile);
-
-        // Test file to ensure we can write to it for the report.
-        try {
-            new FileOutputStream(reportFile).close();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
 
         File cfgFile = new File(configFile);
         if (!cfgFile.exists()) {
@@ -123,6 +100,30 @@ public class Mirror {
                 config.getStorage().setStrategy(strategy);
             }
             LOG.info("Running STORAGE");
+        }
+
+        if (cmd.hasOption("f")) {
+            reportOutputFile = cmd.getOptionValue("f");
+        } else {
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+            reportOutputFile = System.getProperty("user.home") + System.getProperty("file.separator") +
+                    ".hms-mirror/reports/hms-mirror-" + config.getStage() + "-" + df.format(new Date()) + ".md";
+        }
+
+        String reportPath = reportOutputFile.substring(0,reportOutputFile.lastIndexOf(System.getProperty("file.separator")));
+        File reportPathDir = new File(reportPath);
+        if (!reportPathDir.exists()) {
+            reportPathDir.mkdirs();
+        }
+
+        File reportFile = new File(reportOutputFile);
+
+        // Test file to ensure we can write to it for the report.
+        try {
+            new FileOutputStream(reportFile).close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
         }
 
         if (config.getStage() == null) {
