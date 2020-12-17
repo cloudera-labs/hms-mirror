@@ -26,15 +26,26 @@ public class Storage implements Runnable {
     }
 
     public static Boolean fixConfig(Config config) {
+        Boolean rtn = Boolean.TRUE;
         if (config.getStorage().getStrategy() == StorageConfig.Strategy.SQL ||
                 config.getStorage().getStrategy() == StorageConfig.Strategy.HYBRID) {
             // Ensure the Partitions are built right away.
             if (!config.getCluster(Environment.UPPER).getPartitionDiscovery().getInitMSCK()) {
                 config.getCluster(Environment.UPPER).getPartitionDiscovery().setInitMSCK(Boolean.TRUE);
-                LOG.warn("Property override: PartitionDiscovery:InitMSCK set to true to support SQL STORAGE Mapping");
+                LOG.warn("Config Property OVERRIDE: PartitionDiscovery:InitMSCK set to true to support SQL STORAGE Mapping");
             }
         }
-        return Boolean.TRUE;
+        if (config.getStorage().getStrategy() == StorageConfig.Strategy.EXPORT_IMPORT ||
+                config.getStorage().getStrategy() == StorageConfig.Strategy.HYBRID) {
+            // The hcfsNamespace for each cluster needs to be set.
+            // We use it to build the correct relative location in the UPPER cluster
+            //   from the LOWER cluster location.
+            if (config.getCluster(Environment.LOWER).getHcfsNamespace() == null ||
+                    config.getCluster(Environment.UPPER).getHcfsNamespace() == null) {
+                rtn = Boolean.FALSE;
+            }
+        }
+        return rtn;
     }
 
     @Override

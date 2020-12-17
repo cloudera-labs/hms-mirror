@@ -299,7 +299,9 @@ public class Cluster implements Comparable<Cluster> {
                             }
 
                             // Ensure the table purge flag hasn't been set.
-                            if (TableUtils.isExternalPurge(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
+                            // ONLY prevent during METADATA stage.
+                            // FOR the STORAGE stage, drop the table and data and import.
+                            if (config.getStage().equals(Stage.METADATA) && TableUtils.isExternalPurge(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
                                 String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Is a 'Purge' " +
                                         "enabled 'EXTERNAL' table.  The data is " +
                                         "managed and it's not safe to proceed with converting this table. " +
@@ -319,6 +321,17 @@ public class Cluster implements Comparable<Cluster> {
                             LOG.error(errorMsg);
                             rtn = Boolean.FALSE;
                         }
+                        if (rtn) {
+                            LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Dropping table");
+                            // It was created by HMS Mirror, safe to drop.
+                            String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
+                            LOG.debug(getEnvironment() + "(SQL)" + dropTable);
+
+                            if (!config.isDryrun())
+                                stmt.execute(dropTable);
+                            // TODO: change current to address tablename so we pickup transfer.
+                            tblMirror.addAction(getEnvironment().toString(), "DROPPED");
+                        }
                     }
 
                 } else {
@@ -332,18 +345,19 @@ public class Cluster implements Comparable<Cluster> {
                         rtn = Boolean.FALSE;
                     }
                 }
+            } else {
+                // Always drop the transfer table.
+                if (rtn) {
+                    LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Dropping table");
+                    // It was created by HMS Mirror, safe to drop.
+                    String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
+                    LOG.debug(getEnvironment() + "(SQL)" + dropTable);
 
-            }
-            if (rtn) {
-                LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Dropping table");
-                // It was created by HMS Mirror, safe to drop.
-                String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
-                LOG.debug(getEnvironment() + "(SQL)" + dropTable);
-
-                if (!config.isDryrun())
-                    stmt.execute(dropTable);
-                // TODO: change current to address tablename so we pickup transfer.
-                tblMirror.addAction("Dropped Current", Boolean.TRUE);
+                    if (!config.isDryrun())
+                        stmt.execute(dropTable);
+                    // TODO: change current to address tablename so we pickup transfer.
+                    tblMirror.addAction(getEnvironment().toString(), "DROPPED Transfer (if existed)");
+                }
             }
         } catch (SQLException throwables) {
             tblMirror.addIssue(this.getEnvironment() + ":" + tableName + "->" + throwables.getMessage());
@@ -925,17 +939,37 @@ public class Cluster implements Comparable<Cluster> {
                                         database + "/" + tableName);
                         tblMirror.addAction("ACID Table", Boolean.TRUE);
                     } else {
+                        // Get Original Location
+                        String originalLowerLocation = TableUtils.getLocation(tableName, tblMirror.getTableDefinition(Environment.LOWER));
+                        String upperLocation = originalLowerLocation.replace(config.getCluster(Environment.LOWER).getHcfsNamespace(),
+                                config.getCluster(Environment.UPPER).getHcfsNamespace());
                         importTransferSchema = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION,
                                 database, tableName,
                                 config.getCluster(Environment.LOWER).getHcfsNamespace() + config.getExportBaseDirPrefix() +
-                                        database + "/" + tableName,
-                                TableUtils.getLocation(tableName, tblMirror.getTableDefinition(Environment.LOWER)));
+                                        database + "/" + tableName, upperLocation);
                     }
                     LOG.debug(getEnvironment() + "(SQL)" + importTransferSchema);
                     if (!config.isDryrun())
                         stmt.execute(importTransferSchema);
                     tblMirror.addAction("IMPORTED (w/data)", Boolean.TRUE);
 
+                    if (TableUtils.isLegacyManaged(config.getCluster(Environment.LOWER), tblMirror.getName(),
+                            tblMirror.getTableDefinition(Environment.LOWER))) {
+                        String externalPurge = MessageFormat.format(MirrorConf.ADD_TBL_PROP, database, tblMirror.getName(),
+                                MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+                        LOG.debug(getEnvironment() + ":" + database + "." + tableName +
+                                ": Setting table property " + MirrorConf.EXTERNAL_TABLE_PURGE +
+                                " because this table was a legacy Managed Table.");
+                        LOG.debug(getEnvironment() + "(SQL) " + externalPurge);
+
+                        if (!config.isDryrun())
+                            stmt.execute(externalPurge);
+                        tblMirror.addProp(MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+
+                    } else {
+                        // TODO: RERUNNING THE PROCESS WILL BREAK BECAUSE THE TABLE DATA WON'T BE DROP WHEN THE TABLE
+                        //         IS DROPPED, WHICH PREVENTS THE IMPORT FROM SUCCEEDING.
+                    }
 
                     String flagDate = df.format(new Date());
                     String hmsMirrorFlagStage1 = MessageFormat.format(MirrorConf.ADD_TBL_PROP, database, tblMirror.getName(),
