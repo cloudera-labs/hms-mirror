@@ -12,6 +12,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Config {
 
@@ -24,6 +26,12 @@ public class Config {
 
     private boolean dryrun = Boolean.FALSE;
     private Stage stage = null;
+
+    @JsonIgnore // wip
+    private String dbRegEx = null;
+    @JsonIgnore
+    private Pattern dbFilterPattern = null;
+    private String tblRegEx = null;
     private String[] databases = null;
     private String transferPrefix = "transfer_";
     private String exportBaseDirPrefix = "/apps/hive/warehouse/export_";
@@ -52,6 +60,27 @@ public class Config {
             storageThreadPool = Executors.newScheduledThreadPool(getStorage().getConcurrency());
         }
         return storageThreadPool;
+    }
+
+    public String getDbRegEx() {
+        return dbRegEx;
+    }
+
+    public void setDbRegEx(String dbRegEx) {
+        this.dbRegEx = dbRegEx;
+    }
+
+    public String getTblRegEx() {
+        return tblRegEx;
+    }
+
+    public void setTblRegEx(String tblRegEx) {
+        this.tblRegEx = tblRegEx;
+        dbFilterPattern = Pattern.compile(tblRegEx);
+    }
+
+    public Pattern getDbFilterPattern() {
+        return dbFilterPattern;
     }
 
     public String[] getDatabases() {

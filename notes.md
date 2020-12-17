@@ -53,3 +53,10 @@ HMS:
 ## Tip 2
 
 It seems that when there are ".hive-staging..." files in a table directory that is having partitions build for either by MSCK or ALTER SET LOCATION, it REALLY slows down the process.
+
+## Tip 3
+
+Reruns on External Tables without (purge) need to use hadoopcli to remove directory.  Need this to be a setting.
+
+What to do about external tables where the data doesn't all reside under the table 'location'?
+

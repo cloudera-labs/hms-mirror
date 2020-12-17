@@ -12,6 +12,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.math.RoundingMode;
@@ -30,7 +31,7 @@ public class Mirror {
     //    private String[] databases = null;
     private Config config = null;
     private String configFile = null;
-    private String reportOutputDir = null;
+    private String reportOutputFile = null;
 //    private Stage stage = null;
 
     public void init(String[] args) {
@@ -66,14 +67,28 @@ public class Mirror {
             configFile = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/cfg/default.yaml";
         }
 
-        if (cmd.hasOption("o")) {
-            reportOutputDir = cmd.getOptionValue("o");
+        if (cmd.hasOption("f")) {
+            reportOutputFile = cmd.getOptionValue("f");
         } else {
-            reportOutputDir = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/reports";
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+            reportOutputFile = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/reports/" +
+                    "hms-mirror-METADATA-" + df.format(new Date()) + ".md";
         }
-        File reportDir = new File(reportOutputDir);
-        if (!reportDir.exists()) {
-            reportDir.mkdirs();
+
+        String reportPath = reportOutputFile.substring(0,reportOutputFile.lastIndexOf(System.getProperty("file.separator")));
+        File reportPathDir = new File(reportPath);
+        if (!reportPathDir.exists()) {
+            reportPathDir.mkdirs();
+        }
+
+        File reportFile = new File(reportOutputFile);
+
+        // Test file to ensure we can write to it for the report.
+        try {
+            new FileOutputStream(reportFile).close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
         }
 
         File cfgFile = new File(configFile);
@@ -114,9 +129,19 @@ public class Mirror {
             throw new RuntimeException("Stage (METADATA|STORAGE) has not been specified.");
         }
 
-        String[] databases = cmd.getOptionValues("db");
-        if (databases != null)
-            config.setDatabases(databases);
+        if (cmd.hasOption("db")) {
+            String[] databases = cmd.getOptionValues("db");
+            if (databases != null)
+                config.setDatabases(databases);
+        }
+
+        if (cmd.hasOption("dbRegEx")) {
+            config.setDbRegEx(cmd.getOptionValue("dbRegEx"));
+        }
+
+        if (cmd.hasOption("tf")) {
+            config.setTblRegEx(cmd.getOptionValue("tf"));
+        }
 
         if (config.getDatabases() == null || config.getDatabases().length == 0) {
             LOG.error("No databases specified");
@@ -141,7 +166,7 @@ public class Mirror {
 
     }
 
-    public void start() {
+    public void doit() {
         Conversion conversion = new Conversion();
         Date startTime = new Date();
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
@@ -154,8 +179,8 @@ public class Mirror {
                 conversion = runMetadata(conversion);
                 break;
             case STORAGE:
-                LOG.info("WIP");
-                // We run the Metadata
+                // Make / override any conflicting settings.
+                Storage.fixConfig(config);
                 conversion = runStorage(conversion);
                 // Need to run the METADATA process first to ensure the schemas are CURRENT.
                 // Then run the STORAGE (transfer) stage.
@@ -168,11 +193,11 @@ public class Mirror {
                 break;
         }
         try {
-            String reportFileStr = reportOutputDir + System.getProperty("file.separator") + "hms-mirror-METADATA-" + df.format(new Date()) + ".md";
-            FileWriter reportFile = new FileWriter(reportFileStr);
+//            String reportFileStr = reportOutputFile;
+            FileWriter reportFile = new FileWriter(reportOutputFile);
             reportFile.write(conversion.toReport(config));
             reportFile.close();
-            LOG.info("Status Report of 'hms-mirror' is here: " + reportFileStr.toString());
+            LOG.info("Status Report of 'hms-mirror' is here: " + reportOutputFile.toString());
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -303,7 +328,7 @@ public class Mirror {
         helpOption.setRequired(false);
         options.addOption(helpOption);
 
-        Option outputOption = new Option("o", "output-dir", false,
+        Option outputOption = new Option("f", "output-file", true,
                 "Output Directory (default: $HOME/.hms-mirror/reports/hms-mirror-<stage>-<timestamp>.md");
         outputOption.setRequired(false);
         options.addOption(outputOption);
@@ -317,8 +342,17 @@ public class Mirror {
                 "Comma separated list of Databases (upto 100).");
         dbOption.setValueSeparator(',');
         dbOption.setArgs(100);
-        dbOption.setRequired(true);
-        options.addOption(dbOption);
+//        Option dbRegExOption = new Option("dbRegEx", "database-regex", true,
+//                "Search RegEx of Database names to include in processing");
+        OptionGroup dbGroup = new OptionGroup();
+        dbGroup.addOption(dbOption);
+//        dbGroup.addOption(dbRegExOption);
+        dbGroup.setRequired(true);
+        options.addOptionGroup(dbGroup);
+
+        Option tableFilterOption = new Option("tf", "table-filter", true, "Filter tables with name matching RegEx");
+        tableFilterOption.setRequired(false);
+        options.addOption(tableFilterOption);
 
         Option cfgOption = new Option("cfg", "config", true,
                 "Config with details for the HMS-Mirror.  Default: $HOME/.hms-mirror/cfg/default.yaml");
@@ -334,6 +368,7 @@ public class Mirror {
         LOG.info("Running: hms-mirror " + ReportingConf.substituteVariables("v.${Implementation-Version}"));
         LOG.info("===================================================");
         mirror.init(args);
-        mirror.start();
+        mirror.doit();
+        System.exit(0);
     }
 }

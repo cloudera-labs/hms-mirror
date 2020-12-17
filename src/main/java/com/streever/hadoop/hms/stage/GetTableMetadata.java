@@ -39,9 +39,12 @@ public class GetTableMetadata implements Runnable {
     public void run() {
         LOG.debug("Getting table definition for: " + dbMirror.getDatabase() + "." + tblMirror.getName());
         try {
-            config.getCluster(Environment.LOWER).getTableDefinition(dbMirror.getDatabase(), tblMirror);
-            config.getCluster(Environment.UPPER).getTableDefinition(dbMirror.getDatabase(), tblMirror);
-            successful = Boolean.TRUE;
+            successful = config.getCluster(Environment.LOWER).getTableDefinition(dbMirror.getDatabase(), tblMirror);
+            if (successful) {
+                successful = config.getCluster(Environment.UPPER).getTableDefinition(dbMirror.getDatabase(), tblMirror);
+            } else {
+                successful = Boolean.FALSE;
+            }
         } catch (SQLException throwables) {
             successful = Boolean.FALSE;
         }

@@ -1,9 +1,6 @@
 package com.streever.hadoop.hms.stage;
 
-import com.streever.hadoop.hms.mirror.Config;
-import com.streever.hadoop.hms.mirror.DBMirror;
-import com.streever.hadoop.hms.mirror.Environment;
-import com.streever.hadoop.hms.mirror.TableMirror;
+import com.streever.hadoop.hms.mirror.*;
 import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -28,6 +25,18 @@ public class Storage implements Runnable {
         this.tblMirror = tblMirror;
     }
 
+    public static Boolean fixConfig(Config config) {
+        if (config.getStorage().getStrategy() == StorageConfig.Strategy.SQL ||
+                config.getStorage().getStrategy() == StorageConfig.Strategy.HYBRID) {
+            // Ensure the Partitions are built right away.
+            if (!config.getCluster(Environment.UPPER).getPartitionDiscovery().getInitMSCK()) {
+                config.getCluster(Environment.UPPER).getPartitionDiscovery().setInitMSCK(Boolean.TRUE);
+                LOG.warn("Property override: PartitionDiscovery:InitMSCK set to true to support SQL STORAGE Mapping");
+            }
+        }
+        return Boolean.TRUE;
+    }
+
     @Override
     public void run() {
         Date start = new Date();
@@ -37,7 +46,7 @@ public class Storage implements Runnable {
 
         switch (config.getStorage().getStrategy()) {
             case SQL:
-                if (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER))) {
+                if (!TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER))) {
                     doSQL(dbMirror, tblMirror);
                 } else {
                     // ACID Table support ONLY available via EXPORT_IMPORT.
@@ -64,6 +73,8 @@ public class Storage implements Runnable {
                 break;
         }
 
+        tblMirror.setPhaseSuccess(successful);
+
         Date end = new Date();
         LOG.info("METADATA: Migration complete for " + dbMirror.getDatabase() + "." + tblMirror.getName() + " in " +
                 Long.toString(end.getTime() - start.getTime()) + "ms");
@@ -89,13 +100,14 @@ public class Storage implements Runnable {
         }
         // sql to move data.
         if (rtn) {
-            rtn = config.getCluster(Environment.UPPER).sqlDataTransfer(config, dbMirror, tblMirror);
+            rtn = config.getCluster(Environment.UPPER).doSqlDataTransfer(config, dbMirror, tblMirror);
         }
-
-        // sql to drop (if exists) target table
 
         // rename move table to target table.
         // TODO: Swap tables.
+        if (rtn) {
+            rtn = config.getCluster(Environment.UPPER).completeSqlTransfer(config, dbMirror, tblMirror);
+        }
 
         return rtn;
     }

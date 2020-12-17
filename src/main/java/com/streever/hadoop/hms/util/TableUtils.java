@@ -233,6 +233,30 @@ public class TableUtils {
         return rtn;
     }
 
+    public static Boolean isHMSLegacyManaged(Cluster cluster, String tableName, List<String> tableDefinition) {
+        Boolean rtn = Boolean.FALSE;
+        LOG.debug("Checking if table '" + tableName + "' was tagged as Legacy Managed by 'hms-mirror'");
+        for (String line : tableDefinition) {
+            String tline = line.trim();
+            if (tline.toLowerCase().startsWith("'" + MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG.toLowerCase())) {
+                String[] prop = tline.split("=");
+                if (prop.length == 2) {
+                    // Stripe the quotes
+                    String value = prop[1].replace("'", "").trim();
+                    // Remove trailing , or )
+                    if (value.endsWith(",") || value.endsWith(")")) {
+                        value = value.substring(0, value.length() - 1);
+                    }
+                    if (Boolean.valueOf(value)) {
+                        rtn = Boolean.TRUE;
+                    }
+                }
+                break;
+            }
+        }
+        return rtn;
+    }
+
     public static void upsertTblProperty(String key, String value, List<String> tableDefinition) {
         // Search for property first.
         int tpIdx = tableDefinition.indexOf(TBL_PROPERTIES);

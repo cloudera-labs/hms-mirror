@@ -139,7 +139,8 @@ public class TableMirror {
     }
 
     public void addIssue(String issue) {
-        getIssues().add(issue);
+        String scrubbedIssue = issue.replace("\n", "<br/>");
+        getIssues().add(scrubbedIssue);
     }
 
     public void addProp(String propAdd) {
@@ -175,8 +176,8 @@ public class TableMirror {
         // 3. setting legacy flag - At a later date, we'll convert this to
         //     'external.table.purge'='true'
         if (converted) {
-            TableUtils.upsertTblProperty(MirrorConf.LEGACY_MANAGED_FLAG, converted.toString(), upperTD);
-            addProp(MirrorConf.LEGACY_MANAGED_FLAG, converted.toString());
+            TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString(), upperTD);
+            addProp(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
         }
 
         // 4. identify this table as being converted by hms-mirror

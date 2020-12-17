@@ -14,6 +14,7 @@ public class MirrorConf {
             "CREATE EXTERNAL TABLE IF NOT EXISTS {0}.{1} LIKE {2}.{3}";
     public static final String USE = "USE {0}";
     public static final String DROP_TABLE = "DROP TABLE IF EXISTS {0}.{1}";
+    public static final String RENAME_TABLE = " ALTER TABLE {0} RENAME TO {1}";
     public static final String EXPORT_TABLE =
             "EXPORT TABLE {0}.{1} TO \"{2}\"";
     public static final String IMPORT_EXTERNAL_TABLE =
@@ -28,9 +29,10 @@ public class MirrorConf {
             "ALTER TABLE {0}.{1} UNSET TBLPROPERTIES (\"{2}\")";
     public static final String ALTER_TABLE_LOCATION =
             "ALTER TABLE {0}.{1} SET LOCATION \"{2}\"";
-    public static final String LEGACY_MANAGED_FLAG = "hmsMirror_LegacyManaged";
+    public static final String HMS_MIRROR_LEGACY_MANAGED_FLAG = "hmsMirror_LegacyManaged";
     public static final String DISCOVER_PARTITIONS = "discover.partitions";
-
+    public static final String EXTERNAL_TABLE_PURGE = "external.table.purge";
+    public static final String SQL_DATA_TRANSFER = "FROM {0} INSERT OVERWRITE TABLE {1} SELECT *";
     /*
     METADATA Transfer Flag
      */

@@ -15,6 +15,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
 
 public class Cluster implements Comparable<Cluster> {
     private static Logger LOG = LogManager.getLogger(Cluster.class);
@@ -25,7 +26,6 @@ public class Cluster implements Comparable<Cluster> {
     private Environment environment = null;
     private Boolean legacyHive = Boolean.TRUE;
     private String hcfsNamespace = null;
-    private String jarFile = null;
     private HiveServer2Config hiveServer2 = null;
     private PartitionDiscovery partitionDiscovery = new PartitionDiscovery();
 
@@ -56,14 +56,6 @@ public class Cluster implements Comparable<Cluster> {
         this.hcfsNamespace = hcfsNamespace;
     }
 
-    public String getJarFile() {
-        return jarFile;
-    }
-
-    public void setJarFile(String jarFile) {
-        this.jarFile = jarFile;
-    }
-
     public HiveServer2Config getHiveServer2() {
         return hiveServer2;
     }
@@ -92,7 +84,7 @@ public class Cluster implements Comparable<Cluster> {
         return pools.getEnvironmentConnection(getEnvironment());
     }
 
-    public void getTables(DBMirror dbMirror) throws SQLException {
+    public void getTables(Config config, DBMirror dbMirror) throws SQLException {
         Connection conn = null;
         try {
             conn = getConnection();
@@ -108,7 +100,17 @@ public class Cluster implements Comparable<Cluster> {
                 LOG.debug(getEnvironment() + ":" + dbMirror.getDatabase() + ": Getting Table List");
                 resultSet = stmt.executeQuery(MirrorConf.SHOW_TABLES);
                 while (resultSet.next()) {
-                    TableMirror tableMirror = dbMirror.addTable(resultSet.getString(1));
+                    String tableName = resultSet.getString(1);
+                    if (config.getTblRegEx() == null) {
+                        TableMirror tableMirror = dbMirror.addTable(tableName);
+                    } else {
+                        // Filter Tables
+                        assert (config.getDbFilterPattern() != null);
+                        Matcher matcher = config.getDbFilterPattern().matcher(tableName);
+                        if (matcher.matches()) {
+                            TableMirror tableMirror = dbMirror.addTable(tableName);
+                        }
+                    }
                 }
             } finally {
                 if (resultSet != null) {
@@ -135,8 +137,9 @@ public class Cluster implements Comparable<Cluster> {
         }
     }
 
-    public void getTableDefinition(String database, TableMirror tableMirror) throws SQLException {
+    public Boolean getTableDefinition(String database, TableMirror tableMirror) throws SQLException {
         // The connection should already be in the database;
+        Boolean rtn = Boolean.FALSE;
         Connection conn = null;
         try {
             conn = getConnection();
@@ -153,6 +156,7 @@ public class Cluster implements Comparable<Cluster> {
                     tblDef.add(resultSet.getString(1));
                 }
                 tableMirror.setTableDefinition(getEnvironment(), tblDef);
+                tableMirror.addAction(this.getEnvironment().toString(), "Fetched Schema");
                 if (TableUtils.isACID(tableMirror.getName(), tblDef)) {
                     tableMirror.addAction("TRANSACTIONAL", Boolean.TRUE);
 //                    tableMirror.addIssue("Transactional/ACID tables are NOT currently supported by 'hms-mirror'");
@@ -162,6 +166,16 @@ public class Cluster implements Comparable<Cluster> {
                 tableMirror.setPartitioned(getEnvironment(), partitioned);
                 if (partitioned) {
                     loadTablePartitionMetadata(database, tableMirror);
+                }
+                rtn = Boolean.TRUE;
+            } catch (SQLException throwables) {
+                if (throwables.getMessage().contains("Table not found")) {
+                    // This is ok in the upper cluster where we don't expect the table to exist if the process hadn't run before.
+                    rtn = Boolean.TRUE;
+                    tableMirror.addAction(this.getEnvironment().toString(), "No Schema");
+                } else {
+                    throwables.printStackTrace();
+                    tableMirror.addIssue(this.getEnvironment().toString() + ":" + throwables.getMessage());
                 }
             } finally {
                 if (resultSet != null) {
@@ -186,7 +200,7 @@ public class Cluster implements Comparable<Cluster> {
                 //
             }
         }
-
+        return rtn;
     }
 
     public void createDatabase(Config config, String database) {
@@ -241,92 +255,98 @@ public class Cluster implements Comparable<Cluster> {
     }
 
     protected Boolean checkAndDoOverwrite(Statement stmt, Config config, DBMirror dbMirror, TableMirror tblMirror) {
+        return checkAndDoOverwrite(stmt, config, dbMirror, tblMirror, null);
+    }
+
+    protected Boolean checkAndDoOverwrite(Statement stmt, Config config, DBMirror dbMirror, TableMirror tblMirror, String tblPrefix) {
         Boolean rtn = Boolean.TRUE;
 
         String database = dbMirror.getDatabase();
-        String tableName = tblMirror.getName();
+        String tableName = tblPrefix == null ? tblMirror.getName() : tblPrefix + tblMirror.getName();
+        try {
+            // Run check for non-prefix (transfer) tables.
+            if (tblPrefix == null) {
+                // Check if we should overwrite existing table.
+                if (config.isOverwriteTable()) {
+                    // Check if table exist or if we're working with a transfer table (in which case, drop)
+                    if (tblMirror.getTableDefinition(Environment.UPPER) != null) {
+                        LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Overwrite ON: Dropping table (if exists)");
+                        tblMirror.addAction("Overwrite ON", Boolean.TRUE);
+                        // Table Exists.
+                        // Check that it was put there by 'hms-mirror'.  If not, we won't replace it.
+                        if (TableUtils.isHMSConverted(tableName, tblMirror.getTableDefinition(Environment.UPPER))) {
+                            // Check if the table has been converted to an ACID table.
+                            if (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
+                                String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Has been converted to " +
+                                        "a 'transactional' table.  And isn't safe to drop before re-importing. " +
+                                        "Review the table and remove manually before running process again.";
+                                tblMirror.addIssue(errorMsg);
+                                LOG.error(errorMsg);
+                                // No need to continue.
+                                rtn = Boolean.FALSE;
+                            }
+                            // Check if the table is "Managing" data.  If so, we can't safety drop the table without effecting
+                            // the data.
+                            if (!TableUtils.isHive3Standard(tableName, tblMirror.getTableDefinition(Environment.UPPER))) {
+                                String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Is a 'Managed Non-Transactional' " +
+                                        "which is a non-standard configuration in Hive 3.  Regardless, the data is " +
+                                        "managed and it's not safe to proceed with converting this table. " +
+                                        "Review the table and remove manually before running process again.";
+                                tblMirror.addIssue(errorMsg);
+                                LOG.error(errorMsg);
+                                // No need to continue.
+                                rtn = Boolean.FALSE;
+                            }
 
-        // Check if we should overwrite existing table.
-        if (config.isOverwriteTable()) {
-            // Check if table exist.
-            if (tblMirror.getTableDefinition(Environment.UPPER) != null) {
-                LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Overwrite ON: Dropping table (if exists)");
-                tblMirror.addAction("Overwrite ON", Boolean.TRUE);
-                // Table Exists.
-                // Check that it was put there by 'hms-mirror'.  If not, we won't replace it.
-                if (TableUtils.isHMSConverted(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
-                    // Check if the table has been converted to an ACID table.
-                    if (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
-                        String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Has been converted to " +
-                                "a 'transactional' table.  And isn't safe to drop before re-importing. " +
-                                "Review the table and remove manually before running process again.";
-                        tblMirror.addIssue(errorMsg);
-                        LOG.error(errorMsg);
-                        // No need to continue.
-                        rtn = Boolean.FALSE;
-                    }
-                    // Check if the table is "Managing" data.  If so, we can't safety drop the table without effecting
-                    // the data.
-                    if (!TableUtils.isHive3Standard(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
-                        String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Is a 'Managed Non-Transactional' " +
-                                "which is a non-standard configuration in Hive 3.  Regardless, the data is " +
-                                "managed and it's not safe to proceed with converting this table. " +
-                                "Review the table and remove manually before running process again.";
-                        tblMirror.addIssue(errorMsg);
-                        LOG.error(errorMsg);
-                        // No need to continue.
-                        rtn = Boolean.FALSE;
+                            // Ensure the table purge flag hasn't been set.
+                            if (TableUtils.isExternalPurge(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
+                                String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Is a 'Purge' " +
+                                        "enabled 'EXTERNAL' table.  The data is " +
+                                        "managed and it's not safe to proceed with converting this table. " +
+                                        "Review the table and remove manually before running process again.";
+                                tblMirror.addIssue(errorMsg);
+                                LOG.error(errorMsg);
+                                // No need to continue.
+                                rtn = Boolean.FALSE;
+                            }
+                        } else {
+                            // It was NOT created by HMS Mirror.  The table will need to be manually dropped after review.
+                            // No need to continue.
+                            String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Was NOT originally " +
+                                    "created by the 'hms-mirror' process and isn't safe to proceed. " +
+                                    "The table will need to be reviewed and dropped manually and the process run again.";
+                            tblMirror.addIssue(errorMsg);
+                            LOG.error(errorMsg);
+                            rtn = Boolean.FALSE;
+                        }
                     }
 
-                    // Ensure the table purge flag hasn't been set.
-                    if (TableUtils.isExternalPurge(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
-                        String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Is a 'Purge' " +
-                                "enabled 'EXTERNAL' table.  The data is " +
-                                "managed and it's not safe to proceed with converting this table. " +
-                                "Review the table and remove manually before running process again.";
-                        tblMirror.addIssue(errorMsg);
-                        LOG.error(errorMsg);
-                        // No need to continue.
-                        rtn = Boolean.FALSE;
-                    }
-
-                    LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Dropping table");
-                    // It was created by HMS Mirror, safe to drop.
-                    String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
-                    LOG.debug(getEnvironment() + "(SQL)" + dropTable);
-                    try {
-                        if (!config.isDryrun())
-                            stmt.execute(dropTable);
-                        tblMirror.addAction("Dropped Current", Boolean.TRUE);
-                    } catch (SQLException throwables) {
-                        String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": DROP Table";
-                        tblMirror.addIssue(errorMsg + throwables.getMessage());
-                        LOG.error(errorMsg, throwables);
-                        // No need to continue.
-                        rtn = Boolean.FALSE;
-                    }
                 } else {
-                    // It was NOT created by HMS Mirror.  The table will need to be manually dropped after review.
-                    // No need to continue.
-                    String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Was NOT originally " +
-                            "created by the 'hms-mirror' process and isn't safe to proceed. " +
-                            "The table will need to be reviewed and dropped manually and the process run again.";
-                    tblMirror.addIssue(errorMsg);
-                    LOG.error(errorMsg);
-                    rtn = Boolean.FALSE;
+                    if (tblMirror.getTableDefinition(Environment.UPPER) != null) {
+                        // Overwrite is not on and table exists.  Skip.
+                        String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Exists already " +
+                                "and the 'overwrite' flag isn't set.  This import was NOT done. ";
+                        tblMirror.addIssue(errorMsg);
+                        LOG.error(errorMsg);
+                        // No need to continue.
+                        rtn = Boolean.FALSE;
+                    }
                 }
-            }
 
-        } else {
-            if (tblMirror.getTableDefinition(Environment.UPPER) != null) {
-                // Overwrite is not on and table exists.  Skip.
-                String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Exists already " +
-                        "and the 'overwrite' flag isn't set.  This import was NOT done. ";
-                tblMirror.addIssue(errorMsg);
-                LOG.error(errorMsg);
-                // No need to continue.
-                rtn = Boolean.FALSE;
             }
+            if (rtn) {
+                LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Dropping table");
+                // It was created by HMS Mirror, safe to drop.
+                String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
+                LOG.debug(getEnvironment() + "(SQL)" + dropTable);
+
+                if (!config.isDryrun())
+                    stmt.execute(dropTable);
+                // TODO: change current to address tablename so we pickup transfer.
+                tblMirror.addAction("Dropped Current", Boolean.TRUE);
+            }
+        } catch (SQLException throwables) {
+            tblMirror.addIssue(this.getEnvironment() + ":" + tableName + "->" + throwables.getMessage());
         }
         return rtn;
     }
@@ -387,7 +407,7 @@ public class Cluster implements Comparable<Cluster> {
 
         String database = dbMirror.getDatabase();
         String tableName = tblMirror.getName();
-        LOG.debug("START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+        LOG.debug(getEnvironment().toString() + " START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
         try {
             conn = getConnection();
 
@@ -427,7 +447,7 @@ public class Cluster implements Comparable<Cluster> {
             if (legacyManaged) {
                 String legacyFlag = MessageFormat.format(MirrorConf.ADD_TBL_PROP,
                         transferDatabase, tableName,
-                        MirrorConf.LEGACY_MANAGED_FLAG, Boolean.TRUE.toString()
+                        MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, Boolean.TRUE.toString()
                 );
                 LOG.debug(getEnvironment() + ":" + transferDatabase + "." + tableName +
                         ": Setting Legacy flag for table");
@@ -435,7 +455,7 @@ public class Cluster implements Comparable<Cluster> {
 
                 if (!config.isDryrun())
                     stmt.execute(legacyFlag);
-                tblMirror.addProp(MirrorConf.LEGACY_MANAGED_FLAG + "=" + Boolean.TRUE.toString());
+                tblMirror.addProp(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG + "=" + Boolean.TRUE.toString());
 
             }
             rtn = Boolean.TRUE;
@@ -456,7 +476,7 @@ public class Cluster implements Comparable<Cluster> {
             } catch (SQLException throwables) {
                 //
             }
-            LOG.debug("END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + " END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
         }
         return rtn;
     }
@@ -465,7 +485,7 @@ public class Cluster implements Comparable<Cluster> {
         Connection conn = null;
         Statement stmt = null;
         Boolean rtn = Boolean.FALSE;
-        LOG.debug("START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+        LOG.debug(getEnvironment().toString() + " START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
         try {
             conn = getConnection();
             String tableName = tblMirror.getName();
@@ -501,7 +521,7 @@ public class Cluster implements Comparable<Cluster> {
             } catch (SQLException throwables) {
                 //
             }
-            LOG.debug("END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + " END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
         }
         return rtn;
     }
@@ -518,7 +538,7 @@ public class Cluster implements Comparable<Cluster> {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug("START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + " START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
@@ -537,7 +557,7 @@ public class Cluster implements Comparable<Cluster> {
                 if (!config.isDryrun())
                     stmt.execute(useDb);
 
-                if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
+                if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror, config.getTransferPrefix())) {
 
                     Boolean buildUpper = tblMirror.buildUpperSchema(config);
 
@@ -545,33 +565,41 @@ public class Cluster implements Comparable<Cluster> {
                             config.getCluster(Environment.LOWER).getHcfsNamespace(),
                             config.getCluster(Environment.UPPER).getHcfsNamespace());
 
+                    if (TableUtils.isHMSLegacyManaged(this, tableName, tblMirror.getTableDefinition(Environment.UPPER))) {
+                        TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true", tblMirror.getTableDefinition(Environment.UPPER));
+                    }
+
                     // Get the Create State for this environment.
                     // This create is the transfer table
                     String createTable = tblMirror.getCreateStatement(this.getEnvironment(), config.getTransferPrefix());
                     LOG.debug(getEnvironment() + "(SQL)" + createTable);
 
+                    // The location should NOT have data in it. If it does, this could cause an issue.
+                    // TODO: validate target data location.
+                    // The transfer table should be an empty shell and the data directory, which points to the permanent
+                    //  location for the target table, should be empty.  If NOT, what do we do?
                     if (!config.isDryrun())
                         stmt.execute(createTable);
                     tblMirror.addAction("Transfer Schema Created", Boolean.TRUE);
 
-                    // Need to check if table is partitioned
-                    if (TableUtils.isPartitioned(tableName, tblMirror.getTableDefinition(Environment.LOWER))) {
-
-                        if (this.getPartitionDiscovery().getInitMSCK()) {
-                            LOG.debug(getEnvironment() + ":" + database + "." + tableName +
-                                    ": Discovering " + tblMirror.getPartitionDefinition(Environment.LOWER).size() + " partitions");
-                            String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, database, tblMirror.getName());
-                            LOG.debug(getEnvironment() + "(SQL)" + msckStmt);
-                            if (!config.isDryrun())
-                                stmt.execute(msckStmt);
-                            tblMirror.addAction("MSCK ran", Boolean.TRUE);
-                        } else {
-                            String msg = getEnvironment() + ":" + database + "." + tableName + ": Has " + tblMirror.getPartitionDefinition(Environment.LOWER).size() +
-                                    " partitions.  Data may not be available until the partition metadata is rebuilt.";
-                            tblMirror.addIssue(msg);
-                            LOG.info(msg);
-                        }
-                    }
+//                    // Need to check if table is partitioned
+//                    if (TableUtils.isPartitioned(tableName, tblMirror.getTableDefinition(Environment.LOWER))) {
+//
+//                        if (this.getPartitionDiscovery().getInitMSCK()) {
+//                            LOG.debug(getEnvironment() + ":" + database + "." + tableName +
+//                                    ": Discovering " + tblMirror.getPartitionDefinition(Environment.LOWER).size() + " partitions");
+//                            String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, database, tblMirror.getName());
+//                            LOG.debug(getEnvironment() + "(SQL)" + msckStmt);
+//                            if (!config.isDryrun())
+//                                stmt.execute(msckStmt);
+//                            tblMirror.addAction("MSCK ran", Boolean.TRUE);
+//                        } else {
+//                            String msg = getEnvironment() + ":" + database + "." + tableName + ": Has " + tblMirror.getPartitionDefinition(Environment.LOWER).size() +
+//                                    " partitions.  Data may not be available until the partition metadata is rebuilt.";
+//                            tblMirror.addIssue(msg);
+//                            LOG.info(msg);
+//                        }
+//                    }
                     rtn = Boolean.TRUE;
                 }
             } catch (SQLException throwables) {
@@ -599,7 +627,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug("END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + " END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
             }
         }
         return rtn;
@@ -613,7 +641,7 @@ public class Cluster implements Comparable<Cluster> {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug("START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + " START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
@@ -724,7 +752,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug("END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + " END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
             }
         }
         return rtn;
@@ -738,7 +766,7 @@ public class Cluster implements Comparable<Cluster> {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug("START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + " START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
@@ -845,7 +873,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug("END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + " END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
             }
         }
         return rtn;
@@ -859,7 +887,7 @@ public class Cluster implements Comparable<Cluster> {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug("START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + " START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
@@ -966,7 +994,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug("END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + " END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
             }
         }
         return rtn;
@@ -979,11 +1007,11 @@ public class Cluster implements Comparable<Cluster> {
     /*
 
      */
-    public Boolean sqlDataTransfer(Config config, DBMirror dbMirror, TableMirror tblMirror) {
+    public Boolean doSqlDataTransfer(Config config, DBMirror dbMirror, TableMirror tblMirror) {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug("START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + " START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
@@ -1001,8 +1029,7 @@ public class Cluster implements Comparable<Cluster> {
                 if (!config.isDryrun())
                     stmt.execute(useDb);
 
-                String SQL_DATA_TRANSFER = "FROM {0} INSERT OVERWRITE TABLE {1} SELECT *";
-                String sqlDataTransfer = MessageFormat.format(SQL_DATA_TRANSFER, tableName, config.getTransferPrefix() + tableName);
+                String sqlDataTransfer = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, tableName, config.getTransferPrefix() + tableName);
 
                 LOG.debug(getEnvironment() + "(SQL)" + sqlDataTransfer);
                 if (!config.isDryrun())
@@ -1034,25 +1061,28 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug("END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + " END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
             }
         }
         return rtn;
     }
 
-    public Boolean partitionMaintenance(Config config, DBMirror dbMirror, TableMirror tblMirror) {
-        return partitionMaintenance(config, dbMirror, tblMirror, Boolean.FALSE);
-    }
-
     /*
-    Review the parameters and determine if we will issue an 'MSCK' on the table in the new cluster
+    Prior to this process the following should be true:
+     - A transition table has been create and points to the same 'relative' location on the NEW cluster as the LOWER cluster
+     - An original table has been create on the UPPER cluster and points to the LOWER dataset.  This table is 'external' and 'non' purgeable.
+     - A SQL data transfer has happened to move the data into the 'transfer' table.
+     - The transfer table has been set to match the legacy managed behavior ('external.table.purge')
+
+     In this process, we will:
+      - "DROP" the 'original' table that points to the LOWER cluster
+      - RENAME the transfer table to the 'original' table name.
      */
-    public Boolean partitionMaintenance(Config config, DBMirror dbMirror, TableMirror tblMirror, Boolean force) {
-        // Need to check if table is partitioned
-        Boolean rtn = Boolean.TRUE;
-        if (this.getEnvironment() == Environment.UPPER &&
-                TableUtils.isPartitioned(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER))) {
-            LOG.debug("START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+    public Boolean completeSqlTransfer(Config config, DBMirror dbMirror, TableMirror tblMirror) {
+        // Open the connection and ensure we are running this on the "UPPER" cluster.
+        Boolean rtn = Boolean.FALSE;
+        if (this.getEnvironment() == Environment.UPPER) {
+            LOG.debug(getEnvironment().toString() + " START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
@@ -1062,33 +1092,34 @@ public class Cluster implements Comparable<Cluster> {
                 String database = dbMirror.getDatabase();
                 String tableName = tblMirror.getName();
 
-                if (this.getPartitionDiscovery().getInitMSCK() || force) {
-                    LOG.debug(getEnvironment() + ":" + database + "." + tableName +
-                            ": Discovering " + tblMirror.getPartitionDefinition(Environment.LOWER).size() + " partitions");
-                    String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, database, tblMirror.getName());
-                    LOG.debug(getEnvironment() + "(SQL)" + msckStmt);
+                stmt = conn.createStatement();
 
-                    if (!config.isDryrun())
-                        stmt.execute(msckStmt);
-                    tblMirror.addAction("MSCK ran", Boolean.TRUE);
-                    rtn = Boolean.TRUE;
+                // Set db context;
+                String useDb = MessageFormat.format(MirrorConf.USE, database);
+                LOG.debug(useDb);
+                if (!config.isDryrun())
+                    stmt.execute(useDb);
 
-                }
+                String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
 
-                String msg;
-                if (this.getPartitionDiscovery().getAuto()) {
-                    msg = "This table has partitions and is set for 'auto' discovery via table property 'discover.partitions'='true'. " +
-                            "Give it a few minutes to sync.  Ensure the Metastore is running the 'PartitionManagementTask' service.";
-                } else {
-                    msg = "This table has partitions and is NOT set for 'auto' discovery.  Data may not be available until the partition metadata is rebuilt manually.";
-                }
-                tblMirror.addIssue(msg);
-                LOG.info(msg);
+                LOG.debug(getEnvironment() + "(SQL) " + dropTable);
+                if (!config.isDryrun())
+                    stmt.execute(dropTable);
+                tblMirror.addAction(getEnvironment().toString(), "Table Dropped");
 
+                String renameTable = MessageFormat.format(MirrorConf.RENAME_TABLE, config.getTransferPrefix() + tableName, tableName);
+                LOG.debug(getEnvironment() + "(SQL) " + renameTable);
+                if (!config.isDryrun())
+                    stmt.execute(renameTable);
+                tblMirror.addAction(getEnvironment().toString(), "Transfer Renamed");
+
+                rtn = Boolean.TRUE;
             } catch (SQLException throwables) {
                 LOG.error("Issue", throwables);
                 tblMirror.addIssue(throwables.getMessage());
-                rtn = Boolean.FALSE;
+            } catch (RuntimeException throwables) {
+                LOG.error("Issue", throwables);
+                tblMirror.addIssue(throwables.getMessage());
             } finally {
                 try {
                     if (resultSet != null)
@@ -1108,7 +1139,84 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug("END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + " END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+            }
+        }
+        return rtn;
+    }
+
+    public Boolean partitionMaintenance(Config config, DBMirror dbMirror, TableMirror tblMirror) {
+        return partitionMaintenance(config, dbMirror, tblMirror, Boolean.FALSE);
+    }
+
+    /*
+    Review the parameters and determine if we will issue an 'MSCK' on the table in the new cluster
+     */
+    public Boolean partitionMaintenance(Config config, DBMirror dbMirror, TableMirror tblMirror, Boolean force) {
+        // Need to check if table is partitioned
+        Boolean rtn = Boolean.TRUE;
+        if (this.getEnvironment() == Environment.UPPER &&
+                TableUtils.isPartitioned(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER))) {
+            LOG.debug(getEnvironment().toString() + " START: " + dbMirror.getDatabase() + "." + tblMirror.getName());
+            Connection conn = null;
+            Statement stmt = null;
+            ResultSet resultSet = null;
+            try {
+
+                String database = dbMirror.getDatabase();
+                String tableName = tblMirror.getName();
+
+                if (this.getPartitionDiscovery().getInitMSCK() || force) {
+                    conn = getConnection();
+                    stmt = conn.createStatement();
+
+                    LOG.debug(getEnvironment() + ":" + database + "." + tableName +
+                            ": Discovering " + tblMirror.getPartitionDefinition(Environment.LOWER).size() + " partitions");
+                    String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, database, tblMirror.getName());
+                    LOG.debug(getEnvironment() + "(SQL)" + msckStmt);
+
+                    if (!config.isDryrun())
+                        stmt.execute(msckStmt);
+                    tblMirror.addAction("MSCK ran", Boolean.TRUE);
+                    rtn = Boolean.TRUE;
+                }
+
+                String msg;
+                if (this.getPartitionDiscovery().getAuto()) {
+                    msg = "This table has partitions and is set for 'auto' discovery via table property 'discover.partitions'='true'. " +
+                            "Give it a few minutes to sync.  Ensure the Metastore is running the 'PartitionManagementTask' service.";
+                } else {
+                    msg = "This table has partitions and is NOT set for 'auto' discovery.  Data may not be available until the partition metadata is rebuilt manually.";
+                }
+                tblMirror.addIssue(msg);
+                LOG.info(msg);
+
+            } catch (SQLException throwables) {
+                LOG.error("Issue", throwables);
+                tblMirror.addIssue(throwables.getMessage());
+                rtn = Boolean.FALSE;
+            } catch (Throwable throwables) {
+                throwables.printStackTrace();
+            } finally {
+                try {
+                    if (resultSet != null)
+                        resultSet.close();
+                } catch (SQLException sqlException) {
+                    // ignore
+                }
+                try {
+                    if (stmt != null)
+                        stmt.close();
+                } catch (SQLException sqlException) {
+                    // ignore
+                }
+                try {
+                    if (conn != null)
+                        conn.close();
+                } catch (SQLException throwables) {
+                    //
+                }
+                LOG.debug(getEnvironment().toString() + " END: " + dbMirror.getDatabase() + "." + tblMirror.getName());
             }
 
         }
@@ -1124,7 +1232,6 @@ public class Cluster implements Comparable<Cluster> {
 
         if (!legacyHive.equals(cluster.legacyHive)) return false;
         if (!hcfsNamespace.equals(cluster.hcfsNamespace)) return false;
-        if (!jarFile.equals(cluster.jarFile)) return false;
         return hiveServer2.equals(cluster.hiveServer2);
     }
 
@@ -1132,7 +1239,6 @@ public class Cluster implements Comparable<Cluster> {
     public int hashCode() {
         int result = legacyHive.hashCode();
         result = 31 * result + hcfsNamespace.hashCode();
-        result = 31 * result + jarFile.hashCode();
         result = 31 * result + hiveServer2.hashCode();
         return result;
     }
