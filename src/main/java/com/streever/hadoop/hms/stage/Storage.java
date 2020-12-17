@@ -102,8 +102,10 @@ public class Storage implements Runnable {
         tblMirror.setPhaseSuccess(successful);
 
         Date end = new Date();
+        Long diff = end.getTime() - start.getTime();
+        tblMirror.setStageDuration(diff);
         LOG.info("STORAGE: Migration complete for " + dbMirror.getDatabase() + "." + tblMirror.getName() + " in " +
-                Long.toString(end.getTime() - start.getTime()) + "ms");
+                Long.toString(diff) + "ms");
     }
 
     protected Boolean doSQL(DBMirror dbMirror, TableMirror tblMirror) {

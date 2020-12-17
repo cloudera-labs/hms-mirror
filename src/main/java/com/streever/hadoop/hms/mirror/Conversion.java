@@ -5,11 +5,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class Conversion {
+    private Date start = new Date();
     private Map<String, DBMirror> databases = new TreeMap<String, DBMirror>();
 
     public DBMirror addDatabase(String database) {
@@ -34,10 +38,18 @@ public class Conversion {
         StringBuilder sb = new StringBuilder();
         Set<String> databaseSet = databases.keySet();
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        sb.append("# hms-mirror\n");
+        sb.append("# HMS-Mirror  ");
         sb.append(ReportingConf.substituteVariables("v.${Implementation-Version}")).append("\n");
-        sb.append("---\n").append("# Run State\n");
-        sb.append("Date: " + df.format(new Date())).append("\n\n");
+        sb.append("---\n").append("## Run Log\n\n");
+        sb.append("| Date | Elapsed Time |\n");
+        sb.append("|:---|:---|\n");
+        Date current = new Date();
+        BigDecimal elsecs = new BigDecimal(current.getTime()-start.getTime()).divide(new BigDecimal(1000));
+        DecimalFormat eldecf = new DecimalFormat("#,###.00");
+        String elsecStr = eldecf.format(elsecs);
+
+        sb.append("| ").append(df.format(new Date())).append(" | ").append(elsecStr).append(" secs |\n\n");
+
         sb.append("## Config:\n");
 
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
@@ -74,9 +86,17 @@ public class Conversion {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
                 sb.append("|").append(table).append("|")
                         .append(tblMirror.getPhaseSuccess().toString()).append("|");
+
+                // Stage Duration
+                BigDecimal secs = new BigDecimal(tblMirror.getStageDuration()).divide(new BigDecimal(1000));///1000
+                DecimalFormat decf = new DecimalFormat("#,###.00");
+                String secStr = decf.format(secs);
+                sb.append(secStr).append(" secs |");
+
+                // Partition Count
                 sb.append(tblMirror.getPartitionDefinition(Environment.LOWER) != null ?
                         tblMirror.getPartitionDefinition(Environment.LOWER).size() : " ").append("|");
-                sb.append(tblMirror.getStageDuration().toString()).append(" |");
+
                 // Actions
                 Iterator<Map.Entry<String, Object>> aIter = tblMirror.getActions().entrySet().iterator();
                 while (aIter.hasNext()) {

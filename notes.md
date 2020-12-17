@@ -60,3 +60,13 @@ Reruns on External Tables without (purge) need to use hadoopcli to remove direct
 
 What to do about external tables where the data doesn't all reside under the table 'location'?
 
+## Tip 4
+
+Partition Creation in the STORAGE stage is expensive.  The METADATA tasks are a lot, but the real constraints come from the hive MoveTask that happens for each Partition as it's created.  This burden falls on the HS2 server to manage this process and will lead to significant performance impacts on that server.
+
+Separate HS2 and Metastore Services should be setup to handle this when transfers will include numerous partitions.
+
+## Idea
+
+Tip 4, would distcp of parent table directory and partition discovery speed this process up?  I think it would.
+
