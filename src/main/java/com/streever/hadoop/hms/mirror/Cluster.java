@@ -1252,10 +1252,23 @@ public class Cluster implements Comparable<Cluster> {
 
                 String msg;
                 if (this.getPartitionDiscovery().getAuto()) {
-                    msg = "This table has partitions and is set for 'auto' discovery via table property 'discover.partitions'='true'. " +
-                            "Give it a few minutes to sync.  Ensure the Metastore is running the 'PartitionManagementTask' service.";
+                    if (this.getPartitionDiscovery().getInitMSCK()) {
+                        msg = "This table has partitions and is set for 'auto' discovery via table property 'discover.partitions'='true'. " +
+                                "You've requested an immediate 'MSCK' for the table, so the partitions will be current. "+
+                                "For future partition discovery, ensure the Metastore is running the 'PartitionManagementTask' service.";
+                    } else {
+                        msg = "This table has partitions and is set for 'auto' discovery via table property 'discover.partitions'='true'. " +
+                                "Ensure the Metastore is running the 'PartitionManagementTask' service.";
+                    }
                 } else {
-                    msg = "This table has partitions and is NOT set for 'auto' discovery.  Data may not be available until the partition metadata is rebuilt manually.";
+                    if (this.getPartitionDiscovery().getInitMSCK()) {
+                        msg = "You've requested an immediate 'MSCK' for the table, so the partitions will be current. "+
+                                "Future partitions will NOT be auto discovered unless you manually add "+
+                                "'discover.partitions'='true' to the tables properties. " +
+                                "Once done, ensure the Metastore is running the 'PartitionManagementTask' service.";
+                    } else {
+                        msg = "This table has partitions and is NOT set for 'auto' discovery.  Data may not be available until the partition metadata is rebuilt manually.";
+                    }
                 }
                 tblMirror.addIssue(msg);
                 LOG.info(msg);

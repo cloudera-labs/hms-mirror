@@ -10,7 +10,7 @@ public class TableMirror {
     private DBMirror database;
     private String name;
     private Map<String, Object> actions = new LinkedHashMap<String, Object>();
-
+//    private Map<Stage, >
     private Boolean phaseSuccess = Boolean.FALSE;
     private Long stageDuration = 0l;
 
