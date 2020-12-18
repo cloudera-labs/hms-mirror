@@ -1,9 +1,6 @@
 package com.streever.hadoop.hms.stage;
 
-import com.streever.hadoop.hms.mirror.Config;
-import com.streever.hadoop.hms.mirror.DBMirror;
-import com.streever.hadoop.hms.mirror.Environment;
-import com.streever.hadoop.hms.mirror.TableMirror;
+import com.streever.hadoop.hms.mirror.*;
 import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -39,26 +36,13 @@ public class Metadata implements Runnable {
             case DIRECT:
                 // This method will skip the EXPORT transition step and build the schema from
                 // the SOURCE table def.
-                successful = config.getCluster(Environment.UPPER).buildUpperSchemaUsingLowerData(config, dbMirror, tblMirror);
-                if (successful) {
-                    successful = config.getCluster(Environment.UPPER).partitionMaintenance(config, dbMirror, tblMirror);
-                }
+                successful = doDIRECT();
                 break;
             case TRANSITION:
-                String transitionDatabase = config.getTransferPrefix() + dbMirror.getDatabase();
-                // Method supporting a transfer Schema.  Had issues with this on EMR and the EXPORT process.
-                // Could get the EXPORT the right permissions to write to S3, so the export would fail.
-                successful = config.getCluster(Environment.LOWER).buildTransferTableSchema(config, transitionDatabase, dbMirror, tblMirror);
-                if (successful) {
-                    successful = config.getCluster(Environment.LOWER).exportSchema(config, transitionDatabase, dbMirror, tblMirror);
-                }
-                if (successful) {
-                    successful = config.getCluster(Environment.UPPER).importTransferSchemaUsingLowerData(config, dbMirror, tblMirror);
-                }
-                if (successful) {
-                    successful = config.getCluster(Environment.UPPER).partitionMaintenance(config, dbMirror, tblMirror);
-                }
+                successful = doTRANSITION();
                 break;
+            default:
+                throw new RuntimeException("Strategy: " + config.getStorage().getStrategy().toString() + " isn't valid for the METADATA phase.");
         }
 
         tblMirror.setPhaseSuccess(successful);
@@ -69,4 +53,45 @@ public class Metadata implements Runnable {
         LOG.info("METADATA: Migration complete for " + dbMirror.getDatabase() + "." + tblMirror.getName() + " in " +
                 Long.toString(diff) + "ms");
     }
+
+    protected Boolean doDIRECT() {
+        Boolean rtn = Boolean.FALSE;
+
+        tblMirror.setStrategy(Strategy.DIRECT);
+        tblMirror.incPhase();
+
+        tblMirror.addAction("METADATA", "DIRECT");
+
+        rtn = config.getCluster(Environment.UPPER).buildUpperSchemaUsingLowerData(config, dbMirror, tblMirror);
+        if (rtn) {
+            rtn = config.getCluster(Environment.UPPER).partitionMaintenance(config, dbMirror, tblMirror);
+        }
+        return rtn;
+    }
+
+    protected Boolean doTRANSITION() {
+        Boolean rtn = Boolean.FALSE;
+
+        tblMirror.setStrategy(Strategy.TRANSITION);
+        tblMirror.incPhase();
+
+        tblMirror.addAction("METADATA", "TRANSITION");
+        String transitionDatabase = config.getTransferPrefix() + dbMirror.getDatabase();
+        // Method supporting a transfer Schema.  Had issues with this on EMR and the EXPORT process.
+        // Could get the EXPORT the right permissions to write to S3, so the export would fail.
+        rtn = config.getCluster(Environment.LOWER).buildTransferTableSchema(config, transitionDatabase, dbMirror, tblMirror);
+        if (rtn) {
+            rtn = config.getCluster(Environment.LOWER).exportSchema(config, transitionDatabase, dbMirror, tblMirror);
+        }
+        if (rtn) {
+            rtn = config.getCluster(Environment.UPPER).importTransferSchemaUsingLowerData(config, dbMirror, tblMirror);
+        }
+        if (rtn) {
+            rtn = config.getCluster(Environment.UPPER).partitionMaintenance(config, dbMirror, tblMirror);
+        }
+
+        return rtn;
+
+    }
+
 }

@@ -88,7 +88,7 @@ public class Mirror {
             config.setStage(Stage.METADATA);
             String mdirective = cmd.getOptionValue("m");
             if (mdirective != null) {
-                MetadataConfig.Strategy strategy = MetadataConfig.Strategy.valueOf(mdirective.toUpperCase(Locale.ROOT));
+                Strategy strategy = Strategy.valueOf(mdirective.toUpperCase(Locale.ROOT));
                 config.getMetadata().setStrategy(strategy);
             }
             LOG.info("Running METADATA");
@@ -96,7 +96,7 @@ public class Mirror {
             config.setStage(Stage.STORAGE);
             String sdirective = cmd.getOptionValue("s");
             if (sdirective != null) {
-                StorageConfig.Strategy strategy = StorageConfig.Strategy.valueOf(sdirective.toUpperCase(Locale.ROOT));
+                Strategy strategy = Strategy.valueOf(sdirective.toUpperCase(Locale.ROOT));
                 config.getStorage().setStrategy(strategy);
             }
             LOG.info("Running STORAGE");

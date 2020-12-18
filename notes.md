@@ -70,3 +70,9 @@ Separate HS2 and Metastore Services should be setup to handle this when transfer
 
 Tip 4, would distcp of parent table directory and partition discovery speed this process up?  I think it would.
 
+## Tip 5
+
+Take snapshots of areas you'll touch:
+- The HMS database on the LOWER and UPPER clusters
+- A snapshot of the HDFS directories on BOTH the LOWER and UPPER clusters that will be used/touched.
+

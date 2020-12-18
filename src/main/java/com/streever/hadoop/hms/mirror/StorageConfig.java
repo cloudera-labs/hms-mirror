@@ -2,28 +2,28 @@ package com.streever.hadoop.hms.mirror;
 
 public class StorageConfig {
 
-    public enum Strategy {
-        /*
-        Use Hive SQL to move data between Hive Tables.
-         */
-        SQL,
-        /*
-        Move data with EXPORT/IMPORT hive features.
-         */
-        EXPORT_IMPORT,
-        /*
-        With thresholds, determine which case is better: SQL or EXPORT_IMPORT for
-        a table.
-         */
-        HYBRID,
-        /*
-        Will require manual intervention. Concept for this effort is still a WIP.
-         */
-        DISTCP;
-    }
+//    public enum Strategy {
+//        /*
+//        Use Hive SQL to move data between Hive Tables.
+//         */
+//        SQL,
+//        /*
+//        Move data with EXPORT/IMPORT hive features.
+//         */
+//        EXPORT_IMPORT,
+//        /*
+//        With thresholds, determine which case is better: SQL or EXPORT_IMPORT for
+//        a table.
+//         */
+//        HYBRID,
+//        /*
+//        Will require manual intervention. Concept for this effort is still a WIP.
+//         */
+//        DISTCP;
+//    }
 
     private int concurrency = 4;
-    private StorageConfig.Strategy strategy = StorageConfig.Strategy.HYBRID;
+    private Strategy strategy = Strategy.HYBRID;
     private Boolean migrateACID = Boolean.FALSE;
 
     public class Hybrid {

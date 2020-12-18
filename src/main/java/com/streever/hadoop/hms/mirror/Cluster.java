@@ -262,6 +262,7 @@ public class Cluster implements Comparable<Cluster> {
         Boolean rtn = Boolean.TRUE;
 
         String database = dbMirror.getDatabase();
+        tblMirror.setMigrationStageMessage("Checking whether the overwrite");
         String tableName = tblPrefix == null ? tblMirror.getName() : tblPrefix + tblMirror.getName();
         try {
             // Run check for non-prefix (transfer) tables.
@@ -341,10 +342,12 @@ public class Cluster implements Comparable<Cluster> {
                             // It was created by HMS Mirror, safe to drop.
                             String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
                             LOG.debug(getEnvironment() + ":(SQL)" + dropTable);
+                            tblMirror.setMigrationStageMessage("Dropping table (overwrite)");
 
                             if (!config.isDryrun())
                                 stmt.execute(dropTable);
                             // TODO: change current to address tablename so we pickup transfer.
+                            tblMirror.setMigrationStageMessage("Table dropped");
                             tblMirror.addAction(getEnvironment().toString(), "DROPPED");
                         }
                     }
@@ -367,10 +370,12 @@ public class Cluster implements Comparable<Cluster> {
                     // It was created by HMS Mirror, safe to drop.
                     String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
                     LOG.debug(getEnvironment() + ":(SQL)" + dropTable);
+                    tblMirror.setMigrationStageMessage("Dropping table (overwrite)");
 
                     if (!config.isDryrun())
                         stmt.execute(dropTable);
                     // TODO: change current to address tablename so we pickup transfer.
+                    tblMirror.setMigrationStageMessage("Table dropped");
                     tblMirror.addAction(getEnvironment().toString(), "DROPPED Transfer (if existed)");
                 }
             }
@@ -530,9 +535,10 @@ public class Cluster implements Comparable<Cluster> {
                     database, tableName,
                     config.getCluster(Environment.LOWER).hcfsNamespace + config.getExportBaseDirPrefix() + database + "/" + tableName);
             LOG.debug(getEnvironment() + ":(SQL)" + exportTransferSchema);
-
+            tblMirror.setMigrationStageMessage("Export Schema");
             if (!config.isDryrun())
                 stmt.execute(exportTransferSchema);
+            tblMirror.setMigrationStageMessage("Schema export complete");
             tblMirror.addAction("EXPORT", "CREATED");
 
             rtn = Boolean.TRUE;
@@ -596,6 +602,7 @@ public class Cluster implements Comparable<Cluster> {
                             config.getCluster(Environment.UPPER).getHcfsNamespace());
 
                     if (TableUtils.isHMSLegacyManaged(this, tableName, tblMirror.getTableDefinition(Environment.UPPER))) {
+                        tblMirror.setMigrationStageMessage("Adding EXTERNAL purge to table properties");
                         TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true", tblMirror.getTableDefinition(Environment.UPPER));
                     }
 
@@ -608,8 +615,12 @@ public class Cluster implements Comparable<Cluster> {
                     // TODO: validate target data location.
                     // The transfer table should be an empty shell and the data directory, which points to the permanent
                     //  location for the target table, should be empty.  If NOT, what do we do?
-                    if (!config.isDryrun())
+                    tblMirror.setMigrationStageMessage("Creating table");
+                    if (!config.isDryrun()) {
                         stmt.execute(createTable);
+                    }
+                    tblMirror.setMigrationStageMessage("Table created");
+
                     tblMirror.addAction("Transfer Schema Created", Boolean.TRUE);
 
 //                    // Need to check if table is partitioned
@@ -698,10 +709,11 @@ public class Cluster implements Comparable<Cluster> {
                     // Get the Create State for this environment.
                     String createTable = tblMirror.getCreateStatement(this.getEnvironment());
                     LOG.debug(getEnvironment() + ":(SQL)" + createTable);
-
+                    tblMirror.setMigrationStageMessage("Creating Table in UPPER cluster");
                     if (!config.isDryrun())
                         stmt.execute(createTable);
                     tblMirror.addAction("Shadow(using LOWER data) Schema Create", Boolean.TRUE);
+                    tblMirror.setMigrationStageMessage("Table created in UPPER cluster");
                     rtn = Boolean.TRUE;
 
                 }
@@ -965,8 +977,11 @@ public class Cluster implements Comparable<Cluster> {
                                         database + "/" + tableName, upperLocation);
                     }
                     LOG.debug(getEnvironment() + ":(SQL)" + importTransferSchema);
+                    tblMirror.setMigrationStageMessage("Import Schema w/Data.  This could take a while, be patient. Partition Count and Data Volume have an impact");
+
                     if (!config.isDryrun())
                         stmt.execute(importTransferSchema);
+                    tblMirror.setMigrationStageMessage("Import Complete");
                     tblMirror.addAction("IMPORTED (w/data)", Boolean.TRUE);
 
                     if (TableUtils.isLegacyManaged(config.getCluster(Environment.LOWER), tblMirror.getName(),
@@ -999,22 +1014,13 @@ public class Cluster implements Comparable<Cluster> {
                                 ": Setting table property " + MirrorConf.DISCOVER_PARTITIONS +
                                 " because this table was a legacy Managed Table or 'auto' discovery set in migration config.");
                         LOG.debug(getEnvironment() + ":(SQL) " + discoverPartitions);
+                        tblMirror.setMigrationStageMessage("Adding 'discover.partitions' to table properties");
 
                         if (!config.isDryrun())
                             stmt.execute(discoverPartitions);
+                        tblMirror.setMigrationStageMessage("'discover.partitions' table property added");
                         tblMirror.addProp(MirrorConf.DISCOVER_PARTITIONS, "true");
                     }
-
-                    // Identify this table as being converted by hms-mirror
-                    String hmsConverted = MessageFormat.format(MirrorConf.ADD_TBL_PROP, database, tblMirror.getName(),
-                            MirrorConf.HMS_MIRROR_CONVERTED_FLAG, "true");
-                    LOG.debug(getEnvironment() + ":" + database + "." + tableName +
-                            ": Setting table property " + MirrorConf.HMS_MIRROR_CONVERTED_FLAG);
-                    LOG.debug(getEnvironment() + ":(SQL) " + hmsConverted);
-
-                    if (!config.isDryrun())
-                        stmt.execute(hmsConverted);
-                    tblMirror.addProp(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, "true");
 
                     // Set IMPORT Flag Table Property
                     String flagDate = df.format(new Date());
@@ -1023,9 +1029,12 @@ public class Cluster implements Comparable<Cluster> {
                     LOG.debug(getEnvironment() + ":" + database + "." + tableName +
                             ": Setting table property to identify as 'IMPORT' conversion.");
                     LOG.debug(getEnvironment() + ":(SQL)" + hmsMirrorImportFlag);
+                    tblMirror.setMigrationStageMessage("Adding ' " + MirrorConf.HMS_MIRROR_STORAGE_IMPORT_FLAG + "' to table properties");
 
                     if (!config.isDryrun())
                         stmt.execute(hmsMirrorImportFlag);
+                    tblMirror.setMigrationStageMessage("'" + MirrorConf.HMS_MIRROR_STORAGE_IMPORT_FLAG + "' table property added");
+
                     tblMirror.addProp(MirrorConf.HMS_MIRROR_STORAGE_IMPORT_FLAG, flagDate);
 
                     // Set Converted Table Property
@@ -1034,9 +1043,12 @@ public class Cluster implements Comparable<Cluster> {
                     LOG.debug(getEnvironment() + ":" + database + "." + tableName +
                             ": Setting table property to identify as 'hms-mirror' converted");
                     LOG.debug(getEnvironment() + ":(SQL)" + hmsMirrorConverted);
+                    tblMirror.setMigrationStageMessage("Adding ' " + MirrorConf.HMS_MIRROR_CONVERTED_FLAG + "' to table properties");
 
                     if (!config.isDryrun())
                         stmt.execute(hmsMirrorConverted);
+                    tblMirror.setMigrationStageMessage("'" + MirrorConf.HMS_MIRROR_CONVERTED_FLAG + "' table property added");
+
                     tblMirror.addProp(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, "true");
 
                     rtn = Boolean.TRUE;
@@ -1101,8 +1113,10 @@ public class Cluster implements Comparable<Cluster> {
                 String sqlDataTransfer = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, tableName, config.getTransferPrefix() + tableName);
 
                 LOG.debug(getEnvironment() + ":(SQL)" + sqlDataTransfer);
+                tblMirror.setMigrationStageMessage("Migrating data using Hive SQL.  Please wait. Check Hive Service for Job Details");
                 if (!config.isDryrun())
                     stmt.execute(sqlDataTransfer);
+                tblMirror.setMigrationStageMessage("Hive SQL Migration Complete");
                 tblMirror.addAction("IMPORTED (via SQL)", Boolean.TRUE);
                 rtn = Boolean.TRUE;
             } catch (SQLException throwables) {
@@ -1172,14 +1186,18 @@ public class Cluster implements Comparable<Cluster> {
                 String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
 
                 LOG.debug(getEnvironment() + ":(SQL) " + dropTable);
+                tblMirror.setMigrationStageMessage("Dropping original table (start of swap process)");
                 if (!config.isDryrun())
                     stmt.execute(dropTable);
+                tblMirror.setMigrationStageMessage("Table dropped");
                 tblMirror.addAction(getEnvironment().toString(), "Table Dropped");
 
                 String renameTable = MessageFormat.format(MirrorConf.RENAME_TABLE, config.getTransferPrefix() + tableName, tableName);
                 LOG.debug(getEnvironment() + ":(SQL) " + renameTable);
+                tblMirror.setMigrationStageMessage("Rename transfer table to original table (complete swap process)");
                 if (!config.isDryrun())
                     stmt.execute(renameTable);
+                tblMirror.setMigrationStageMessage("Rename complete");
                 tblMirror.addAction(getEnvironment().toString(), "Transfer Renamed");
 
                 rtn = Boolean.TRUE;
@@ -1243,10 +1261,11 @@ public class Cluster implements Comparable<Cluster> {
                             ": Discovering " + tblMirror.getPartitionDefinition(Environment.LOWER).size() + " partitions");
                     String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, database, tblMirror.getName());
                     LOG.debug(getEnvironment() + ":(SQL)" + msckStmt);
-
+                    tblMirror.setMigrationStageMessage("Discovering partitions with 'MSCK'");
                     if (!config.isDryrun())
                         stmt.execute(msckStmt);
                     tblMirror.addAction("MSCK ran", Boolean.TRUE);
+                    tblMirror.setMigrationStageMessage("Partition discovery with 'MSCK' complete");
                     rtn = Boolean.TRUE;
                 }
 

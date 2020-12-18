@@ -10,19 +10,21 @@ public class TableMirror {
     private DBMirror database;
     private String name;
     private Map<String, Object> actions = new LinkedHashMap<String, Object>();
-//    private Map<Stage, >
+
+    private Stage stage = null;
+    private Strategy strategy = null;
+
+    // An ordinal value that we'll increment at each phase of the process
+    private int currentPhase = 0;
+    // An ordinal value, assign when we start processing, that indicates how many phase there will be.
+    private int totalPhaseCount = 0;
+
+    // Caption to help identify the current phase of the effort.
+    private String migrationStageMessage = null;
+
     private Boolean phaseSuccess = Boolean.FALSE;
     private Long stageDuration = 0l;
 
-//    private boolean overwrite = Boolean.FALSE;
-//    private boolean transactional = Boolean.FALSE;
-//    private boolean transitionCreated = Boolean.FALSE;
-//    private boolean exportCreated = Boolean.FALSE;
-//    private boolean existingTableDropped = Boolean.FALSE;
-//    private boolean schemaImported = Boolean.FALSE;
-//    private boolean dataMigrated = Boolean.FALSE;
-//    private boolean locationAdjusted = Boolean.FALSE;
-//    private boolean discoverPartitions = Boolean.FALSE;
     private List<String> issues = new ArrayList<String>();
     private List<String> propAdd = new ArrayList<String>();
 
@@ -51,6 +53,48 @@ public class TableMirror {
         this.name = tablename;
     }
 
+    public Stage getStage() {
+        return stage;
+    }
+
+    public void setStage(Stage stage) {
+        this.stage = stage;
+    }
+
+    public Strategy getStrategy() {
+        return strategy;
+    }
+
+    public void setStrategy(Strategy strategy) {
+        this.strategy = strategy;
+    }
+
+    public void incPhase() {
+        currentPhase =+ 1;
+        if (currentPhase >= totalPhaseCount) {
+            totalPhaseCount = currentPhase + 1;
+        }
+    }
+
+    public void processingDone() {
+        totalPhaseCount = currentPhase;
+        // Clear message
+        setMigrationStageMessage(null);
+    }
+
+    public void nextPhase(String msg) {
+        incPhase();
+        setMigrationStageMessage(msg);
+    }
+
+    public String getMigrationStageMessage() {
+        return migrationStageMessage;
+    }
+
+    public void setMigrationStageMessage(String migrationStageMessage) {
+        this.migrationStageMessage = migrationStageMessage;
+    }
+
     public void addAction(String key, Object value) {
         actions.put(key, value);
     }
@@ -66,78 +110,6 @@ public class TableMirror {
     public boolean whereTherePropsAdded() {
         return propAdd.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
     }
-
-//    public boolean isOverwrite() {
-//        return overwrite;
-//    }
-//
-//    public void setOverwrite(boolean overwrite) {
-//        this.overwrite = overwrite;
-//    }
-//
-//    public boolean isTransactional() {
-//        return transactional;
-//    }
-//
-//    public void setTransactional(boolean transactional) {
-//        this.transactional = transactional;
-//    }
-//
-//    public boolean isDiscoverPartitions() {
-//        return discoverPartitions;
-//    }
-//
-//    public void setDiscoverPartitions(boolean discoverPartitions) {
-//        this.discoverPartitions = discoverPartitions;
-//    }
-//
-//    public boolean isLocationAdjusted() {
-//        return locationAdjusted;
-//    }
-//
-//    public void setLocationAdjusted(boolean locationAdjusted) {
-//        this.locationAdjusted = locationAdjusted;
-//    }
-//
-//    public boolean isTransitionCreated() {
-//        return transitionCreated;
-//    }
-//
-//    public void setTransitionCreated(boolean transitionCreated) {
-//        this.transitionCreated = transitionCreated;
-//    }
-//
-//    public boolean isExportCreated() {
-//        return exportCreated;
-//    }
-//
-//    public void setExportCreated(boolean exportCreated) {
-//        this.exportCreated = exportCreated;
-//    }
-//
-//    public boolean isExistingTableDropped() {
-//        return existingTableDropped;
-//    }
-//
-//    public void setExistingTableDropped(boolean existingTableDropped) {
-//        this.existingTableDropped = existingTableDropped;
-//    }
-//
-//    public boolean isSchemaImported() {
-//        return schemaImported;
-//    }
-//
-//    public void setSchemaImported(boolean schemaImported) {
-//        this.schemaImported = schemaImported;
-//    }
-//
-//    public boolean isDataMigrated() {
-//        return dataMigrated;
-//    }
-//
-//    public void setDataMigrated(boolean dataMigrated) {
-//        this.dataMigrated = dataMigrated;
-//    }
 
     public List<String> getIssues() {
         return issues;
