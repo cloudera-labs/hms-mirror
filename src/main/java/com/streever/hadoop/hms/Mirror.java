@@ -25,14 +25,10 @@ import java.util.concurrent.*;
 
 public class Mirror {
     private static Logger LOG = LogManager.getLogger(Mirror.class);
-//    private ScheduledExecutorService metadataThreadPool;
-//    private ScheduledExecutorService storageThreadPool;
 
-    //    private String[] databases = null;
     private Config config = null;
     private String configFile = null;
     private String reportOutputFile = null;
-//    private Stage stage = null;
 
     public void init(String[] args) {
 
@@ -51,7 +47,7 @@ public class Mirror {
 
         if (cmd.hasOption("h")) {
             HelpFormatter formatter = new HelpFormatter();
-            System.out.println(ReportingConf.substituteVariables("v.${Implementation-Version}"));
+            System.out.println(ReportingConf.substituteVariablesFromManifest("v.${Implementation-Version}"));
             formatter.printHelp("hive-mirror", options);
             System.exit(-1);
         }
@@ -169,6 +165,15 @@ public class Mirror {
 
     public void doit() {
         Conversion conversion = new Conversion();
+
+        // TODO: HERE
+        Reporter reporter = new Reporter(conversion, 1000);
+        reporter.setVariable("stage", config.getStage().toString());
+        reporter.setVariable("log.file", reportOutputFile.toString());
+        reporter.setVariable("action.script", "none");
+
+        reporter.start();
+
         Date startTime = new Date();
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 
@@ -209,7 +214,8 @@ public class Mirror {
             decf.setRoundingMode(RoundingMode.CEILING);
             LOG.info("HMS-Mirror: Completed in " +
                     decf.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
-
+            reporter.refresh();
+            reporter.stop();
         }
     }
 
@@ -277,6 +283,7 @@ public class Mirror {
                     mdf.add(config.getMetadataThreadPool().schedule(md, 1, TimeUnit.MILLISECONDS));
                 } else {
                     tblMirror.addIssue("ACID Table not supported for METADATA phase");
+                    tblMirror.setPhaseState(PhaseState.ERROR);
                 }
             }
         }
@@ -368,7 +375,7 @@ public class Mirror {
     public static void main(String[] args) {
         Mirror mirror = new Mirror();
         LOG.info("===================================================");
-        LOG.info("Running: hms-mirror " + ReportingConf.substituteVariables("v.${Implementation-Version}"));
+        LOG.info("Running: hms-mirror " + ReportingConf.substituteVariablesFromManifest("v.${Implementation-Version}"));
         LOG.info("===================================================");
         mirror.init(args);
         mirror.doit();

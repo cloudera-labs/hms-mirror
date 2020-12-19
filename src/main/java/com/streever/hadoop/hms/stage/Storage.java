@@ -61,6 +61,8 @@ public class Storage implements Runnable {
         Date start = new Date();
         LOG.info("STORAGE: Migrating " + dbMirror.getDatabase() + "." + tblMirror.getName());
 
+        tblMirror.setPhaseState(PhaseState.STARTED);
+
         // Set Database to Transfer DB.
 
         switch (config.getStorage().getStrategy()) {
@@ -77,7 +79,7 @@ public class Storage implements Runnable {
                 break;
             case EXPORT_IMPORT:
                 // Convert NON-ACID tables.
-                    successful = doExportImport();
+                successful = doExportImport();
                 break;
             case HYBRID:
                 // Check the Size of the volume where the data is stored on the lower cluster.
@@ -98,10 +100,13 @@ public class Storage implements Runnable {
             case DISTCP:
                 break;
             default:
-                throw new RuntimeException("Strategy: "+ config.getStorage().getStrategy().toString() + " isn't valid for the STORAGE phase.");
+                throw new RuntimeException("Strategy: " + config.getStorage().getStrategy().toString() + " isn't valid for the STORAGE phase.");
         }
 
-        tblMirror.setPhaseSuccess(successful);
+        if (successful)
+            tblMirror.setPhaseState(PhaseState.SUCCESS);
+        else
+            tblMirror.setPhaseState(PhaseState.ERROR);
 
         Date end = new Date();
         Long diff = end.getTime() - start.getTime();

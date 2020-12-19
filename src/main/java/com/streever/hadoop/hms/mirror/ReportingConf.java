@@ -2,6 +2,8 @@ package com.streever.hadoop.hms.mirror;
 
 import com.jcabi.manifests.Manifests;
 
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,7 +21,7 @@ public class ReportingConf {
     public static final String ANSI_WHITE = "\u001B[37m";
     public static final int ANSI_SIZE = 5;
 
-    public static String substituteVariables(String template) {
+    public static String substituteVariablesFromManifest(String template) {
         Pattern pattern = Pattern.compile("\\$\\{(.+?)\\}");
         Matcher matcher = pattern.matcher(template);
         // StringBuilder cannot be used here because Matcher expects StringBuffer
@@ -43,6 +45,36 @@ public class ReportingConf {
         matcher.appendTail(buffer);
         String rtn = buffer.toString();
         return rtn;
+    }
+
+    public static String substituteAllVariables(List<String> template, Map<String, String> varmap) {
+        Pattern pattern = Pattern.compile("\\$\\{(.+?)\\}");
+        StringBuilder sb = new StringBuilder();
+
+        for (String line: template) {
+            Matcher matcher = pattern.matcher(line);
+            // StringBuilder cannot be used here because Matcher expects StringBuffer
+            StringBuffer buffer = new StringBuffer();
+            while (matcher.find()) {
+                String matchStr = matcher.group(1);
+                try {
+                    String replacement = Manifests.read(matchStr);
+                    if (replacement != null) {
+                        // quote to work properly with $ and {,} signs
+                        matcher.appendReplacement(buffer, replacement != null ? Matcher.quoteReplacement(replacement) : "null");
+                    }
+                } catch (IllegalArgumentException iae) {
+                    // Couldn't locate MANIFEST Entry.
+                    // Silently continue. Usually happens in IDE->run.
+                    String replacement = varmap.get(matchStr);
+                    if (replacement != null)
+                        matcher.appendReplacement(buffer, replacement != null ? Matcher.quoteReplacement(replacement) : "null");
+                }
+            }
+            matcher.appendTail(buffer);
+            sb.append(buffer.toString()).append("\n");
+        }
+        return sb.toString();
     }
 
 }

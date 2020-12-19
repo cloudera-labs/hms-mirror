@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -39,7 +38,7 @@ public class Conversion {
         Set<String> databaseSet = databases.keySet();
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         sb.append("# HMS-Mirror  ");
-        sb.append(ReportingConf.substituteVariables("v.${Implementation-Version}")).append("\n");
+        sb.append(ReportingConf.substituteVariablesFromManifest("v.${Implementation-Version}")).append("\n");
         sb.append("---\n").append("## Run Log\n\n");
         sb.append("| Date | Elapsed Time |\n");
         sb.append("|:---|:---|\n");
@@ -66,7 +65,7 @@ public class Conversion {
             sb.append("\n");
 
             sb.append("|").append(" Table ").append("|")
-                    .append("Phase<br/>Success").append("|")
+                    .append("Phase<br/>State").append("|")
                     .append("Phase<br/>Duration").append("|")
                     .append("Partition<br/>Count").append("|")
                     .append("Actions").append("|")
@@ -85,7 +84,7 @@ public class Conversion {
             for (String table : tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
                 sb.append("|").append(table).append("|")
-                        .append(tblMirror.getPhaseSuccess().toString()).append("|");
+                        .append(tblMirror.getPhaseState().toString()).append("|");
 
                 // Stage Duration
                 BigDecimal secs = new BigDecimal(tblMirror.getStageDuration()).divide(new BigDecimal(1000));///1000

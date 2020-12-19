@@ -31,6 +31,7 @@ public class Metadata implements Runnable {
         LOG.info("METADATA: Migrating " + dbMirror.getDatabase() + "." + tblMirror.getName());
 
         // Set Database to Transfer DB.
+        tblMirror.setPhaseState(PhaseState.STARTED);
 
         switch (config.getMetadata().getStrategy()) {
             case DIRECT:
@@ -45,7 +46,10 @@ public class Metadata implements Runnable {
                 throw new RuntimeException("Strategy: " + config.getStorage().getStrategy().toString() + " isn't valid for the METADATA phase.");
         }
 
-        tblMirror.setPhaseSuccess(successful);
+        if (successful)
+            tblMirror.setPhaseState(PhaseState.SUCCESS);
+        else
+            tblMirror.setPhaseState(PhaseState.ERROR);
 
         Date end = new Date();
         Long diff = end.getTime() - start.getTime();

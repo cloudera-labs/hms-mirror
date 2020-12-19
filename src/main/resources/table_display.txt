@@ -1,0 +1,4 @@
+DB.TBL: [32m${db.name}.${tbl.name}[0m  STRATEGY: [34m${tbl.strategy}[0m
+  |[33m${tbl.progress}[0m
+MSG   : [34m${tbl.msg}[0m
+----------------------------------------------------------------------

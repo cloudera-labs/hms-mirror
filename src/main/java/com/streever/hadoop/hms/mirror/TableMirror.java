@@ -1,6 +1,7 @@
 package com.streever.hadoop.hms.mirror;
 
 import com.streever.hadoop.hms.util.TableUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -22,7 +23,8 @@ public class TableMirror {
     // Caption to help identify the current phase of the effort.
     private String migrationStageMessage = null;
 
-    private Boolean phaseSuccess = Boolean.FALSE;
+    private PhaseState phaseState = PhaseState.INIT;
+
     private Long stageDuration = 0l;
 
     private List<String> issues = new ArrayList<String>();
@@ -32,12 +34,16 @@ public class TableMirror {
         return name;
     }
 
-    public Boolean getPhaseSuccess() {
-        return phaseSuccess;
+    public DBMirror getDatabase() {
+        return database;
     }
 
-    public void setPhaseSuccess(Boolean phaseSuccess) {
-        this.phaseSuccess = phaseSuccess;
+    public PhaseState getPhaseState() {
+        return phaseState;
+    }
+
+    public void setPhaseState(PhaseState phaseState) {
+        this.phaseState = phaseState;
     }
 
     public Long getStageDuration() {
@@ -70,10 +76,21 @@ public class TableMirror {
     }
 
     public void incPhase() {
-        currentPhase =+ 1;
+        currentPhase += 1;
         if (currentPhase >= totalPhaseCount) {
             totalPhaseCount = currentPhase + 1;
         }
+    }
+
+    public String getProgressIndicator(int width, int scale) {
+        StringBuilder sb = new StringBuilder();
+        int progressLength = (width/scale) * currentPhase;
+        sb.append("\u001B[32m");
+        sb.append(StringUtils.rightPad("=", progressLength-1, "="));
+        sb.append("\u001B[33m");
+        sb.append(StringUtils.rightPad("-", width-progressLength, "-"));
+        sb.append("\u001B[0m|");
+        return sb.toString();
     }
 
     public void processingDone() {
@@ -93,6 +110,7 @@ public class TableMirror {
 
     public void setMigrationStageMessage(String migrationStageMessage) {
         this.migrationStageMessage = migrationStageMessage;
+        incPhase();
     }
 
     public void addAction(String key, Object value) {
