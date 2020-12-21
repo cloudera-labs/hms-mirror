@@ -76,3 +76,8 @@ Take snapshots of areas you'll touch:
 - The HMS database on the LOWER and UPPER clusters
 - A snapshot of the HDFS directories on BOTH the LOWER and UPPER clusters that will be used/touched.
 
+
+----
+- Need to document concepts on Permissions when doing this.
+- For distcp, we can issue an external 'hadoop distcp' call, retrieve the application id and use a background thread to watch for the completion of the job via the YARN REST API.
+
