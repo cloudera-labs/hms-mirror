@@ -59,7 +59,7 @@ public class Storage implements Runnable {
     @Override
     public void run() {
         Date start = new Date();
-        LOG.info("STORAGE: Migrating " + dbMirror.getDatabase() + "." + tblMirror.getName());
+        LOG.info("STORAGE: Migrating " + dbMirror.getName() + "." + tblMirror.getName());
 
         tblMirror.setPhaseState(PhaseState.STARTED);
 
@@ -73,7 +73,7 @@ public class Storage implements Runnable {
                     // ACID Table support ONLY available via EXPORT_IMPORT.
                     String errmsg = "ACID Table STORAGE support only available via EXPORT/IMPORT";
                     tblMirror.addIssue(errmsg);
-                    LOG.debug(dbMirror.getDatabase() + "." + tblMirror.getName() + ":" +
+                    LOG.debug(dbMirror.getName() + "." + tblMirror.getName() + ":" +
                             "ACID Table STORAGE support only available via EXPORT/IMPORT");
                 }
                 break;
@@ -111,7 +111,7 @@ public class Storage implements Runnable {
         Date end = new Date();
         Long diff = end.getTime() - start.getTime();
         tblMirror.setStageDuration(diff);
-        LOG.info("STORAGE: Migration complete for " + dbMirror.getDatabase() + "." + tblMirror.getName() + " in " +
+        LOG.info("STORAGE: Migration complete for " + dbMirror.getName() + "." + tblMirror.getName() + " in " +
                 Long.toString(diff) + "ms");
     }
 
@@ -164,7 +164,7 @@ public class Storage implements Runnable {
                 (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER)) &&
                         config.getStorage().getMigrateACID())) {
 
-            rtn = config.getCluster(Environment.LOWER).exportSchema(config, dbMirror.getDatabase(), dbMirror, tblMirror);
+            rtn = config.getCluster(Environment.LOWER).exportSchema(config, dbMirror.getName(), dbMirror, tblMirror);
             if (rtn) {
                 rtn = config.getCluster(Environment.UPPER).importSchemaWithData(config, dbMirror, tblMirror);
             }

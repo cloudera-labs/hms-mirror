@@ -1,5 +1,6 @@
 package com.streever.hadoop.hms.mirror;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -12,8 +13,17 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class Conversion {
+    @JsonIgnore
     private Date start = new Date();
+    private Config config;
     private Map<String, DBMirror> databases = new TreeMap<String, DBMirror>();
+
+    public Conversion() {
+    }
+
+    public Conversion(Config config) {
+        this.config = config;
+    }
 
     public DBMirror addDatabase(String database) {
         if (databases.containsKey(database)) {
@@ -25,8 +35,20 @@ public class Conversion {
         }
     }
 
+    public Config getConfig() {
+        return config;
+    }
+
+    public void setConfig(Config config) {
+        this.config = config;
+    }
+
     public Map<String, DBMirror> getDatabases() {
         return databases;
+    }
+
+    public void setDatabases(Map<String, DBMirror> databases) {
+        this.databases = databases;
     }
 
     public DBMirror getDatabase(String database) {

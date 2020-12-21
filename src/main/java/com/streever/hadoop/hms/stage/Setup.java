@@ -21,7 +21,9 @@ public class Setup {
         this.conversion = conversion;
     }
 
-    public void run() {
+    // TODO: Need to address failures here...
+    public Boolean collect() {
+        Boolean rtn = Boolean.TRUE;
         Date startTime = new Date();
         LOG.info("GATHERING METADATA: Start Processing for databases: " + Arrays.toString((config.getDatabases())));
 
@@ -82,6 +84,7 @@ public class Setup {
         DecimalFormat df = new DecimalFormat("#.###");
         df.setRoundingMode(RoundingMode.CEILING);
         LOG.info("GATHERING METADATA: Completed in " + df.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
+        return rtn;
 
     }
 

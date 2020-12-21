@@ -1,6 +1,7 @@
 
 ===================================================================================
-TBLS (Started/Completed/Errors)->([33m${started.tbls}[0m/[34m${completed.tbls}[0m/[31m${error.tbls}[0m)           Elapse Time: ${elapsed.time}secs
+TBLS (Started/Completed/Errors/Skipped)->([33m${started.tbls}[0m/[34m${completed.tbls}[0m/[31m${error.tbls}[0m/[36m${skipped.tbls}[0m)           Elapse Time: ${elapsed.time}secs
 
-Detailed Log: ${log.file}
-Action Script: ${action.script}
+Config file${retry}: ${config.file}
+Report file       : ${report.file}
+Action script     : ${action.script}

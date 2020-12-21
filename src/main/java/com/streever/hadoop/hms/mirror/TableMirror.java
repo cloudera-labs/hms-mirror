@@ -1,5 +1,6 @@
 package com.streever.hadoop.hms.mirror;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -8,8 +9,10 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class TableMirror {
-    private DBMirror database;
+    private String dbName;
     private String name;
+
+    @JsonIgnore
     private Map<String, Object> actions = new LinkedHashMap<String, Object>();
 
     private Stage stage = null;
@@ -21,10 +24,12 @@ public class TableMirror {
     private int totalPhaseCount = 0;
 
     // Caption to help identify the current phase of the effort.
+    @JsonIgnore
     private String migrationStageMessage = null;
 
     private PhaseState phaseState = PhaseState.INIT;
 
+    @JsonIgnore
     private Long stageDuration = 0l;
 
     private List<String> issues = new ArrayList<String>();
@@ -34,8 +39,12 @@ public class TableMirror {
         return name;
     }
 
-    public DBMirror getDatabase() {
-        return database;
+    public String getDbName() {
+        return dbName;
+    }
+
+    public void setDbName(String dbName) {
+        this.dbName = dbName;
     }
 
     public PhaseState getPhaseState() {
@@ -54,8 +63,11 @@ public class TableMirror {
         this.stageDuration = stageDuration;
     }
 
-    public TableMirror(DBMirror database, String tablename) {
-        this.database = database;
+    public TableMirror() {
+    }
+
+    public TableMirror(String dbName, String tablename) {
+        this.dbName = dbName;
         this.name = tablename;
     }
 
@@ -121,6 +133,7 @@ public class TableMirror {
         return actions;
     }
 
+    @JsonIgnore
     public boolean isThereAnIssue() {
         return issues.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
     }
@@ -153,6 +166,38 @@ public class TableMirror {
     private Map<Environment, List<String>> tableDefinitions = new TreeMap<Environment, List<String>>();
     private Map<Environment, Boolean> tablePartitioned = new TreeMap<Environment, Boolean>();
     private Map<Environment, List<String>> tablePartitions = new TreeMap<Environment, List<String>>();
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setPropAdd(List<String> propAdd) {
+        this.propAdd = propAdd;
+    }
+
+    public Map<Environment, List<String>> getTableDefinitions() {
+        return tableDefinitions;
+    }
+
+    public void setTableDefinitions(Map<Environment, List<String>> tableDefinitions) {
+        this.tableDefinitions = tableDefinitions;
+    }
+
+    public Map<Environment, Boolean> getTablePartitioned() {
+        return tablePartitioned;
+    }
+
+    public void setTablePartitioned(Map<Environment, Boolean> tablePartitioned) {
+        this.tablePartitioned = tablePartitioned;
+    }
+
+    public Map<Environment, List<String>> getTablePartitions() {
+        return tablePartitions;
+    }
+
+    public void setTablePartitions(Map<Environment, List<String>> tablePartitions) {
+        this.tablePartitions = tablePartitions;
+    }
 
     public boolean buildUpperSchema(Config config) {
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

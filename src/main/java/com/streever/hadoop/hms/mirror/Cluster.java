@@ -89,15 +89,15 @@ public class Cluster implements Comparable<Cluster> {
         try {
             conn = getConnection();
 
-            LOG.debug(getEnvironment() + ":" + dbMirror.getDatabase() + ": Loading tables for database");
+            LOG.debug(getEnvironment() + ":" + dbMirror.getName() + ": Loading tables for database");
 
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 stmt = conn.createStatement();
-                LOG.debug(getEnvironment() + ":" + dbMirror.getDatabase() + ": Setting Hive DB Session Context");
-                stmt.execute(MessageFormat.format(MirrorConf.USE, dbMirror.getDatabase()));
-                LOG.debug(getEnvironment() + ":" + dbMirror.getDatabase() + ": Getting Table List");
+                LOG.debug(getEnvironment() + ":" + dbMirror.getName() + ": Setting Hive DB Session Context");
+                stmt.execute(MessageFormat.format(MirrorConf.USE, dbMirror.getName()));
+                LOG.debug(getEnvironment() + ":" + dbMirror.getName() + ": Getting Table List");
                 resultSet = stmt.executeQuery(MirrorConf.SHOW_TABLES);
                 while (resultSet.next()) {
                     String tableName = resultSet.getString(1);
@@ -261,7 +261,7 @@ public class Cluster implements Comparable<Cluster> {
     protected Boolean checkAndDoOverwrite(Statement stmt, Config config, DBMirror dbMirror, TableMirror tblMirror, String tblPrefix) {
         Boolean rtn = Boolean.TRUE;
 
-        String database = dbMirror.getDatabase();
+        String database = dbMirror.getName();
         tblMirror.setMigrationStageMessage("Checking whether the overwrite");
         String tableName = tblPrefix == null ? tblMirror.getName() : tblPrefix + tblMirror.getName();
         try {
@@ -440,9 +440,9 @@ public class Cluster implements Comparable<Cluster> {
         Statement stmt = null;
         Boolean rtn = Boolean.FALSE;
 
-        String database = dbMirror.getDatabase();
+        String database = dbMirror.getName();
         String tableName = tblMirror.getName();
-        LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+        LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
         try {
             conn = getConnection();
 
@@ -464,7 +464,7 @@ public class Cluster implements Comparable<Cluster> {
 
             String transferCreateTable = MessageFormat.format(MirrorConf.CREATE_EXTERNAL_LIKE,
                     transferDatabase, tblMirror.getName(),
-                    dbMirror.getDatabase(), tblMirror.getName());
+                    dbMirror.getName(), tblMirror.getName());
 
             LOG.debug(getEnvironment() + ":" + database + "." + tableName +
                     ": Creating transfer schema for table");
@@ -511,7 +511,7 @@ public class Cluster implements Comparable<Cluster> {
             } catch (SQLException throwables) {
                 //
             }
-            LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
         }
         return rtn;
     }
@@ -520,7 +520,7 @@ public class Cluster implements Comparable<Cluster> {
         Connection conn = null;
         Statement stmt = null;
         Boolean rtn = Boolean.FALSE;
-        LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+        LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
         try {
             conn = getConnection();
             String tableName = tblMirror.getName();
@@ -557,7 +557,7 @@ public class Cluster implements Comparable<Cluster> {
             } catch (SQLException throwables) {
                 //
             }
-            LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
         }
         return rtn;
     }
@@ -574,14 +574,14 @@ public class Cluster implements Comparable<Cluster> {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 conn = getConnection();
 
-                String database = dbMirror.getDatabase();
+                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
 
                 stmt = conn.createStatement();
@@ -668,7 +668,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
             }
         }
         return rtn;
@@ -682,14 +682,14 @@ public class Cluster implements Comparable<Cluster> {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 conn = getConnection();
 
-                String database = dbMirror.getDatabase();
+                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
 
                 LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Importing Transfer Schema");
@@ -794,7 +794,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
             }
         }
         return rtn;
@@ -808,14 +808,14 @@ public class Cluster implements Comparable<Cluster> {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 conn = getConnection();
 
-                String database = dbMirror.getDatabase();
+                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
 
 
@@ -915,7 +915,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
             }
         }
         return rtn;
@@ -929,14 +929,14 @@ public class Cluster implements Comparable<Cluster> {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 conn = getConnection();
 
-                String database = dbMirror.getDatabase();
+                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
 
                 stmt = conn.createStatement();
@@ -1075,7 +1075,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
             }
         }
         return rtn;
@@ -1092,14 +1092,14 @@ public class Cluster implements Comparable<Cluster> {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 conn = getConnection();
 
-                String database = dbMirror.getDatabase();
+                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
 
                 stmt = conn.createStatement();
@@ -1144,7 +1144,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
             }
         }
         return rtn;
@@ -1165,14 +1165,14 @@ public class Cluster implements Comparable<Cluster> {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 conn = getConnection();
 
-                String database = dbMirror.getDatabase();
+                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
 
                 stmt = conn.createStatement();
@@ -1226,7 +1226,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
             }
         }
         return rtn;
@@ -1244,13 +1244,13 @@ public class Cluster implements Comparable<Cluster> {
         Boolean rtn = Boolean.TRUE;
         if (this.getEnvironment() == Environment.UPPER &&
                 TableUtils.isPartitioned(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER))) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
 
-                String database = dbMirror.getDatabase();
+                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
 
                 if (this.getPartitionDiscovery().getInitMSCK() || force) {
@@ -1317,7 +1317,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getDatabase() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
             }
 
         }

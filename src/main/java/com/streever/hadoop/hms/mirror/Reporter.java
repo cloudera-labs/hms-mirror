@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Reporter implements Runnable {
 
     private Thread worker;
+    private Boolean retry = Boolean.FALSE;
     private Date start = new Date();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private int sleepInterval;
@@ -21,6 +22,14 @@ public class Reporter implements Runnable {
     private List<TableMirror> startedTables = new ArrayList<TableMirror>();
 
     private Conversion conversion;
+
+    public Boolean getRetry() {
+        return retry;
+    }
+
+    public void setRetry(Boolean retry) {
+        this.retry = retry;
+    }
 
     public Reporter(Conversion conversion, int sleepInterval) {
         this.conversion = conversion;
@@ -94,6 +103,10 @@ public class Reporter implements Runnable {
     private void populateVarMap() {
         tiktok = !tiktok;
         startedTables.clear();
+        if (!retry)
+            varMap.put("retry", "       ");
+        else
+            varMap.put("retry", "(RETRY)");
         varMap.put("tik.tok", tiktok?"*":"");
         varMap.put("total.dbs", Integer.toString(conversion.getDatabases().size()));
         // Count
@@ -107,6 +120,7 @@ public class Reporter implements Runnable {
         int started = 0;
         int completed = 0;
         int errors = 0;
+        int skipped = 0;
         for (String database : conversion.getDatabases().keySet()) {
             DBMirror dbMirror = conversion.getDatabase(database);
             for (String tbl: dbMirror.getTableMirrors().keySet()) {
@@ -123,12 +137,15 @@ public class Reporter implements Runnable {
                     case ERROR:
                         errors++;
                         break;
+                    case RETRY_SKIPPED_PAST_SUCCESS:
+                        skipped++;
                 }
             }
         }
         varMap.put("started.tbls", Integer.toString(started));
         varMap.put("completed.tbls", Integer.toString(completed));
         varMap.put("error.tbls", Integer.toString(errors));
+        varMap.put("skipped.tbls", Integer.toString(skipped));
         Date current = new Date();
         long elapsedMS = current.getTime() - start.getTime();
         if (tiktok)
@@ -147,7 +164,7 @@ public class Reporter implements Runnable {
         // Table Processing
         for (TableMirror tblMirror: startedTables) {
             Map<String,String> tblVars = new TreeMap<String, String>();
-            tblVars.put("db.name", tblMirror.getDatabase().getDatabase());
+            tblVars.put("db.name", tblMirror.getDbName());
             tblVars.put("tbl.name", tblMirror.getName());
             tblVars.put("tbl.progress", tblMirror.getProgressIndicator(80,10));
             tblVars.put("tbl.msg", tblMirror.getMigrationStageMessage());

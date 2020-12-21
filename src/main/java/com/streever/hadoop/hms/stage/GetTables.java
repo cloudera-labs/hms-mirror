@@ -1,6 +1,5 @@
 package com.streever.hadoop.hms.stage;
 
-import com.streever.hadoop.hms.Mirror;
 import com.streever.hadoop.hms.mirror.Config;
 import com.streever.hadoop.hms.mirror.DBMirror;
 import com.streever.hadoop.hms.mirror.Environment;
@@ -35,7 +34,7 @@ public class GetTables implements Runnable {
 
     @Override
     public void run() {
-        LOG.debug("Getting table for: " +dbMirror.getDatabase());
+        LOG.debug("Getting table for: " +dbMirror.getName());
         try {
             config.getCluster(Environment.LOWER).getTables(config, dbMirror);
             successful = Boolean.TRUE;

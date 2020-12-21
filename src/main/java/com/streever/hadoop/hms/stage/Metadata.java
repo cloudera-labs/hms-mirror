@@ -1,7 +1,6 @@
 package com.streever.hadoop.hms.stage;
 
 import com.streever.hadoop.hms.mirror.*;
-import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -28,7 +27,7 @@ public class Metadata implements Runnable {
     @Override
     public void run() {
         Date start = new Date();
-        LOG.info("METADATA: Migrating " + dbMirror.getDatabase() + "." + tblMirror.getName());
+        LOG.info("METADATA: Migrating " + dbMirror.getName() + "." + tblMirror.getName());
 
         // Set Database to Transfer DB.
         tblMirror.setPhaseState(PhaseState.STARTED);
@@ -54,7 +53,7 @@ public class Metadata implements Runnable {
         Date end = new Date();
         Long diff = end.getTime() - start.getTime();
         tblMirror.setStageDuration(diff);
-        LOG.info("METADATA: Migration complete for " + dbMirror.getDatabase() + "." + tblMirror.getName() + " in " +
+        LOG.info("METADATA: Migration complete for " + dbMirror.getName() + "." + tblMirror.getName() + " in " +
                 Long.toString(diff) + "ms");
     }
 
@@ -80,7 +79,7 @@ public class Metadata implements Runnable {
         tblMirror.incPhase();
 
         tblMirror.addAction("METADATA", "TRANSITION");
-        String transitionDatabase = config.getTransferPrefix() + dbMirror.getDatabase();
+        String transitionDatabase = config.getTransferPrefix() + dbMirror.getName();
         // Method supporting a transfer Schema.  Had issues with this on EMR and the EXPORT process.
         // Could get the EXPORT the right permissions to write to S3, so the export would fail.
         rtn = config.getCluster(Environment.LOWER).buildTransferTableSchema(config, transitionDatabase, dbMirror, tblMirror);

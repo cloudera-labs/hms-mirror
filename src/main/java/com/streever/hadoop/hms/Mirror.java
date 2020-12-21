@@ -29,6 +29,7 @@ public class Mirror {
     private Config config = null;
     private String configFile = null;
     private String reportOutputFile = null;
+    private Boolean retry = Boolean.FALSE;
 
     public void init(String[] args) {
 
@@ -80,6 +81,10 @@ public class Mirror {
             t.printStackTrace();
         }
 
+        if (cmd.hasOption("r")) {
+            retry = Boolean.TRUE;
+        }
+
         if (cmd.hasOption("m")) {
             config.setStage(Stage.METADATA);
             String mdirective = cmd.getOptionValue("m");
@@ -106,10 +111,17 @@ public class Mirror {
                     ".hms-mirror/reports/hms-mirror-" + config.getStage() + "-" + df.format(new Date()) + ".md";
         }
 
-        String reportPath = reportOutputFile.substring(0,reportOutputFile.lastIndexOf(System.getProperty("file.separator")));
+        String reportPath = reportOutputFile.substring(0, reportOutputFile.lastIndexOf(System.getProperty("file.separator")));
         File reportPathDir = new File(reportPath);
         if (!reportPathDir.exists()) {
             reportPathDir.mkdirs();
+        }
+
+        // Ensure the Retry Path is created.
+        File retryPath = new File(System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror" +
+                System.getProperty("file.separator") + "retry");
+        if (!retryPath.exists()) {
+            retryPath.mkdirs();
         }
 
         File reportFile = new File(reportOutputFile);
@@ -164,31 +176,75 @@ public class Mirror {
     }
 
     public void doit() {
-        Conversion conversion = new Conversion();
+        Conversion conversion = new Conversion(config);
 
-        // TODO: HERE
+        // Setup and Start the State Maintenance Routine
+        StateMaintenance stateMaintenance = new StateMaintenance(5000, configFile);
+
+        if (retry) {
+            File retryFile = stateMaintenance.getRetryFile();
+            if (!retryFile.exists()) {
+                LOG.error("Could NOT locate 'retry' file: " + retryFile.getPath());
+                throw new RuntimeException("Could NOT locate 'retry' file: " + retryFile.getPath());
+            }
+            ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+            mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+            String retryCfgFile = null;
+            try {
+                retryCfgFile = FileUtils.readFileToString(retryFile, Charset.forName("UTF-8"));
+                // Replace Conversion
+                conversion = mapper.readerFor(Conversion.class).readValue(retryCfgFile);
+                // Replace Config
+                config = conversion.getConfig();
+            } catch (IOException e) {
+                LOG.error("Could NOT read 'retry' file: " + retryFile.getPath(), e);
+                throw new RuntimeException("Could NOT read 'retry' file: " + retryFile.getPath(), e);
+            }
+        }
+
+        // Link the conversion to the state machine.
+        stateMaintenance.setConversion(conversion);
+
+        // Setup and Start the Reporter
         Reporter reporter = new Reporter(conversion, 1000);
+        reporter.setVariable("config.file", configFile);
         reporter.setVariable("stage", config.getStage().toString());
-        reporter.setVariable("log.file", reportOutputFile.toString());
+        // ?
+        //        reporter.setVariable("log.file", log4j output file.);
+        reporter.setVariable("report.file", reportOutputFile);
         reporter.setVariable("action.script", "none");
-
+        reporter.setRetry(this.retry);
         reporter.start();
 
         Date startTime = new Date();
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 
-        Setup setup = new Setup(config, conversion);
-        setup.run();
+        // Skip Setup if working from 'retry'
+        if (!retry) {
+            Setup setup = new Setup(config, conversion);
+            // TODO: Failure here may not make it to saved state.
+            if (setup.collect()) {
+                stateMaintenance.saveState();
+            } else {
+                // Need to delete retry file.
+                stateMaintenance.deleteState();
+            }
+        }
+
+        stateMaintenance.start();
 
         switch (config.getStage()) {
             case METADATA:
                 conversion = runMetadata(conversion);
+                stateMaintenance.saveState();
                 break;
             case STORAGE:
                 // Make / override any conflicting settings.
                 Boolean rtn = Storage.fixConfig(config);
                 if (rtn) {
                     conversion = runStorage(conversion);
+                    stateMaintenance.saveState();
                 }
                 // Need to run the METADATA process first to ensure the schemas are CURRENT.
                 // Then run the STORAGE (transfer) stage.
@@ -232,8 +288,23 @@ public class Mirror {
             Set<String> tables = dbMirror.getTableMirrors().keySet();
             for (String table : tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
-                Storage sd = new Storage(config, dbMirror, tblMirror);
-                sdf.add(config.getStorageThreadPool().schedule(sd, 1, TimeUnit.MILLISECONDS));
+                switch (tblMirror.getPhaseState()) {
+                    case INIT:
+                    case STARTED:
+                    case ERROR:
+                        Storage sd = new Storage(config, dbMirror, tblMirror);
+                        sdf.add(config.getStorageThreadPool().schedule(sd, 1, TimeUnit.MILLISECONDS));
+                        break;
+                    case SUCCESS:
+                        LOG.debug("DB.tbl: " + tblMirror.getDbName() + "." + tblMirror.getName() + " was SUCCESSFUL in " +
+                                "previous run.   SKIPPING and adjusting status to RETRY_SKIPPED_PAST_SUCCESS");
+                        tblMirror.setPhaseState(PhaseState.RETRY_SKIPPED_PAST_SUCCESS);
+                        break;
+                    case RETRY_SKIPPED_PAST_SUCCESS:
+                        LOG.debug("DB.tbl: " + tblMirror.getDbName() + "." + tblMirror.getName() + " was SUCCESSFUL in " +
+                                "previous run.  SKIPPING");
+                        break;
+                }
             }
         }
 
@@ -278,12 +349,26 @@ public class Mirror {
             Set<String> tables = dbMirror.getTableMirrors().keySet();
             for (String table : tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
-                if (!TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER))) {
-                    Metadata md = new Metadata(config, dbMirror, tblMirror);
-                    mdf.add(config.getMetadataThreadPool().schedule(md, 1, TimeUnit.MILLISECONDS));
-                } else {
-                    tblMirror.addIssue("ACID Table not supported for METADATA phase");
-                    tblMirror.setPhaseState(PhaseState.ERROR);
+                switch (tblMirror.getPhaseState()) {
+                    case INIT:
+                    case STARTED:
+                    case ERROR:
+                        if (!TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER))) {
+                            Metadata md = new Metadata(config, dbMirror, tblMirror);
+                            mdf.add(config.getMetadataThreadPool().schedule(md, 1, TimeUnit.MILLISECONDS));
+                        } else {
+                            tblMirror.addIssue("ACID Table not supported for METADATA phase");
+                            tblMirror.setPhaseState(PhaseState.ERROR);
+                        }
+                        break;
+                    case SUCCESS:
+                        LOG.debug("DB.tbl: " + tblMirror.getDbName() + "." + tblMirror.getName() + " was SUCCESSFUL in " +
+                                "previous run.   SKIPPING and adjusting status to RETRY_SKIPPED_PAST_SUCCESS");
+                        tblMirror.setPhaseState(PhaseState.RETRY_SKIPPED_PAST_SUCCESS);
+                        break;
+                    case RETRY_SKIPPED_PAST_SUCCESS:
+                        LOG.debug("DB.tbl: " + tblMirror.getDbName() + "." + tblMirror.getName() + " was SUCCESSFUL in " +
+                                "previous run.  SKIPPING");
                 }
             }
         }
@@ -319,11 +404,13 @@ public class Mirror {
         // create Options object
         Options options = new Options();
 
-        Option metadataStage = new Option("m", "metastore", true, "Run HMS-Mirror Metadata");
+        Option metadataStage = new Option("m", "metastore", true,
+                "Run HMS-Mirror Metadata with strategy: DIRECT(default)|TRANSITION");
         metadataStage.setOptionalArg(Boolean.TRUE);
-        metadataStage.setArgName("DIRECT(default)|TRANSITION");
-        Option storageStage = new Option("s", "storage", true, "Run HMS-Mirror Storage ('sql|export' only supported options currently)");
-        storageStage.setArgName("SQL|EXPORT_IMPORT|HYBRID|DISTCP");
+        metadataStage.setArgName("strategy");
+        Option storageStage = new Option("s", "storage", true,
+                "Run HMS-Mirror Storage with strategy: SQL|EXPORT_IMPORT|HYBRID|DISTCP");
+        storageStage.setArgName("strategy");
         storageStage.setOptionalArg(Boolean.TRUE);
 
         OptionGroup stageGroup = new OptionGroup();
@@ -341,6 +428,7 @@ public class Mirror {
         Option outputOption = new Option("f", "output-file", true,
                 "Output Directory (default: $HOME/.hms-mirror/reports/hms-mirror-<stage>-<timestamp>.md");
         outputOption.setRequired(false);
+        outputOption.setArgName("filename");
         options.addOption(outputOption);
 
         Option dryrunOption = new Option("dr", "dry-run", false,
@@ -351,6 +439,7 @@ public class Mirror {
         Option dbOption = new Option("db", "database", true,
                 "Comma separated list of Databases (upto 100).");
         dbOption.setValueSeparator(',');
+        dbOption.setArgName("databases");
         dbOption.setArgs(100);
 //        Option dbRegExOption = new Option("dbRegEx", "database-regex", true,
 //                "Search RegEx of Database names to include in processing");
@@ -362,12 +451,19 @@ public class Mirror {
 
         Option tableFilterOption = new Option("tf", "table-filter", true, "Filter tables with name matching RegEx");
         tableFilterOption.setRequired(false);
+        tableFilterOption.setArgName("regex");
         options.addOption(tableFilterOption);
 
         Option cfgOption = new Option("cfg", "config", true,
                 "Config with details for the HMS-Mirror.  Default: $HOME/.hms-mirror/cfg/default.yaml");
         cfgOption.setRequired(false);
+        cfgOption.setArgName("filename");
         options.addOption(cfgOption);
+
+        Option retryOption = new Option("r", "retry", false,
+                "Retry last incomplete run for 'cfg'.  If none specified, will check for 'default'");
+        retryOption.setRequired(false);
+        options.addOption(retryOption);
 
         return options;
     }

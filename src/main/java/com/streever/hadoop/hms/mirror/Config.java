@@ -76,7 +76,10 @@ public class Config {
 
     public void setTblRegEx(String tblRegEx) {
         this.tblRegEx = tblRegEx;
-        dbFilterPattern = Pattern.compile(tblRegEx);
+        if (this.tblRegEx != null)
+            dbFilterPattern = Pattern.compile(tblRegEx);
+        else
+            dbFilterPattern = null;
     }
 
     public Pattern getDbFilterPattern() {
