@@ -18,7 +18,12 @@ public enum Strategy {
     the shell schema in the upper cluster and attach to the LOWER data.
      */
     TRANSITION,
-
+    // TODO: Provide an SCHEMA_EXTRACT process.
+    /*
+    Schema extract will attach to the LOWER cluster and extract out the current schema and build a separate
+    SQL script for each database listed.
+     */
+    SCHEMA_EXTRACT,
 
     // STORAGE
     /*

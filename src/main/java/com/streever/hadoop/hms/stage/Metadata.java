@@ -41,6 +41,9 @@ public class Metadata implements Runnable {
             case TRANSITION:
                 successful = doTRANSITION();
                 break;
+            case SCHEMA_EXTRACT:
+                throw new RuntimeException("SCHEMA_EXTRACT has not been implemented yet.");
+//                break;
             default:
                 throw new RuntimeException("Strategy: " + config.getStorage().getStrategy().toString() + " isn't valid for the METADATA phase.");
         }
