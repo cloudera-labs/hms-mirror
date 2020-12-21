@@ -42,6 +42,14 @@ public enum Strategy {
     /*
     Will require manual intervention. Concept for this effort is still a WIP.
      */
+
+
+    // METADATA and STORAGE
+    /*
+    For METADATA will move the METADATA only, expecting the data to be there already.
+    For STORAGE this will generate a script of 'distcp' commands to run to move the data
+         from the LOWER cluster to the UPPER cluster.
+    */
     DISTCP;
 
 }
