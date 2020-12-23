@@ -286,25 +286,51 @@ public class Mirror {
         for (String database : collectedDbs) {
             DBMirror dbMirror = conversion.getDatabase(database);
             Set<String> tables = dbMirror.getTableMirrors().keySet();
-            for (String table : tables) {
-                TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
-                switch (tblMirror.getPhaseState()) {
-                    case INIT:
-                    case STARTED:
-                    case ERROR:
-                        Storage sd = new Storage(config, dbMirror, tblMirror);
-                        sdf.add(config.getStorageThreadPool().schedule(sd, 1, TimeUnit.MILLISECONDS));
-                        break;
-                    case SUCCESS:
-                        LOG.debug("DB.tbl: " + tblMirror.getDbName() + "." + tblMirror.getName() + " was SUCCESSFUL in " +
-                                "previous run.   SKIPPING and adjusting status to RETRY_SKIPPED_PAST_SUCCESS");
-                        tblMirror.setPhaseState(PhaseState.RETRY_SKIPPED_PAST_SUCCESS);
-                        break;
-                    case RETRY_SKIPPED_PAST_SUCCESS:
-                        LOG.debug("DB.tbl: " + tblMirror.getDbName() + "." + tblMirror.getName() + " was SUCCESSFUL in " +
-                                "previous run.  SKIPPING");
-                        break;
-                }
+            switch (config.getStorage().getStrategy()) {
+                case SQL:
+                case EXPORT_IMPORT:
+                case HYBRID:
+                    for (String table : tables) {
+                        TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
+                        switch (tblMirror.getPhaseState()) {
+                            case INIT:
+                            case STARTED:
+                            case ERROR:
+                                Storage sd = new Storage(config, dbMirror, tblMirror);
+                                sdf.add(config.getStorageThreadPool().schedule(sd, 1, TimeUnit.MILLISECONDS));
+                                break;
+                            case SUCCESS:
+                                LOG.debug("DB.tbl: " + tblMirror.getDbName() + "." + tblMirror.getName() + " was SUCCESSFUL in " +
+                                        "previous run.   SKIPPING and adjusting status to RETRY_SKIPPED_PAST_SUCCESS");
+                                tblMirror.setPhaseState(PhaseState.RETRY_SKIPPED_PAST_SUCCESS);
+                                break;
+                            case RETRY_SKIPPED_PAST_SUCCESS:
+                                LOG.debug("DB.tbl: " + tblMirror.getDbName() + "." + tblMirror.getName() + " was SUCCESSFUL in " +
+                                        "previous run.  SKIPPING");
+                                break;
+                        }
+                    }
+                    break;
+                case DISTCP:
+                    // for distcp, we need to build on two strategies for paths.  DB or TABLE.
+                    switch (config.getStorage().getDistcp().getPathStrategy()) {
+                        case DB:
+                            Storage sd = new Storage(config, dbMirror);
+                            sdf.add(config.getStorageThreadPool().schedule(sd, 1, TimeUnit.MILLISECONDS));
+                            break;
+                        case TABLE:
+                            for (String table : tables) {
+                                TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
+                                Storage sd1 = new Storage(config, dbMirror, tblMirror);
+                                sdf.add(config.getStorageThreadPool().schedule(sd1, 1, TimeUnit.MILLISECONDS));
+                            }
+                            break;
+                    }
+                    break;
+                case DIRECT:
+                case SCHEMA_EXTRACT:
+                case TRANSITION:
+                    break;
             }
         }
 

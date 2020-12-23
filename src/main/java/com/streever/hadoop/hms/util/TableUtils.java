@@ -101,7 +101,7 @@ public class TableUtils {
 
     public static Boolean makeExternal(String tableName, List<String> tableDefinition) {
         Boolean rtn = Boolean.FALSE;
-        if (isManaged(tableName, tableDefinition)) {
+        if (isManaged(tableName, tableDefinition) && !isACID(tableName, tableDefinition)) {
             LOG.debug("Converting table: " + tableName + " to EXTERNAL");
             for (String line : tableDefinition) {
                 if (line.startsWith(CREATE_TABLE)) {

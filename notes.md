@@ -81,3 +81,11 @@ Take snapshots of areas you'll touch:
 - Need to document concepts on Permissions when doing this.
 - For distcp, we can issue an external 'hadoop distcp' call, retrieve the application id and use a background thread to watch for the completion of the job via the YARN REST API.
 
+
+## Skip dir permission auth/check for create and alter table locations
+Add this to the HS2 instance on the UPPER cluster, when Ranger is used for Auth.
+This skips the check done against every directory at the table location (for CREATE or ALTER LOCATION).  Allowing the process of CREATE/ALTER to run much faster.
+
+`ranger.plugin.hive.urlauth.filesystem.schemes=file`
+
+Recommend to turn this back after the migration is complete.  This setting exposes permissions issues at the time of CREATE/ALTER.  So by skipping this, future access issues may arise if the permissions aren't aligned, which isn't a Ranger/Hive issue, it's a permissions issue.

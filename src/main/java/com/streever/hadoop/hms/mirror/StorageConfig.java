@@ -55,7 +55,21 @@ public class StorageConfig {
         }
     }
 
+    public class Distcp {
+
+        private PathStrategy pathStrategy = PathStrategy.DB;
+
+        public PathStrategy getPathStrategy() {
+            return pathStrategy;
+        }
+
+        public void setPathStrategy(PathStrategy pathStrategy) {
+            this.pathStrategy = pathStrategy;
+        }
+    }
+
     private Hybrid hybrid = new Hybrid();
+    private Distcp distcp;
 
     public int getConcurrency() {
         return concurrency;
@@ -71,6 +85,9 @@ public class StorageConfig {
 
     public void setStrategy(Strategy strategy) {
         this.strategy = strategy;
+        if (this.strategy == Strategy.DISTCP && this.distcp == null) {
+            this.distcp = new Distcp();
+        }
     }
 
     public Hybrid getHybrid() {
@@ -79,6 +96,14 @@ public class StorageConfig {
 
     public void setHybrid(Hybrid hybrid) {
         this.hybrid = hybrid;
+    }
+
+    public Distcp getDistcp() {
+        return distcp;
+    }
+
+    public void setDistcp(Distcp distcp) {
+        this.distcp = distcp;
     }
 
     public Boolean getMigrateACID() {

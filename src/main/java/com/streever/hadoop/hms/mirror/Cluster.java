@@ -28,6 +28,7 @@ public class Cluster implements Comparable<Cluster> {
     private String hcfsNamespace = null;
     private HiveServer2Config hiveServer2 = null;
     private PartitionDiscovery partitionDiscovery = new PartitionDiscovery();
+//    private DistcpConfig distcp;
 
     public Cluster() {
     }
@@ -72,6 +73,14 @@ public class Cluster implements Comparable<Cluster> {
         this.partitionDiscovery = partitionDiscovery;
     }
 
+//    public DistcpConfig getDistcp() {
+//        return distcp;
+//    }
+//
+//    public void setDistcp(DistcpConfig distcp) {
+//        this.distcp = distcp;
+//    }
+
     public ConnectionPools getPools() {
         return pools;
     }
@@ -103,12 +112,14 @@ public class Cluster implements Comparable<Cluster> {
                     String tableName = resultSet.getString(1);
                     if (config.getTblRegEx() == null) {
                         TableMirror tableMirror = dbMirror.addTable(tableName);
+                        tableMirror.setMigrationStageMessage("Added to evaluation inventory");
                     } else {
                         // Filter Tables
                         assert (config.getDbFilterPattern() != null);
                         Matcher matcher = config.getDbFilterPattern().matcher(tableName);
                         if (matcher.matches()) {
                             TableMirror tableMirror = dbMirror.addTable(tableName);
+                            tableMirror.setMigrationStageMessage("Added to evaluation inventory");
                         }
                     }
                 }
@@ -209,9 +220,7 @@ public class Cluster implements Comparable<Cluster> {
         try {
             conn = getConnection();
 
-
-            LOG.debug(getEnvironment() + " - Create Database: " +
-                    database);
+            LOG.debug(getEnvironment() + " - Create Database: " + database);
 
             Statement stmt = null;
             try {
@@ -706,14 +715,40 @@ public class Cluster implements Comparable<Cluster> {
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
                     Boolean buildUpper = tblMirror.buildUpperSchema(config);
 
+                    // Turn off for the create/alter
+//                    TableUtils.upsertTblProperty(MirrorConf.DISCOVER_PARTITIONS, "false",
+//                            tblMirror.getTableDefinition(Environment.UPPER));
+
+                    // WHEN BUILDING UPPER SCHEMA, WE ARE GOING TO USE THE UPPER CLUSTER LOCATION
+                    // FIRST WHILE CREATING THE TABLE.  THEN SWITCH IT TO THE LOWER AND RUN MSCK.
+                    // Adjust the Location to be Relative to the UPPER cluster.
+//                    TableUtils.changeLocationNamespace(dbMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER),
+//                            config.getCluster(Environment.LOWER).getHcfsNamespace(),
+//                            config.getCluster(Environment.UPPER).getHcfsNamespace());
+
                     // Get the Create State for this environment.
                     String createTable = tblMirror.getCreateStatement(this.getEnvironment());
-                    LOG.debug(getEnvironment() + ":(SQL)" + createTable);
+                    LOG.debug(getEnvironment() + ":" + database + "." + tableName + ":(SQL)" + createTable);
                     tblMirror.setMigrationStageMessage("Creating Table in UPPER cluster");
+                    if (tblMirror.isPartitioned(Environment.LOWER)) {
+                        tblMirror.addIssue("If CREATE/ALTER is slow for migration, add `ranger.plugin.hive.urlauth.filesystem.schemes=file`" +
+                                " to the HS2 hive-ranger-security.xml configurations.");
+                    }
                     if (!config.isDryrun())
                         stmt.execute(createTable);
+
+                    // ALTER TABLE TO USE LOWER LOCATION.
+//                    String originalLocation = TableUtils.getLocation(tableName, tblMirror.getTableDefinition(Environment.LOWER));
+//                    String alterTableLocSql = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, database, tableName, originalLocation);
+//                    LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Altering table Location to original table in lower cluster");
+//                    LOG.debug(getEnvironment() + ":(SQL)" + alterTableLocSql);
+//                    tblMirror.setMigrationStageMessage("Altering table location to LOWER cluster");
+//                    if (!config.isDryrun())
+//                        stmt.execute(alterTableLocSql);
+
                     tblMirror.addAction("Shadow(using LOWER data) Schema Create", Boolean.TRUE);
                     tblMirror.setMigrationStageMessage("Table created in UPPER cluster");
+
                     rtn = Boolean.TRUE;
 
                 }
@@ -769,6 +804,92 @@ public class Cluster implements Comparable<Cluster> {
 //                        LOG.info(msg);
 //                    }
 //                }
+            } catch (SQLException throwables) {
+                tblMirror.addIssue(throwables.getMessage());
+                LOG.error("Issue", throwables);
+            } catch (RuntimeException throwables) {
+                tblMirror.addIssue(throwables.getMessage());
+                LOG.error("Issue", throwables);
+            } finally {
+                try {
+                    if (resultSet != null)
+                        resultSet.close();
+                } catch (SQLException sqlException) {
+                    // ignore
+                }
+                try {
+                    if (stmt != null)
+                        stmt.close();
+                } catch (SQLException sqlException) {
+                    // ignore
+                }
+                try {
+                    if (conn != null)
+                        conn.close();
+                } catch (SQLException throwables) {
+                    //
+                }
+                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
+            }
+        }
+        return rtn;
+    }
+
+
+    public Boolean buildUpperSchemaWithRelativeData(Config config, DBMirror dbMirror, TableMirror tblMirror) {
+        // Open the connection and ensure we are running this on the "UPPER" cluster.
+        Boolean rtn = Boolean.FALSE;
+        if (this.getEnvironment() == Environment.UPPER) {
+            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
+            Connection conn = null;
+            Statement stmt = null;
+            ResultSet resultSet = null;
+            try {
+                conn = getConnection();
+
+                String database = dbMirror.getName();
+                String tableName = tblMirror.getName();
+
+                LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Build Upper Schema");
+
+                stmt = conn.createStatement();
+
+                // Set db context;
+                String useDb = MessageFormat.format(MirrorConf.USE, database);
+
+                LOG.debug(useDb);
+                if (!config.isDryrun())
+                    stmt.execute(useDb);
+
+                if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
+                    Boolean buildUpper = tblMirror.buildUpperSchema(config);
+
+                    // Adjust the Location to be Relative to the UPPER cluster.
+                    TableUtils.changeLocationNamespace(dbMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER),
+                            config.getCluster(Environment.LOWER).getHcfsNamespace(),
+                            config.getCluster(Environment.UPPER).getHcfsNamespace());
+
+                    if (!TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
+                        if (config.getCluster(Environment.UPPER).getPartitionDiscovery().getAuto())
+                            TableUtils.upsertTblProperty(MirrorConf.DISCOVER_PARTITIONS, "true",
+                                    tblMirror.getTableDefinition(Environment.UPPER));
+                        else
+                            TableUtils.upsertTblProperty(MirrorConf.DISCOVER_PARTITIONS, "false",
+                                    tblMirror.getTableDefinition(Environment.UPPER));
+                    }
+
+                    // Get the Create State for this environment.
+                    String createTable = tblMirror.getCreateStatement(this.getEnvironment());
+                    LOG.debug(getEnvironment() + ":(SQL)" + createTable);
+                    tblMirror.setMigrationStageMessage("Creating Table in UPPER cluster");
+                    if (!config.isDryrun())
+                        stmt.execute(createTable);
+                    tblMirror.addAction("Upper Schema Create", Boolean.TRUE);
+                    tblMirror.setMigrationStageMessage("Table created in UPPER cluster");
+                    rtn = Boolean.TRUE;
+
+                }
+
             } catch (SQLException throwables) {
                 tblMirror.addIssue(throwables.getMessage());
                 LOG.error("Issue", throwables);
@@ -1273,7 +1394,7 @@ public class Cluster implements Comparable<Cluster> {
                 if (this.getPartitionDiscovery().getAuto()) {
                     if (this.getPartitionDiscovery().getInitMSCK()) {
                         msg = "This table has partitions and is set for 'auto' discovery via table property 'discover.partitions'='true'. " +
-                                "You've requested an immediate 'MSCK' for the table, so the partitions will be current. "+
+                                "You've requested an immediate 'MSCK' for the table, so the partitions will be current. " +
                                 "For future partition discovery, ensure the Metastore is running the 'PartitionManagementTask' service.";
                     } else {
                         msg = "This table has partitions and is set for 'auto' discovery via table property 'discover.partitions'='true'. " +
@@ -1281,8 +1402,8 @@ public class Cluster implements Comparable<Cluster> {
                     }
                 } else {
                     if (this.getPartitionDiscovery().getInitMSCK()) {
-                        msg = "You've requested an immediate 'MSCK' for the table, so the partitions will be current. "+
-                                "Future partitions will NOT be auto discovered unless you manually add "+
+                        msg = "You've requested an immediate 'MSCK' for the table, so the partitions will be current. " +
+                                "Future partitions will NOT be auto discovered unless you manually add " +
                                 "'discover.partitions'='true' to the tables properties. " +
                                 "Once done, ensure the Metastore is running the 'PartitionManagementTask' service.";
                     } else {

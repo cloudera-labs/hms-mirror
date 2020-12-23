@@ -41,6 +41,9 @@ public class Metadata implements Runnable {
             case TRANSITION:
                 successful = doTRANSITION();
                 break;
+            case DISTCP:
+                successful = doDISTCP();
+                break;
             case SCHEMA_EXTRACT:
                 throw new RuntimeException("SCHEMA_EXTRACT has not been implemented yet.");
 //                break;
@@ -58,6 +61,20 @@ public class Metadata implements Runnable {
         tblMirror.setStageDuration(diff);
         LOG.info("METADATA: Migration complete for " + dbMirror.getName() + "." + tblMirror.getName() + " in " +
                 Long.toString(diff) + "ms");
+    }
+
+    protected Boolean doDISTCP() {
+        Boolean rtn = Boolean.FALSE;
+        tblMirror.setStrategy(Strategy.DISTCP);
+        tblMirror.incPhase();
+
+        tblMirror.addAction("METADATA", Strategy.DISTCP.toString());
+
+        rtn = config.getCluster(Environment.UPPER).buildUpperSchemaWithRelativeData(config, dbMirror, tblMirror);
+        if (rtn) {
+            rtn = config.getCluster(Environment.UPPER).partitionMaintenance(config, dbMirror, tblMirror);
+        }
+        return rtn;
     }
 
     protected Boolean doDIRECT() {

@@ -300,7 +300,7 @@ public class TableMirror {
         tablePartitioned.put(environment, partitioned);
     }
 
-    private Boolean isPartitioned(Environment environment) {
+    public Boolean isPartitioned(Environment environment) {
         Boolean rtn = tablePartitioned.get(environment);
         if (rtn != null) {
             return rtn;
