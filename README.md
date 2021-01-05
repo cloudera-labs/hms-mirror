@@ -37,6 +37,8 @@ There are a few limitations to note here:
 - This technique is restricted to _external_ and _non-transactional managed_ tables.  **ACID Tables** are **NOT** supported.
 - Partitioned datasets can be 'auto discovered' when the configuration `partitionDiscovery:auto=true` is set.
 - Partitions that do NOT follow the standard directory structure and aren't discoverable via `msck` are NOT supported yet.
+- Connections to HS2 should avoid using ZooKeeper Discovery especially for _LOWER_ clusters.  Use direct connections or a proxy connection through KNOX to reduce the dependencies.
+- `hms-mirror` can only support _kerberos_ Authentication modes to HS2 for Hive 3.  Which means that the _LOWER_ cluster HS2 JDBC URL should NOT use `kerberos` as the authentication model. Using any other authentication model is supported. 
 
 - [Link Clusters](./link_clusters.md) so the Upper Cluster can distcp from the lower cluster.  This is required to support storage access from the 'target' cluster to the 'source' cluster. The user/service account used to launch the jobs in the 'target' cluster is translated to the 'source' clusters storage access layer.  The appropriate ACL's on the 'source' cluster must be established to allow this connection.
 
