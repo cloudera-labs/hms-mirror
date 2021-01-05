@@ -18,16 +18,26 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 
 **HELP**
 ```
-usage: hive-mirror
- -cfg,--config <arg>    Config with details for the HMS-Mirror.  Default:
-                        $HOME/.hms-mirror/cfg/default.yaml
- -db,--database <arg>   Comma separated list of Databases (upto 100).
- -h,--help              Help
- -m,--metastore         Run HMS-Mirror Metadata
- -o,--output-dir        Output Directory (default:
-                        $HOME/.hms-mirror/reports/hms-mirror-<stage>-<times
-                        tamp>.md
- -s,--storage           Run HMS-Mirror Storage
+usage: hms-mirror
+                  version:1.2.1.1-SNAPSHOT
+ -cfg,--config <filename>      Config with details for the HMS-Mirror.
+                               Default: $HOME/.hms-mirror/cfg/default.yaml
+ -db,--database <databases>    Comma separated list of Databases (upto
+                               100).
+ -dr,--dry-run                 No actions are performed, just the output
+                               of the commands in the logs.
+ -f,--output-file <filename>   Output Directory (default:
+                               $HOME/.hms-mirror/reports/hms-mirror-<stage
+                               >-<timestamp>.md
+ -h,--help                     Help
+ -m,--metastore <strategy>     Run HMS-Mirror Metadata with strategy:
+                               DIRECT(default)|EXPORT_IMPORT|SCHEMA_EXTRAC
+                               T
+ -r,--retry                    Retry last incomplete run for 'cfg'.  If
+                               none specified, will check for 'default'
+ -s,--storage <strategy>       Run HMS-Mirror Storage with strategy:
+                               SQL|EXPORT_IMPORT|HYBRID|DISTCP
+ -tf,--table-filter <regex>    Filter tables with name matching RegEx
 ```
 
 There are 2 stages currently supported by the tool:

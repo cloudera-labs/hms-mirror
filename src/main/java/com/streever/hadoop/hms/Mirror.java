@@ -41,6 +41,7 @@ public class Mirror {
         try {
             cmd = parser.parse(options, args);
         } catch (ParseException pe) {
+            System.out.println("Missing Arguments: " + pe.getMessage());
             HelpFormatter formatter = new HelpFormatter();
             String cmdline = ReportingConf.substituteVariablesFromManifest("hms-mirror \nversion:${Implementation-Version}");
             formatter.printHelp(cmdline, options);
