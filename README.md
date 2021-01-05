@@ -19,6 +19,7 @@ There are 2 process catagories in `hms-mirror`.  They can be used in isolation. 
 - Managed non-acid tables are converted to _EXTERNAL_ tables.
 
 [Metadata](./metadata.md)
+
 [Storage](./storage.md)
 
 
