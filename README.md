@@ -1,5 +1,7 @@
 # HMS-Mirror
 
+"hms-mirror" is a utility used to bridge the gap between two clusters and migrate `hive` metadata AND the underlying **data**.
+
 [Getting / Building / Running HMS Mirror](./setup.md)
 
 [Running HMS Mirror](./running.md)
@@ -18,21 +20,26 @@ The _upper_ cluster should be used as a **READ-ONLY** view of the data, until _S
 
 ![hms-mirror](./images/HMS-Mirror.png)
 
-## Stage 1 - METADATA
+## Phases
+### METADATA
 
-On the Lower Cluster we need to extract metadata for the tables we want to use in the upper cluster.  There are a few limitations to note here:
+This phase is used to copy metadata from a 'source' cluster to a 'target' cluster while leveraging the data on the lower cluster.  The scenario 'can' be used to migrate schema data from other 'hive metastore' systems to CDP Cloud as well.
+
+There are a few limitations to note here:
 - We're NOT sharing metadata stores between the clusters
 - This technique is restricted to _external_ and _non-transactional managed_ tables.  **ACID Tables** are **NOT** supported.
 - Partitioned datasets can be 'auto discovered' when the configuration `partitionDiscovery:auto=true` is set.
-- Partitioned datasets can be 'auto discovered' when the configuration `partitionDiscovery:auto=true` is set.
-  
 - Partitions that do NOT follow the standard directory structure and aren't discoverable via `msck` are NOT supported yet.
 
-- [Link Clusters](./link_clusters.md) so the Upper Cluster can distcp from the lower cluster.
+- [Link Clusters](./link_clusters.md) so the Upper Cluster can distcp from the lower cluster.  This is required to support storage access from the 'target' cluster to the 'source' cluster. The user/service account used to launch the jobs in the 'target' cluster is translated to the 'source' clusters storage access layer.  The appropriate ACL's on the 'source' cluster must be established to allow this connection.
 
+### STORAGE
 
-## Stage 2 - STORAGE
+This phase is used to copy the _metadata_ AND _data_ from the 'source' cluster to the 'target' cluster.  There are several transfer options available:
 
+- SQL - Use `hive` to migrate the data between clusters using a series of transfer tables and _rename_ semantics to minimize disruption and reduce the number of times data is moved.
+- EXPORT_IMPORT - Use 'hive' EXPORT / IMPORT built in processes to create a copy of the data then transfer it to the target cluster.  NOTE: For datasets with a high number of partitions, the EXPORT/IMPORT process can be quite time-consuming.  Consider using 'SQL' or 'DISTCP' methods.
+- DISTCP - TBD.
 
 
 

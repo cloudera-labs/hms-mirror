@@ -38,13 +38,14 @@ public class Metadata implements Runnable {
                 // the SOURCE table def.
                 successful = doDIRECT();
                 break;
-            case TRANSITION:
-                successful = doTRANSITION();
+            case EXPORT_IMPORT:
+                successful = doEXPORT_IMPORT();
                 break;
             case DISTCP:
                 successful = doDISTCP();
                 break;
             case SCHEMA_EXTRACT:
+                // TODO: Implement Schema Extract
                 throw new RuntimeException("SCHEMA_EXTRACT has not been implemented yet.");
 //                break;
             default:
@@ -92,13 +93,13 @@ public class Metadata implements Runnable {
         return rtn;
     }
 
-    protected Boolean doTRANSITION() {
+    protected Boolean doEXPORT_IMPORT() {
         Boolean rtn = Boolean.FALSE;
 
-        tblMirror.setStrategy(Strategy.TRANSITION);
+        tblMirror.setStrategy(Strategy.EXPORT_IMPORT);
         tblMirror.incPhase();
 
-        tblMirror.addAction("METADATA", "TRANSITION");
+        tblMirror.addAction("METADATA", Strategy.EXPORT_IMPORT.toString());
         String transitionDatabase = config.getTransferPrefix() + dbMirror.getName();
         // Method supporting a transfer Schema.  Had issues with this on EMR and the EXPORT process.
         // Could get the EXPORT the right permissions to write to S3, so the export would fail.

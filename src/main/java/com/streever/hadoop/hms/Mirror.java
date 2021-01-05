@@ -42,14 +42,15 @@ public class Mirror {
             cmd = parser.parse(options, args);
         } catch (ParseException pe) {
             HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp("hive-mirror", options);
+            String cmdline = ReportingConf.substituteVariablesFromManifest("hms-mirror \nversion:${Implementation-Version}");
+            formatter.printHelp(cmdline, options);
             System.exit(-1);
         }
 
         if (cmd.hasOption("h")) {
             HelpFormatter formatter = new HelpFormatter();
-            System.out.println(ReportingConf.substituteVariablesFromManifest("v.${Implementation-Version}"));
-            formatter.printHelp("hive-mirror", options);
+            String cmdline = ReportingConf.substituteVariablesFromManifest("hms-mirror \nversion:${Implementation-Version}");
+            formatter.printHelp(cmdline, options);
             System.exit(-1);
         }
 
@@ -101,6 +102,15 @@ public class Mirror {
                 config.getStorage().setStrategy(strategy);
             }
             LOG.info("Running STORAGE");
+        } else if (cmd.hasOption("c")) {
+            config.setStage(Stage.CONVERT);
+            String cdirective = cmd.getOptionValue("c");
+            if (cdirective != null) {
+                Strategy strategy = Strategy.valueOf(cdirective.toUpperCase(Locale.ROOT));
+                config.getStorage().setStrategy(strategy);
+            }
+            LOG.info("Running CONVERT");
+
         }
 
         if (cmd.hasOption("f")) {
@@ -329,7 +339,6 @@ public class Mirror {
                     break;
                 case DIRECT:
                 case SCHEMA_EXTRACT:
-                case TRANSITION:
                     break;
             }
         }
@@ -431,7 +440,7 @@ public class Mirror {
         Options options = new Options();
 
         Option metadataStage = new Option("m", "metastore", true,
-                "Run HMS-Mirror Metadata with strategy: DIRECT(default)|TRANSITION");
+                "Run HMS-Mirror Metadata with strategy: DIRECT(default)|EXPORT_IMPORT|SCHEMA_EXTRACT");
         metadataStage.setOptionalArg(Boolean.TRUE);
         metadataStage.setArgName("strategy");
         Option storageStage = new Option("s", "storage", true,
@@ -439,9 +448,16 @@ public class Mirror {
         storageStage.setArgName("strategy");
         storageStage.setOptionalArg(Boolean.TRUE);
 
+        // WIP, not available yet.
+//        Option convertStage = new Option("c", "convert", true,
+//                "Run HMS-Mirror Storage with strategy: SQL|EXPORT_IMPORT");
+//        convertStage.setArgName("strategy");
+//        convertStage.setOptionalArg(Boolean.TRUE);
+
         OptionGroup stageGroup = new OptionGroup();
         stageGroup.addOption(metadataStage);
         stageGroup.addOption(storageStage);
+//        stageGroup.addOption(convertStage);
 
         stageGroup.setRequired(true);
         options.addOptionGroup(stageGroup);

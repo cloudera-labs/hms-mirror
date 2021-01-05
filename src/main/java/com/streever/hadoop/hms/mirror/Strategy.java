@@ -10,14 +10,7 @@ public enum Strategy {
     schema and create then attach to LOWER data.
     */
     DIRECT,
-    /*
-    This method has issue in EMR.  Can't run "EXPORT" commands in Hive EMR. Use DIRECT for
-    EMR Mirrors.
 
-    Use a transition db to get a schema with no data attach via EXPORT.  Then import
-    the shell schema in the upper cluster and attach to the LOWER data.
-     */
-    TRANSITION,
     // TODO: Provide an SCHEMA_EXTRACT process.
     /*
     Schema extract will attach to the LOWER cluster and extract out the current schema and build a separate
@@ -31,10 +24,6 @@ public enum Strategy {
     */
     SQL,
     /*
-    Move data with EXPORT/IMPORT hive features.
-     */
-    EXPORT_IMPORT,
-    /*
     With thresholds, determine which case is better: SQL or EXPORT_IMPORT for
     a table.
      */
@@ -45,6 +34,18 @@ public enum Strategy {
 
 
     // METADATA and STORAGE
+    /*
+    Move data with EXPORT/IMPORT hive features.
+
+    FOR METADATA:
+    This method has issue in EMR.  Can't run "EXPORT" commands in Hive EMR. Use DIRECT for
+    EMR Mirrors.
+
+    Use a transition db to get a schema with no data attach via EXPORT.  Then import
+    the shell schema in the upper cluster and attach to the LOWER data.
+
+     */
+    EXPORT_IMPORT,
     /*
     For METADATA will move the METADATA only, expecting the data to be there already.
     For STORAGE this will generate a script of 'distcp' commands to run to move the data

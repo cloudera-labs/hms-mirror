@@ -29,7 +29,7 @@ public class CreateDatabases implements Runnable {
             switch (config.getStage()) {
                 case METADATA:
                     switch (config.getMetadata().getStrategy()) {
-                        case TRANSITION:
+                        case EXPORT_IMPORT:
                             // Create transition in LOWER
                             config.getCluster(Environment.LOWER).createDatabase(config, config.getTransferPrefix() + database);
                         case DIRECT:
