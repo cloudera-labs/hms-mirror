@@ -1,18 +1,41 @@
 # Config
+# Optional (default: false)
 # Set to true to show commands, but NOT run anything.
 dryrun: false
-transferDbPrefix: "transfer_"
-# This directory is appended to the 'clusters:...:hcfsNamespace' value to store the transfer package for hive export/import.
-exportBaseDirPrefix: "/apps/hive/warehouse/export_"
+# Optional (default: true)
 overwriteTable: "true"
 # Metadata is Optional, when not specified defaults are used.  Defaults below.
 metadata:
+  # Optional (default: 4)
   concurrency: 4
-  strategy: DIRECT
+  # Optional (default: 'transfer_')
+  transferDbPrefix: "transfer_"
+  # This directory is appended to the 'clusters:...:hcfsNamespace' value to store the transfer package for hive export/import.
+  # Optional (default: '/apps/hive/warehouse/export_')
+  exportBaseDirPrefix: "<hcfs dir>"
+  # Optional (default: DIRECT)
+  strategy: DIRECT|SCHEMA_EXTRACT|EXPORT_IMPORT|DISTCP
 # Storage is Optional, when not specified defaults are used.  Defaults below.
 storage:
+  # Optional (default: 4)
   concurrency: 4
-  strategy: SQL
+  # Optional (default: 'false')
+  # Migrate ACID tables, only supported with the EXPORT_IMPORT or HYBRID strategies
+  migrateACID: "true"
+  # Optional (default: 'transfer_')
+  transferDbPrefix: "transfer_"
+  # This directory is appended to the 'clusters:...:hcfsNamespace' value to store the transfer package for hive export/import.
+  # Optional (default: '/apps/hive/warehouse/export_')
+  exportBaseDirPrefix: "<hcfs dir>"
+  # Optional (default: HYBRID)
+  strategy: SQL|EXPORT_IMPORT|HYBRID|DISTCP
+  # When Hybrid strategy used, provide additional details
+  # Optional
+  hybrid:
+    # Optional (default: 100)
+    sqlPartitionLimit: 100
+    # Optional (default: 1073741824 =1gb)
+    sqlSizeLimit:      1073741824
 clusters:
   LOWER:
     # Set for Hive 1/2 environments

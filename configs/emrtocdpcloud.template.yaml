@@ -1,9 +1,6 @@
 # Config
 dryrun: false
-transferDbPrefix: "transfer_"
-exportBaseDirPrefix: "/apps/hive/warehouse/export_"
 overwriteTable: "true"
-parallelism: 4
 clusters:
   LOWER:
     # Current EMR environment

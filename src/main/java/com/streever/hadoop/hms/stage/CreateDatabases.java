@@ -31,7 +31,7 @@ public class CreateDatabases implements Runnable {
                     switch (config.getMetadata().getStrategy()) {
                         case EXPORT_IMPORT:
                             // Create transition in LOWER
-                            config.getCluster(Environment.LOWER).createDatabase(config, config.getTransferPrefix() + database);
+                            config.getCluster(Environment.LOWER).createDatabase(config, config.getMetadata().getTransferPrefix() + database);
                         case DIRECT:
                             // Create target DB in UPPER
                             config.getCluster(Environment.UPPER).createDatabase(config, database);

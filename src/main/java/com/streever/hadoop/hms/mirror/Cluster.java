@@ -525,7 +525,7 @@ public class Cluster implements Comparable<Cluster> {
         return rtn;
     }
 
-    public Boolean exportSchema(Config config, String database, DBMirror dbMirror, TableMirror tblMirror) {
+    public Boolean exportSchema(Config config, String database, DBMirror dbMirror, TableMirror tblMirror, String exportBaseDirPrefix) {
         Connection conn = null;
         Statement stmt = null;
         Boolean rtn = Boolean.FALSE;
@@ -539,10 +539,10 @@ public class Cluster implements Comparable<Cluster> {
             // Get the definition for this environment.
             List<String> tblDef = tblMirror.getTableDefinition(getEnvironment());
             LOG.debug(getEnvironment() + ":" + database + "." +
-                    tableName + ": Exporting Table to " + config.getCluster(Environment.LOWER).hcfsNamespace + config.getExportBaseDirPrefix() + database + "/" + tableName);
+                    tableName + ": Exporting Table to " + config.getCluster(Environment.LOWER).hcfsNamespace + exportBaseDirPrefix + database + "/" + tableName);
             String exportTransferSchema = MessageFormat.format(MirrorConf.EXPORT_TABLE,
                     database, tableName,
-                    config.getCluster(Environment.LOWER).hcfsNamespace + config.getExportBaseDirPrefix() + database + "/" + tableName);
+                    config.getCluster(Environment.LOWER).hcfsNamespace + exportBaseDirPrefix + database + "/" + tableName);
             LOG.debug(getEnvironment() + ":(SQL)" + exportTransferSchema);
             tblMirror.setMigrationStageMessage("Export Schema");
             if (!config.isDryrun())
@@ -579,7 +579,7 @@ public class Cluster implements Comparable<Cluster> {
     where the data was in the LOWER cluster.
     Once the transfer is complete, the two tables can be swapped in a move that is quick.
     */
-    public Boolean buildUpperTransferTable(Config config, DBMirror dbMirror, TableMirror tblMirror) {
+    public Boolean buildUpperTransferTable(Config config, DBMirror dbMirror, TableMirror tblMirror, String transferPrefix) {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
@@ -602,7 +602,7 @@ public class Cluster implements Comparable<Cluster> {
                 if (!config.isDryrun())
                     stmt.execute(useDb);
 
-                if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror, config.getTransferPrefix())) {
+                if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror, transferPrefix)) {
 
                     Boolean buildUpper = tblMirror.buildUpperSchema(config, Boolean.FALSE);
 
@@ -617,7 +617,7 @@ public class Cluster implements Comparable<Cluster> {
 
                     // Get the Create State for this environment.
                     // This create is the transfer table
-                    String createTable = tblMirror.getCreateStatement(this.getEnvironment(), config.getTransferPrefix());
+                    String createTable = tblMirror.getCreateStatement(this.getEnvironment(), transferPrefix);
                     LOG.debug(getEnvironment() + ":(SQL)" + createTable);
 
                     // The location should NOT have data in it. If it does, this could cause an issue.
@@ -925,7 +925,8 @@ public class Cluster implements Comparable<Cluster> {
     Import the table schema from a 'shell' export (transition schema) on the lower cluster
     then redirect to using data in the lower cluster
     */
-    public Boolean importTransferSchemaUsingLowerData(Config config, DBMirror dbMirror, TableMirror tblMirror) {
+    public Boolean importTransferSchemaUsingLowerData(Config config, DBMirror dbMirror, TableMirror tblMirror,
+                                                      String exportBaseDirPrefix) {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
@@ -953,11 +954,11 @@ public class Cluster implements Comparable<Cluster> {
                     // Get the definition for this environment.
                     List<String> tblDef = tblMirror.getTableDefinition(getEnvironment());
                     LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Importing Table from " +
-                            config.getCluster(Environment.LOWER).getHcfsNamespace() + config.getExportBaseDirPrefix() + database + "/" + tableName);
+                            config.getCluster(Environment.LOWER).getHcfsNamespace() + exportBaseDirPrefix + database + "/" + tableName);
 
                     String importTransferSchema = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE,
                             database, tableName,
-                            config.getCluster(Environment.LOWER).getHcfsNamespace() + config.getExportBaseDirPrefix() + database + "/" + tableName);
+                            config.getCluster(Environment.LOWER).getHcfsNamespace() + exportBaseDirPrefix + database + "/" + tableName);
                     LOG.debug(getEnvironment() + ":(SQL)" + importTransferSchema);
 
                     if (!config.isDryrun())
@@ -1046,7 +1047,8 @@ public class Cluster implements Comparable<Cluster> {
     Import the table schema AND data from the LOWER cluster.  This is a migration of the schema
     and data from the lower cluster.
     */
-    public Boolean importSchemaWithData(Config config, DBMirror dbMirror, TableMirror tblMirror) {
+    public Boolean importSchemaWithData(Config config, DBMirror dbMirror, TableMirror tblMirror,
+                                        String exportBaseDirPrefix) {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
@@ -1074,7 +1076,7 @@ public class Cluster implements Comparable<Cluster> {
                     // Get the definition for this environment.
                     List<String> tblDef = tblMirror.getTableDefinition(getEnvironment());
                     LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Importing Table from " +
-                            config.getCluster(Environment.LOWER).getHcfsNamespace() + config.getExportBaseDirPrefix() + database + "/" + tableName);
+                            config.getCluster(Environment.LOWER).getHcfsNamespace() + exportBaseDirPrefix + database + "/" + tableName);
 
                     // Import for the location of the export on the lower cluster, to the same relative location
                     // on the upper cluster.
@@ -1084,7 +1086,7 @@ public class Cluster implements Comparable<Cluster> {
                         // go to the default managed location.
                         importTransferSchema = MessageFormat.format(MirrorConf.IMPORT_TABLE,
                                 database, tableName,
-                                config.getCluster(Environment.LOWER).getHcfsNamespace() + config.getExportBaseDirPrefix() +
+                                config.getCluster(Environment.LOWER).getHcfsNamespace() + exportBaseDirPrefix +
                                         database + "/" + tableName);
                         tblMirror.addAction("ACID Table", Boolean.TRUE);
                     } else {
@@ -1094,7 +1096,7 @@ public class Cluster implements Comparable<Cluster> {
                                 config.getCluster(Environment.UPPER).getHcfsNamespace());
                         importTransferSchema = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION,
                                 database, tableName,
-                                config.getCluster(Environment.LOWER).getHcfsNamespace() + config.getExportBaseDirPrefix() +
+                                config.getCluster(Environment.LOWER).getHcfsNamespace() + exportBaseDirPrefix +
                                         database + "/" + tableName, upperLocation);
                     }
                     LOG.debug(getEnvironment() + ":(SQL)" + importTransferSchema);
@@ -1209,7 +1211,7 @@ public class Cluster implements Comparable<Cluster> {
     /*
 
      */
-    public Boolean doSqlDataTransfer(Config config, DBMirror dbMirror, TableMirror tblMirror) {
+    public Boolean doSqlDataTransfer(Config config, DBMirror dbMirror, TableMirror tblMirror, String transferPrefix) {
         // Open the connection and ensure we are running this on the "UPPER" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.UPPER) {
@@ -1231,7 +1233,7 @@ public class Cluster implements Comparable<Cluster> {
                 if (!config.isDryrun())
                     stmt.execute(useDb);
 
-                String sqlDataTransfer = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, tableName, config.getTransferPrefix() + tableName);
+                String sqlDataTransfer = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, tableName, transferPrefix + tableName);
 
                 LOG.debug(getEnvironment() + ":(SQL)" + sqlDataTransfer);
                 tblMirror.setMigrationStageMessage("Migrating data using Hive SQL.  Please wait. Check Hive Service for Job Details");
@@ -1313,7 +1315,7 @@ public class Cluster implements Comparable<Cluster> {
                 tblMirror.setMigrationStageMessage("Table dropped");
                 tblMirror.addAction(getEnvironment().toString(), "Table Dropped");
 
-                String renameTable = MessageFormat.format(MirrorConf.RENAME_TABLE, config.getTransferPrefix() + tableName, tableName);
+                String renameTable = MessageFormat.format(MirrorConf.RENAME_TABLE, config.getMetadata().getTransferPrefix() + tableName, tableName);
                 LOG.debug(getEnvironment() + ":(SQL) " + renameTable);
                 tblMirror.setMigrationStageMessage("Rename transfer table to original table (complete swap process)");
                 if (!config.isDryrun())

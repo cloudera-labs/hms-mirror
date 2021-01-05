@@ -138,7 +138,7 @@ public class Storage implements Runnable {
         // NOTE: This will change the UPPER tabledef, so run this AFTER the buildUpperSchemaUsingLowerData
         // process
         if (rtn) {
-            rtn = config.getCluster(Environment.UPPER).buildUpperTransferTable(config, dbMirror, tblMirror);
+            rtn = config.getCluster(Environment.UPPER).buildUpperTransferTable(config, dbMirror, tblMirror, config.getStorage().getTransferPrefix());
         }
 
         // Force the MSCK to enable the SQL transfer
@@ -147,7 +147,7 @@ public class Storage implements Runnable {
         }
         // sql to move data.
         if (rtn) {
-            rtn = config.getCluster(Environment.UPPER).doSqlDataTransfer(config, dbMirror, tblMirror);
+            rtn = config.getCluster(Environment.UPPER).doSqlDataTransfer(config, dbMirror, tblMirror, config.getStorage().getTransferPrefix());
         }
 
         // rename move table to target table.
@@ -172,9 +172,9 @@ public class Storage implements Runnable {
                 (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER)) &&
                         config.getStorage().getMigrateACID())) {
 
-            rtn = config.getCluster(Environment.LOWER).exportSchema(config, dbMirror.getName(), dbMirror, tblMirror);
+            rtn = config.getCluster(Environment.LOWER).exportSchema(config, dbMirror.getName(), dbMirror, tblMirror, config.getStorage().getExportBaseDirPrefix());
             if (rtn) {
-                rtn = config.getCluster(Environment.UPPER).importSchemaWithData(config, dbMirror, tblMirror);
+                rtn = config.getCluster(Environment.UPPER).importSchemaWithData(config, dbMirror, tblMirror, config.getStorage().getExportBaseDirPrefix());
             }
         } else {
             String issuemsg = "ACID table migration only support when storage:migrateACID=true";

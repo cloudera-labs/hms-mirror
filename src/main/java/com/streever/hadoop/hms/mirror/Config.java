@@ -33,8 +33,8 @@ public class Config {
     private Pattern dbFilterPattern = null;
     private String tblRegEx = null;
     private String[] databases = null;
-    private String transferPrefix = "transfer_";
-    private String exportBaseDirPrefix = "/apps/hive/warehouse/export_";
+//    private String transferPrefix = "transfer_";
+//    private String exportBaseDirPrefix = "/apps/hive/warehouse/export_";
     private boolean overwriteTable = Boolean.TRUE;
     private MetadataConfig metadata = new MetadataConfig();
     private StorageConfig storage = new StorageConfig();
@@ -106,21 +106,29 @@ public class Config {
         this.dryrun = dryrun;
     }
 
-    public String getTransferPrefix() {
-        return transferPrefix;
-    }
+//    public String getTransferPrefix() {
+//        if (metadata.getStrategy() == Strategy.EXPORT_IMPORT) {
+//            if (transferPrefix == null) {
+//                return "transfer_";
+//            } else {
+//                return transferPrefix;
+//            }
+//        }
+//        return transferPrefix;
+//    }
+//
+//
+//    public void setTransferPrefix(String transferPrefix) {
+//        this.transferPrefix = transferPrefix;
+//    }
 
-    public void setTransferPrefix(String transferPrefix) {
-        this.transferPrefix = transferPrefix;
-    }
-
-    public String getExportBaseDirPrefix() {
-        return exportBaseDirPrefix;
-    }
-
-    public void setExportBaseDirPrefix(String exportBaseDirPrefix) {
-        this.exportBaseDirPrefix = exportBaseDirPrefix;
-    }
+//    public String getExportBaseDirPrefix() {
+//        return exportBaseDirPrefix;
+//    }
+//
+//    public void setExportBaseDirPrefix(String exportBaseDirPrefix) {
+//        this.exportBaseDirPrefix = exportBaseDirPrefix;
+//    }
 
     public boolean isOverwriteTable() {
         return overwriteTable;
@@ -165,7 +173,7 @@ public class Config {
     public void init() {
         // Link Cluster and it's Environment Type.
         Set<Environment> environmentSet = this.getClusters().keySet();
-        for (Environment environment: environmentSet) {
+        for (Environment environment : environmentSet) {
             Cluster cluster = clusters.get(environment);
             cluster.setEnvironment(environment);
         }
@@ -177,8 +185,8 @@ public class Config {
                 "dryrun=" + dryrun +
                 ", stage=" + stage +
                 ", databases=" + Arrays.toString(databases) +
-                ", transferPrefix='" + transferPrefix + '\'' +
-                ", exportBaseDirPrefix='" + exportBaseDirPrefix + '\'' +
+//                ", transferPrefix='" + transferPrefix + '\'' +
+//                ", exportBaseDirPrefix='" + exportBaseDirPrefix + '\'' +
                 ", overwriteTable=" + overwriteTable +
                 ", metadata=" + metadata +
                 ", storage=" + storage +

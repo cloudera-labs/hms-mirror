@@ -2,28 +2,10 @@ package com.streever.hadoop.hms.mirror;
 
 public class StorageConfig {
 
-//    public enum Strategy {
-//        /*
-//        Use Hive SQL to move data between Hive Tables.
-//         */
-//        SQL,
-//        /*
-//        Move data with EXPORT/IMPORT hive features.
-//         */
-//        EXPORT_IMPORT,
-//        /*
-//        With thresholds, determine which case is better: SQL or EXPORT_IMPORT for
-//        a table.
-//         */
-//        HYBRID,
-//        /*
-//        Will require manual intervention. Concept for this effort is still a WIP.
-//         */
-//        DISTCP;
-//    }
-
     private int concurrency = 4;
     private Strategy strategy = Strategy.HYBRID;
+    private String transferPrefix;
+    private String exportBaseDirPrefix;
     private Boolean migrateACID = Boolean.FALSE;
 
     public class Hybrid {
@@ -88,6 +70,36 @@ public class StorageConfig {
         if (this.strategy == Strategy.DISTCP && this.distcp == null) {
             this.distcp = new Distcp();
         }
+    }
+
+    public void setTransferPrefix(String transferPrefix) {
+        this.transferPrefix = transferPrefix;
+    }
+
+    public String getTransferPrefix() {
+        if (strategy == Strategy.SQL || strategy == Strategy.HYBRID) {
+            if (transferPrefix == null) {
+                return "transfer_";
+            } else {
+                return transferPrefix;
+            }
+        }
+        return transferPrefix;
+    }
+
+    public String getExportBaseDirPrefix() {
+        if (strategy == Strategy.EXPORT_IMPORT) {
+            if (exportBaseDirPrefix == null) {
+                return "/apps/hive/warehouse/export_";
+            } else {
+                return exportBaseDirPrefix;
+            }
+        }
+        return exportBaseDirPrefix;
+    }
+
+    public void setExportBaseDirPrefix(String exportBaseDirPrefix) {
+        this.exportBaseDirPrefix = exportBaseDirPrefix;
     }
 
     public Hybrid getHybrid() {

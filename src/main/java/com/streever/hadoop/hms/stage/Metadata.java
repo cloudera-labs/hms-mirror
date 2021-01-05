@@ -104,15 +104,15 @@ public class Metadata implements Runnable {
         tblMirror.incPhase();
 
         tblMirror.addAction("METADATA", Strategy.EXPORT_IMPORT.toString());
-        String transitionDatabase = config.getTransferPrefix() + dbMirror.getName();
+        String transitionDatabase = config.getMetadata().getTransferPrefix() + dbMirror.getName();
         // Method supporting a transfer Schema.  Had issues with this on EMR and the EXPORT process.
         // Could get the EXPORT the right permissions to write to S3, so the export would fail.
         rtn = config.getCluster(Environment.LOWER).buildTransferTableSchema(config, transitionDatabase, dbMirror, tblMirror);
         if (rtn) {
-            rtn = config.getCluster(Environment.LOWER).exportSchema(config, transitionDatabase, dbMirror, tblMirror);
+            rtn = config.getCluster(Environment.LOWER).exportSchema(config, transitionDatabase, dbMirror, tblMirror, config.getMetadata().getExportBaseDirPrefix());
         }
         if (rtn) {
-            rtn = config.getCluster(Environment.UPPER).importTransferSchemaUsingLowerData(config, dbMirror, tblMirror);
+            rtn = config.getCluster(Environment.UPPER).importTransferSchemaUsingLowerData(config, dbMirror, tblMirror, config.getMetadata().getExportBaseDirPrefix());
         }
         if (rtn) {
             rtn = config.getCluster(Environment.UPPER).partitionMaintenance(config, dbMirror, tblMirror);
