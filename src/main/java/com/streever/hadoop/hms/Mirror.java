@@ -444,7 +444,7 @@ public class Mirror {
         metadataStage.setOptionalArg(Boolean.TRUE);
         metadataStage.setArgName("strategy");
         Option storageStage = new Option("s", "storage", true,
-                "Run HMS-Mirror Storage with strategy: SQL|EXPORT_IMPORT|HYBRID|DISTCP");
+                "Run HMS-Mirror Storage with strategy: SQL|EXPORT_IMPORT|HYBRID(default)|DISTCP");
         storageStage.setArgName("strategy");
         storageStage.setOptionalArg(Boolean.TRUE);
 
