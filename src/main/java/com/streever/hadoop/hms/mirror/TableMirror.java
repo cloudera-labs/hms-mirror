@@ -199,7 +199,7 @@ public class TableMirror {
         this.tablePartitions = tablePartitions;
     }
 
-    public boolean buildUpperSchema(Config config) {
+    public boolean buildUpperSchema(Config config, Boolean takeOwnership) {
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         List<String> lowerTD = tableDefinitions.get(Environment.LOWER);
         List<String> upperTD = new ArrayList<String>();
@@ -220,9 +220,17 @@ public class TableMirror {
         // 3. setting legacy flag - At a later date, we'll convert this to
         //     'external.table.purge'='true'
         if (converted) {
-            TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString(), upperTD);
-            addProp(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
+            // If we want the new schema to take over the responsibility of the data. (purging)
+            if (!takeOwnership) {
+                TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString(), upperTD);
+                addProp(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
+            } else {
+                TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString(), upperTD);
+                addProp(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString());
+
+            }
         }
+
 
         // 4. identify this table as being converted by hms-mirror
         TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, Boolean.TRUE.toString(), upperTD);

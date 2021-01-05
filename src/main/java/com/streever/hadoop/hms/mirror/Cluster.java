@@ -604,7 +604,7 @@ public class Cluster implements Comparable<Cluster> {
 
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror, config.getTransferPrefix())) {
 
-                    Boolean buildUpper = tblMirror.buildUpperSchema(config);
+                    Boolean buildUpper = tblMirror.buildUpperSchema(config, Boolean.FALSE);
 
                     TableUtils.changeLocationNamespace(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER),
                             config.getCluster(Environment.LOWER).getHcfsNamespace(),
@@ -713,7 +713,7 @@ public class Cluster implements Comparable<Cluster> {
                     stmt.execute(useDb);
 
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
-                    Boolean buildUpper = tblMirror.buildUpperSchema(config);
+                    Boolean buildUpper = tblMirror.buildUpperSchema(config, Boolean.FALSE);
 
                     // Turn off for the create/alter
 //                    TableUtils.upsertTblProperty(MirrorConf.DISCOVER_PARTITIONS, "false",
@@ -862,7 +862,7 @@ public class Cluster implements Comparable<Cluster> {
                     stmt.execute(useDb);
 
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
-                    Boolean buildUpper = tblMirror.buildUpperSchema(config);
+                    Boolean buildUpper = tblMirror.buildUpperSchema(config, Boolean.TRUE);
 
                     // Adjust the Location to be Relative to the UPPER cluster.
                     TableUtils.changeLocationNamespace(dbMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER),

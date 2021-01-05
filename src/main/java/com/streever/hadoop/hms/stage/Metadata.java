@@ -64,6 +64,10 @@ public class Metadata implements Runnable {
                 Long.toString(diff) + "ms");
     }
 
+    /*
+    This set assumes the data has been migrated with DISTCP via some other process.  It will extract the schemas and
+    recreate them on the target cluster, using the same 'relative' location for storage.
+     */
     protected Boolean doDISTCP() {
         Boolean rtn = Boolean.FALSE;
         tblMirror.setStrategy(Strategy.DISTCP);
