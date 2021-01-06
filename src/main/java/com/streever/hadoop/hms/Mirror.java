@@ -30,6 +30,19 @@ public class Mirror {
     private String configFile = null;
     private String reportOutputFile = null;
     private Boolean retry = Boolean.FALSE;
+    private String dateMarker;
+
+    public String getDateMarker() {
+        if (dateMarker == null) {
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+            dateMarker = df.format(new Date());
+        }
+        return dateMarker;
+    }
+
+    public void setDateMarker(String dateMarker) {
+        this.dateMarker = dateMarker;
+    }
 
     public void init(String[] args) {
 
@@ -117,9 +130,8 @@ public class Mirror {
         if (cmd.hasOption("f")) {
             reportOutputFile = cmd.getOptionValue("f");
         } else {
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
             reportOutputFile = System.getProperty("user.home") + System.getProperty("file.separator") +
-                    ".hms-mirror/reports/hms-mirror-" + config.getStage() + "-" + df.format(new Date()) + ".md";
+                    ".hms-mirror/reports/hms-mirror-" + config.getStage() + "-" + getDateMarker() + ".md";
         }
 
         String reportPath = reportOutputFile.substring(0, reportOutputFile.lastIndexOf(System.getProperty("file.separator")));
@@ -128,14 +140,14 @@ public class Mirror {
             reportPathDir.mkdirs();
         }
 
+        File reportFile = new File(reportOutputFile);
+
         // Ensure the Retry Path is created.
         File retryPath = new File(System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror" +
                 System.getProperty("file.separator") + "retry");
         if (!retryPath.exists()) {
             retryPath.mkdirs();
         }
-
-        File reportFile = new File(reportOutputFile);
 
         // Test file to ensure we can write to it for the report.
         try {
@@ -190,7 +202,7 @@ public class Mirror {
         Conversion conversion = new Conversion(config);
 
         // Setup and Start the State Maintenance Routine
-        StateMaintenance stateMaintenance = new StateMaintenance(5000, configFile);
+        StateMaintenance stateMaintenance = new StateMaintenance(5000, configFile, getDateMarker());
 
         if (retry) {
             File retryFile = stateMaintenance.getRetryFile();

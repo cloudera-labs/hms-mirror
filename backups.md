@@ -2,7 +2,7 @@
 
 DO NOT SKIP THIS!!!
 
-The `hms-mirror` process DOES 'DROP' tables when asked to.  If those tables *manage* data like a *legacy* managed, *ACID*, or *external.table.purge=true* scenario we do our best to NOT DROP those and ERROR out.  But, protect yourself and make backups of the areas you'll be working in.
+The `hms-mirror` process DOES 'DROP' tables when asked to.  If those tables *manage* data like a *legacy* managed, *ACID*, or *external.table.purge=true* scenario, we do our best to NOT DROP those and ERROR out.  But, protect yourself and make backups of the areas you'll be working in.
 
 ### HDFS Snapshots
 

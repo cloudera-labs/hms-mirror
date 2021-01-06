@@ -10,7 +10,7 @@ public class StorageConfig {
 
     public class Hybrid {
         private int sqlPartitionLimit = 100;
-        private long sqlSizeLimit = (1024*1024*1024); // 1Gb
+        private long sqlSizeLimit = (1024 * 1024 * 1024); // 1Gb
 
         public int getSqlPartitionLimit() {
             return sqlPartitionLimit;
@@ -77,23 +77,15 @@ public class StorageConfig {
     }
 
     public String getTransferPrefix() {
-        if (strategy == Strategy.SQL || strategy == Strategy.HYBRID) {
-            if (transferPrefix == null) {
-                return "transfer_";
-            } else {
-                return transferPrefix;
-            }
+        if (transferPrefix == null) {
+            transferPrefix = "transfer_";
         }
         return transferPrefix;
     }
 
     public String getExportBaseDirPrefix() {
-        if (strategy == Strategy.EXPORT_IMPORT || strategy == Strategy.HYBRID) {
-            if (exportBaseDirPrefix == null) {
-                return "/apps/hive/warehouse/export_";
-            } else {
-                return exportBaseDirPrefix;
-            }
+        if (exportBaseDirPrefix == null) {
+            exportBaseDirPrefix = "/apps/hive/warehouse/export_";
         }
         return exportBaseDirPrefix;
     }

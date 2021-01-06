@@ -11,24 +11,31 @@ import org.apache.log4j.Logger;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class StateMaintenance implements Runnable {
     private static Logger LOG = LogManager.getLogger(StateMaintenance.class);
-
+    private String startDateStr = null;
     private Thread worker;
     private Conversion conversion;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private int sleepInterval;
     private ObjectMapper mapper;
     private String configFile;
+    private String dateMarker;
 
     public StateMaintenance(int sleepInterval,
-                            final String configFile) {
+                            final String configFile, final String dateMarker) {
         this.sleepInterval = sleepInterval;
         this.configFile = configFile;
         mapper = new ObjectMapper(new YAMLFactory());
         mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // TODO: Need to use this to record a time specific retry file because the current one gets overwritten when
+        //       the process is run again and we lose some start to debug from.
+        this.dateMarker = dateMarker;
     }
 
     public Conversion getConversion() {
@@ -79,6 +86,18 @@ public class StateMaintenance implements Runnable {
         return retryFile;
     }
 
+    public File getRetryMarkerFile() {
+        String wrkRetryFile = configFile.substring(configFile.lastIndexOf(System.getProperty("file.separator")) + 1);
+        wrkRetryFile = wrkRetryFile.substring(0, wrkRetryFile.lastIndexOf("."));
+        // Materialize it.
+        wrkRetryFile = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror" +
+                System.getProperty("file.separator") + "retry" + System.getProperty("file.separator") + wrkRetryFile +
+                "_" + dateMarker + ".retry";
+
+        File retryFile = new File(wrkRetryFile);
+        return retryFile;
+    }
+
     public void saveState() {
         // Write out to the ~/.hms-mirror/retry directory.
         if (conversion != null) {
@@ -95,9 +114,17 @@ public class StateMaintenance implements Runnable {
                     LOG.error("Problem 'writing' Retry File", ioe);
                 } finally {
                     retryFileWriter.close();
-
                 }
-
+                try {
+                    retryFile = getRetryMarkerFile();
+                    retryFileWriter = new FileWriter(retryFile);
+                    retryFileWriter.write(conversionStr);
+                    LOG.debug("Retry State 'saved' to: " + retryFile.getPath());
+                } catch (IOException ioe) {
+                    LOG.error("Problem 'writing' Retry File", ioe);
+                } finally {
+                    retryFileWriter.close();
+                }
             } catch (JsonProcessingException e) {
                 LOG.error("Problem 'saving' Retry state", e);
             } catch (IOException ioe) {

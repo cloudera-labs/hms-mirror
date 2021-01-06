@@ -27,9 +27,9 @@ The default (true) behavior works well for interactive use case, but bulk operat
 
 I recommend turning this back after the migration is complete.  This setting exposes permissions issues at the time of CREATE/ALTER.  So by skipping this, future access issues may arise if the permissions aren't aligned, which isn't a Ranger/Hive issue, it's a permissions issue.
 
-### Improving HMS partition discovery
+### Turn ON HMS partition discovery
 
-Once the `metastore.housekeeping.threads.on=true` has been set, the following parameters can be used to modify the default behavior.
+In CDP 7.1.4 and below, the house keeping threads in HMS used to discover partitions is NOT running.  Add `metastore.housekeeping.threads.on=true` to the HMS Safety Value to activate the partition discovery thread.  Once this has been set, the following parameters can be used to modify the default behavior.
 
 ```
 metastore.partition.management.task.frequency
