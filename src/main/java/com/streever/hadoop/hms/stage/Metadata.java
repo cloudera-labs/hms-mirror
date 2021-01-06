@@ -46,10 +46,12 @@ public class Metadata implements Runnable {
                 break;
             case SCHEMA_EXTRACT:
                 // TODO: Implement Schema Extract
-                throw new RuntimeException("SCHEMA_EXTRACT has not been implemented yet.");
-//                break;
             default:
-                throw new RuntimeException("Strategy: " + config.getStorage().getStrategy().toString() + " isn't valid for the METADATA phase.");
+                successful = Boolean.FALSE;
+                tblMirror.addIssue(config.getMetadata().getStrategy().toString() + " strategy NOT SUPPORTED in METADATA Stage");
+                LOG.error("For " + dbMirror.getName() + ":" + tblMirror.getName() + " " +
+                        config.getMetadata().getStrategy() + " has not been implemented yet.");
+                break;
         }
 
         if (successful)

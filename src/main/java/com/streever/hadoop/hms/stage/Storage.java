@@ -106,9 +106,12 @@ public class Storage implements Runnable {
             case DISTCP:
                 // TODO: HERE. PATH STRATEGY DB or TABLE. IF tblMirror is NULL or check the path strategy
                 //       in the config
-                break;
             default:
-                throw new RuntimeException("Strategy: " + config.getStorage().getStrategy().toString() + " isn't valid for the STORAGE phase.");
+                successful = Boolean.FALSE;
+                tblMirror.addIssue(config.getStorage().getStrategy().toString() + " strategy NOT SUPPORTED in STORAGE Stage");
+                LOG.error("For " + dbMirror.getName() + ":" + tblMirror.getName() + " " +
+                        config.getStorage().getStrategy() + " has not been implemented yet.");
+                break;
         }
 
         if (successful)
