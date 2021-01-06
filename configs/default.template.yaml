@@ -3,6 +3,8 @@
 # Set to true to show commands, but NOT run anything.
 dryrun: false
 # Optional (default: true)
+# When UPPER cluster table exists, it will be overwritten UNLESS the table is managing data.
+#  in this case, the user will have to take action before attempting process.
 overwriteTable: "true"
 # Metadata is Optional, when not specified defaults are used.  Defaults below.
 metadata:

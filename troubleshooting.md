@@ -1,4 +1,16 @@
-## Issue 1 - Connecting to HS2 via Kerberos
+# Issues
+
+## Table processing completed with `ERROR`
+
+We make various checks as we perform the migrations and when those check don't pass, the result is an error.
+
+### Solution
+
+In another tip we suggest running with `--dryrun` first.  This will catch the potential issues first, without taking a whole lot of time.  Use this to remediate issues before executing.
+
+If the scenario that cause the `ERROR` is known, a remediation summary will be in the output report under **Issues** for that table.  Follow those instructions than rerun the process with `--retry`.
+
+## Connecting to HS2 via Kerberos
 
 Connecting to an HDP cluster running 2.6.5 with Binary protocol and Kerberos triggers an incompatibility issue:
 `Unrecognized Hadoop major version number: 3.1.1.7.1....`
@@ -11,7 +23,7 @@ Kerberos connections are only supported to the CDP cluster.
 
 When connecting via `kerberos`, you will need to include the `--hadoop-classpath` when launching `hms-mirror`.     
 
-## Issue 2 - Auto Partition Discovery not working
+## Auto Partition Discovery not working
 
 I've set the `partitionDiscovery:auto` to `true` but the partitions aren't getting discovered.
 
@@ -23,7 +35,7 @@ In the Hive metastore configuration in Cloudera Manager set `metastore.housekeep
 
 ![pic](./images/hms_housekeeping_thread.png)
 
-## Issue 3 - HDFS Permissions Issues
+## HDFS Permissions Issues
 
 Caused by: java.lang.RuntimeException: org.apache.hadoop.hive.ql.security.authorization.plugin.HiveAccessControlException:Permission denied: user [dstreev] does not have [ALL] privilege on [hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_site]
 
@@ -33,7 +45,7 @@ Follow workaround above or add user to the 'hdfs' group. Or use Ranger to allow 
 
 `sudo ./configs.py --host=k01.streever.local --port=8080 -u admin -p admin -n hdp50 -c hdfs-site -a set -k dfs.permissions.superusergroup -v hdfs_admin`
 
-## Issue 4 - YARN Submission stuck in ACCEPTED phase
+## YARN Submission stuck in ACCEPTED phase
 
 The process uses a connection pool to Hive.  If concurrency value for the cluster is too high, you may have reached the maximum ratio of AM (Application Masters) for the YARN queue.
 

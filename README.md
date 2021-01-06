@@ -6,6 +6,8 @@
 1. [Link Clusters](./link_clusters.md)   
 2. [Configuration](./configuration.md)   
 2. [Running HMS Mirror](./running.md)
+3. [Must know run tips/Do NOT SKIP](./running_tips.md)   
+4. [Logs and Reports](./logs_reports.md)   
 3. [Processes](#processes)
    1. [Metadata](./metadata.md)
    1. [Storage](./storage.md)
