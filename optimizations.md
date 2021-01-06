@@ -13,7 +13,6 @@ Take snapshots of areas you'll touch:
 The migration of schemas can put a heavy load on HS2 and the HMS server it's using.  That impact can manifest itself as 'pauses' for other clients trying to run queries.  Long schema/discovery operations have a 'blocking' tendency in HS2.
 
 To prevent normal user operational impact, I suggest establishing an isolated HMS and HS2 environment for the migration process.
-
 ![Isolate Migration Service Endpoints](./images/isolation.png)
 
 ### `ranger.plugin.hive.urlauth.filesystem.schemes=file`
