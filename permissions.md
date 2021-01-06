@@ -1,0 +1,17 @@
+## Permissions
+
+In both the METADATA and STORAGE phases of `hms-mirror` the UPPER cluster will reach down into the LOWER clusters storage layer to either _use_ or _copy_ the data.
+
+`hms-mirror` access each cluster via JDBC and use the UPPER cluster for *storage* layer access.
+
+When the UPPER cluster is using 'non-impersonation' (hive `doas=false`), the *hive* service account on the **UPPER** cluster (usually `hive`) needs access to the storage layer on the **LOWER** cluster in order to use this data to support sidecar testing, where we use the data of the LOWER cluster but *mirror* the metadata.
+
+> Having Ranger on both clusters helps considerably because you can create additional ACL's to provide the access required.
+
+**OR**
+  
+>Checked permissions of '<submitting_user>': Found that the '<submitting_user>' user was NOT the owner of the files in these directories. The user running the process needs to be in 'dfs.permissions.superusergroup' for the LOWER clusters 'hdfs' service.  Ambari 2.6 has issues setting this property: https://jira.cloudera.com/browse/EAR-7805
+  
+> Follow workaround above or add user to the 'hdfs' group. I had to use '/var/lib/ambari-server/resources/scripts/configs.py' to set it manually for Ambari.
+  
+> `sudo ./configs.py --host=k01.streever.local --port=8080 -u admin -p admin -n hdp50 -c hdfs-site -a set -k dfs.permissions.superusergroup -v hdfs_admin`
