@@ -6,7 +6,7 @@ We make various checks as we perform the migrations and when those check don't p
 
 ### Solution
 
-In another tip we suggest running with `--dryrun` first.  This will catch the potential issues first, without taking a whole lot of time.  Use this to remediate issues before executing.
+In [tips](./running_tips.md) we suggest running with `--dryrun` first.  This will catch the potential issues first, without taking a whole lot of time.  Use this to remediate issues before executing.
 
 If the scenario that cause the `ERROR` is known, a remediation summary will be in the output report under **Issues** for that table.  Follow those instructions than rerun the process with `--retry`.
 
