@@ -4,12 +4,13 @@
 
 1. [Getting / Building](./setup.md)
 2. Pre-Requisites
+   1. [Protect yourself!  Backups!](./backups.md)
    1. [Shared Auth Model](./shared_auth.md)
    1. [Link Clusters](./link_clusters.md) 
    1. [Permissions](./permissions.md)
 2. [Configuration](./configuration.md)   
+3. [RUN tips/Do NOT SKIP](./running_tips.md)
 2. [Running HMS Mirror](./running.md)
-3. [Must know run tips/Do NOT SKIP](./running_tips.md)   
 4. [Logs and Reports](./logs_reports.md)   
 3. [Processes](#processes)
    1. [Metadata](./metadata.md)
