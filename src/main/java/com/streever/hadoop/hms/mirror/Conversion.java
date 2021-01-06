@@ -119,15 +119,21 @@ public class Conversion {
                         tblMirror.getPartitionDefinition(Environment.LOWER).size() : " ").append("|");
 
                 // Actions
-                Iterator<Map.Entry<String, Object>> aIter = tblMirror.getActions().entrySet().iterator();
+                Iterator<Map.Entry<String[], Object>> aIter = tblMirror.getActions().entrySet().iterator();
+                sb.append("<table>");
                 while (aIter.hasNext()) {
-                    Map.Entry<String, Object> item = aIter.next();
-                    sb.append(item.getKey()).append(" -> ");
+                    sb.append("<tr>");
+                    Map.Entry<String[], Object> item = aIter.next();
+                    String[] keySet = item.getKey();
+                    sb.append("<td style=\"text-align:right\">").append(keySet[0]).append("</td>");
+                    sb.append("<td>").append(keySet[1]).append("</td>");
                     if (item.getValue() != null)
-                        sb.append(item.getValue().toString());
-                    if (aIter.hasNext())
-                        sb.append("<br/>");
+                        sb.append("<td>").append(item.getValue().toString()).append("</td>");
+                    else
+                        sb.append("<td></td>");
+                    sb.append("</tr>");
                 }
+                sb.append("</table>");
                 sb.append("|");
                 // Properties
                 if (tblMirror.whereTherePropsAdded()) {

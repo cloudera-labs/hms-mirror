@@ -311,7 +311,7 @@ public class Cluster implements Comparable<Cluster> {
                             // Ensure the table purge flag hasn't been set.
                             // ONLY prevent during METADATA stage.
                             // FOR the STORAGE stage, drop the table and data and import.
-                            if (config.getStage().equals(Stage.METADATA) && TableUtils.isExternalPurge(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
+                            if (TableUtils.isExternalPurge(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
                                 String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Is a 'Purge' " +
                                         "enabled 'EXTERNAL' table.  The data is " +
                                         "managed and it's not safe to proceed with converting this table. " +
@@ -324,18 +324,18 @@ public class Cluster implements Comparable<Cluster> {
 
                             // Attempt to set a table property for current external tables that 'exist' and we're
                             // trying to replace during the STORAGE phase.
-                            if (rtn && config.getStage().equals(Stage.STORAGE) &&
-                                    !TableUtils.isExternalPurge(tblMirror.getName(),
-                                            tblMirror.getTableDefinition(Environment.UPPER))) {
-                                String externalPurge = MessageFormat.format(MirrorConf.ADD_TBL_PROP,
-                                        database, tblMirror.getName(),
-                                        MirrorConf.EXTERNAL_TABLE_PURGE, "true");
-                                if (!config.isDryrun())
-                                    stmt.execute(externalPurge);
-                                tblMirror.addIssue(getEnvironment().toString() + ":" +
-                                        MirrorConf.EXTERNAL_TABLE_PURGE +
-                                        "=true set to facilitate table/data drop for NEW IMPORT");
-                            }
+//                            if (rtn && config.getStage().equals(Stage.STORAGE) &&
+//                                    !TableUtils.isExternalPurge(tblMirror.getName(),
+//                                            tblMirror.getTableDefinition(Environment.UPPER))) {
+//                                String externalPurge = MessageFormat.format(MirrorConf.ADD_TBL_PROP,
+//                                        database, tblMirror.getName(),
+//                                        MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+//                                if (!config.isDryrun())
+//                                    stmt.execute(externalPurge);
+//                                tblMirror.addIssue(getEnvironment().toString() + ":" +
+//                                        MirrorConf.EXTERNAL_TABLE_PURGE +
+//                                        "=true set to facilitate table/data drop for NEW IMPORT");
+//                            }
                         } else {
                             // It was NOT created by HMS Mirror.  The table will need to be manually dropped after review.
                             // No need to continue.
@@ -1315,7 +1315,7 @@ public class Cluster implements Comparable<Cluster> {
                 tblMirror.setMigrationStageMessage("Table dropped");
                 tblMirror.addAction(getEnvironment().toString(), "Table Dropped");
 
-                String renameTable = MessageFormat.format(MirrorConf.RENAME_TABLE, config.getMetadata().getTransferPrefix() + tableName, tableName);
+                String renameTable = MessageFormat.format(MirrorConf.RENAME_TABLE, config.getStorage().getTransferPrefix() + tableName, tableName);
                 LOG.debug(getEnvironment() + ":(SQL) " + renameTable);
                 tblMirror.setMigrationStageMessage("Rename transfer table to original table (complete swap process)");
                 if (!config.isDryrun())

@@ -33,3 +33,14 @@ Follow workaround above or add user to the 'hdfs' group. Or use Ranger to allow 
 
 `sudo ./configs.py --host=k01.streever.local --port=8080 -u admin -p admin -n hdp50 -c hdfs-site -a set -k dfs.permissions.superusergroup -v hdfs_admin`
 
+## Issue 4 - YARN Submission stuck in ACCEPTED phase
+
+The process uses a connection pool to Hive.  If concurrency value for the cluster is too high, you may have reached the maximum ratio of AM (Application Masters) for the YARN queue.
+
+Review the ACCEPTED jobs and review the jobs *Diagnostics* status for details on _why_ the jobs is stuck.
+
+### Solution
+
+Either of:
+1. Reduce the concurrency in the configuration file for `hms-mirror`
+2. Increase the AM ratio or Queue size to allow the jobs to be submitted.  This can be done while the process is running.

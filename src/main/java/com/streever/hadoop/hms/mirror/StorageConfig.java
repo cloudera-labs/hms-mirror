@@ -88,7 +88,7 @@ public class StorageConfig {
     }
 
     public String getExportBaseDirPrefix() {
-        if (strategy == Strategy.EXPORT_IMPORT) {
+        if (strategy == Strategy.EXPORT_IMPORT || strategy == Strategy.HYBRID) {
             if (exportBaseDirPrefix == null) {
                 return "/apps/hive/warehouse/export_";
             } else {

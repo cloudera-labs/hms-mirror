@@ -4,16 +4,19 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.math.BigDecimal;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class TableMirror {
     private String dbName;
     private String name;
-
+    private Date start = new Date();
+    private DateFormat tdf = new SimpleDateFormat("HH:mm:ss.SSS");
     @JsonIgnore
-    private Map<String, Object> actions = new LinkedHashMap<String, Object>();
+    private Map<String[], Object> actions = new LinkedHashMap<String[], Object>();
 
     private Stage stage = null;
     private Strategy strategy = null;
@@ -69,6 +72,7 @@ public class TableMirror {
     public TableMirror(String dbName, String tablename) {
         this.dbName = dbName;
         this.name = tablename;
+        addAction("init", null);
     }
 
     public Stage getStage() {
@@ -126,10 +130,21 @@ public class TableMirror {
     }
 
     public void addAction(String key, Object value) {
-        actions.put(key, value);
+//        String tKey = tdf.format(new Date()) + " " + key;
+        String[] keySet = new String[2];
+        Date now = new Date();
+        Long elapsed = now.getTime() - start.getTime();
+        start = now; // reset
+        BigDecimal secs = new BigDecimal(elapsed).divide(new BigDecimal(1000));///1000
+        DecimalFormat decf = new DecimalFormat("#,###.00");
+        String secStr = decf.format(secs);
+        keySet[0] = secStr;
+        keySet[1] = key;
+//        String tKey = "[" + StringUtils.leftPad(secStr, 6, " ") +  "]" + key;
+        actions.put(keySet, value);
     }
 
-    public Map<String, Object> getActions() {
+    public Map<String[], Object> getActions() {
         return actions;
     }
 

@@ -172,6 +172,10 @@ public class Storage implements Runnable {
                 (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER)) &&
                         config.getStorage().getMigrateACID())) {
 
+            // TODO: Need to adjust this to first create the target table using the LOWER clusters
+            //       data.  THEN, work on the IMPORT into the 'transfer' table.  Once that's complete
+            //       do the swap of the tables.  Follow the SQL method in this regard.
+
             rtn = config.getCluster(Environment.LOWER).exportSchema(config, dbMirror.getName(), dbMirror, tblMirror, config.getStorage().getExportBaseDirPrefix());
             if (rtn) {
                 rtn = config.getCluster(Environment.UPPER).importSchemaWithData(config, dbMirror, tblMirror, config.getStorage().getExportBaseDirPrefix());
