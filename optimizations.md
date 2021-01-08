@@ -15,9 +15,9 @@ The migration of schemas can put a heavy load on HS2 and the HMS server it's usi
 To prevent normal user operational impact, I suggest establishing an isolated HMS and HS2 environment for the migration process.
 ![Isolate Migration Service Endpoints](./images/isolation.png)
 
-### `ranger.plugin.hive.urlauth.filesystem.schemes=file`
+### Speed up CREATE/ALTER Table Statements - with existing data
 
-Set this in the Hive Server 2(hive_on_tez) Ranger Plugin Safety Value, via Cloudera Manager.
+Set `ranger.plugin.hive.urlauth.filesystem.schemes=file` in the Hive Server 2(hive_on_tez) Ranger Plugin Safety Value, via Cloudera Manager.
 
 ![Safety Value](./images/hs2_ranger_schemas.png)
 

@@ -1384,7 +1384,7 @@ public class Cluster implements Comparable<Cluster> {
                             ": Discovering " + tblMirror.getPartitionDefinition(Environment.LOWER).size() + " partitions");
                     String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, database, tblMirror.getName());
                     LOG.debug(getEnvironment() + ":(SQL)" + msckStmt);
-                    tblMirror.setMigrationStageMessage("Discovering partitions with 'MSCK'");
+                    tblMirror.setMigrationStageMessage("Discovering " + tblMirror.getPartitionDefinition(Environment.LOWER).size() + " partitions with 'MSCK'");
                     if (!config.isDryrun())
                         stmt.execute(msckStmt);
                     tblMirror.addAction("MSCK ran", Boolean.TRUE);
