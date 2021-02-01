@@ -2,6 +2,7 @@
 ===================================================================================
 TBLS (Started/Completed/Errors/Skipped)->([33m${started.tbls}[0m/[34m${completed.tbls}[0m/[31m${error.tbls}[0m/[36m${skipped.tbls}[0m)           Elapse Time: ${elapsed.time}secs
 
+Run Mode          : ${run.mode}
 Config file${retry}: ${config.file}
 Report file       : ${report.file}
 Action script     : ${action.script}

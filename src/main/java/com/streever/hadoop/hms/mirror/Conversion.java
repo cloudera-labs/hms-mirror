@@ -76,6 +76,9 @@ public class Conversion {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         String yamlStr = mapper.writeValueAsString(config);
+        // Mask User/Passwords in Control File
+        yamlStr = yamlStr.replaceAll("user:\\s\".*\"", "user: \"*****\"");
+        yamlStr = yamlStr.replaceAll("password:\\s\".*\"", "password: \"*****\"");
         sb.append("```\n");
         sb.append(yamlStr).append("\n");
         sb.append("```\n");

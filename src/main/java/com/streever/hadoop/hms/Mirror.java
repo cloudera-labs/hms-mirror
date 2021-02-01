@@ -180,11 +180,38 @@ public class Mirror {
             throw new RuntimeException("No databases specified");
         }
 
-        if (cmd.hasOption("dr")) {
+        if (cmd.hasOption("e")) {
+            Scanner scanner = new Scanner(System.in);
+
+            //  prompt for the user's name
+            System.out.print("I have made backups of both the 'Hive Metastore' in the LOWER and UPPER clusters (TRUE to proceed): ");
+
+            // get their input as a String
+            String response = scanner.next();
+            if (!response.equalsIgnoreCase("true")) {
+                System.out.println("You must affirm to proceed.");
+                System.exit(-1);
+            }
+            System.out.print("I have taken 'Filesystem' Snapshots/Backups of the target 'Hive Databases' on the LOWER and UPPER clusters (TRUE to proceed): ");
+            response = scanner.next();
+            if (!response.equalsIgnoreCase("true")) {
+                System.out.println("You must affirm to proceed.");
+                System.exit(-1);
+            }
+
+            System.out.print("'Filesystem' TRASH has been configured on my system (TRUE to proceed): ");
+            response = scanner.next();
+            if (!response.equalsIgnoreCase("true")) {
+                System.out.println("You must affirm to proceed.");
+                System.exit(-1);
+            }
+
+            config.setExecute(Boolean.TRUE);
+        } else {
             LOG.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-            LOG.info("DRY-RUN has been set.  No ACTIONS will be performed, the process output will be recorded in the log.");
+            LOG.info("EXECUTE has NOT been set.  No ACTIONS will be performed, the process output will be recorded in the log.");
             LOG.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-            config.setDryrun(Boolean.TRUE);
+            config.setExecute(Boolean.FALSE);
         }
 
         ConnectionPools connPools = new ConnectionPools();
@@ -242,6 +269,12 @@ public class Mirror {
 
         Date startTime = new Date();
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+
+        if (config.isExecute()) {
+            reporter.setVariable("run.mode", "EXECUTE");
+        } else {
+            reporter.setVariable("run.mode", "DRY-RUN");
+        }
 
         // Skip Setup if working from 'retry'
         if (!retry) {
@@ -427,7 +460,7 @@ public class Mirror {
         // create Options object
         Options options = new Options();
 
-        Option metadataStage = new Option("m", "metastore", true,
+        Option metadataStage = new Option("m", "metadata", true,
                 "Run HMS-Mirror Metadata with strategy: DIRECT(default)|EXPORT_IMPORT|SCHEMA_EXTRACT");
         metadataStage.setOptionalArg(Boolean.TRUE);
         metadataStage.setArgName("strategy");
@@ -461,10 +494,10 @@ public class Mirror {
         outputOption.setArgName("filename");
         options.addOption(outputOption);
 
-        Option dryrunOption = new Option("dr", "dry-run", false,
-                "No actions are performed, just the output of the commands in the logs.");
-        dryrunOption.setRequired(false);
-        options.addOption(dryrunOption);
+        Option executeOption = new Option("e", "execute", false,
+                "Execute actions request, without this flag the process is a dry-run.");
+        executeOption.setRequired(false);
+        options.addOption(executeOption);
 
         Option dbOption = new Option("db", "database", true,
                 "Comma separated list of Databases (upto 100).");

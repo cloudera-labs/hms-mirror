@@ -5,14 +5,12 @@ import com.streever.hadoop.hms.Mirror;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import java.beans.Transient;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Config {
@@ -24,7 +22,7 @@ public class Config {
     @JsonIgnore
     private ScheduledExecutorService storageThreadPool;
 
-    private boolean dryrun = Boolean.FALSE;
+    private boolean execute = Boolean.FALSE;
     private Stage stage = null;
 
     @JsonIgnore // wip
@@ -41,11 +39,11 @@ public class Config {
 
     private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
 
-    public boolean isDryrun() {
-        if (dryrun) {
+    public boolean isExecute() {
+        if (!execute) {
             LOG.debug("Dry-run: ON");
         }
-        return dryrun;
+        return execute;
     }
 
     public ScheduledExecutorService getMetadataThreadPool() {
@@ -102,8 +100,8 @@ public class Config {
         this.stage = stage;
     }
 
-    public void setDryrun(boolean dryrun) {
-        this.dryrun = dryrun;
+    public void setExecute(boolean execute) {
+        this.execute = execute;
     }
 
 //    public String getTransferPrefix() {
@@ -182,7 +180,7 @@ public class Config {
     @Override
     public String toString() {
         return "Config{" +
-                "dryrun=" + dryrun +
+                "dryrun=" + execute +
                 ", stage=" + stage +
                 ", databases=" + Arrays.toString(databases) +
 //                ", transferPrefix='" + transferPrefix + '\'' +
