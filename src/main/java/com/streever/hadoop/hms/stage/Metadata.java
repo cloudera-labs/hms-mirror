@@ -78,7 +78,7 @@ public class Metadata implements Runnable {
         tblMirror.addAction("METADATA", Strategy.DISTCP.toString());
 
         rtn = config.getCluster(Environment.UPPER).buildUpperSchemaWithRelativeData(config, dbMirror, tblMirror);
-        if (rtn) {
+        if (rtn || (config.getReplicationStrategy() == ReplicationStrategy.SYNCHRONIZE && !rtn)) {
             rtn = config.getCluster(Environment.UPPER).partitionMaintenance(config, dbMirror, tblMirror);
         }
         return rtn;
@@ -93,7 +93,8 @@ public class Metadata implements Runnable {
         tblMirror.addAction("METADATA", "DIRECT");
 
         rtn = config.getCluster(Environment.UPPER).buildUpperSchemaUsingLowerData(config, dbMirror, tblMirror);
-        if (rtn) {
+
+        if (rtn || (config.getReplicationStrategy() == ReplicationStrategy.SYNCHRONIZE && !rtn)) {
             rtn = config.getCluster(Environment.UPPER).partitionMaintenance(config, dbMirror, tblMirror);
         }
         return rtn;
@@ -116,9 +117,9 @@ public class Metadata implements Runnable {
         if (rtn) {
             rtn = config.getCluster(Environment.UPPER).importTransferSchemaUsingLowerData(config, dbMirror, tblMirror, config.getMetadata().getExportBaseDirPrefix());
         }
-        if (rtn) {
-            rtn = config.getCluster(Environment.UPPER).partitionMaintenance(config, dbMirror, tblMirror);
-        }
+//        if (rtn || (config.getReplicationStrategy() == ReplicationStrategy.SYNCHRONIZE && !rtn)) {
+//            rtn = config.getCluster(Environment.UPPER).partitionMaintenance(config, dbMirror, tblMirror);
+//        }
 
         return rtn;
 

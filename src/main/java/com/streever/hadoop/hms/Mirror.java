@@ -79,7 +79,6 @@ public class Mirror {
             configFile = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/cfg/default.yaml";
         }
 
-
         File cfgFile = new File(configFile);
         if (!cfgFile.exists()) {
             throw new RuntimeException("Couldn't locate configuration file: " + configFile);
@@ -94,6 +93,20 @@ public class Mirror {
             config = mapper.readerFor(Config.class).readValue(yamlCfgFile);
         } catch (Throwable t) {
             t.printStackTrace();
+        }
+
+        if (cmd.hasOption("ss")) {
+            config.setShareStorage(Boolean.TRUE);
+        }
+
+        // Only set for METADATA.
+        if (cmd.hasOption("c") && cmd.hasOption("m")) {
+            if (config.isShareStorage()) {
+                config.setCommitToUpper(Boolean.TRUE);
+            } else {
+                LOG.error("Can't commit schema (purgeable) unless using 'Shared Storage'");
+                System.exit(-1);
+            }
         }
 
         if (cmd.hasOption("r")) {
@@ -125,6 +138,16 @@ public class Mirror {
             }
             LOG.info("Running CONVERT");
 
+        }
+
+        if (cmd.hasOption("rs")) {
+            try {
+                ReplicationStrategy rss = ReplicationStrategy.valueOf(cmd.getOptionValue("rs"));
+                config.setReplicationStrategy(rss);
+            } catch (Throwable t) {
+                System.out.println("Replication Strategy can only be one of: OVERWRITE|SYNCHRONIZE");
+                System.exit(-1);
+            }
         }
 
         if (cmd.hasOption("f")) {
@@ -316,6 +339,13 @@ public class Mirror {
 //            String reportFileStr = reportOutputFile;
             FileWriter reportFile = new FileWriter(reportOutputFile);
             reportFile.write(conversion.toReport(config));
+
+            // When this happens, we need to output the sql to 'detach' the
+            //    lower cluster tables from the data WHEN shared storage is used.
+            if (config.isCommitToUpper() && config.isShareStorage()) {
+                // TODO:
+            }
+
             reportFile.close();
             LOG.info("Status Report of 'hms-mirror' is here: " + reportOutputFile.toString());
         } catch (IOException e) {
@@ -469,19 +499,27 @@ public class Mirror {
         storageStage.setArgName("strategy");
         storageStage.setOptionalArg(Boolean.TRUE);
 
-        // WIP, not available yet.
-//        Option convertStage = new Option("c", "convert", true,
-//                "Run HMS-Mirror Storage with strategy: SQL|EXPORT_IMPORT");
-//        convertStage.setArgName("strategy");
-//        convertStage.setOptionalArg(Boolean.TRUE);
-
         OptionGroup stageGroup = new OptionGroup();
         stageGroup.addOption(metadataStage);
         stageGroup.addOption(storageStage);
-//        stageGroup.addOption(convertStage);
-
         stageGroup.setRequired(true);
         options.addOptionGroup(stageGroup);
+
+        Option replStrategy = new Option("rs", "replication-strategy", true,
+                "Replication Strategy for Metadata: OVERWRITE|SYNCHRONIZE (default: SYNCHRONIZE)");
+        replStrategy.setArgName("strategy");
+        replStrategy.setRequired(false);
+        options.addOption(replStrategy);
+
+        Option sharedOption = new Option("ss", "share-storage", false,
+                "Share Storage is used.  Do NOT adjust protocol namespace after transferring schema.");
+        sharedOption.setRequired(false);
+        options.addOption(sharedOption);
+
+        Option commitOption = new Option("c", "commit", false,
+                "Commit to UPPER. Applies to METADATA stage when you want the UPPER cluster to 'own' the data ('external.table.purge'='true')");
+        commitOption.setRequired(false);
+        options.addOption(commitOption);
 
         Option helpOption = new Option("h", "help", false,
                 "Help");
@@ -499,16 +537,14 @@ public class Mirror {
         executeOption.setRequired(false);
         options.addOption(executeOption);
 
+
         Option dbOption = new Option("db", "database", true,
                 "Comma separated list of Databases (upto 100).");
         dbOption.setValueSeparator(',');
         dbOption.setArgName("databases");
         dbOption.setArgs(100);
-//        Option dbRegExOption = new Option("dbRegEx", "database-regex", true,
-//                "Search RegEx of Database names to include in processing");
         OptionGroup dbGroup = new OptionGroup();
         dbGroup.addOption(dbOption);
-//        dbGroup.addOption(dbRegExOption);
         dbGroup.setRequired(true);
         options.addOptionGroup(dbGroup);
 

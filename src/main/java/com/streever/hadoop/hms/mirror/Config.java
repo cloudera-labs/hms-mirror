@@ -22,18 +22,20 @@ public class Config {
     @JsonIgnore
     private ScheduledExecutorService storageThreadPool;
 
-    private boolean execute = Boolean.FALSE;
     private Stage stage = null;
+    private boolean execute = Boolean.FALSE;
+    private ReplicationStrategy replicationStrategy = ReplicationStrategy.SYNCHRONIZE;
+    private boolean shareStorage = Boolean.FALSE;
+    private boolean commitToUpper = Boolean.FALSE;
+
 
     @JsonIgnore // wip
     private String dbRegEx = null;
     @JsonIgnore
     private Pattern dbFilterPattern = null;
-    private String tblRegEx = null;
     private String[] databases = null;
-//    private String transferPrefix = "transfer_";
-//    private String exportBaseDirPrefix = "/apps/hive/warehouse/export_";
-    private boolean overwriteTable = Boolean.TRUE;
+    private String tblRegEx = null;
+
     private MetadataConfig metadata = new MetadataConfig();
     private StorageConfig storage = new StorageConfig();
 
@@ -44,6 +46,22 @@ public class Config {
             LOG.debug("Dry-run: ON");
         }
         return execute;
+    }
+
+    public boolean isShareStorage() {
+        return shareStorage;
+    }
+
+    public void setShareStorage(boolean shareStorage) {
+        this.shareStorage = shareStorage;
+    }
+
+    public boolean isCommitToUpper() {
+        return commitToUpper;
+    }
+
+    public void setCommitToUpper(boolean commitToUpper) {
+        this.commitToUpper = commitToUpper;
     }
 
     public ScheduledExecutorService getMetadataThreadPool() {
@@ -104,36 +122,12 @@ public class Config {
         this.execute = execute;
     }
 
-//    public String getTransferPrefix() {
-//        if (metadata.getStrategy() == Strategy.EXPORT_IMPORT) {
-//            if (transferPrefix == null) {
-//                return "transfer_";
-//            } else {
-//                return transferPrefix;
-//            }
-//        }
-//        return transferPrefix;
-//    }
-//
-//
-//    public void setTransferPrefix(String transferPrefix) {
-//        this.transferPrefix = transferPrefix;
-//    }
-
-//    public String getExportBaseDirPrefix() {
-//        return exportBaseDirPrefix;
-//    }
-//
-//    public void setExportBaseDirPrefix(String exportBaseDirPrefix) {
-//        this.exportBaseDirPrefix = exportBaseDirPrefix;
-//    }
-
-    public boolean isOverwriteTable() {
-        return overwriteTable;
+    public ReplicationStrategy getReplicationStrategy() {
+        return replicationStrategy;
     }
 
-    public void setOverwriteTable(boolean overwriteTable) {
-        this.overwriteTable = overwriteTable;
+    public void setReplicationStrategy(ReplicationStrategy replicationStrategy) {
+        this.replicationStrategy = replicationStrategy;
     }
 
     public MetadataConfig getMetadata() {
@@ -177,17 +171,4 @@ public class Config {
         }
     }
 
-    @Override
-    public String toString() {
-        return "Config{" +
-                "dryrun=" + execute +
-                ", stage=" + stage +
-                ", databases=" + Arrays.toString(databases) +
-//                ", transferPrefix='" + transferPrefix + '\'' +
-//                ", exportBaseDirPrefix='" + exportBaseDirPrefix + '\'' +
-                ", overwriteTable=" + overwriteTable +
-                ", metadata=" + metadata +
-                ", storage=" + storage +
-                '}';
-    }
 }
