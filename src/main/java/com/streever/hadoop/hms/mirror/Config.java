@@ -27,12 +27,20 @@ public class Config {
     private ReplicationStrategy replicationStrategy = ReplicationStrategy.SYNCHRONIZE;
     private boolean shareStorage = Boolean.FALSE;
     private boolean commitToUpper = Boolean.FALSE;
-
+    private Acceptance acceptance = new Acceptance();
 
     @JsonIgnore // wip
     private String dbRegEx = null;
     @JsonIgnore
     private Pattern dbFilterPattern = null;
+    /*
+   Prefix the DB with this to create an alternate db.
+   Good for testing.
+
+   Should leave null for like replication.
+    */
+    private String dbPrefix = null;
+
     private String[] databases = null;
     private String tblRegEx = null;
 
@@ -46,6 +54,28 @@ public class Config {
             LOG.debug("Dry-run: ON");
         }
         return execute;
+    }
+
+    public Acceptance getAcceptance() {
+        return acceptance;
+    }
+
+    public void setAcceptance(Acceptance acceptance) {
+        this.acceptance = acceptance;
+    }
+
+    public String getDbPrefix() {
+        return dbPrefix;
+    }
+
+    public void setDbPrefix(String dbPrefix) {
+        this.dbPrefix = dbPrefix;
+    }
+
+    public String getResolvedDB(String database) {
+        String rtn = null;
+        rtn = (dbPrefix != null? dbPrefix + database: database);
+        return rtn;
     }
 
     public boolean isShareStorage() {

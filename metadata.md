@@ -32,14 +32,14 @@ There are a few limitations to note here:
 Strategies are the varies techniques used to migrate hive schemas.
 
 ##### DIRECT
-This will extract a copy of the METADATA from the _source_ cluster, make any adjustments required for compatability, and replay the DDL on the _target_ cluster.
+This will extract a copy of the METADATA from the _LOWER_ cluster, make any adjustments required for compatibility, and replay the DDL on the _UPPER_ cluster.
 
-- For Legacy Managed tables the `external.table.purge` flag is NOT set because the target cluster is NOT the owner of the data.
+See [ownership](#ownership) for managed data.
 
 ##### EXPORT_IMPORT
 This will create a transition temp table in the lower cluster based on the source table, but with no data in it.  Then use hive EXPORT/IMPORT processes to recreate the table in the _target_ cluster.  Once created there, it will adjust the location to look at the data in the _source_ cluster.
 
-- For Legacy Managed tables the `external.table.purge` flag is NOT set because the target cluster is NOT the owner of the data.
+See [ownership](#ownership) for managed data.
 
 ##### SCHEMA_EXTRACT
 WIP
@@ -47,4 +47,12 @@ WIP
 ##### DISTCP
 This assumes the data has been moved from the _source_ cluster to the _target_ cluster with DISTCP.  This will copy the schema as in "DIRECT", but will adjust the location to the _target_ clusters namespace using the SAME relative location as was originally used in the _source_ cluster.
 
-- For Legacy Managed tables the `external.table.purge` flag is set because the target cluster owns the data.
+Ownership will be translated in this case because the data is NOT shared with the lower cluster, UNLESS the `-dr` or `--disaster-recovery` flag is set.  In this case, we will NOT translate ownership, since this is a _read only_ copy and we're relying on `distcp` to maintain a consistent view of the data in the _source_ cluster.
+
+#### Ownership
+
+Migration schemas from one cluster to another while sharing the data on one of the clusters creates a dilemma of _ownership_.  In practice only one schema can _own_ the data.  
+
+What does _own_ mean in this case?  If the table was _managed_, then the data is dropped when the table is dropped.  So if we haven't committed to using the _UPPER_ cluster and are simply testing, we want to be careful regarding the effects of dropping the table in the _UPPER_ cluster on the data.  We certainly don't want to delete that data inadvertently.
+
+By specifying the `-c` (commit) option we will ensure the _UPPER_ cluster _owns_ that data "IF" the table was originally managed in the lower cluster.  The `--commit` option is really only relevant when using _shared storage_ between the two clusters.  This could be a cloud bucket, Isilon, or other blob storage medium.  To `--commit` ownership to the _UPPER_ cluster, _shared storage_ is required an you need to also specify `-ss` or `--shared-storage`.

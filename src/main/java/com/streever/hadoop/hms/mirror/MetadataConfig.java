@@ -6,6 +6,7 @@ public class MetadataConfig {
     private String exportBaseDirPrefix;
 
     private Strategy strategy = Strategy.DIRECT;
+    private boolean disasterRecovery = Boolean.FALSE;
 
     public int getConcurrency() {
         return concurrency;
@@ -21,6 +22,14 @@ public class MetadataConfig {
 
     public void setStrategy(Strategy strategy) {
         this.strategy = strategy;
+    }
+
+    public boolean isDisasterRecovery() {
+        return disasterRecovery;
+    }
+
+    public void setDisasterRecovery(boolean disasterRecovery) {
+        this.disasterRecovery = disasterRecovery;
     }
 
     public String getTransferPrefix() {

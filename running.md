@@ -19,30 +19,68 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 **HELP**
 ```
 usage: hms-mirror
-                  version:1.2.1.1-SNAPSHOT
- -cfg,--config <filename>      Config with details for the HMS-Mirror.
-                               Default: $HOME/.hms-mirror/cfg/default.yaml
- -db,--database <databases>    Comma separated list of Databases (upto
-                               100).
- -dr,--dry-run                 No actions are performed, just the output
-                               of the commands in the logs.
- -f,--output-file <filename>   Output Directory (default:
-                               $HOME/.hms-mirror/reports/hms-mirror-<stage
-                               >-<timestamp>.md
- -h,--help                     Help
- -m,--metastore <strategy>     Run HMS-Mirror Metadata with strategy:
-                               DIRECT(default)|EXPORT_IMPORT|SCHEMA_EXTRAC
-                               T
- -r,--retry                    Retry last incomplete run for 'cfg'.  If
-                               none specified, will check for 'default'
- -s,--storage <strategy>       Run HMS-Mirror Storage with strategy:
-                               SQL|EXPORT_IMPORT|HYBRID|DISTCP
- -tf,--table-filter <regex>    Filter tables with name matching RegEx
+                  version:1.2.1.7-SNAPSHOT
+ -a,--acid                               ACID table Migration.  Only
+                                         supported in the STORAGE stage
+ -accept,--accept                        Accept ALL confirmations and
+                                         silence prompts
+ -c,--commit                             Commit to UPPER. Applies to
+                                         METADATA stage when you want the
+                                         UPPER cluster to 'own' the data
+                                         ('external.table.purge'='true')
+ -cfg,--config <filename>                Config with details for the
+                                         HMS-Mirror.  Default:
+                                         $HOME/.hms-mirror/cfg/default.yam
+                                         l
+ -db,--database <databases>              Comma separated list of Databases
+                                         (upto 100).
+ -dbp,--db-prefix <prefix>               A prefix to add to the UPPER
+                                         cluster DB Name.
+ -dr,--disaster-recovery                 Used for Disaster Recovery.  We
+                                         will NOT assign ownership, since
+                                         the DR cluster is a Read-Only
+                                         Cluster.  Only valid with the
+                                         METADATA stage.
+ -e,--execute                            Execute actions request, without
+                                         this flag the process is a
+                                         dry-run.
+ -f,--output-file <filename>             Output Directory (default:
+                                         $HOME/.hms-mirror/reports/hms-mir
+                                         ror-<stage>-<timestamp>.md
+ -h,--help                               Help
+ -m,--metadata <strategy>                Run HMS-Mirror Metadata with
+                                         strategy:
+                                         DIRECT(default)|EXPORT_IMPORT|SCH
+                                         EMA_EXTRACT
+ -r,--retry                              Retry last incomplete run for
+                                         'cfg'.  If none specified, will
+                                         check for 'default'
+ -rs,--replication-strategy <strategy>   Replication Strategy for
+                                         Metadata: OVERWRITE|SYNCHRONIZE
+                                         (default: SYNCHRONIZE)
+ -s,--storage <strategy>                 Run HMS-Mirror Storage with
+                                         strategy:
+                                         SQL|EXPORT_IMPORT|HYBRID(default)
+                                         |DISTCP
+ -ss,--share-storage                     Share Storage is used.  Do NOT
+                                         adjust protocol namespace after
+                                         transferring schema.
+ -tf,--table-filter <regex>              Filter tables with name matching
+                                         RegEx
 ```
 
 There are 2 stages currently supported by the tool:
 - `m|metastore` - Will replicate the metadata and will use the **LOWER** clusters storage for the **UPPER** clusters storage location.
 - `s|storage` - Will migrate the data from the **LOWER** cluster to the **UPPER** cluster.
+
+## Application Flag Description
+
+| Flag | Argument(s) | Notes |
+|:---|:---|:---|
+| `-a` `--acid` | na | When running the `-s` (storage) option with either an `EXPORT_IMPORT` or `HYBRID` strategy you can migrate Transactional/ACID table. This is a *ONE* time transfer using Hive EXPORT_IMPORT.  `hms-mirror` does NOT support incremental updates for transactional/ACID tables. |
+\ `-c` `--commit` | na | When running the `-m` (metadata) option with `-ss`/`--shared-storage` this will give you the option to commit ownership to the UPPER cluster.  Which means that if the table was a managed table in the lower cluster, we'll turn on the `external.table.purge` flag in the table properties. |
+| `-dbp` | <dbname_prefix> | If you would like to alter the target database name, usually for testing, this will prepend the database name in the UPPER cluster |
+
 
 ## Examples
 

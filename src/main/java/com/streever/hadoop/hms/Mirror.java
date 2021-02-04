@@ -58,14 +58,15 @@ public class Mirror {
             HelpFormatter formatter = new HelpFormatter();
             String cmdline = ReportingConf.substituteVariablesFromManifest("hms-mirror \nversion:${Implementation-Version}");
             formatter.printHelp(cmdline, options);
-            System.exit(-1);
+            throw new RuntimeException(pe);
+//            System.exit(-1);
         }
 
         if (cmd.hasOption("h")) {
             HelpFormatter formatter = new HelpFormatter();
             String cmdline = ReportingConf.substituteVariablesFromManifest("hms-mirror \nversion:${Implementation-Version}");
             formatter.printHelp(cmdline, options);
-            System.exit(-1);
+            System.exit(0);
         }
 
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
@@ -92,11 +93,15 @@ public class Mirror {
             String yamlCfgFile = FileUtils.readFileToString(cfgFile, Charset.forName("UTF-8"));
             config = mapper.readerFor(Config.class).readValue(yamlCfgFile);
         } catch (Throwable t) {
-            t.printStackTrace();
+            throw new RuntimeException(t);
         }
 
         if (cmd.hasOption("ss")) {
             config.setShareStorage(Boolean.TRUE);
+        }
+
+        if (cmd.hasOption("dbp")) {
+            config.setDbPrefix(cmd.getOptionValue("dbp"));
         }
 
         // Only set for METADATA.
@@ -104,8 +109,27 @@ public class Mirror {
             if (config.isShareStorage()) {
                 config.setCommitToUpper(Boolean.TRUE);
             } else {
-                LOG.error("Can't commit schema (purgeable) unless using 'Shared Storage'");
-                System.exit(-1);
+                throw new RuntimeException("Can't commit schema (purgeable) unless using 'Shared Storage'");
+//                System.exit(-1);
+            }
+        }
+
+        if (cmd.hasOption("dr")) {
+            if (cmd.hasOption("m") && config.getMetadata().getStrategy() == Strategy.DISTCP) {
+                config.getMetadata().setDisasterRecovery(Boolean.TRUE);
+            } else {
+                throw new RuntimeException("Disaster-Recovery option is only valid with METADATA stage and DISTCP strategy.");
+//                System.exit(-1);
+            }
+        }
+
+        if (cmd.hasOption("a")) {
+            if (cmd.hasOption("s") && (config.getStorage().getStrategy() == Strategy.HYBRID ||
+                    config.getStorage().getStrategy() == Strategy.EXPORT_IMPORT)) {
+                config.getStorage().setMigrateACID(Boolean.TRUE);
+            } else {
+                throw new RuntimeException("ACID migration only supported in STORAGE stage with the EXPORT_IMPORT or HYBRID strategies.");
+//                System.exit(-1);
             }
         }
 
@@ -145,8 +169,8 @@ public class Mirror {
                 ReplicationStrategy rss = ReplicationStrategy.valueOf(cmd.getOptionValue("rs"));
                 config.setReplicationStrategy(rss);
             } catch (Throwable t) {
-                System.out.println("Replication Strategy can only be one of: OVERWRITE|SYNCHRONIZE");
-                System.exit(-1);
+                throw new RuntimeException("Replication Strategy can only be one of: OVERWRITE|SYNCHRONIZE");
+//                System.exit(-1);
             }
         }
 
@@ -157,10 +181,14 @@ public class Mirror {
                     ".hms-mirror/reports/hms-mirror-" + config.getStage() + "-" + getDateMarker() + ".md";
         }
 
-        String reportPath = reportOutputFile.substring(0, reportOutputFile.lastIndexOf(System.getProperty("file.separator")));
-        File reportPathDir = new File(reportPath);
-        if (!reportPathDir.exists()) {
-            reportPathDir.mkdirs();
+        try {
+            String reportPath = reportOutputFile.substring(0, reportOutputFile.lastIndexOf(System.getProperty("file.separator")));
+            File reportPathDir = new File(reportPath);
+            if (!reportPathDir.exists()) {
+                reportPathDir.mkdirs();
+            }
+        } catch (StringIndexOutOfBoundsException stringIndexOutOfBoundsException) {
+            // no dir in -f variable.
         }
 
         File reportFile = new File(reportOutputFile);
@@ -176,8 +204,8 @@ public class Mirror {
         try {
             new FileOutputStream(reportFile).close();
         } catch (IOException e) {
-            e.printStackTrace();
-            return;
+            throw new RuntimeException(e);
+//            return;
         }
 
         if (config.getStage() == null) {
@@ -199,36 +227,44 @@ public class Mirror {
         }
 
         if (config.getDatabases() == null || config.getDatabases().length == 0) {
-            LOG.error("No databases specified");
             throw new RuntimeException("No databases specified");
         }
 
         if (cmd.hasOption("e")) {
-            Scanner scanner = new Scanner(System.in);
+            if (cmd.hasOption("accept")) {
+                config.getAcceptance().setSilentOverride(Boolean.TRUE);
+            } else {
+                Scanner scanner = new Scanner(System.in);
 
-            //  prompt for the user's name
-            System.out.print("I have made backups of both the 'Hive Metastore' in the LOWER and UPPER clusters (TRUE to proceed): ");
+                //  prompt for the user's name
+                System.out.print("I have made backups of both the 'Hive Metastore' in the LOWER and UPPER clusters (TRUE to proceed): ");
 
-            // get their input as a String
-            String response = scanner.next();
-            if (!response.equalsIgnoreCase("true")) {
-                System.out.println("You must affirm to proceed.");
-                System.exit(-1);
+                // get their input as a String
+                String response = scanner.next();
+                if (!response.equalsIgnoreCase("true")) {
+                    throw new RuntimeException("You must affirm to proceed.");
+//                    System.exit(-1);
+                } else {
+                    config.getAcceptance().setBackupOfMetastore(Boolean.TRUE);
+                }
+                System.out.print("I have taken 'Filesystem' Snapshots/Backups of the target 'Hive Databases' on the LOWER and UPPER clusters (TRUE to proceed): ");
+                response = scanner.next();
+                if (!response.equalsIgnoreCase("true")) {
+                    throw new RuntimeException("You must affirm to proceed.");
+//                    System.exit(-1);
+                } else {
+                    config.getAcceptance().setBackupOfHDFS(Boolean.TRUE);
+                }
+
+                System.out.print("'Filesystem' TRASH has been configured on my system (TRUE to proceed): ");
+                response = scanner.next();
+                if (!response.equalsIgnoreCase("true")) {
+                    throw new RuntimeException("You must affirm to proceed.");
+//                    System.exit(-1);
+                } else {
+                    config.getAcceptance().setTrashConfigure(Boolean.TRUE);
+                }
             }
-            System.out.print("I have taken 'Filesystem' Snapshots/Backups of the target 'Hive Databases' on the LOWER and UPPER clusters (TRUE to proceed): ");
-            response = scanner.next();
-            if (!response.equalsIgnoreCase("true")) {
-                System.out.println("You must affirm to proceed.");
-                System.exit(-1);
-            }
-
-            System.out.print("'Filesystem' TRASH has been configured on my system (TRUE to proceed): ");
-            response = scanner.next();
-            if (!response.equalsIgnoreCase("true")) {
-                System.out.println("You must affirm to proceed.");
-                System.exit(-1);
-            }
-
             config.setExecute(Boolean.TRUE);
         } else {
             LOG.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
@@ -257,8 +293,8 @@ public class Mirror {
         if (retry) {
             File retryFile = stateMaintenance.getRetryFile();
             if (!retryFile.exists()) {
-                LOG.error("Could NOT locate 'retry' file: " + retryFile.getPath());
                 throw new RuntimeException("Could NOT locate 'retry' file: " + retryFile.getPath());
+//                throw new RuntimeException("Could NOT locate 'retry' file: " + retryFile.getPath());
             }
             ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
             mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -271,8 +307,8 @@ public class Mirror {
                 // Replace Config
                 config = conversion.getConfig();
             } catch (IOException e) {
-                LOG.error("Could NOT read 'retry' file: " + retryFile.getPath(), e);
                 throw new RuntimeException("Could NOT read 'retry' file: " + retryFile.getPath(), e);
+//                throw new RuntimeException("Could NOT read 'retry' file: " + retryFile.getPath(), e);
             }
         }
 
@@ -521,6 +557,21 @@ public class Mirror {
         commitOption.setRequired(false);
         options.addOption(commitOption);
 
+        Option drOption = new Option("dr", "disaster-recovery", false,
+                "Used for Disaster Recovery.  We will NOT assign ownership, since the DR cluster is a Read-Only Cluster.  Only valid with the METADATA stage.");
+        drOption.setRequired(false);
+        options.addOption(drOption);
+
+        Option acidOption = new Option("a", "acid", false,
+                "ACID table Migration.  Only supported in the STORAGE stage");
+        acidOption.setRequired(false);
+        options.addOption(acidOption);
+
+        Option acceptOption = new Option("accept", "accept", false,
+                "Accept ALL confirmations and silence prompts");
+        acceptOption.setRequired(false);
+        options.addOption(acceptOption);
+
         Option helpOption = new Option("h", "help", false,
                 "Help");
         helpOption.setRequired(false);
@@ -537,6 +588,11 @@ public class Mirror {
         executeOption.setRequired(false);
         options.addOption(executeOption);
 
+        Option dbPrefixOption = new Option("dbp", "db-prefix", true,
+                "A prefix to add to the UPPER cluster DB Name.");
+        dbPrefixOption.setRequired(false);
+        dbPrefixOption.setArgName("prefix");
+        options.addOption(dbPrefixOption);
 
         Option dbOption = new Option("db", "database", true,
                 "Comma separated list of Databases (upto 100).");
@@ -572,8 +628,17 @@ public class Mirror {
         LOG.info("===================================================");
         LOG.info("Running: hms-mirror " + ReportingConf.substituteVariablesFromManifest("v.${Implementation-Version}"));
         LOG.info("===================================================");
-        mirror.init(args);
-        mirror.doit();
-        System.exit(0);
+        try {
+            mirror.init(args);
+            mirror.doit();
+            System.exit(0);
+        } catch (RuntimeException e) {
+            LOG.error(e);
+            System.err.println("\nERROR: ==============================================");
+            System.err.println(e.getMessage());
+            System.err.println("\nSee log for stack trace");
+            System.err.println("=====================================================");
+            System.exit(-1);
+        }
     }
 }

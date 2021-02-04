@@ -6,7 +6,7 @@
 
     <groupId>com.streever.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>1.2.1.6-SNAPSHOT</version>
+    <version>1.2.1.7-SNAPSHOT</version>
     <name>hms-mirror</name>
 
     <url>https://github.com/dstreev/hms_transparent_mirror</url>

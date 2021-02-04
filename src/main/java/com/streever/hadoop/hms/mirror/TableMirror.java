@@ -242,7 +242,6 @@ public class TableMirror {
             } else {
                 TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString(), upperTD);
                 addProp(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString());
-
             }
         }
 

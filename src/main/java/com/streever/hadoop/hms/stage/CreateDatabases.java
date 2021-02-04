@@ -33,8 +33,9 @@ public class CreateDatabases implements Runnable {
                             // Create transition in LOWER
                             config.getCluster(Environment.LOWER).createDatabase(config, config.getMetadata().getTransferPrefix() + database);
                         case DIRECT:
+                        case DISTCP:
                             // Create target DB in UPPER
-                            config.getCluster(Environment.UPPER).createDatabase(config, database);
+                            config.getCluster(Environment.UPPER).createDatabase(config, config.getResolvedDB(database));
                             break;
                     }
                     break;
@@ -48,10 +49,10 @@ public class CreateDatabases implements Runnable {
 //                            config.getCluster(Environment.UPPER).createDatabase(config, config.getTransferDbPrefix() + database);
                         case EXPORT_IMPORT:
                             // Create target DB in UPPER
-                            config.getCluster(Environment.UPPER).createDatabase(config, database);
+                            config.getCluster(Environment.UPPER).createDatabase(config, config.getResolvedDB(database));
                             break;
                         case DISTCP:
-                            // WIP
+                            // TODO: WIP
                             break;
                     }
                     break;

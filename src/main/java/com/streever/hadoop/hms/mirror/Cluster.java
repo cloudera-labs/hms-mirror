@@ -582,7 +582,7 @@ public class Cluster implements Comparable<Cluster> {
                 stmt = conn.createStatement();
 
                 // Set db context;
-                String useDb = MessageFormat.format(MirrorConf.USE, database);
+                String useDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(database));
 
                 LOG.debug(useDb);
                 if (config.isExecute())
@@ -695,7 +695,7 @@ public class Cluster implements Comparable<Cluster> {
                 stmt = conn.createStatement();
 
                 // Set db context;
-                String useDb = MessageFormat.format(MirrorConf.USE, database);
+                String useDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(database));
 
                 LOG.debug(useDb);
                 if (config.isExecute())
@@ -844,13 +844,19 @@ public class Cluster implements Comparable<Cluster> {
                 stmt = conn.createStatement();
 
                 // Set db context;
-                String useDb = MessageFormat.format(MirrorConf.USE, database);
+                String useDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(database));
 
                 LOG.debug(useDb);
                 stmt.execute(useDb);
 
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
-                    Boolean buildUpper = tblMirror.buildUpperSchema(config, Boolean.TRUE);
+                    Boolean buildUpper;
+                    if (config.getStage() == Stage.METADATA && config.getMetadata().isDisasterRecovery()) {
+                        buildUpper = tblMirror.buildUpperSchema(config, Boolean.FALSE);
+                        tblMirror.addIssue("Disaster Recovery was specified. This table has enable `external.table.purge` to ensure a Read-Only copy on the UPPER cluster");
+                    } else {
+                        buildUpper = tblMirror.buildUpperSchema(config, Boolean.TRUE);
+                    }
 
                     // Adjust the Location to be Relative to the UPPER cluster.
                     // as long as we're not using shared storage.
@@ -935,7 +941,7 @@ public class Cluster implements Comparable<Cluster> {
                 stmt = conn.createStatement();
 
                 // Set db context;
-                String useDb = MessageFormat.format(MirrorConf.USE, database);
+                String useDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(database));
 
                 LOG.debug(useDb);
                 stmt.execute(useDb);
@@ -1055,7 +1061,7 @@ public class Cluster implements Comparable<Cluster> {
                 stmt = conn.createStatement();
 
                 // Set db context;
-                String useDb = MessageFormat.format(MirrorConf.USE, database);
+                String useDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(database));
 
                 LOG.debug(useDb);
                 stmt.execute(useDb);
@@ -1217,7 +1223,7 @@ public class Cluster implements Comparable<Cluster> {
                 stmt = conn.createStatement();
 
                 // Set db context;
-                String useDb = MessageFormat.format(MirrorConf.USE, database);
+                String useDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(database));
                 LOG.debug(useDb);
                 stmt.execute(useDb);
 
@@ -1289,7 +1295,7 @@ public class Cluster implements Comparable<Cluster> {
                 stmt = conn.createStatement();
 
                 // Set db context;
-                String useDb = MessageFormat.format(MirrorConf.USE, database);
+                String useDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(database));
                 LOG.debug(useDb);
                 stmt.execute(useDb);
 
