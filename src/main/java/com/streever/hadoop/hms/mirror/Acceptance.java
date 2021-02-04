@@ -3,9 +3,9 @@ package com.streever.hadoop.hms.mirror;
 public class Acceptance {
 
     private Boolean silentOverride;
-    private Boolean backupOfHDFS;
-    private Boolean backupOfMetastore;
-    private Boolean trashConfigure;
+    private Boolean backedUpHDFS;
+    private Boolean backedUpMetastore;
+    private Boolean trashConfigured;
 
     public Boolean getSilentOverride() {
         return silentOverride;
@@ -15,27 +15,27 @@ public class Acceptance {
         this.silentOverride = silentOverride;
     }
 
-    public Boolean getBackupOfHDFS() {
-        return backupOfHDFS;
+    public Boolean getBackedUpHDFS() {
+        return backedUpHDFS;
     }
 
-    public void setBackupOfHDFS(Boolean backupOfHDFS) {
-        this.backupOfHDFS = backupOfHDFS;
+    public void setBackedUpHDFS(Boolean backedUpHDFS) {
+        this.backedUpHDFS = backedUpHDFS;
     }
 
-    public Boolean getBackupOfMetastore() {
-        return backupOfMetastore;
+    public Boolean getBackedUpMetastore() {
+        return backedUpMetastore;
     }
 
-    public void setBackupOfMetastore(Boolean backupOfMetastore) {
-        this.backupOfMetastore = backupOfMetastore;
+    public void setBackedUpMetastore(Boolean backedUpMetastore) {
+        this.backedUpMetastore = backedUpMetastore;
     }
 
-    public Boolean getTrashConfigure() {
-        return trashConfigure;
+    public Boolean getTrashConfigured() {
+        return trashConfigured;
     }
 
-    public void setTrashConfigure(Boolean trashConfigure) {
-        this.trashConfigure = trashConfigure;
+    public void setTrashConfigured(Boolean trashConfigured) {
+        this.trashConfigured = trashConfigured;
     }
 }

@@ -94,6 +94,7 @@ public class Conversion {
                     .append("Phase<br/>Duration").append("|")
                     .append("Partition<br/>Count").append("|")
                     .append("Actions").append("|")
+                    .append("LOWER Table Actions").append("|")
                     .append("Added<br/>Properties").append("|")
                     .append("Issues").append("|")
                     .append("\n");
@@ -101,6 +102,7 @@ public class Conversion {
                     .append(":---").append("|")
                     .append("---:").append("|")
                     .append("---:").append("|")
+                    .append(":---").append("|")
                     .append(":---").append("|")
                     .append(":---").append("|")
                     .append(":---").append("|")
@@ -138,6 +140,19 @@ public class Conversion {
                 }
                 sb.append("</table>");
                 sb.append("|");
+
+                // Lower Table Actions
+                Iterator<String> a1Iter = tblMirror.getTableActions(Environment.LOWER).iterator();
+                sb.append("<table>");
+                while (a1Iter.hasNext()) {
+                    sb.append("<tr>");
+                    String item = a1Iter.next();
+                    sb.append("<td style=\"text-align:right\">").append(item).append("</td>");
+                    sb.append("</tr>");
+                }
+                sb.append("</table>");
+                sb.append("|");
+
                 // Properties
                 if (tblMirror.whereTherePropsAdded()) {
                     for (String propAdd : tblMirror.getPropAdd()) {

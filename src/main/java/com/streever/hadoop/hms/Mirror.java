@@ -59,7 +59,6 @@ public class Mirror {
             String cmdline = ReportingConf.substituteVariablesFromManifest("hms-mirror \nversion:${Implementation-Version}");
             formatter.printHelp(cmdline, options);
             throw new RuntimeException(pe);
-//            System.exit(-1);
         }
 
         if (cmd.hasOption("h")) {
@@ -110,7 +109,6 @@ public class Mirror {
                 config.setCommitToUpper(Boolean.TRUE);
             } else {
                 throw new RuntimeException("Can't commit schema (purgeable) unless using 'Shared Storage'");
-//                System.exit(-1);
             }
         }
 
@@ -119,7 +117,6 @@ public class Mirror {
                 config.getMetadata().setDisasterRecovery(Boolean.TRUE);
             } else {
                 throw new RuntimeException("Disaster-Recovery option is only valid with METADATA stage and DISTCP strategy.");
-//                System.exit(-1);
             }
         }
 
@@ -129,7 +126,6 @@ public class Mirror {
                 config.getStorage().setMigrateACID(Boolean.TRUE);
             } else {
                 throw new RuntimeException("ACID migration only supported in STORAGE stage with the EXPORT_IMPORT or HYBRID strategies.");
-//                System.exit(-1);
             }
         }
 
@@ -170,7 +166,6 @@ public class Mirror {
                 config.setReplicationStrategy(rss);
             } catch (Throwable t) {
                 throw new RuntimeException("Replication Strategy can only be one of: OVERWRITE|SYNCHRONIZE");
-//                System.exit(-1);
             }
         }
 
@@ -205,7 +200,6 @@ public class Mirror {
             new FileOutputStream(reportFile).close();
         } catch (IOException e) {
             throw new RuntimeException(e);
-//            return;
         }
 
         if (config.getStage() == null) {
@@ -237,32 +231,32 @@ public class Mirror {
                 Scanner scanner = new Scanner(System.in);
 
                 //  prompt for the user's name
+                System.out.println("----------------------------");
+                System.out.println(".... Accept to continue ....");
+                System.out.println("----------------------------");
                 System.out.print("I have made backups of both the 'Hive Metastore' in the LOWER and UPPER clusters (TRUE to proceed): ");
 
                 // get their input as a String
                 String response = scanner.next();
                 if (!response.equalsIgnoreCase("true")) {
                     throw new RuntimeException("You must affirm to proceed.");
-//                    System.exit(-1);
                 } else {
-                    config.getAcceptance().setBackupOfMetastore(Boolean.TRUE);
+                    config.getAcceptance().setBackedUpMetastore(Boolean.TRUE);
                 }
                 System.out.print("I have taken 'Filesystem' Snapshots/Backups of the target 'Hive Databases' on the LOWER and UPPER clusters (TRUE to proceed): ");
                 response = scanner.next();
                 if (!response.equalsIgnoreCase("true")) {
                     throw new RuntimeException("You must affirm to proceed.");
-//                    System.exit(-1);
                 } else {
-                    config.getAcceptance().setBackupOfHDFS(Boolean.TRUE);
+                    config.getAcceptance().setBackedUpHDFS(Boolean.TRUE);
                 }
 
                 System.out.print("'Filesystem' TRASH has been configured on my system (TRUE to proceed): ");
                 response = scanner.next();
                 if (!response.equalsIgnoreCase("true")) {
                     throw new RuntimeException("You must affirm to proceed.");
-//                    System.exit(-1);
                 } else {
-                    config.getAcceptance().setTrashConfigure(Boolean.TRUE);
+                    config.getAcceptance().setTrashConfigured(Boolean.TRUE);
                 }
             }
             config.setExecute(Boolean.TRUE);
@@ -280,7 +274,6 @@ public class Mirror {
 
         config.getCluster(Environment.LOWER).setPools(connPools);
         config.getCluster(Environment.UPPER).setPools(connPools);
-
 
     }
 

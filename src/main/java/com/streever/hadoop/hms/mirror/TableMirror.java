@@ -181,6 +181,7 @@ public class TableMirror {
     private Map<Environment, List<String>> tableDefinitions = new TreeMap<Environment, List<String>>();
     private Map<Environment, Boolean> tablePartitioned = new TreeMap<Environment, Boolean>();
     private Map<Environment, List<String>> tablePartitions = new TreeMap<Environment, List<String>>();
+    private Map<Environment, List<String>> tableActions = new TreeMap<Environment, List<String>>();
 
     public void setName(String name) {
         this.name = name;
@@ -242,6 +243,8 @@ public class TableMirror {
             } else {
                 TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString(), upperTD);
                 addProp(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString());
+                // We need to add actions to the LOWER cluster to disable legacy managed behavior
+                this.addTableAction(Environment.LOWER, "You Need to detach table ownership from filesystem in order to prevent accidental deletion of data that is now controlled by the UPPER cluster.");
             }
         }
 
@@ -353,6 +356,20 @@ public class TableMirror {
         } else {
             tablePartitions.put(environment, tablePartitionList);
         }
+    }
+
+    public void addTableAction(Environment environment, String action) {
+        List<String> tableActions = getTableActions(environment);
+        tableActions.add(action);
+    }
+
+    public List<String> getTableActions(Environment environment) {
+        List<String> actions = tableActions.get(environment);
+        if (actions == null) {
+            actions = new ArrayList<String>();
+            tableActions.put(environment, actions);
+        }
+        return actions;
     }
 
     /*

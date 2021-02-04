@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 Using the config, go through the databases and tables and collect the current states.
 
 Create the target databases, where needed to support the migration.
-
  */
 public class Setup {
     private static Logger LOG = LogManager.getLogger(Setup.class);
