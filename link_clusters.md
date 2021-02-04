@@ -19,6 +19,22 @@ Kerberized - sharing same KDC as CDP Base Cluster
 
 #### Configuration Changes
 
+The _namenode_ *kerberos* principal MUST be changed from `nn` to `hdfs` to match the namenode principal of the CDP cluster.  
+
+Note: You may need to add/adjust the `auth_to_local` settings to match this change. 
+
+If this isn't done, `spark-shell` and `spark-submit` will fail to initialize.  When changing this in Ambari on HDP, you will need to *reset* the HDFS zkfc `ha` zNode in Zookeeper and reinitialize the hdfs `zkfc`.
+
+From a Zookeeper Client: `/usr/hdp/current/zookeeper-client/bin/zkCli.sh -server localhost`
+```
+rmr /hadoop-ha
+```
+
+Initialize zkfc
+```
+hdfs zkfc -formatZK
+```
+
 _hdfs-site.xml_
 ```
 hadoop.rpc.protection=true

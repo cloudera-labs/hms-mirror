@@ -56,3 +56,11 @@ Review the ACCEPTED jobs and review the jobs *Diagnostics* status for details on
 Either of:
 1. Reduce the concurrency in the configuration file for `hms-mirror`
 2. Increase the AM ratio or Queue size to allow the jobs to be submitted.  This can be done while the process is running.
+
+## Spark DFS Access
+
+If you have problems accessing HDFS from `spark-shell` or `spark-submit` try adding the following configuration to spark:
+
+```
+--conf spark.yarn.access.hadoopFileSystems=hdfs://<NEW_NAMESPACE>,hdfs://<OLD_NAMESPACE>
+```
