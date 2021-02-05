@@ -5,7 +5,9 @@ import com.streever.hadoop.hms.mirror.Environment;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-public class CreateDatabases implements Runnable {
+import java.util.concurrent.Callable;
+
+public class CreateDatabases implements Callable<ReturnStatus> {
     private static Logger LOG = LogManager.getLogger(CreateDatabases.class);
 
     private Config config = null;
@@ -22,42 +24,49 @@ public class CreateDatabases implements Runnable {
     }
 
     @Override
-    public void run() {
+    public ReturnStatus call() {
+        ReturnStatus rtn = new ReturnStatus();
         LOG.debug("Create Databases");
-
-        for (String database : config.getDatabases()) {
-            switch (config.getStage()) {
-                case METADATA:
-                    switch (config.getMetadata().getStrategy()) {
-                        case EXPORT_IMPORT:
-                            // Create transition in LOWER
-                            config.getCluster(Environment.LOWER).createDatabase(config, config.getMetadata().getTransferPrefix() + database);
-                        case DIRECT:
-                        case DISTCP:
-                            // Create target DB in UPPER
-                            config.getCluster(Environment.UPPER).createDatabase(config, config.getResolvedDB(database));
-                            break;
-                    }
-                    break;
-                case STORAGE:
-                    switch (config.getStorage().getStrategy()) {
-                        case HYBRID:
-                        case SQL:
-                            // Create transition DB in UPPER
-                            // 86 this.  Can't move tables between db's.  So we'll create a transition table in the
-                            //    target db.
-//                            config.getCluster(Environment.UPPER).createDatabase(config, config.getTransferDbPrefix() + database);
-                        case EXPORT_IMPORT:
-                            // Create target DB in UPPER
-                            config.getCluster(Environment.UPPER).createDatabase(config, config.getResolvedDB(database));
-                            break;
-                        case DISTCP:
-                            // TODO: WIP
-                            break;
-                    }
-                    break;
+        try {
+            for (String database : config.getDatabases()) {
+                switch (config.getStage()) {
+                    case METADATA:
+                        switch (config.getMetadata().getStrategy()) {
+                            case EXPORT_IMPORT:
+                                // Create transition in LEFT
+                                config.getCluster(Environment.LEFT).createDatabase(config, config.getMetadata().getTransferPrefix() + database);
+                            case DIRECT:
+                            case DISTCP:
+                                // Create target DB in RIGHT
+                                config.getCluster(Environment.RIGHT).createDatabase(config, config.getResolvedDB(database));
+                                break;
+                        }
+                        break;
+                    case STORAGE:
+                        switch (config.getStorage().getStrategy()) {
+                            case HYBRID:
+                            case SQL:
+                                // Create transition DB in RIGHT
+                                // 86 this.  Can't move tables between db's.  So we'll create a transition table in the
+                                //    target db.
+//                            config.getCluster(Environment.RIGHT).createDatabase(config, config.getTransferDbPrefix() + database);
+                            case EXPORT_IMPORT:
+                                // Create target DB in RIGHT
+                                config.getCluster(Environment.RIGHT).createDatabase(config, config.getResolvedDB(database));
+                                break;
+                            case DISTCP:
+                                // TODO: WIP
+                                break;
+                        }
+                        break;
+                }
             }
+            successful = Boolean.TRUE;
+            rtn.setStatus(ReturnStatus.Status.SUCCESS);
+        } catch (Exception t) {
+            rtn.setStatus(ReturnStatus.Status.ERROR);
+            rtn.setException(t);
         }
-        successful = Boolean.TRUE;
+        return rtn;
     }
 }

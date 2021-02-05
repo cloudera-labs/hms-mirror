@@ -2,7 +2,7 @@
 dryrun: false
 overwriteTable: "true"
 clusters:
-  LOWER:
+  LEFT:
     # Current EMR environment
     legacyHive: "false"
     hcfsNamespace: "s3a://my_team_bucket"
@@ -13,7 +13,7 @@ clusters:
       connectionPropertites:
         user: "dstreev"
         password: "my-password"
-  UPPER:
+  RIGHT:
     legacyHive: "false"
     hcfsNamespace: "s3a://my_team_bucket"
     partitionDiscovery:

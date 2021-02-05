@@ -177,7 +177,7 @@ public class TableMirror {
         getPropAdd().add(prop + "=" + value);
     }
 
-    // There are two environments (UPPER and LOWER)
+    // There are two environments (RIGHT and LEFT)
     private Map<Environment, List<String>> tableDefinitions = new TreeMap<Environment, List<String>>();
     private Map<Environment, Boolean> tablePartitioned = new TreeMap<Environment, Boolean>();
     private Map<Environment, List<String>> tablePartitions = new TreeMap<Environment, List<String>>();
@@ -217,7 +217,7 @@ public class TableMirror {
 
     public boolean buildUpperSchema(Config config, Boolean takeOwnership) {
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        List<String> lowerTD = tableDefinitions.get(Environment.LOWER);
+        List<String> lowerTD = tableDefinitions.get(Environment.LEFT);
         List<String> upperTD = new ArrayList<String>();
         // Copy lower table definition to upper table def.
         upperTD.addAll(lowerTD);
@@ -243,8 +243,8 @@ public class TableMirror {
             } else {
                 TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString(), upperTD);
                 addProp(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString());
-                // We need to add actions to the LOWER cluster to disable legacy managed behavior
-                this.addTableAction(Environment.LOWER, "You Need to detach table ownership from filesystem in order to prevent accidental deletion of data that is now controlled by the UPPER cluster.");
+                // We need to add actions to the LEFT cluster to disable legacy managed behavior
+                this.addTableAction(Environment.LEFT, "You Need to detach table ownership from filesystem in order to prevent accidental deletion of data that is now controlled by the RIGHT cluster.");
             }
         }
 
@@ -262,7 +262,7 @@ public class TableMirror {
         TableUtils.removeTblProperty("discover.partitions", upperTD);
 
         // 6. Set 'discover.partitions' if config
-        if (config.getCluster(Environment.UPPER).getPartitionDiscovery().getAuto()) {
+        if (config.getCluster(Environment.RIGHT).getPartitionDiscovery().getAuto()) {
             TableUtils.upsertTblProperty(MirrorConf.DISCOVER_PARTITIONS, "true", upperTD);
             addProp(MirrorConf.DISCOVER_PARTITIONS, converted.toString());
         }
@@ -271,7 +271,7 @@ public class TableMirror {
         //    Since we are looking at the same data as the original, we're not changing this now.
         //    Any changes to data location are a part of stage-2 (STORAGE).
 
-        this.setTableDefinition(Environment.UPPER, upperTD);
+        this.setTableDefinition(Environment.RIGHT, upperTD);
 
         return Boolean.TRUE;
     }

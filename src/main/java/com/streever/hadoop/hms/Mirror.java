@@ -234,7 +234,7 @@ public class Mirror {
                 System.out.println("----------------------------");
                 System.out.println(".... Accept to continue ....");
                 System.out.println("----------------------------");
-                System.out.print("I have made backups of both the 'Hive Metastore' in the LOWER and UPPER clusters (TRUE to proceed): ");
+                System.out.print("I have made backups of both the 'Hive Metastore' in the LEFT and RIGHT clusters (TRUE to proceed): ");
 
                 // get their input as a String
                 String response = scanner.next();
@@ -243,7 +243,7 @@ public class Mirror {
                 } else {
                     config.getAcceptance().setBackedUpMetastore(Boolean.TRUE);
                 }
-                System.out.print("I have taken 'Filesystem' Snapshots/Backups of the target 'Hive Databases' on the LOWER and UPPER clusters (TRUE to proceed): ");
+                System.out.print("I have taken 'Filesystem' Snapshots/Backups of the target 'Hive Databases' on the LEFT and RIGHT clusters (TRUE to proceed): ");
                 response = scanner.next();
                 if (!response.equalsIgnoreCase("true")) {
                     throw new RuntimeException("You must affirm to proceed.");
@@ -268,12 +268,12 @@ public class Mirror {
         }
 
         ConnectionPools connPools = new ConnectionPools();
-        connPools.addHiveServer2(Environment.LOWER, config.getCluster(Environment.LOWER).getHiveServer2());
-        connPools.addHiveServer2(Environment.UPPER, config.getCluster(Environment.UPPER).getHiveServer2());
+        connPools.addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
+        connPools.addHiveServer2(Environment.RIGHT, config.getCluster(Environment.RIGHT).getHiveServer2());
         connPools.init();
 
-        config.getCluster(Environment.LOWER).setPools(connPools);
-        config.getCluster(Environment.UPPER).setPools(connPools);
+        config.getCluster(Environment.LEFT).setPools(connPools);
+        config.getCluster(Environment.RIGHT).setPools(connPools);
 
     }
 
@@ -360,7 +360,7 @@ public class Mirror {
                 //          same location (cloud storage) between the clusters.
                 //          In this case, don't move any data, BUT we do need to change the source and target table
                 //              definitions to show that legacy managed traits transfer to the upper cluster.
-                //              So, for the lower cluster the table should be converted to EXTERNAL and the UPPER
+                //              So, for the lower cluster the table should be converted to EXTERNAL and the RIGHT
                 //                  cluster should be set to 'external.table.purge'='true'
                 break;
         }
@@ -395,7 +395,7 @@ public class Mirror {
         LOG.info("STORAGE-STAGE: Start Processing for databases: " + Arrays.toString((config.getDatabases())));
 
         LOG.info(">>>>>>>>>>> Building/Starting Storage.");
-        List<ScheduledFuture> sdf = new ArrayList<ScheduledFuture>();
+        List<ScheduledFuture<ReturnStatus>> sdf = new ArrayList<ScheduledFuture<ReturnStatus>>();
 
         Set<String> collectedDbs = conversion.getDatabases().keySet();
         for (String database : collectedDbs) {
@@ -427,10 +427,19 @@ public class Mirror {
 
         while (true) {
             boolean check = true;
-            for (ScheduledFuture sf : sdf) {
+            for (ScheduledFuture<ReturnStatus> sf : sdf) {
                 if (!sf.isDone()) {
                     check = false;
                     break;
+                }
+                try {
+                    if (sf.isDone() && sf.get() != null) {
+                        if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
+                            throw new RuntimeException(sf.get().getException());
+                        }
+                    }
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
                 }
             }
             if (check)
@@ -456,7 +465,7 @@ public class Mirror {
 //        Conversion conversion = new Conversion();
 
         LOG.info(">>>>>>>>>>> Building/Starting Transition.");
-        List<ScheduledFuture> mdf = new ArrayList<ScheduledFuture>();
+        List<ScheduledFuture<ReturnStatus>> mdf = new ArrayList<ScheduledFuture<ReturnStatus>>();
 
         Set<String> collectedDbs = conversion.getDatabases().keySet();
         for (String database : collectedDbs) {
@@ -468,7 +477,7 @@ public class Mirror {
                     case INIT:
                     case STARTED:
                     case ERROR:
-                        if (!TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER))) {
+                        if (!TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT))) {
                             Metadata md = new Metadata(config, dbMirror, tblMirror);
                             mdf.add(config.getMetadataThreadPool().schedule(md, 1, TimeUnit.MILLISECONDS));
                         } else {
@@ -492,10 +501,19 @@ public class Mirror {
 
         while (true) {
             boolean check = true;
-            for (ScheduledFuture sf : mdf) {
+            for (ScheduledFuture<ReturnStatus> sf : mdf) {
                 if (!sf.isDone()) {
                     check = false;
                     break;
+                }
+                try {
+                    if (sf.isDone() && sf.get() != null) {
+                        if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
+                            throw new RuntimeException(sf.get().getException());
+                        }
+                    }
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
                 }
             }
             if (check)
@@ -546,7 +564,7 @@ public class Mirror {
         options.addOption(sharedOption);
 
         Option commitOption = new Option("c", "commit", false,
-                "Commit to UPPER. Applies to METADATA stage when you want the UPPER cluster to 'own' the data ('external.table.purge'='true')");
+                "Commit to RIGHT. Applies to METADATA stage when you want the RIGHT cluster to 'own' the data ('external.table.purge'='true')");
         commitOption.setRequired(false);
         options.addOption(commitOption);
 
@@ -582,7 +600,7 @@ public class Mirror {
         options.addOption(executeOption);
 
         Option dbPrefixOption = new Option("dbp", "db-prefix", true,
-                "A prefix to add to the UPPER cluster DB Name.");
+                "A prefix to add to the RIGHT cluster DB Name.");
         dbPrefixOption.setRequired(false);
         dbPrefixOption.setArgName("prefix");
         options.addOption(dbPrefixOption);

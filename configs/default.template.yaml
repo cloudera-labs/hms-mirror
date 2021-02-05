@@ -1,12 +1,4 @@
 # Config
-# Optional (default: false)
-# Set to true to show commands, but NOT run anything.
-dryrun: false
-# Optional (default: true)
-# When UPPER cluster table exists, it will be overwritten UNLESS the table is managing data.
-#  in this case, the user will have to take action before attempting process.
-overwriteTable: "true"
-# Metadata is Optional, when not specified defaults are used.  Defaults below.
 metadata:
   # Optional (default: 4)
   concurrency: 4
@@ -39,7 +31,7 @@ storage:
     # Optional (default: 1073741824 =1gb)
     sqlSizeLimit:      1073741824
 clusters:
-  LOWER:
+  LEFT:
     # Set for Hive 1/2 environments
     legacyHive: "true"
     # Is the 'Hadoop COMPATIBLE File System' used to prefix data locations for this cluster.
@@ -49,7 +41,7 @@ clusters:
     #    cloud storage prefix. IE: s3a://my_bucket
     hcfsNamespace: "<hdfs://namespace>"
     hiveServer2:
-      # Standalone jar file used to connect via JDBC to the LOWER environment Hive Server 2
+      # Standalone jar file used to connect via JDBC to the LEFT environment Hive Server 2
       # NOTE: Hive 3 jars will NOT work against Hive 1.  The protocol isn't compatible.
       jarFile: "<environment-specific-jdbc-standalone-driver>"
       uri: "<lower-cluster-jdbc-url>"
@@ -57,7 +49,7 @@ clusters:
       connectionPropertites:
         user: "<user>"
         password: "<password>"
-  UPPER:
+  RIGHT:
     legacyHive: "false"
     # Is the 'Hadoop COMPATIBLE File System' used to prefix data locations for this cluster.
     # It is mainly used to as a baseline for where "DATA" will be transfered in the
@@ -65,8 +57,8 @@ clusters:
     # base location + the extended path where it existed in the source system.
     # The intent is to keep the data in the same relative location for this new cluster
     # as the old cluster.
-    # If the LOWER and UPPER clusters are share the same cloud storage, then use the same
-    # hcfs base location as the LOWER cluster.
+    # If the LEFT and RIGHT clusters are share the same cloud storage, then use the same
+    # hcfs base location as the LEFT cluster.
     hcfsNamespace: "<hdfs://namespace>"
     partitionDiscovery:
       # Addition HMS configuration needed for this "discover.partitions"="true"
@@ -74,7 +66,7 @@ clusters:
       auto: true
       initMSCK: true
     hiveServer2:
-      # Standalone jar file used to connect via JDBC to the LOWER environment Hive Server 2
+      # Standalone jar file used to connect via JDBC to the LEFT environment Hive Server 2
       jarFile: "<environment-specific-jdbc-standalone-driver>"
       uri: "<upper-cluster-jdbc-url>"
       # Optional when using Kerberos Auth (Requires Kerb Ticket)

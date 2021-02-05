@@ -2,7 +2,7 @@
 dryrun: false
 overwriteTable: "true"
 clusters:
-  LOWER:
+  LEFT:
     # Set for Hive 1/2 environments
     legacyHive: "true"
     hcfsNamespace: "hdfs://HDP50"
@@ -13,7 +13,7 @@ clusters:
       connectionPropertites:
         user: "dstreev"
         password: "my-password"
-  UPPER:
+  RIGHT:
     legacyHive: "false"
     hcfsNamespace: "hdfs://HOME90"
     partitionDiscovery:

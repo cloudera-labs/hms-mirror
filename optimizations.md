@@ -5,8 +5,8 @@ Moving metadata and data between two clusters is a pretty straight forward proce
 ### Make Backups before running `hms-mirror`
 
 Take snapshots of areas you'll touch:
-- The HMS database on the LOWER and UPPER clusters
-- A snapshot of the HDFS directories on BOTH the LOWER and UPPER clusters that will be used/touched.
+- The HMS database on the LEFT and RIGHT clusters
+- A snapshot of the HDFS directories on BOTH the LEFT and RIGHT clusters that will be used/touched.
 
 ### Isolate Migration Activities
 
@@ -21,7 +21,7 @@ Set `ranger.plugin.hive.urlauth.filesystem.schemes=file` in the Hive Server 2(hi
 
 ![Safety Value](./images/hs2_ranger_schemas.png)
 
-Add this to the HS2 instance on the UPPER cluster, when Ranger is used for Auth.
+Add this to the HS2 instance on the RIGHT cluster, when Ranger is used for Auth.
 This skips the check done against every directory at the table location (for CREATE or ALTER LOCATION).  Allowing the process of CREATE/ALTER to run much faster.
 
 The default (true) behavior works well for interactive use case, but bulk operations like this can take a really long time if this validation needs to happen for every new partition during creation or discovery.

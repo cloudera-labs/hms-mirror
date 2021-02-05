@@ -6,7 +6,7 @@ The `hms-mirror` process DOES 'DROP' tables when asked to.  If those tables *man
 
 ### HDFS Snapshots
 
-Use HDFS Snapshots to make a quick backup of directories you'll be working on.  Do this especially in the *LOWER* cluster.  We only drop tables, so a snapshot of the database directory is good.  BUT, if you are manually doing any `DROP DATABASE <x> CASCADE` operations, that will delete the snapshotted directory (and the snapshot).  In this case, create the _snapshot_ one level above the database directory.
+Use HDFS Snapshots to make a quick backup of directories you'll be working on.  Do this especially in the *LEFT* cluster.  We only drop tables, so a snapshot of the database directory is good.  BUT, if you are manually doing any `DROP DATABASE <x> CASCADE` operations, that will delete the snapshotted directory (and the snapshot).  In this case, create the _snapshot_ one level above the database directory.
 
 ### Metastore Backups
 

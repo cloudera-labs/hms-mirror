@@ -73,6 +73,9 @@ public class ConnectionPools {
         Connection conn = null;
         try {
             conn = getEnvironmentDataSource(environment).getConnection();
+//        } catch (SQLException se) {
+//            se.printStackTrace();
+//            throw new RuntimeException(se);
         } finally {
             DriverManager.deregisterDriver(lclDriver);
         }
@@ -89,12 +92,12 @@ public class ConnectionPools {
 
     public void close() {
         try {
-            dataSources.get(Environment.LOWER).close();
+            dataSources.get(Environment.LEFT).close();
         } catch (SQLException throwables) {
             //
         }
         try {
-            dataSources.get(Environment.UPPER).close();
+            dataSources.get(Environment.RIGHT).close();
         } catch (SQLException throwables) {
             //
         }

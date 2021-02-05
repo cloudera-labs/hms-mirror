@@ -7,8 +7,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.sql.SQLException;
+import java.util.concurrent.Callable;
 
-public class GetTables implements Runnable {
+public class GetTables implements Callable<ReturnStatus> {
     private static Logger LOG = LogManager.getLogger(GetTables.class);
 
     private Config config = null;
@@ -33,13 +34,18 @@ public class GetTables implements Runnable {
     }
 
     @Override
-    public void run() {
-        LOG.debug("Getting table for: " +dbMirror.getName());
+    public ReturnStatus call() {
+        ReturnStatus rtn = new ReturnStatus();
+        LOG.debug("Getting tables for: " +dbMirror.getName());
         try {
-            config.getCluster(Environment.LOWER).getTables(config, dbMirror);
+            config.getCluster(Environment.LEFT).getTables(config, dbMirror);
             successful = Boolean.TRUE;
+            rtn.setStatus(ReturnStatus.Status.SUCCESS);
         } catch (SQLException throwables) {
             successful = Boolean.FALSE;
+            rtn.setStatus(ReturnStatus.Status.ERROR);
+            rtn.setException(throwables);
         }
+        return rtn;
     }
 }

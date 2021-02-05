@@ -27,7 +27,7 @@ EXPORT TABLE <abc> TO '<hdfs_location_on_lower_cluster>';
 ```
 
 
-### From the **UPPER** Cluster
+### From the **RIGHT** Cluster
 - Create a matching database.
 
 ```

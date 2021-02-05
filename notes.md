@@ -23,7 +23,7 @@ When connecting via `kerberos`, you will need to include the `--hadoop-classpath
     - option for override def in stage 1.
     
     
-When the "EXTERNAL" tables are added to the UPPER cluster, they're added with "discover.partitions"="true".  But they
+When the "EXTERNAL" tables are added to the RIGHT cluster, they're added with "discover.partitions"="true".  But they
 don't appear to get fixed in CDP.  https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DDL#LanguageManualDDL-DiscoverPartitions
 
 This appears to be a feature in Hive 4.0.  Need to see about backport to CDP.
@@ -73,8 +73,8 @@ Tip 4, would distcp of parent table directory and partition discovery speed this
 ## Tip 5
 
 Take snapshots of areas you'll touch:
-- The HMS database on the LOWER and UPPER clusters
-- A snapshot of the HDFS directories on BOTH the LOWER and UPPER clusters that will be used/touched.
+- The HMS database on the LEFT and RIGHT clusters
+- A snapshot of the HDFS directories on BOTH the LEFT and RIGHT clusters that will be used/touched.
 
 
 ----
@@ -83,7 +83,7 @@ Take snapshots of areas you'll touch:
 
 
 ## Skip dir permission auth/check for create and alter table locations
-Add this to the HS2 instance on the UPPER cluster, when Ranger is used for Auth.
+Add this to the HS2 instance on the RIGHT cluster, when Ranger is used for Auth.
 This skips the check done against every directory at the table location (for CREATE or ALTER LOCATION).  Allowing the process of CREATE/ALTER to run much faster.
 
 `ranger.plugin.hive.urlauth.filesystem.schemes=file`

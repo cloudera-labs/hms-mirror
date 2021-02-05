@@ -6,7 +6,7 @@
 
 `mvn clean install`
 
-Produces a 'tarball' that can be distributed.  Copy the `target/hms-mirror-<version>-dist.tar.gz` to an edge node on the **UPPER** cluster.
+Produces a 'tarball' that can be distributed.  Copy the `target/hms-mirror-<version>-dist.tar.gz` to an edge node on the **RIGHT** cluster.
 
 ### Obtaining Pre-Built Binary
 

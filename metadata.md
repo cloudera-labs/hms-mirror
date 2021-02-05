@@ -1,8 +1,8 @@
 ### METADATA
 
-This process uses the 'storage' layer of a legacy cluster (LOWER) from the compute layer of a modern cluster (UPPER).
+This process uses the 'storage' layer of a legacy cluster (LEFT) from the compute layer of a modern cluster (RIGHT).
 
-We treat hdfs on the **LOWER** cluster as a shared resource and migrate the metadata for Hive over to the **UPPER** cluster using _standard_ `hive` tools and techniques.
+We treat hdfs on the **LEFT** cluster as a shared resource and migrate the metadata for Hive over to the **RIGHT** cluster using _standard_ `hive` tools and techniques.
 
 This shared storage approach, with replicated metadata, should address a large majority of `hive metastore` analytic use cases.  This includes work from Hive, Spark, and other technologies integrated with the `hive metastore`.
 
@@ -22,8 +22,8 @@ There are a few limitations to note here:
 - This technique is restricted to _external_ and _non-transactional managed_ tables.  **ACID Tables** are **NOT** supported.
 - Partitioned datasets can be 'auto discovered' when the configuration `partitionDiscovery:auto=true` is set.
 - Partitions that do NOT follow the standard directory structure and aren't discoverable via `msck` are NOT supported yet.
-- Connections to HS2 should avoid using ZooKeeper Discovery especially for _LOWER_ clusters.  Use direct connections or a proxy connection through KNOX to reduce the dependencies.
-- `hms-mirror` can only support _kerberos_ Authentication modes to HS2 for Hive 3.  Which means that the _LOWER_ cluster HS2 JDBC URL should NOT use `kerberos` as the authentication model. Using any other authentication model is supported.
+- Connections to HS2 should avoid using ZooKeeper Discovery especially for _LEFT_ clusters.  Use direct connections or a proxy connection through KNOX to reduce the dependencies.
+- `hms-mirror` can only support _kerberos_ Authentication modes to HS2 for Hive 3.  Which means that the _LEFT_ cluster HS2 JDBC URL should NOT use `kerberos` as the authentication model. Using any other authentication model is supported.
 
 - [Link Clusters](./link_clusters.md) so the Upper Cluster can distcp from the lower cluster.  This is required to support storage access from the 'target' cluster to the 'source' cluster. The user/service account used to launch the jobs in the 'target' cluster is translated to the 'source' clusters storage access layer.  The appropriate ACL's on the 'source' cluster must be established to allow this connection.
 
@@ -32,7 +32,7 @@ There are a few limitations to note here:
 Strategies are the varies techniques used to migrate hive schemas.
 
 ##### DIRECT
-This will extract a copy of the METADATA from the _LOWER_ cluster, make any adjustments required for compatibility, and replay the DDL on the _UPPER_ cluster.
+This will extract a copy of the METADATA from the _LEFT_ cluster, make any adjustments required for compatibility, and replay the DDL on the _RIGHT_ cluster.
 
 See [ownership](#ownership) for managed data.
 
@@ -53,6 +53,6 @@ Ownership will be translated in this case because the data is NOT shared with th
 
 Migration schemas from one cluster to another while sharing the data on one of the clusters creates a dilemma of _ownership_.  In practice only one schema can _own_ the data.  
 
-What does _own_ mean in this case?  If the table was _managed_, then the data is dropped when the table is dropped.  So if we haven't committed to using the _UPPER_ cluster and are simply testing, we want to be careful regarding the effects of dropping the table in the _UPPER_ cluster on the data.  We certainly don't want to delete that data inadvertently.
+What does _own_ mean in this case?  If the table was _managed_, then the data is dropped when the table is dropped.  So if we haven't committed to using the _RIGHT_ cluster and are simply testing, we want to be careful regarding the effects of dropping the table in the _RIGHT_ cluster on the data.  We certainly don't want to delete that data inadvertently.
 
-By specifying the `-c` (commit) option we will ensure the _UPPER_ cluster _owns_ that data "IF" the table was originally managed in the lower cluster.  The `--commit` option is really only relevant when using _shared storage_ between the two clusters.  This could be a cloud bucket, Isilon, or other blob storage medium.  To `--commit` ownership to the _UPPER_ cluster, _shared storage_ is required an you need to also specify `-ss` or `--shared-storage`.
+By specifying the `-c` (commit) option we will ensure the _RIGHT_ cluster _owns_ that data "IF" the table was originally managed in the lower cluster.  The `--commit` option is really only relevant when using _shared storage_ between the two clusters.  This could be a cloud bucket, Isilon, or other blob storage medium.  To `--commit` ownership to the _RIGHT_ cluster, _shared storage_ is required an you need to also specify `-ss` or `--shared-storage`.

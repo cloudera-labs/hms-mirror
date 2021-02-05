@@ -1,12 +1,15 @@
 package com.streever.hadoop.hms.stage;
 
 import com.streever.hadoop.hms.mirror.*;
+import jdk.nashorn.internal.codegen.CompilerConstants;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -32,23 +35,32 @@ public class Setup {
         Date startTime = new Date();
         LOG.info("GATHERING METADATA: Start Processing for databases: " + Arrays.toString((config.getDatabases())));
 
-        List<ScheduledFuture> gtf = new ArrayList<ScheduledFuture>();
+        List<ScheduledFuture<ReturnStatus>> gtf = new ArrayList<ScheduledFuture<ReturnStatus>>();
         for (String database : config.getDatabases()) {
             DBMirror dbMirror = conversion.addDatabase(database);
-            GetTables gt = new GetTables(config, dbMirror);
+            Callable<ReturnStatus> gt = new GetTables(config, dbMirror);
             gtf.add(config.getMetadataThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
         }
 
-        CreateDatabases createDatabases = new CreateDatabases(config);
+        Callable<ReturnStatus> createDatabases = new CreateDatabases(config);
         gtf.add(config.getMetadataThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
 
         // When the tables have been gathered, complete the process for the METADATA Stage.
         while (true) {
             boolean check = true;
-            for (ScheduledFuture sf : gtf) {
+            for (ScheduledFuture<ReturnStatus> sf : gtf) {
                 if (!sf.isDone()) {
                     check = false;
                     break;
+                }
+                try {
+                    if (sf.isDone() && sf.get() != null) {
+                        if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
+                            throw new RuntimeException(sf.get().getException());
+                        }
+                    }
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
                 }
             }
             if (check)
@@ -72,10 +84,19 @@ public class Setup {
 
         while (true) {
             boolean check = true;
-            for (ScheduledFuture sf : tmdf) {
+            for (ScheduledFuture<ReturnStatus> sf : tmdf) {
                 if (!sf.isDone()) {
                     check = false;
                     break;
+                }
+                try {
+                    if (sf.isDone() && sf.get() != null) {
+                        if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
+                            throw new RuntimeException(sf.get().getException());
+                        }
+                    }
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
                 }
             }
             if (check)

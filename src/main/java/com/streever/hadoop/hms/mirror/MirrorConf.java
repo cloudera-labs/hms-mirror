@@ -41,20 +41,20 @@ public class MirrorConf {
 
     // Data Migration Flags
     /*
-    Didn't move data (cloud storage scenario), but UPPER cluster managed data flags
+    Didn't move data (cloud storage scenario), but RIGHT cluster managed data flags
     converted to upper cluster AND reset/unset in lower cluster.
     */
     public static final String HMS_MIRROR_STORAGE_OWNER_FLAG = "hmsMirror_Storage_OWNER_Stage2";
     /*
-    Migrate Metadata only and use a temp table in the UPPER cluster with a reference to the data
-    in the LOWER cluster and USE SQL to migrated the data from the temp table to a target table
-    in the UPPER cluster that matches the LOWER cluster relative location.
+    Migrate Metadata only and use a temp table in the RIGHT cluster with a reference to the data
+    in the LEFT cluster and USE SQL to migrated the data from the temp table to a target table
+    in the RIGHT cluster that matches the LEFT cluster relative location.
      */
     public static final String HMS_MIRROR_STORAGE_SQL_FLAG = "hmsMirror_Storage_SQL_Stage2";
     /*
     Using Hive EXPORT to build a transferrable package of the schema and data in the lower cluster.
-    In the UPPER cluster, with access to the LOWER cluster EXPORT location, IMPORT the table and data
-    into the UPPER cluster.
+    In the RIGHT cluster, with access to the LEFT cluster EXPORT location, IMPORT the table and data
+    into the RIGHT cluster.
     Purge/Managed Adjustments: TBD
      */
     public static final String HMS_MIRROR_STORAGE_IMPORT_FLAG = "hmsMirror_Storage_IMPORT_Stage2";

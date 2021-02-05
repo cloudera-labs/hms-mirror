@@ -90,7 +90,9 @@ public class Cluster implements Comparable<Cluster> {
     }
 
     protected Connection getConnection() throws SQLException {
-        return pools.getEnvironmentConnection(getEnvironment());
+        Connection conn = null;
+        conn = pools.getEnvironmentConnection(getEnvironment());
+        return conn;
     }
 
     public void getTables(Config config, DBMirror dbMirror) throws SQLException {
@@ -98,15 +100,17 @@ public class Cluster implements Comparable<Cluster> {
         try {
             conn = getConnection();
 
-            LOG.debug(getEnvironment() + ":" + dbMirror.getName() + ": Loading tables for database");
+            String database = (getEnvironment() == Environment.LEFT ? dbMirror.getName() : config.getResolvedDB(dbMirror.getName()));
+
+            LOG.debug(getEnvironment() + ":" + database + ": Loading tables for database");
 
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 stmt = conn.createStatement();
-                LOG.debug(getEnvironment() + ":" + dbMirror.getName() + ": Setting Hive DB Session Context");
-                stmt.execute(MessageFormat.format(MirrorConf.USE, dbMirror.getName()));
-                LOG.debug(getEnvironment() + ":" + dbMirror.getName() + ": Getting Table List");
+                LOG.debug(getEnvironment() + ":" + database + ": Setting Hive DB Session Context");
+                stmt.execute(MessageFormat.format(MirrorConf.USE, database));
+                LOG.debug(getEnvironment() + ":" + database + ": Getting Table List");
                 resultSet = stmt.executeQuery(MirrorConf.SHOW_TABLES);
                 while (resultSet.next()) {
                     String tableName = resultSet.getString(1);
@@ -139,6 +143,8 @@ public class Cluster implements Comparable<Cluster> {
                     }
                 }
             }
+        } catch (SQLException se) {
+            throw se;
         } finally {
             try {
                 conn.close();
@@ -215,7 +221,7 @@ public class Cluster implements Comparable<Cluster> {
     }
 
     public void createDatabase(Config config, String database) {
-        // Open the connection and ensure we are running this on the "UPPER" cluster.
+        // Open the connection and ensure we are running this on the "RIGHT" cluster.
         Connection conn = null;
         try {
             conn = getConnection();
@@ -234,11 +240,11 @@ public class Cluster implements Comparable<Cluster> {
                 // CREATE DB.
                 String createDb = MessageFormat.format(MirrorConf.CREATE_DB, database);
                 try {
-                    LOG.debug(createDb);
+                    LOG.debug(getEnvironment() + ":" + createDb);
                     if (config.isExecute())
                         stmt.execute(createDb);
                 } catch (SQLException throwables) {
-                    LOG.error("Creating DB", throwables);
+                    LOG.error(getEnvironment() + ":Creating DB", throwables);
 //                    return false;
                 }
 
@@ -253,6 +259,7 @@ public class Cluster implements Comparable<Cluster> {
             }
         } catch (SQLException throwables) {
             LOG.error("Issue", throwables);
+            throw new RuntimeException(throwables);
         } finally {
             try {
                 if (conn != null)
@@ -280,14 +287,14 @@ public class Cluster implements Comparable<Cluster> {
                 switch (config.getReplicationStrategy()) {
                     case OVERWRITE:
                         // Check if table exist or if we're working with a transfer table (in which case, drop)
-                        if (tblMirror.getTableDefinition(Environment.UPPER) != null) {
+                        if (tblMirror.getTableDefinition(Environment.RIGHT) != null) {
                             LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Overwrite ON: Dropping table (if exists)");
                             tblMirror.addAction("Overwrite ON", Boolean.TRUE);
                             // Table Exists.
                             // Check that it was put there by 'hms-mirror'.  If not, we won't replace it.
-                            if (TableUtils.isHMSConverted(tableName, tblMirror.getTableDefinition(Environment.UPPER))) {
+                            if (TableUtils.isHMSConverted(tableName, tblMirror.getTableDefinition(Environment.RIGHT))) {
                                 // Check if the table has been converted to an ACID table.
-                                if (config.getStage().equals(Stage.METADATA) && TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
+                                if (config.getStage().equals(Stage.METADATA) && TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT))) {
                                     String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Has been converted to " +
                                             "a 'transactional' table.  And isn't safe to drop before re-importing. " +
                                             "Review the table and remove manually before running process again.";
@@ -298,7 +305,7 @@ public class Cluster implements Comparable<Cluster> {
                                 }
                                 // Check if the table is "Managing" data.  If so, we can't safety drop the table without effecting
                                 // the data.
-                                if (!TableUtils.isHive3Standard(tableName, tblMirror.getTableDefinition(Environment.UPPER))) {
+                                if (!TableUtils.isHive3Standard(tableName, tblMirror.getTableDefinition(Environment.RIGHT))) {
                                     String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Is a 'Managed Non-Transactional' " +
                                             "which is a non-standard configuration in Hive 3.  Regardless, the data is " +
                                             "managed and it's not safe to proceed with converting this table. " +
@@ -312,7 +319,7 @@ public class Cluster implements Comparable<Cluster> {
                                 // Ensure the table purge flag hasn't been set.
                                 // ONLY prevent during METADATA stage.
                                 // FOR the STORAGE stage, drop the table and data and import.
-                                if (TableUtils.isExternalPurge(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
+                                if (TableUtils.isExternalPurge(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT))) {
                                     String errorMsg = getEnvironment() + ":" + database + "." + tableName + ": Is a 'Purge' " +
                                             "enabled 'EXTERNAL' table.  The data is " +
                                             "managed and it's not safe to proceed with converting this table. " +
@@ -349,9 +356,9 @@ public class Cluster implements Comparable<Cluster> {
                         }
                         break;
                     case SYNCHRONIZE:
-                        if (tblMirror.getTableDefinition(Environment.UPPER) != null) {
+                        if (tblMirror.getTableDefinition(Environment.RIGHT) != null) {
                             // TODO: If the schemas are different, drop and recreate.  If the same, do nothing.
-                            LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Exists in UPPER cluster. ");
+                            LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Exists in RIGHT cluster. ");
                             tblMirror.addIssue("Schema exists already");
                             tblMirror.addIssue("No Schema action performed");
                             rtn = Boolean.FALSE;
@@ -435,9 +442,11 @@ public class Cluster implements Comparable<Cluster> {
         Statement stmt = null;
         Boolean rtn = Boolean.FALSE;
 
-        String database = dbMirror.getName();
+//        String database = dbMirror.getName();
+        String database = (getEnvironment() == Environment.LEFT ? dbMirror.getName() : config.getResolvedDB(dbMirror.getName()));
+
         String tableName = tblMirror.getName();
-        LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
+        LOG.debug(getEnvironment().toString() + ":START:" + database + "." + tblMirror.getName());
         try {
             conn = getConnection();
 
@@ -455,11 +464,11 @@ public class Cluster implements Comparable<Cluster> {
 
             if (config.isExecute())
                 stmt.execute(dropTransferTable);
-            tblMirror.addAction("TRANSFER(LOWER) Schema", "Built");
+            tblMirror.addAction("TRANSFER(LEFT) Schema", "Built");
 
             String transferCreateTable = MessageFormat.format(MirrorConf.CREATE_EXTERNAL_LIKE,
                     transferDatabase, tblMirror.getName(),
-                    dbMirror.getName(), tblMirror.getName());
+                    database, tblMirror.getName());
 
             LOG.debug(getEnvironment() + ":" + database + "." + tableName +
                     ": Creating transfer schema for table");
@@ -525,10 +534,10 @@ public class Cluster implements Comparable<Cluster> {
             // Get the definition for this environment.
             List<String> tblDef = tblMirror.getTableDefinition(getEnvironment());
             LOG.debug(getEnvironment() + ":" + database + "." +
-                    tableName + ": Exporting Table to " + config.getCluster(Environment.LOWER).hcfsNamespace + exportBaseDirPrefix + database + "/" + tableName);
+                    tableName + ": Exporting Table to " + config.getCluster(Environment.LEFT).hcfsNamespace + exportBaseDirPrefix + database + "/" + tableName);
             String exportTransferSchema = MessageFormat.format(MirrorConf.EXPORT_TABLE,
                     database, tableName,
-                    config.getCluster(Environment.LOWER).hcfsNamespace + exportBaseDirPrefix + database + "/" + tableName);
+                    config.getCluster(Environment.LEFT).hcfsNamespace + exportBaseDirPrefix + database + "/" + tableName);
             LOG.debug(getEnvironment() + ":(SQL)" + exportTransferSchema);
             tblMirror.setMigrationStageMessage("Export Schema");
             if (config.isExecute())
@@ -559,30 +568,33 @@ public class Cluster implements Comparable<Cluster> {
 
     /*
     In the same target db, build a transfer table from the lower cluster.  This table will be the table
-    where we push all data to in the SQL method.  The data will be source by the UPPER clusters shadow
-    table (with original name) in the UPPER cluster, looking at the data in the lower cluster.
-    This transfer table should use the UPPER cluster for storage and the location is the same (relative) as
-    where the data was in the LOWER cluster.
+    where we push all data to in the SQL method.  The data will be source by the RIGHT clusters shadow
+    table (with original name) in the RIGHT cluster, looking at the data in the lower cluster.
+    This transfer table should use the RIGHT cluster for storage and the location is the same (relative) as
+    where the data was in the LEFT cluster.
     Once the transfer is complete, the two tables can be swapped in a move that is quick.
     */
     public Boolean buildUpperTransferTable(Config config, DBMirror dbMirror, TableMirror tblMirror, String transferPrefix) {
-        // Open the connection and ensure we are running this on the "UPPER" cluster.
+        // Open the connection and ensure we are running this on the "RIGHT" cluster.
         Boolean rtn = Boolean.FALSE;
-        if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
+        if (this.getEnvironment() == Environment.RIGHT) {
+
+            String database = (getEnvironment() == Environment.LEFT ? dbMirror.getName() : config.getResolvedDB(dbMirror.getName()));
+
+            LOG.debug(getEnvironment().toString() + ":START:" + database + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 conn = getConnection();
 
-                String database = dbMirror.getName();
+//                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
 
                 stmt = conn.createStatement();
 
                 // Set db context;
-                String useDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(database));
+                String useDb = MessageFormat.format(MirrorConf.USE, database);
 
                 LOG.debug(useDb);
                 if (config.isExecute())
@@ -594,14 +606,14 @@ public class Cluster implements Comparable<Cluster> {
 
                     // Don't change namespace when using Shared Storage.
                     if (!config.isShareStorage()) {
-                        TableUtils.changeLocationNamespace(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER),
-                                config.getCluster(Environment.LOWER).getHcfsNamespace(),
-                                config.getCluster(Environment.UPPER).getHcfsNamespace());
+                        TableUtils.changeLocationNamespace(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT),
+                                config.getCluster(Environment.LEFT).getHcfsNamespace(),
+                                config.getCluster(Environment.RIGHT).getHcfsNamespace());
                     }
 
-                    if (TableUtils.isHMSLegacyManaged(this, tableName, tblMirror.getTableDefinition(Environment.UPPER))) {
+                    if (TableUtils.isHMSLegacyManaged(this, tableName, tblMirror.getTableDefinition(Environment.RIGHT))) {
                         tblMirror.setMigrationStageMessage("Adding EXTERNAL purge to table properties");
-                        TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true", tblMirror.getTableDefinition(Environment.UPPER));
+                        TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true", tblMirror.getTableDefinition(Environment.RIGHT));
                     }
 
                     // Get the Create State for this environment.
@@ -621,24 +633,6 @@ public class Cluster implements Comparable<Cluster> {
 
                     tblMirror.addAction("Transfer Schema Created", Boolean.TRUE);
 
-//                    // Need to check if table is partitioned
-//                    if (TableUtils.isPartitioned(tableName, tblMirror.getTableDefinition(Environment.LOWER))) {
-//
-//                        if (this.getPartitionDiscovery().getInitMSCK()) {
-//                            LOG.debug(getEnvironment() + ":" + database + "." + tableName +
-//                                    ": Discovering " + tblMirror.getPartitionDefinition(Environment.LOWER).size() + " partitions");
-//                            String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, database, tblMirror.getName());
-//                            LOG.debug(getEnvironment() + ":(SQL)" + msckStmt);
-//                            if (!config.isDryrun())
-//                                stmt.execute(msckStmt);
-//                            tblMirror.addAction("MSCK ran", Boolean.TRUE);
-//                        } else {
-//                            String msg = getEnvironment() + ":" + database + "." + tableName + ": Has " + tblMirror.getPartitionDefinition(Environment.LOWER).size() +
-//                                    " partitions.  Data may not be available until the partition metadata is rebuilt.";
-//                            tblMirror.addIssue(msg);
-//                            LOG.info(msg);
-//                        }
-//                    }
                     rtn = Boolean.TRUE;
                 }
             } catch (SQLException throwables) {
@@ -677,17 +671,19 @@ public class Cluster implements Comparable<Cluster> {
     statement for the upper cluster and point it to the data in the lower cluster.
     */
     public Boolean buildUpperSchemaUsingLowerData(Config config, DBMirror dbMirror, TableMirror tblMirror) {
-        // Open the connection and ensure we are running this on the "UPPER" cluster.
+        // Open the connection and ensure we are running this on the "RIGHT" cluster.
         Boolean rtn = Boolean.FALSE;
-        if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
+        if (this.getEnvironment() == Environment.RIGHT) {
+            String database = (getEnvironment() == Environment.LEFT ? dbMirror.getName() : config.getResolvedDB(dbMirror.getName()));
+
+            LOG.debug(getEnvironment().toString() + ":START:" + database + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 conn = getConnection();
 
-                String database = dbMirror.getName();
+//                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
 
                 LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Importing Transfer Schema");
@@ -695,7 +691,7 @@ public class Cluster implements Comparable<Cluster> {
                 stmt = conn.createStatement();
 
                 // Set db context;
-                String useDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(database));
+                String useDb = MessageFormat.format(MirrorConf.USE, database);
 
                 LOG.debug(useDb);
                 if (config.isExecute())
@@ -706,93 +702,32 @@ public class Cluster implements Comparable<Cluster> {
 
                     // Turn off for the create/alter
 //                    TableUtils.upsertTblProperty(MirrorConf.DISCOVER_PARTITIONS, "false",
-//                            tblMirror.getTableDefinition(Environment.UPPER));
+//                            tblMirror.getTableDefinition(Environment.RIGHT));
 
-                    // WHEN BUILDING UPPER SCHEMA, WE ARE GOING TO USE THE UPPER CLUSTER LOCATION
-                    // FIRST WHILE CREATING THE TABLE.  THEN SWITCH IT TO THE LOWER AND RUN MSCK.
-                    // Adjust the Location to be Relative to the UPPER cluster.
-//                    TableUtils.changeLocationNamespace(dbMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER),
-//                            config.getCluster(Environment.LOWER).getHcfsNamespace(),
-//                            config.getCluster(Environment.UPPER).getHcfsNamespace());
+                    // WHEN BUILDING RIGHT SCHEMA, WE ARE GOING TO USE THE RIGHT CLUSTER LOCATION
+                    // FIRST WHILE CREATING THE TABLE.  THEN SWITCH IT TO THE LEFT AND RUN MSCK.
+                    // Adjust the Location to be Relative to the RIGHT cluster.
+//                    TableUtils.changeLocationNamespace(dbMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT),
+//                            config.getCluster(Environment.LEFT).getHcfsNamespace(),
+//                            config.getCluster(Environment.RIGHT).getHcfsNamespace());
 
                     // Get the Create State for this environment.
                     String createTable = tblMirror.getCreateStatement(this.getEnvironment());
                     LOG.debug(getEnvironment() + ":" + database + "." + tableName + ":(SQL)" + createTable);
-                    tblMirror.setMigrationStageMessage("Creating Table in UPPER cluster");
-                    if (tblMirror.isPartitioned(Environment.LOWER)) {
+                    tblMirror.setMigrationStageMessage("Creating Table in RIGHT cluster");
+                    if (tblMirror.isPartitioned(Environment.LEFT)) {
                         tblMirror.addIssue("If CREATE/ALTER is slow for migration, add `ranger.plugin.hive.urlauth.filesystem.schemes=file`" +
                                 " to the HS2 hive-ranger-security.xml configurations.");
                     }
                     if (config.isExecute())
                         stmt.execute(createTable);
 
-                    // ALTER TABLE TO USE LOWER LOCATION.
-//                    String originalLocation = TableUtils.getLocation(tableName, tblMirror.getTableDefinition(Environment.LOWER));
-//                    String alterTableLocSql = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, database, tableName, originalLocation);
-//                    LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Altering table Location to original table in lower cluster");
-//                    LOG.debug(getEnvironment() + ":(SQL)" + alterTableLocSql);
-//                    tblMirror.setMigrationStageMessage("Altering table location to LOWER cluster");
-//                    if (!config.isDryrun())
-//                        stmt.execute(alterTableLocSql);
-
-                    tblMirror.addAction("Shadow(using LOWER data) Schema Create", Boolean.TRUE);
-                    tblMirror.setMigrationStageMessage("Table created in UPPER cluster");
+                    tblMirror.addAction("Shadow(using LEFT data) Schema Create", Boolean.TRUE);
+                    tblMirror.setMigrationStageMessage("Table created in RIGHT cluster");
 
                     rtn = Boolean.TRUE;
 
                 }
-
-                // TODO: Wrong place for this.  Need a SWAP action for the SQL Data Import process in Storage.
-//                String originalLocation = TableUtils.getLocation(tableName, tblMirror.getTableDefinition(Environment.LOWER));
-//                String alterTableLocSql = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, database, tableName, originalLocation);
-//                LOG.info(getEnvironment() + ":" + database + "." + tableName + ": Altering table Location to original table in lower cluster");
-//                LOG.debug(getEnvironment() + ":(SQL)" + alterTableLocSql);
-//                try {
-//                    if (!config.isDryrun())
-//                        stmt.execute(alterTableLocSql);
-//                    tblMirror.addAction("Location adjusted", Boolean.TRUE);
-//                    LOG.info(getEnvironment() + ":" + database + "." + tableName + ": Altering table Location Complete.");
-//                } catch (SQLException throwables) {
-//                    String errorMsg = getEnvironment() + ":" + database + "." + tableName +
-//                            ": Issue adjusting table location, data may not be available for new table";
-//                    tblMirror.addIssue(errorMsg + ": " + throwables.getMessage());
-//                    LOG.error(errorMsg, throwables);
-//                }
-
-//                // Need to check if table is partitioned
-//                if (TableUtils.isPartitioned(tableName, tblMirror.getTableDefinition(Environment.LOWER))) {
-//                    if (this.getPartitionDiscovery().getInitMSCK()) {
-//                        LOG.info(getEnvironment() + ":" + database + "." + tableName +
-//                                ": Discovering " + tblMirror.getPartitionDefinition(Environment.LOWER).size() + " partitions");
-//                        String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, database, tblMirror.getName());
-//                        LOG.debug(getEnvironment() + ":(SQL)" + msckStmt);
-//                        try {
-//                            if (!config.isDryrun())
-//                                stmt.execute(msckStmt);
-//                            tblMirror.addAction("MSCK ran", Boolean.TRUE);
-//                            LOG.info(getEnvironment() + ":" + database + "." + tableName +
-//                                    ": Partitions Discovered");
-//                        } catch (SQLException throwables) {
-//                            String errorMsg = getEnvironment() + ":" + database + "." + tableName +
-//                                    ": Issue discovering partitions, data may not be available for new table";
-//                            tblMirror.addIssue(errorMsg + ": " + throwables.getMessage());
-//                            LOG.error(errorMsg, throwables);
-//                        }
-//                    } else if (this.getPartitionDiscovery().getAuto()) {
-//                        String msg = getEnvironment() + ":" + database + "." + tableName + ": is set to " +
-//                                "'discovery.partitions'. Ensure 'metastore.housekeeping.threads.on=true' is set for " +
-//                                "the metastore and the metastore 'metastore.partition.management.task.thread.pool.size' is " +
-//                                "sufficient for processing this request.  Default settings may take 5 mins. before " +
-//                                "partition discovery is started. Check back later for partitions.";
-//                        tblMirror.addIssue(msg);
-//                        LOG.info(msg);
-//                    } else {
-//                        String msg = getEnvironment() + ":" + database + "." + tableName + ": Has " + tblMirror.getPartitionDefinition(Environment.LOWER).size() +
-//                                " partitions.  Data may not be available until the partition metadata is rebuilt.";
-//                        tblMirror.addIssue(msg);
-//                        LOG.info(msg);
-//                    }
-//                }
             } catch (SQLException throwables) {
                 tblMirror.addIssue(throwables.getMessage());
                 LOG.error("Issue", throwables);
@@ -818,7 +753,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + ":END:" + database + "." + tblMirror.getName());
             }
         }
         return rtn;
@@ -826,17 +761,19 @@ public class Cluster implements Comparable<Cluster> {
 
 
     public Boolean buildUpperSchemaWithRelativeData(Config config, DBMirror dbMirror, TableMirror tblMirror) {
-        // Open the connection and ensure we are running this on the "UPPER" cluster.
+        // Open the connection and ensure we are running this on the "RIGHT" cluster.
         Boolean rtn = Boolean.FALSE;
-        if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
+        if (this.getEnvironment() == Environment.RIGHT) {
+            String database = (getEnvironment() == Environment.LEFT ? dbMirror.getName() : config.getResolvedDB(dbMirror.getName()));
+
+            LOG.debug(getEnvironment().toString() + ":START:" + database + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 conn = getConnection();
 
-                String database = dbMirror.getName();
+//                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
 
                 LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Build Upper Schema");
@@ -844,7 +781,7 @@ public class Cluster implements Comparable<Cluster> {
                 stmt = conn.createStatement();
 
                 // Set db context;
-                String useDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(database));
+                String useDb = MessageFormat.format(MirrorConf.USE, database);
 
                 LOG.debug(useDb);
                 stmt.execute(useDb);
@@ -853,36 +790,36 @@ public class Cluster implements Comparable<Cluster> {
                     Boolean buildUpper;
                     if (config.getStage() == Stage.METADATA && config.getMetadata().isDisasterRecovery()) {
                         buildUpper = tblMirror.buildUpperSchema(config, Boolean.FALSE);
-                        tblMirror.addIssue("Disaster Recovery was specified. This table has enable `external.table.purge` to ensure a Read-Only copy on the UPPER cluster");
+                        tblMirror.addIssue("Disaster Recovery was specified. This table has enable `external.table.purge` to ensure a Read-Only copy on the RIGHT cluster");
                     } else {
                         buildUpper = tblMirror.buildUpperSchema(config, Boolean.TRUE);
                     }
 
-                    // Adjust the Location to be Relative to the UPPER cluster.
+                    // Adjust the Location to be Relative to the RIGHT cluster.
                     // as long as we're not using shared storage.
                     if (!config.isShareStorage()) {
-                        TableUtils.changeLocationNamespace(dbMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER),
-                                config.getCluster(Environment.LOWER).getHcfsNamespace(),
-                                config.getCluster(Environment.UPPER).getHcfsNamespace());
+                        TableUtils.changeLocationNamespace(dbMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT),
+                                config.getCluster(Environment.LEFT).getHcfsNamespace(),
+                                config.getCluster(Environment.RIGHT).getHcfsNamespace());
                     }
 
-                    if (!TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.UPPER))) {
-                        if (config.getCluster(Environment.UPPER).getPartitionDiscovery().getAuto())
+                    if (!TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT))) {
+                        if (config.getCluster(Environment.RIGHT).getPartitionDiscovery().getAuto())
                             TableUtils.upsertTblProperty(MirrorConf.DISCOVER_PARTITIONS, "true",
-                                    tblMirror.getTableDefinition(Environment.UPPER));
+                                    tblMirror.getTableDefinition(Environment.RIGHT));
                         else
                             TableUtils.upsertTblProperty(MirrorConf.DISCOVER_PARTITIONS, "false",
-                                    tblMirror.getTableDefinition(Environment.UPPER));
+                                    tblMirror.getTableDefinition(Environment.RIGHT));
                     }
 
                     // Get the Create State for this environment.
                     String createTable = tblMirror.getCreateStatement(this.getEnvironment());
                     LOG.debug(getEnvironment() + ":(SQL)" + createTable);
-                    tblMirror.setMigrationStageMessage("Creating Table in UPPER cluster");
+                    tblMirror.setMigrationStageMessage("Creating Table in RIGHT cluster");
                     if (config.isExecute())
                         stmt.execute(createTable);
-                    tblMirror.addAction("Upper Schema Create", Boolean.TRUE);
-                    tblMirror.setMigrationStageMessage("Table created in UPPER cluster");
+                    tblMirror.addAction("RIGHT Schema Create", Boolean.TRUE);
+                    tblMirror.setMigrationStageMessage("Table created in RIGHT cluster");
                     rtn = Boolean.TRUE;
 
                 }
@@ -924,24 +861,24 @@ public class Cluster implements Comparable<Cluster> {
     */
     public Boolean importTransferSchemaUsingLowerData(Config config, DBMirror dbMirror, TableMirror tblMirror,
                                                       String exportBaseDirPrefix) {
-        // Open the connection and ensure we are running this on the "UPPER" cluster.
+        // Open the connection and ensure we are running this on the "RIGHT" cluster.
         Boolean rtn = Boolean.FALSE;
-        if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
+        if (this.getEnvironment() == Environment.RIGHT) {
+            String database = (getEnvironment() == Environment.LEFT ? dbMirror.getName() : config.getResolvedDB(dbMirror.getName()));
+
+            LOG.debug(getEnvironment().toString() + ":START:" + database + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 conn = getConnection();
 
-                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
-
 
                 stmt = conn.createStatement();
 
                 // Set db context;
-                String useDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(database));
+                String useDb = MessageFormat.format(MirrorConf.USE, database);
 
                 LOG.debug(useDb);
                 stmt.execute(useDb);
@@ -950,11 +887,11 @@ public class Cluster implements Comparable<Cluster> {
                     // Get the definition for this environment.
                     List<String> tblDef = tblMirror.getTableDefinition(getEnvironment());
                     LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Importing Table from " +
-                            config.getCluster(Environment.LOWER).getHcfsNamespace() + exportBaseDirPrefix + database + "/" + tableName);
+                            config.getCluster(Environment.LEFT).getHcfsNamespace() + exportBaseDirPrefix + dbMirror.getName() + "/" + tableName);
 
                     String importTransferSchema = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE,
                             database, tableName,
-                            config.getCluster(Environment.LOWER).getHcfsNamespace() + exportBaseDirPrefix + database + "/" + tableName);
+                            config.getCluster(Environment.LEFT).getHcfsNamespace() + exportBaseDirPrefix + dbMirror.getName() + "/" + tableName);
                     LOG.debug(getEnvironment() + ":(SQL)" + importTransferSchema);
 
                     if (config.isExecute())
@@ -963,14 +900,14 @@ public class Cluster implements Comparable<Cluster> {
 
                     // Alter Table Data Location back to the original table.
                     // TODO: I think this triggers an msck....  need to verify
-                    String originalLocation = TableUtils.getLocation(tableName, tblMirror.getTableDefinition(Environment.LOWER));
+                    String originalLocation = TableUtils.getLocation(tableName, tblMirror.getTableDefinition(Environment.LEFT));
                     String alterTableLocSql = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, database, tableName, originalLocation);
                     LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Altering table Location to original table in lower cluster");
                     LOG.debug(getEnvironment() + ":(SQL)" + alterTableLocSql);
 
                     if (config.isExecute())
                         stmt.execute(alterTableLocSql);
-                    tblMirror.addAction("LOCATION Adjusted(to Original LOWER)", Boolean.TRUE);
+                    tblMirror.addAction("LOCATION Adjusted(to Original LEFT)", Boolean.TRUE);
 
                     String flagDate = df.format(new Date());
                     String hmsMirrorFlagStage1 = MessageFormat.format(MirrorConf.ADD_TBL_PROP, database, tblMirror.getName(),
@@ -995,7 +932,7 @@ public class Cluster implements Comparable<Cluster> {
 
                     // Ensure the partition discovery matches our config directive
                     String dpProp = null;
-                    if (config.getCluster(Environment.UPPER).getPartitionDiscovery().getAuto()) {
+                    if (config.getCluster(Environment.RIGHT).getPartitionDiscovery().getAuto()) {
                         dpProp = MessageFormat.format(MirrorConf.ADD_TBL_PROP, database, tblMirror.getName(), MirrorConf.DISCOVER_PARTITIONS, "true");
                         tblMirror.addProp(MirrorConf.DISCOVER_PARTITIONS, "true");
 
@@ -1033,35 +970,36 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + ":END:" + database + "." + tblMirror.getName());
             }
         }
         return rtn;
     }
 
     /*
-    Import the table schema AND data from the LOWER cluster.  This is a migration of the schema
+    Import the table schema AND data from the LEFT cluster.  This is a migration of the schema
     and data from the lower cluster.
     */
     public Boolean importSchemaWithData(Config config, DBMirror dbMirror, TableMirror tblMirror,
                                         String exportBaseDirPrefix) {
-        // Open the connection and ensure we are running this on the "UPPER" cluster.
+        // Open the connection and ensure we are running this on the "RIGHT" cluster.
         Boolean rtn = Boolean.FALSE;
-        if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
+        if (this.getEnvironment() == Environment.RIGHT) {
+            String database = (getEnvironment() == Environment.LEFT ? dbMirror.getName() : config.getResolvedDB(dbMirror.getName()));
+
+            LOG.debug(getEnvironment().toString() + ":START:" + database + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 conn = getConnection();
 
-                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
 
                 stmt = conn.createStatement();
 
                 // Set db context;
-                String useDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(database));
+                String useDb = MessageFormat.format(MirrorConf.USE, database);
 
                 LOG.debug(useDb);
                 stmt.execute(useDb);
@@ -1071,28 +1009,28 @@ public class Cluster implements Comparable<Cluster> {
                     // Get the definition for this environment.
                     List<String> tblDef = tblMirror.getTableDefinition(getEnvironment());
                     LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Importing Table from " +
-                            config.getCluster(Environment.LOWER).getHcfsNamespace() + exportBaseDirPrefix + database + "/" + tableName);
+                            config.getCluster(Environment.LEFT).getHcfsNamespace() + exportBaseDirPrefix + dbMirror.getName() + "/" + tableName);
 
                     // Import for the location of the export on the lower cluster, to the same relative location
                     // on the upper cluster.
                     String importTransferSchema = null;
-                    if (TableUtils.isACID(tableName, tblMirror.getTableDefinition(Environment.LOWER))) {
+                    if (TableUtils.isACID(tableName, tblMirror.getTableDefinition(Environment.LEFT))) {
                         // Support ACID table migrations. Location here isn't relevant and will
                         // go to the default managed location.
                         importTransferSchema = MessageFormat.format(MirrorConf.IMPORT_TABLE,
                                 database, tableName,
-                                config.getCluster(Environment.LOWER).getHcfsNamespace() + exportBaseDirPrefix +
-                                        database + "/" + tableName);
+                                config.getCluster(Environment.LEFT).getHcfsNamespace() + exportBaseDirPrefix +
+                                        dbMirror.getName() + "/" + tableName);
                         tblMirror.addAction("ACID Table", Boolean.TRUE);
                     } else {
                         // Get Original Location
-                        String originalLowerLocation = TableUtils.getLocation(tableName, tblMirror.getTableDefinition(Environment.LOWER));
-                        String upperLocation = originalLowerLocation.replace(config.getCluster(Environment.LOWER).getHcfsNamespace(),
-                                config.getCluster(Environment.UPPER).getHcfsNamespace());
+                        String originalLowerLocation = TableUtils.getLocation(tableName, tblMirror.getTableDefinition(Environment.LEFT));
+                        String upperLocation = originalLowerLocation.replace(config.getCluster(Environment.LEFT).getHcfsNamespace(),
+                                config.getCluster(Environment.RIGHT).getHcfsNamespace());
                         importTransferSchema = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION,
                                 database, tableName,
-                                config.getCluster(Environment.LOWER).getHcfsNamespace() + exportBaseDirPrefix +
-                                        database + "/" + tableName, upperLocation);
+                                config.getCluster(Environment.LEFT).getHcfsNamespace() + exportBaseDirPrefix +
+                                        dbMirror.getName() + "/" + tableName, upperLocation);
                     }
                     LOG.debug(getEnvironment() + ":(SQL)" + importTransferSchema);
                     tblMirror.setMigrationStageMessage("Import Schema w/Data.  This could take a while, be patient. Partition Count and Data Volume have an impact");
@@ -1102,8 +1040,8 @@ public class Cluster implements Comparable<Cluster> {
                     tblMirror.setMigrationStageMessage("Import Complete");
                     tblMirror.addAction("IMPORTED (w/data)", Boolean.TRUE);
 
-                    if (TableUtils.isLegacyManaged(config.getCluster(Environment.LOWER), tblMirror.getName(),
-                            tblMirror.getTableDefinition(Environment.LOWER))) {
+                    if (TableUtils.isLegacyManaged(config.getCluster(Environment.LEFT), tblMirror.getName(),
+                            tblMirror.getTableDefinition(Environment.LEFT))) {
                         String externalPurge = MessageFormat.format(MirrorConf.ADD_TBL_PROP, database, tblMirror.getName(),
                                 MirrorConf.EXTERNAL_TABLE_PURGE, "true");
                         LOG.debug(getEnvironment() + ":" + database + "." + tableName +
@@ -1123,8 +1061,8 @@ public class Cluster implements Comparable<Cluster> {
                     // Trigger Discover Partitions.
                     // for legacy managed tables
                     // if auto discovery flag set.
-                    if (TableUtils.isLegacyManaged(this, tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER)) ||
-                            config.getCluster(Environment.UPPER).getPartitionDiscovery().getAuto()) {
+                    if (TableUtils.isLegacyManaged(this, tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) ||
+                            config.getCluster(Environment.RIGHT).getPartitionDiscovery().getAuto()) {
 
                         String discoverPartitions = MessageFormat.format(MirrorConf.ADD_TBL_PROP, database, tblMirror.getName(),
                                 MirrorConf.DISCOVER_PARTITIONS, "true");
@@ -1207,23 +1145,25 @@ public class Cluster implements Comparable<Cluster> {
 
      */
     public Boolean doSqlDataTransfer(Config config, DBMirror dbMirror, TableMirror tblMirror, String transferPrefix) {
-        // Open the connection and ensure we are running this on the "UPPER" cluster.
+        // Open the connection and ensure we are running this on the "RIGHT" cluster.
         Boolean rtn = Boolean.FALSE;
-        if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
+        if (this.getEnvironment() == Environment.RIGHT) {
+            String database = (getEnvironment() == Environment.LEFT ? dbMirror.getName() : config.getResolvedDB(dbMirror.getName()));
+
+            LOG.debug(getEnvironment().toString() + ":START:" + database + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 conn = getConnection();
 
-                String database = dbMirror.getName();
+//                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
 
                 stmt = conn.createStatement();
 
                 // Set db context;
-                String useDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(database));
+                String useDb = MessageFormat.format(MirrorConf.USE, database);
                 LOG.debug(useDb);
                 stmt.execute(useDb);
 
@@ -1261,7 +1201,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + ":END:" + database + "." + tblMirror.getName());
             }
         }
         return rtn;
@@ -1269,33 +1209,35 @@ public class Cluster implements Comparable<Cluster> {
 
     /*
     Prior to this process the following should be true:
-     - A transition table has been create and points to the same 'relative' location on the NEW cluster as the LOWER cluster
-     - An original table has been create on the UPPER cluster and points to the LOWER dataset.  This table is 'external' and 'non' purgeable.
+     - A transition table has been create and points to the same 'relative' location on the NEW cluster as the LEFT cluster
+     - An original table has been create on the RIGHT cluster and points to the LEFT dataset.  This table is 'external' and 'non' purgeable.
      - A SQL data transfer has happened to move the data into the 'transfer' table.
      - The transfer table has been set to match the legacy managed behavior ('external.table.purge')
 
      In this process, we will:
-      - "DROP" the 'original' table that points to the LOWER cluster
+      - "DROP" the 'original' table that points to the LEFT cluster
       - RENAME the transfer table to the 'original' table name.
      */
     public Boolean completeSqlTransfer(Config config, DBMirror dbMirror, TableMirror tblMirror) {
-        // Open the connection and ensure we are running this on the "UPPER" cluster.
+        // Open the connection and ensure we are running this on the "RIGHT" cluster.
         Boolean rtn = Boolean.FALSE;
-        if (this.getEnvironment() == Environment.UPPER) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
+        if (this.getEnvironment() == Environment.RIGHT) {
+
+            String database = (getEnvironment() == Environment.LEFT ? dbMirror.getName() : config.getResolvedDB(dbMirror.getName()));
+
+            LOG.debug(getEnvironment().toString() + ":START:" + database + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
                 conn = getConnection();
 
-                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
 
                 stmt = conn.createStatement();
 
                 // Set db context;
-                String useDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(database));
+                String useDb = MessageFormat.format(MirrorConf.USE, database);
                 LOG.debug(useDb);
                 stmt.execute(useDb);
 
@@ -1342,7 +1284,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + ":END:" + database + "." + tblMirror.getName());
             }
         }
         return rtn;
@@ -1358,15 +1300,17 @@ public class Cluster implements Comparable<Cluster> {
     public Boolean partitionMaintenance(Config config, DBMirror dbMirror, TableMirror tblMirror, Boolean force) {
         // Need to check if table is partitioned
         Boolean rtn = Boolean.TRUE;
-        if (this.getEnvironment() == Environment.UPPER &&
-                TableUtils.isPartitioned(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LOWER))) {
-            LOG.debug(getEnvironment().toString() + ":START:" + dbMirror.getName() + "." + tblMirror.getName());
+        if (this.getEnvironment() == Environment.RIGHT &&
+                TableUtils.isPartitioned(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT))) {
+
+            String database = (getEnvironment() == Environment.LEFT ? dbMirror.getName() : config.getResolvedDB(dbMirror.getName()));
+
+            LOG.debug(getEnvironment().toString() + ":START:" + database + "." + tblMirror.getName());
             Connection conn = null;
             Statement stmt = null;
             ResultSet resultSet = null;
             try {
 
-                String database = dbMirror.getName();
                 String tableName = tblMirror.getName();
 
                 if (this.getPartitionDiscovery().getInitMSCK() || force) {
@@ -1374,10 +1318,10 @@ public class Cluster implements Comparable<Cluster> {
                     stmt = conn.createStatement();
 
                     LOG.debug(getEnvironment() + ":" + database + "." + tableName +
-                            ": Discovering " + tblMirror.getPartitionDefinition(Environment.LOWER).size() + " partitions");
+                            ": Discovering " + tblMirror.getPartitionDefinition(Environment.LEFT).size() + " partitions");
                     String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, database, tblMirror.getName());
                     LOG.debug(getEnvironment() + ":(SQL)" + msckStmt);
-                    tblMirror.setMigrationStageMessage("Discovering " + tblMirror.getPartitionDefinition(Environment.LOWER).size() + " partitions with 'MSCK'");
+                    tblMirror.setMigrationStageMessage("Discovering " + tblMirror.getPartitionDefinition(Environment.LEFT).size() + " partitions with 'MSCK'");
                     if (config.isExecute())
                         stmt.execute(msckStmt);
                     tblMirror.addAction("MSCK ran", Boolean.TRUE);
@@ -1433,7 +1377,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException throwables) {
                     //
                 }
-                LOG.debug(getEnvironment().toString() + ":END:" + dbMirror.getName() + "." + tblMirror.getName());
+                LOG.debug(getEnvironment().toString() + ":END:" + database + "." + tblMirror.getName());
             }
 
         }

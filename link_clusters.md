@@ -1,8 +1,8 @@
 # Linking Clusters Storage Layers
 
-For the `hms-mirror` process to work, it relies on the UPPER clusters ability to _SEE_ and _ACCESS_ data in the LOWER clusters HDFS namespace.  This is the same access/configuration required to support DISTCP.
+For the `hms-mirror` process to work, it relies on the RIGHT clusters ability to _SEE_ and _ACCESS_ data in the LEFT clusters HDFS namespace.  This is the same access/configuration required to support DISTCP.
 
-Access is required by the UPPER cluster HCFS namespace to the LOWER clusters HCFS namespace.  UPPER clusters with a greater HDFS version support **LIMITED** functionality for data access in the LOWER cluster.
+Access is required by the RIGHT cluster HCFS namespace to the LEFT clusters HCFS namespace.  RIGHT clusters with a greater HDFS version support **LIMITED** functionality for data access in the LEFT cluster.
 
 NOTE: This isn't designed to be a permanent solution and should only be used for testing and migration purposes.
 
@@ -81,9 +81,9 @@ dfs.client.failover.proxy.provider.HDP50=org.apache.hadoop.hdfs.server.namenode.
 dfs.nameservices=HOME90,HDP50  
 ```
 
-### Running `distcp` from the **UPPER** Cluster
+### Running `distcp` from the **RIGHT** Cluster
 
-NOTE: Running `distcp` from the **LOWER** cluster isn't supported since the `hcfs client` is not forward compatible.
+NOTE: Running `distcp` from the **LEFT** cluster isn't supported since the `hcfs client` is not forward compatible.
 
 Copy 'from' Lower Cluster
 

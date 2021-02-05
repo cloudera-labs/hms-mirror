@@ -94,7 +94,7 @@ public class Conversion {
                     .append("Phase<br/>Duration").append("|")
                     .append("Partition<br/>Count").append("|")
                     .append("Actions").append("|")
-                    .append("LOWER Table Actions").append("|")
+                    .append("LEFT Table Actions").append("|")
                     .append("Added<br/>Properties").append("|")
                     .append("Issues").append("|")
                     .append("\n");
@@ -120,8 +120,8 @@ public class Conversion {
                 sb.append(secStr).append(" secs |");
 
                 // Partition Count
-                sb.append(tblMirror.getPartitionDefinition(Environment.LOWER) != null ?
-                        tblMirror.getPartitionDefinition(Environment.LOWER).size() : " ").append("|");
+                sb.append(tblMirror.getPartitionDefinition(Environment.LEFT) != null ?
+                        tblMirror.getPartitionDefinition(Environment.LEFT).size() : " ").append("|");
 
                 // Actions
                 Iterator<Map.Entry<String[], Object>> aIter = tblMirror.getActions().entrySet().iterator();
@@ -142,7 +142,7 @@ public class Conversion {
                 sb.append("|");
 
                 // Lower Table Actions
-                Iterator<String> a1Iter = tblMirror.getTableActions(Environment.LOWER).iterator();
+                Iterator<String> a1Iter = tblMirror.getTableActions(Environment.LEFT).iterator();
                 sb.append("<table>");
                 while (a1Iter.hasNext()) {
                     sb.append("<tr>");
@@ -188,8 +188,8 @@ public class Conversion {
             DBMirror db = databases.get(database);
             tables += db.getTableMirrors().size();
             for (String table : db.getTableMirrors().keySet()) {
-                if (db.getTableMirrors().get(table).getPartitionDefinition(Environment.LOWER) != null) {
-                    partitions += db.getTableMirrors().get(table).getPartitionDefinition(Environment.LOWER).size();
+                if (db.getTableMirrors().get(table).getPartitionDefinition(Environment.LEFT) != null) {
+                    partitions += db.getTableMirrors().get(table).getPartitionDefinition(Environment.LEFT).size();
                 }
             }
         }

@@ -7,13 +7,13 @@ public enum Strategy {
 
     /*
     Using the schema will pull from the lower cluster, build the upper cluster
-    schema and create then attach to LOWER data.
+    schema and create then attach to LEFT data.
     */
     DIRECT,
 
     // TODO: Provide an SCHEMA_EXTRACT process.
     /*
-    Schema extract will attach to the LOWER cluster and extract out the current schema and build a separate
+    Schema extract will attach to the LEFT cluster and extract out the current schema and build a separate
     SQL script for each database listed.
      */
     SCHEMA_EXTRACT,
@@ -42,14 +42,14 @@ public enum Strategy {
     EMR Mirrors.
 
     Use a transition db to get a schema with no data attach via EXPORT.  Then import
-    the shell schema in the upper cluster and attach to the LOWER data.
+    the shell schema in the upper cluster and attach to the LEFT data.
 
      */
     EXPORT_IMPORT,
     /*
     For METADATA will move the METADATA only, expecting the data to be there already.
     For STORAGE this will generate a script of 'distcp' commands to run to move the data
-         from the LOWER cluster to the UPPER cluster.
+         from the LEFT cluster to the RIGHT cluster.
     */
     DISTCP;
 

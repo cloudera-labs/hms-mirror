@@ -10,7 +10,7 @@ Using either of these session state tools (or another of your choice) while runn
 
 Before you go and run a process the will make changes, try running `hms-mirror` with the `dryrun` option first.  The report generated at the end of the job will provide insight into what issues (if any) you'll run across.
 
-For example: When running the either the METADATA or STORAGE phase and setting `overwriteTable: "true"` in the configuration, the process will `ERROR` if the table exists in the UPPER cluster AND it manages the data there.  `hms-mirror` will not `DROP` tables that manage data, you'll need to do that manually.  But the processes leading upto this check can be time consuming and a failure late in the process is annoying.
+For example: When running the either the METADATA or STORAGE phase and setting `overwriteTable: "true"` in the configuration, the process will `ERROR` if the table exists in the RIGHT cluster AND it manages the data there.  `hms-mirror` will not `DROP` tables that manage data, you'll need to do that manually.  But the processes leading upto this check can be time consuming and a failure late in the process is annoying.
 
 
 ## Start Small
