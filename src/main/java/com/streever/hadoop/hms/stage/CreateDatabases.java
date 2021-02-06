@@ -29,37 +29,21 @@ public class CreateDatabases implements Callable<ReturnStatus> {
         LOG.debug("Create Databases");
         try {
             for (String database : config.getDatabases()) {
-                switch (config.getStage()) {
-                    case METADATA:
-                        switch (config.getMetadata().getStrategy()) {
-                            case EXPORT_IMPORT:
-                                // Create transition in LEFT
-                                config.getCluster(Environment.LEFT).createDatabase(config, config.getMetadata().getTransferPrefix() + database);
-                            case DIRECT:
-                            case DISTCP:
-                                // Create target DB in RIGHT
-                                config.getCluster(Environment.RIGHT).createDatabase(config, config.getResolvedDB(database));
-                                break;
-                        }
+                switch (config.getDataStrategy()) {
+                    case HYBRID:
+                    case EXPORT_IMPORT:
+                        config.getCluster(Environment.LEFT).createDatabase(config, config.getTransfer().getTransferPrefix() + database);
+                        config.getCluster(Environment.RIGHT).createDatabase(config, config.getResolvedDB(database));
                         break;
-                    case STORAGE:
-                        switch (config.getStorage().getStrategy()) {
-                            case HYBRID:
-                            case SQL:
-                                // Create transition DB in RIGHT
-                                // 86 this.  Can't move tables between db's.  So we'll create a transition table in the
-                                //    target db.
-//                            config.getCluster(Environment.RIGHT).createDatabase(config, config.getTransferDbPrefix() + database);
-                            case EXPORT_IMPORT:
-                                // Create target DB in RIGHT
-                                config.getCluster(Environment.RIGHT).createDatabase(config, config.getResolvedDB(database));
-                                break;
-                            case DISTCP:
-                                // TODO: WIP
-                                break;
-                        }
-                        break;
+                    case SQL:
+                        config.getCluster(Environment.RIGHT).createDatabase(config, config.getTransfer().getTransferPrefix() + database);
+                    case SCHEMA_ONLY:
+                    case COMMON:
+                    case LINKED:
+                    case INTERMEDIATE:
+                        config.getCluster(Environment.RIGHT).createDatabase(config, config.getResolvedDB(database));
                 }
+
             }
             successful = Boolean.TRUE;
             rtn.setStatus(ReturnStatus.Status.SUCCESS);

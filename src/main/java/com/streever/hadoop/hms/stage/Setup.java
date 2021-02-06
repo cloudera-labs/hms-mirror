@@ -39,11 +39,11 @@ public class Setup {
         for (String database : config.getDatabases()) {
             DBMirror dbMirror = conversion.addDatabase(database);
             Callable<ReturnStatus> gt = new GetTables(config, dbMirror);
-            gtf.add(config.getMetadataThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
+            gtf.add(config.getTransferThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
         }
 
         Callable<ReturnStatus> createDatabases = new CreateDatabases(config);
-        gtf.add(config.getMetadataThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
+        gtf.add(config.getTransferThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
 
         // When the tables have been gathered, complete the process for the METADATA Stage.
         while (true) {
@@ -77,7 +77,7 @@ public class Setup {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
 //                    if (!tblMirror.isTransactional()) {
                 GetTableMetadata tmd = new GetTableMetadata(config, dbMirror, tblMirror);
-                tmdf.add(config.getMetadataThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
+                tmdf.add(config.getTransferThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
 //                    }
             }
         }

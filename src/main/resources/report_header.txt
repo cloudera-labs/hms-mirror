@@ -1,4 +1,4 @@
-HMS-Mirror v.${Implementation-Version}                                  Stage: [32m${stage}[0m${tik.tok}
+HMS-Mirror v.${Implementation-Version}                            Data Strategy: [32m${config.strategy}[0m${tik.tok}
 
 DB/TBL  Total:([32m${total.dbs}/${total.tbls}[0m)
 ===================================================================================

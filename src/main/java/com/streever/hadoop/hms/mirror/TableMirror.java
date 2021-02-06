@@ -18,8 +18,7 @@ public class TableMirror {
     @JsonIgnore
     private Map<String[], Object> actions = new LinkedHashMap<String[], Object>();
 
-    private Stage stage = null;
-    private Strategy strategy = null;
+    private DataStrategy strategy = null;
 
     // An ordinal value that we'll increment at each phase of the process
     private int currentPhase = 0;
@@ -75,19 +74,11 @@ public class TableMirror {
         addAction("init", null);
     }
 
-    public Stage getStage() {
-        return stage;
-    }
-
-    public void setStage(Stage stage) {
-        this.stage = stage;
-    }
-
-    public Strategy getStrategy() {
+    public DataStrategy getStrategy() {
         return strategy;
     }
 
-    public void setStrategy(Strategy strategy) {
+    public void setStrategy(DataStrategy strategy) {
         this.strategy = strategy;
     }
 
@@ -240,11 +231,15 @@ public class TableMirror {
             if (!takeOwnership) {
                 TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString(), upperTD);
                 addProp(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
+                addIssue("Schema was Legacy Managed. The new schema does NOT have the 'external.table.purge' flag set because: You've requested it to be RO or it shares the underlying data.");
             } else {
                 TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString(), upperTD);
                 addProp(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString());
                 // We need to add actions to the LEFT cluster to disable legacy managed behavior
-                this.addTableAction(Environment.LEFT, "You Need to detach table ownership from filesystem in order to prevent accidental deletion of data that is now controlled by the RIGHT cluster.");
+                // When there is a shared dataset
+                if (config.getDataStrategy() == DataStrategy.COMMON || config.getDataStrategy() == DataStrategy.LINKED) {
+                    this.addTableAction(Environment.LEFT, "You Need to detach table ownership from filesystem in order to prevent accidental deletion of data that is now controlled by the RIGHT cluster.");
+                }
             }
         }
 
@@ -371,51 +366,5 @@ public class TableMirror {
         }
         return actions;
     }
-
-    /*
-    Build upper environment table def from lower environment definition.
-    public void translate(String tableName, Cluster from, Cluster to) {
-        List<String> tblDef = null;
-
-        // Get Lower and convert to Upper
-        List<String> fromTblDef = tableDefinitions.get(from);
-        if (fromTblDef != null) {
-            List<String> toTblDef = new ArrayList<String>(fromTblDef);
-            tableDefinitions.put(to.getEnvironment(), toTblDef);
-            if (TableUtils.isLegacyManaged(from, tableName, fromTblDef)) {
-
-            }
-//            TableUtils.updateTblProperty("numRows", "0", toTblDef);
-            // CREATE TABLE to CREATE EXTERNAL TABLE
-            // Add 'IF NOT EXISTS'?
-            // When CREATE TABLE ...  add 'purge'?  For Stage 2, yes.  For Stage 1, add marker to tblproperties
-            //    'legacy.managed'
-            // Add tbl property. 'hive.mirror'='stage-1'
-            // Change LOCATION from old Namespace to NEW namespace.
-            // Remove 'COLUMN_STATS_ACCURATE' from tbl properties.
-            TableUtils.removeTblProperty("COLUMN_STATS_ACCURATE", toTblDef);
-            // Remove 'numFiles'
-            TableUtils.removeTblProperty("numFiles", toTblDef);
-            // Remove 'numRows'
-            TableUtils.removeTblProperty("numRows", toTblDef);
-            // Remove 'rawDataSize'
-            TableUtils.removeTblProperty("rawDataSize", toTblDef);
-            // Remove 'totalSize'
-            TableUtils.removeTblProperty("totalSize", toTblDef);
-            // Remove 'transient_lastDdlTime'
-            TableUtils.removeTblProperty("transient_lastDdlTime", toTblDef);
-            // If ORC, is there a rule to set bucket version or something...?
-
-            int locIdx = toTblDef.indexOf("LOCATION");
-            String location = toTblDef.get(locIdx + 1);
-//            int tProps = toTblDef.indexOf("TBLPROPERTIES (");
-//            toTblDef.add(tProps + 1, " 'external.table.purge'='true'");
-            System.out.println(toTblDef.toString());
-        } else {
-            // No table def found.
-        }
-
-    }
-     */
 
 }

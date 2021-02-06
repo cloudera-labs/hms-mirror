@@ -18,15 +18,29 @@ public class Config {
     private static Logger LOG = LogManager.getLogger(Mirror.class);
 
     @JsonIgnore
-    private ScheduledExecutorService metadataThreadPool;
-    @JsonIgnore
-    private ScheduledExecutorService storageThreadPool;
+    private ScheduledExecutorService transferThreadPool;
+//    @JsonIgnore
+//    private ScheduledExecutorService metadataThreadPool;
+//    @JsonIgnore
+//    private ScheduledExecutorService storageThreadPool;
 
-    private Stage stage = null;
+    private DataStrategy dataStrategy = DataStrategy.SCHEMA_ONLY;
+    private HybridConfig hybrid = new HybridConfig();
+    private Boolean migrateACID = Boolean.FALSE;
+
+//    private Stage stage = null;
     private boolean execute = Boolean.FALSE;
-    private ReplicationStrategy replicationStrategy = ReplicationStrategy.SYNCHRONIZE;
-    private boolean shareStorage = Boolean.FALSE;
-    private boolean commitToUpper = Boolean.FALSE;
+    /*
+    Used when a schema is transferred and has 'purge' properties for the table.
+    When this is 'true', we'll remove the 'purge' option.
+    This is helpful for datasets that are in DR, where the table doesn't
+    control the Filesystem and we don't want to mess that up.
+     */
+    private boolean readOnly = Boolean.FALSE;
+
+//    private ReplicationStrategy replicationStrategy = ReplicationStrategy.SYNCHRONIZE;
+//    private boolean shareStorage = Boolean.FALSE;
+//    private boolean commitToUpper = Boolean.FALSE;
     private Acceptance acceptance = new Acceptance();
 
     @JsonIgnore // wip
@@ -44,16 +58,49 @@ public class Config {
     private String[] databases = null;
     private String tblRegEx = null;
 
-    private MetadataConfig metadata = new MetadataConfig();
-    private StorageConfig storage = new StorageConfig();
+    private TransferConfig transfer = new TransferConfig();
+//    private MetadataConfig metadata = new MetadataConfig();
+//    private StorageConfig storage = new StorageConfig();
 
     private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
+
+    public Boolean getMigrateACID() {
+        return migrateACID;
+    }
+
+    public void setMigrateACID(Boolean migrateACID) {
+        this.migrateACID = migrateACID;
+    }
+
+    public DataStrategy getDataStrategy() {
+        return dataStrategy;
+    }
+
+    public void setDataStrategy(DataStrategy dataStrategy) {
+        this.dataStrategy = dataStrategy;
+    }
+
+    public HybridConfig getHybrid() {
+        return hybrid;
+    }
+
+    public void setHybrid(HybridConfig hybrid) {
+        this.hybrid = hybrid;
+    }
 
     public boolean isExecute() {
         if (!execute) {
             LOG.debug("Dry-run: ON");
         }
         return execute;
+    }
+
+    public boolean isReadOnly() {
+        return readOnly;
+    }
+
+    public void setReadOnly(boolean readOnly) {
+        this.readOnly = readOnly;
     }
 
     public Acceptance getAcceptance() {
@@ -78,35 +125,42 @@ public class Config {
         return rtn;
     }
 
-    public boolean isShareStorage() {
-        return shareStorage;
-    }
+//    public boolean isShareStorage() {
+//        return shareStorage;
+//    }
+//
+//    public void setShareStorage(boolean shareStorage) {
+//        this.shareStorage = shareStorage;
+//    }
+//
+//    public boolean isCommitToUpper() {
+//        return commitToUpper;
+//    }
+//
+//    public void setCommitToUpper(boolean commitToUpper) {
+//        this.commitToUpper = commitToUpper;
+//    }
 
-    public void setShareStorage(boolean shareStorage) {
-        this.shareStorage = shareStorage;
-    }
-
-    public boolean isCommitToUpper() {
-        return commitToUpper;
-    }
-
-    public void setCommitToUpper(boolean commitToUpper) {
-        this.commitToUpper = commitToUpper;
-    }
-
-    public ScheduledExecutorService getMetadataThreadPool() {
-        if (metadataThreadPool == null) {
-            metadataThreadPool = Executors.newScheduledThreadPool(getMetadata().getConcurrency());
+    public ScheduledExecutorService getTransferThreadPool() {
+        if (transferThreadPool == null) {
+            transferThreadPool = Executors.newScheduledThreadPool(getTransfer().getConcurrency());
         }
-        return metadataThreadPool;
+        return transferThreadPool;
     }
 
-    public ScheduledExecutorService getStorageThreadPool() {
-        if (storageThreadPool == null) {
-            storageThreadPool = Executors.newScheduledThreadPool(getStorage().getConcurrency());
-        }
-        return storageThreadPool;
-    }
+//    public ScheduledExecutorService getMetadataThreadPool() {
+//        if (metadataThreadPool == null) {
+//            metadataThreadPool = Executors.newScheduledThreadPool(getMetadata().getConcurrency());
+//        }
+//        return metadataThreadPool;
+//    }
+//
+//    public ScheduledExecutorService getStorageThreadPool() {
+//        if (storageThreadPool == null) {
+//            storageThreadPool = Executors.newScheduledThreadPool(getStorage().getConcurrency());
+//        }
+//        return storageThreadPool;
+//    }
 
     public String getDbRegEx() {
         return dbRegEx;
@@ -140,40 +194,48 @@ public class Config {
         this.databases = databases;
     }
 
-    public Stage getStage() {
-        return stage;
-    }
-
-    public void setStage(Stage stage) {
-        this.stage = stage;
-    }
+//    public Stage getStage() {
+//        return stage;
+//    }
+//
+//    public void setStage(Stage stage) {
+//        this.stage = stage;
+//    }
 
     public void setExecute(boolean execute) {
         this.execute = execute;
     }
 
-    public ReplicationStrategy getReplicationStrategy() {
-        return replicationStrategy;
+//    public ReplicationStrategy getReplicationStrategy() {
+//        return replicationStrategy;
+//    }
+//
+//    public void setReplicationStrategy(ReplicationStrategy replicationStrategy) {
+//        this.replicationStrategy = replicationStrategy;
+//    }
+//
+//    public MetadataConfig getMetadata() {
+//        return metadata;
+//    }
+//
+//    public void setMetadata(MetadataConfig metadata) {
+//        this.metadata = metadata;
+//    }
+//
+//    public StorageConfig getStorage() {
+//        return storage;
+//    }
+//
+//    public void setStorage(StorageConfig storage) {
+//        this.storage = storage;
+//    }
+
+    public TransferConfig getTransfer() {
+        return transfer;
     }
 
-    public void setReplicationStrategy(ReplicationStrategy replicationStrategy) {
-        this.replicationStrategy = replicationStrategy;
-    }
-
-    public MetadataConfig getMetadata() {
-        return metadata;
-    }
-
-    public void setMetadata(MetadataConfig metadata) {
-        this.metadata = metadata;
-    }
-
-    public StorageConfig getStorage() {
-        return storage;
-    }
-
-    public void setStorage(StorageConfig storage) {
-        this.storage = storage;
+    public void setTransfer(TransferConfig transfer) {
+        this.transfer = transfer;
     }
 
     public Map<Environment, Cluster> getClusters() {
