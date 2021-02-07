@@ -1,39 +1,15 @@
-# Config
-metadata:
+transfer:
   # Optional (default: 4)
-  concurrency: 4
+  concurrency: 10
   # Optional (default: 'transfer_')
-  transferDbPrefix: "transfer_"
+  transferPrefix: "transfer_"
   # This directory is appended to the 'clusters:...:hcfsNamespace' value to store the transfer package for hive export/import.
   # Optional (default: '/apps/hive/warehouse/export_')
-  exportBaseDirPrefix: "<hcfs dir>"
-  # Optional (default: DIRECT)
-  strategy: DIRECT|SCHEMA_EXTRACT|EXPORT_IMPORT|DISTCP
-# Storage is Optional, when not specified defaults are used.  Defaults below.
-storage:
-  # Optional (default: 4)
-  concurrency: 4
-  # Optional (default: 'false')
-  # Migrate ACID tables, only supported with the EXPORT_IMPORT or HYBRID strategies
-  migrateACID: "true"
-  # Optional (default: 'transfer_')
-  transferDbPrefix: "transfer_"
-  # This directory is appended to the 'clusters:...:hcfsNamespace' value to store the transfer package for hive export/import.
-  # Optional (default: '/apps/hive/warehouse/export_')
-  exportBaseDirPrefix: "<hcfs dir>"
-  # Optional (default: HYBRID)
-  strategy: SQL|EXPORT_IMPORT|HYBRID|DISTCP
-  # When Hybrid strategy used, provide additional details
-  # Optional
-  hybrid:
-    # Optional (default: 100)
-    sqlPartitionLimit: 100
-    # Optional (default: 1073741824 =1gb)
-    sqlSizeLimit:      1073741824
+  exportBaseDirPrefix: "/apps/hive/warehouse/export_"
 clusters:
   LEFT:
     # Set for Hive 1/2 environments
-    legacyHive: "true"
+    legacyHive: true
     # Is the 'Hadoop COMPATIBLE File System' used to prefix data locations for this cluster.
     # It is mainly used as the transfer location for metadata (export)
     # If the primary storage for this cluster is 'hdfs' than use 'hdfs://...'
@@ -41,16 +17,15 @@ clusters:
     #    cloud storage prefix. IE: s3a://my_bucket
     hcfsNamespace: "<hdfs://namespace>"
     hiveServer2:
+      uri: "<LEFT-cluster-jdbc-url>"
+      connectionProperties:
+        user: "*****"
+        password: "*****"
       # Standalone jar file used to connect via JDBC to the LEFT environment Hive Server 2
       # NOTE: Hive 3 jars will NOT work against Hive 1.  The protocol isn't compatible.
       jarFile: "<environment-specific-jdbc-standalone-driver>"
-      uri: "<lower-cluster-jdbc-url>"
-      # Optional when using Kerberos Auth (Requires Kerb Ticket)
-      connectionPropertites:
-        user: "<user>"
-        password: "<password>"
   RIGHT:
-    legacyHive: "false"
+    legacyHive: false
     # Is the 'Hadoop COMPATIBLE File System' used to prefix data locations for this cluster.
     # It is mainly used to as a baseline for where "DATA" will be transfered in the
     # STORAGE stage.  The data location in the source location will be move to this
@@ -60,16 +35,15 @@ clusters:
     # If the LEFT and RIGHT clusters are share the same cloud storage, then use the same
     # hcfs base location as the LEFT cluster.
     hcfsNamespace: "<hdfs://namespace>"
+    hiveServer2:
+      uri: "<RIGHT-cluster-jdbc-url>"
+      connectionProperties:
+        user: "*****"
+        password: "*****"
+      # Standalone jar file used to connect via JDBC to the LEFT environment Hive Server 2
+      # NOTE: Hive 3 jars will NOT work against Hive 1.  The protocol isn't compatible.
+      jarFile: "<environment-specific-jdbc-standalone-driver>"
     partitionDiscovery:
       # Addition HMS configuration needed for this "discover.partitions"="true"
-      #     Set by default on IMPORT EXTERNAL.
-      auto: true
+      auto: false
       initMSCK: true
-    hiveServer2:
-      # Standalone jar file used to connect via JDBC to the LEFT environment Hive Server 2
-      jarFile: "<environment-specific-jdbc-standalone-driver>"
-      uri: "<upper-cluster-jdbc-url>"
-      # Optional when using Kerberos Auth (Requires Kerb Ticket)
-      connectionProperties:
-        user: "<username>"
-        password: "<password>"
