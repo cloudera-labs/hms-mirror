@@ -65,7 +65,7 @@ public class Conversion {
         sb.append("| Date | Elapsed Time |\n");
         sb.append("|:---|:---|\n");
         Date current = new Date();
-        BigDecimal elsecs = new BigDecimal(current.getTime()-start.getTime()).divide(new BigDecimal(1000));
+        BigDecimal elsecs = new BigDecimal(current.getTime() - start.getTime()).divide(new BigDecimal(1000));
         DecimalFormat eldecf = new DecimalFormat("#,###.00");
         String elsecStr = eldecf.format(elsecs);
 
@@ -96,8 +96,12 @@ public class Conversion {
                     .append("Actions").append("|")
                     .append("LEFT Table Actions").append("|")
                     .append("Added<br/>Properties").append("|")
-                    .append("Issues").append("|")
-                    .append("\n");
+                    .append("Issues").append("|");
+            if (config.isSqlOutput()) {
+                sb.append("SQL").append("|");
+            }
+            sb.append("\n");
+
             sb.append("|").append(":---").append("|")
                     .append(":---").append("|")
                     .append("---:").append("|")
@@ -105,8 +109,12 @@ public class Conversion {
                     .append(":---").append("|")
                     .append(":---").append("|")
                     .append(":---").append("|")
-                    .append(":---").append("|")
-                    .append("\n");
+                    .append(":---").append("|");
+            if (config.isSqlOutput()) {
+                sb.append(":---").append("|");
+            }
+            sb.append("\n");
+
             Set<String> tables = dbMirror.getTableMirrors().keySet();
             for (String table : tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
@@ -169,6 +177,17 @@ public class Conversion {
                     }
                 } else {
                     sb.append(" ");
+                }
+                sb.append("|");
+                if (config.isSqlOutput()) {
+                    // Issues
+                    if (tblMirror.isThereSql()) {
+                        for (String sql : tblMirror.getSql()) {
+                            sb.append(sql).append(";<br/><br/>");
+                        }
+                    } else {
+                        sb.append(" ");
+                    }
                 }
                 sb.append("|\n");
             }

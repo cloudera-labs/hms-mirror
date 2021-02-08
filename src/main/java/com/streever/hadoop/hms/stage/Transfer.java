@@ -128,7 +128,7 @@ public class Transfer implements Callable<ReturnStatus> {
     }
 
     protected Boolean doCommon() {
-        return doSchemaOnly();
+        return doLinked();
     }
 
     protected Boolean doSQL() {

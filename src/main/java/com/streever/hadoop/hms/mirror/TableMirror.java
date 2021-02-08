@@ -36,6 +36,7 @@ public class TableMirror {
 
     private List<String> issues = new ArrayList<String>();
     private List<String> propAdd = new ArrayList<String>();
+    private List<String> sql = new ArrayList<String>();
 
     public String getName() {
         return name;
@@ -91,11 +92,11 @@ public class TableMirror {
 
     public String getProgressIndicator(int width, int scale) {
         StringBuilder sb = new StringBuilder();
-        int progressLength = (width/scale) * currentPhase;
+        int progressLength = (width / scale) * currentPhase;
         sb.append("\u001B[32m");
-        sb.append(StringUtils.rightPad("=", progressLength-1, "="));
+        sb.append(StringUtils.rightPad("=", progressLength - 1, "="));
         sb.append("\u001B[33m");
-        sb.append(StringUtils.rightPad("-", width-progressLength, "-"));
+        sb.append(StringUtils.rightPad("-", width - progressLength, "-"));
         sb.append("\u001B[0m|");
         return sb.toString();
     }
@@ -144,6 +145,10 @@ public class TableMirror {
         return issues.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
     }
 
+    public boolean isThereSql() {
+        return sql.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
+    }
+
     public boolean whereTherePropsAdded() {
         return propAdd.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
     }
@@ -156,14 +161,24 @@ public class TableMirror {
         return propAdd;
     }
 
+    public List<String> getSql() {
+        return sql;
+    }
+
     public void addIssue(String issue) {
         String scrubbedIssue = issue.replace("\n", "<br/>");
         getIssues().add(scrubbedIssue);
     }
 
+    public void addSql(String sqlOutput) {
+        String scrubbedSql = sqlOutput.replace("\n", "<br/>");
+        getSql().add(scrubbedSql);
+    }
+
     public void addProp(String propAdd) {
         getPropAdd().add(propAdd);
     }
+
     public void addProp(String prop, String value) {
         getPropAdd().add(prop + "=" + value);
     }

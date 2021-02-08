@@ -38,6 +38,11 @@ public class Config {
      */
     private boolean readOnly = Boolean.FALSE;
 
+    /*
+    Output SQL to report
+     */
+    private boolean sqlOutput = Boolean.FALSE;
+
 //    private ReplicationStrategy replicationStrategy = ReplicationStrategy.SYNCHRONIZE;
 //    private boolean shareStorage = Boolean.FALSE;
 //    private boolean commitToUpper = Boolean.FALSE;
@@ -101,6 +106,14 @@ public class Config {
 
     public void setReadOnly(boolean readOnly) {
         this.readOnly = readOnly;
+    }
+
+    public boolean isSqlOutput() {
+        return sqlOutput;
+    }
+
+    public void setSqlOutput(boolean sqlOutput) {
+        this.sqlOutput = sqlOutput;
     }
 
     public Acceptance getAcceptance() {

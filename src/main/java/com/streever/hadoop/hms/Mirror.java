@@ -100,11 +100,23 @@ public class Mirror {
         }
 
         String dataStrategyStr = cmd.getOptionValue("d");
-        try {
-            DataStrategy dataStrategy = DataStrategy.valueOf(dataStrategyStr.toUpperCase());
-            config.setDataStrategy(dataStrategy);
-        } catch (Exception e) {
+        // default is SCHEMA_ONLY
+        if (dataStrategyStr != null) {
+            try {
+                DataStrategy dataStrategy = DataStrategy.valueOf(dataStrategyStr.toUpperCase());
+                config.setDataStrategy(dataStrategy);
+            } catch (Exception e) {
+                throw new RuntimeException("Can't translate " + dataStrategyStr + " to a known 'data strategy'.  Use one of " + Arrays.deepToString(DataStrategy.values()));
+            }
+        }
 
+        if (config.getDataStrategy() == DataStrategy.INTERMEDIATE) {
+            // Get intermediate Storage Location
+            if (cmd.hasOption("is")) {
+                config.getTransfer().setIntermediateStorage(cmd.getOptionValue("is"));
+            } else {
+                throw new RuntimeException("Need to specify '-is/--itermediate-storage' when using INTERMEDIATE data strategy.");
+            }
         }
 
         if (cmd.hasOption("ro")) {
@@ -117,6 +129,10 @@ public class Mirror {
                 default:
                     throw new RuntimeException("RO option only valid with SCHEMA_ONLY,COMMON, and LINKED data strategies.");
             }
+        }
+
+        if (cmd.hasOption("sql")) {
+            config.setSqlOutput(Boolean.TRUE);
         }
 
         if (cmd.hasOption("r")) {
@@ -404,6 +420,13 @@ public class Mirror {
         metadataStage.setRequired(false);
         options.addOption(metadataStage);
 
+        Option intermediateStorageOption = new Option("is", "intermediate-storage", true,
+        "Intermediate Storage used with Data Strategy INTERMEDIATE.");
+        intermediateStorageOption.setOptionalArg(Boolean.TRUE);
+        intermediateStorageOption.setArgName("storage-path");
+        intermediateStorageOption.setRequired(Boolean.FALSE);
+        options.addOption(intermediateStorageOption);
+
         Option roOption = new Option("ro", "read-only", false,
                 "For SCHEMA_ONLY, COMMON, and LINKED data strategies set RIGHT table to NOT purge on DROP");
         roOption.setRequired(false);
@@ -445,6 +468,11 @@ public class Mirror {
         dbGroup.addOption(dbOption);
         dbGroup.setRequired(true);
         options.addOptionGroup(dbGroup);
+
+        Option sqlOutputOption = new Option("sql", "sql-output", false,
+        "Output the SQL to the report");
+        sqlOutputOption.setRequired(Boolean.FALSE);
+        options.addOption(sqlOutputOption);
 
         Option tableFilterOption = new Option("tf", "table-filter", true, "Filter tables with name matching RegEx");
         tableFilterOption.setRequired(false);

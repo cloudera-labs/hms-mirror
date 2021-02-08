@@ -373,6 +373,7 @@ public class Cluster implements Comparable<Cluster> {
                     LOG.debug(getEnvironment() + ":(SQL)" + dropTable);
                     tblMirror.setMigrationStageMessage("Dropping table (overwrite)");
 
+                    tblMirror.addSql(dropTable);
                     if (config.isExecute()) {
                         stmt.execute(dropTable);
                     } else {
@@ -464,6 +465,7 @@ public class Cluster implements Comparable<Cluster> {
                     ": Dropping existing transfer schema (if exists) for table: ");
             LOG.debug(getEnvironment() + ":(SQL)" + dropTransferTable);
 
+            tblMirror.addSql(dropTransferTable);
             if (config.isExecute()) {
                 stmt.execute(dropTransferTable);
             } else {
@@ -479,6 +481,7 @@ public class Cluster implements Comparable<Cluster> {
                     ": Creating transition schema for table");
             LOG.debug(getEnvironment() + ":(SQL)" + transferCreateTable);
 
+            tblMirror.addSql(transferCreateTable);
             if (config.isExecute()) {
                 stmt.execute(transferCreateTable);
             } else {
@@ -500,6 +503,7 @@ public class Cluster implements Comparable<Cluster> {
                         ": Setting Legacy flag for table");
                 LOG.debug(getEnvironment() + ":(SQL)" + legacyFlag);
 
+                tblMirror.addSql(legacyFlag);
                 if (config.isExecute()) {
                     stmt.execute(legacyFlag);
                 } else {
@@ -552,6 +556,8 @@ public class Cluster implements Comparable<Cluster> {
                     config.getCluster(Environment.LEFT).hcfsNamespace + exportBaseDirPrefix + database + "/" + tableName);
             LOG.debug(getEnvironment() + ":(SQL)" + exportTransferSchema);
             tblMirror.setMigrationStageMessage("Export Schema");
+
+            tblMirror.addSql(exportTransferSchema);
             if (config.isExecute()) {
                 stmt.execute(exportTransferSchema);
             } else {
@@ -613,6 +619,8 @@ public class Cluster implements Comparable<Cluster> {
 
                 LOG.debug(useDb);
 //                if (config.isExecute()) {
+
+                tblMirror.addSql(useDb);
                 stmt.execute(useDb);
 //                } else {
 ////                    tblMirror.addIssue("DRY-RUN: USE not issued");
@@ -643,6 +651,7 @@ public class Cluster implements Comparable<Cluster> {
                     // The transfer table should be an empty shell and the data directory, which points to the permanent
                     //  location for the target table, should be empty.  If NOT, what do we do?
                     tblMirror.setMigrationStageMessage("Creating table");
+                    tblMirror.addSql(createTable);
                     if (config.isExecute()) {
                         stmt.execute(createTable);
                     } else {
@@ -714,6 +723,7 @@ public class Cluster implements Comparable<Cluster> {
 
                 LOG.debug(useDb);
 //                if (config.isExecute())
+                tblMirror.addSql(useDb);
                 stmt.execute(useDb);
 
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
@@ -739,6 +749,7 @@ public class Cluster implements Comparable<Cluster> {
                         tblMirror.addIssue("If CREATE/ALTER is slow for migration, add `ranger.plugin.hive.urlauth.filesystem.schemes=file`" +
                                 " to the HS2 hive-ranger-security.xml configurations.");
                     }
+                    tblMirror.addSql(createTable);
                     if (config.isExecute()) {
                         stmt.execute(createTable);
                     } else {
@@ -807,6 +818,7 @@ public class Cluster implements Comparable<Cluster> {
                 String useDb = MessageFormat.format(MirrorConf.USE, database);
 
                 LOG.debug(useDb);
+                tblMirror.addSql(useDb);
                 stmt.execute(useDb);
 
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
@@ -844,6 +856,7 @@ public class Cluster implements Comparable<Cluster> {
                     String createTable = tblMirror.getCreateStatement(this.getEnvironment());
                     LOG.debug(getEnvironment() + ":(SQL)" + createTable);
                     tblMirror.setMigrationStageMessage("Creating Table in RIGHT cluster");
+                    tblMirror.addSql(createTable);
                     if (config.isExecute()) {
                         stmt.execute(createTable);
                     } else {
@@ -912,6 +925,7 @@ public class Cluster implements Comparable<Cluster> {
                 String useDb = MessageFormat.format(MirrorConf.USE, database);
 
                 LOG.debug(useDb);
+                tblMirror.addSql(useDb);
                 stmt.execute(useDb);
 
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
@@ -925,6 +939,7 @@ public class Cluster implements Comparable<Cluster> {
                             config.getCluster(Environment.LEFT).getHcfsNamespace() + exportBaseDirPrefix + dbMirror.getName() + "/" + tableName);
                     LOG.debug(getEnvironment() + ":(SQL)" + importTransferSchema);
 
+                    tblMirror.addSql(importTransferSchema);
                     if (config.isExecute()) {
                         stmt.execute(importTransferSchema);
                     } else {
@@ -939,6 +954,7 @@ public class Cluster implements Comparable<Cluster> {
                     LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Altering table Location to original table in lower cluster");
                     LOG.debug(getEnvironment() + ":(SQL)" + alterTableLocSql);
 
+                    tblMirror.addSql(alterTableLocSql);
                     if (config.isExecute()) {
                         stmt.execute(alterTableLocSql);
                     } else {
@@ -953,6 +969,7 @@ public class Cluster implements Comparable<Cluster> {
                             ": Setting table property to identify as 'Stage-1' conversion.");
                     LOG.debug(getEnvironment() + "(SQL)" + hmsMirrorFlagStage1);
 
+                    tblMirror.addSql(hmsMirrorFlagStage1);
                     if (config.isExecute()) {
                         stmt.execute(hmsMirrorFlagStage1);
                     } else {
@@ -966,6 +983,7 @@ public class Cluster implements Comparable<Cluster> {
                             ": Setting table property to identify as 'hms-mirror' converted");
                     LOG.debug(getEnvironment() + ":(SQL)" + hmsMirrorConverted);
 
+                    tblMirror.addSql(hmsMirrorConverted);
                     if (config.isExecute()) {
                         stmt.execute(hmsMirrorConverted);
                     } else {
@@ -984,6 +1002,7 @@ public class Cluster implements Comparable<Cluster> {
                         tblMirror.addProp(MirrorConf.DISCOVER_PARTITIONS, "false");
                     }
 
+                    tblMirror.addSql(dpProp);
                     if (config.isExecute()) {
                         stmt.execute(dpProp);
                     } else {
@@ -1048,6 +1067,7 @@ public class Cluster implements Comparable<Cluster> {
                 String useDb = MessageFormat.format(MirrorConf.USE, database);
 
                 LOG.debug(useDb);
+                tblMirror.addSql(useDb);
                 stmt.execute(useDb);
 
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
@@ -1081,6 +1101,7 @@ public class Cluster implements Comparable<Cluster> {
                     LOG.debug(getEnvironment() + ":(SQL)" + importTransferSchema);
                     tblMirror.setMigrationStageMessage("Import Schema w/Data.  This could take a while, be patient. Partition Count and Data Volume have an impact");
 
+                    tblMirror.addSql(importTransferSchema);
                     if (config.isExecute()) {
                         stmt.execute(importTransferSchema);
                     } else {
@@ -1098,6 +1119,7 @@ public class Cluster implements Comparable<Cluster> {
                                 " because this table was a legacy Managed Table.");
                         LOG.debug(getEnvironment() + ":(SQL) " + externalPurge);
 
+                        tblMirror.addSql(externalPurge);
                         if (config.isExecute()) {
                             stmt.execute(externalPurge);
                         } else {
@@ -1124,6 +1146,7 @@ public class Cluster implements Comparable<Cluster> {
                         LOG.debug(getEnvironment() + ":(SQL) " + discoverPartitions);
                         tblMirror.setMigrationStageMessage("Adding 'discover.partitions' to table properties");
 
+                        tblMirror.addSql(discoverPartitions);
                         if (config.isExecute()) {
                             stmt.execute(discoverPartitions);
                         } else {
@@ -1142,6 +1165,7 @@ public class Cluster implements Comparable<Cluster> {
                     LOG.debug(getEnvironment() + ":(SQL)" + hmsMirrorImportFlag);
                     tblMirror.setMigrationStageMessage("Adding ' " + MirrorConf.HMS_MIRROR_STORAGE_IMPORT_FLAG + "' to table properties");
 
+                    tblMirror.addSql(hmsMirrorImportFlag);
                     if (config.isExecute()) {
                         stmt.execute(hmsMirrorImportFlag);
                     } else {
@@ -1159,6 +1183,7 @@ public class Cluster implements Comparable<Cluster> {
                     LOG.debug(getEnvironment() + ":(SQL)" + hmsMirrorConverted);
                     tblMirror.setMigrationStageMessage("Adding ' " + MirrorConf.HMS_MIRROR_CONVERTED_FLAG + "' to table properties");
 
+                    tblMirror.addSql(hmsMirrorConverted);
                     if (config.isExecute()) {
                         stmt.execute(hmsMirrorConverted);
                     } else {
@@ -1226,12 +1251,15 @@ public class Cluster implements Comparable<Cluster> {
                 // Set db context;
                 String useDb = MessageFormat.format(MirrorConf.USE, database);
                 LOG.debug(useDb);
+                tblMirror.addSql(useDb);
                 stmt.execute(useDb);
 
                 String sqlDataTransfer = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, tableName, transferPrefix + tableName);
 
                 LOG.debug(getEnvironment() + ":(SQL)" + sqlDataTransfer);
                 tblMirror.setMigrationStageMessage("Migrating data using Hive SQL.  Please wait. Check Hive Service for Job Details");
+
+                tblMirror.addSql(sqlDataTransfer);
                 if (config.isExecute()) {
                     stmt.execute(sqlDataTransfer);
                 } else {
@@ -1303,12 +1331,15 @@ public class Cluster implements Comparable<Cluster> {
                 // Set db context;
                 String useDb = MessageFormat.format(MirrorConf.USE, database);
                 LOG.debug(useDb);
+                tblMirror.addSql(useDb);
                 stmt.execute(useDb);
 
                 String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
 
                 LOG.debug(getEnvironment() + ":(SQL) " + dropTable);
                 tblMirror.setMigrationStageMessage("Dropping original table (start of swap process)");
+
+                tblMirror.addSql(dropTable);
                 if (config.isExecute()) {
                     stmt.execute(dropTable);
                 } else {
@@ -1320,6 +1351,7 @@ public class Cluster implements Comparable<Cluster> {
                 String renameTable = MessageFormat.format(MirrorConf.RENAME_TABLE, config.getTransfer().getTransferPrefix() + tableName, tableName);
                 LOG.debug(getEnvironment() + ":(SQL) " + renameTable);
                 tblMirror.setMigrationStageMessage("Rename transfer table to original table (complete swap process)");
+                tblMirror.addSql(renameTable);
                 if (config.isExecute()) {
                     stmt.execute(renameTable);
                 } else {
@@ -1392,6 +1424,7 @@ public class Cluster implements Comparable<Cluster> {
                     String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, database, tblMirror.getName());
                     LOG.debug(getEnvironment() + ":(SQL)" + msckStmt);
                     tblMirror.setMigrationStageMessage("Discovering " + tblMirror.getPartitionDefinition(Environment.LEFT).size() + " partitions with 'MSCK'");
+                    tblMirror.addSql(msckStmt);
                     if (config.isExecute()) {
                         stmt.execute(msckStmt);
                     } else {

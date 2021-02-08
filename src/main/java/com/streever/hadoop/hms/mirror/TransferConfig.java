@@ -4,6 +4,7 @@ public class TransferConfig {
     private int concurrency = 4;
     private String transferPrefix = "transfer_";
     private String exportBaseDirPrefix = "/apps/hive/warehouse/export_";
+    private String intermediateStorage = null;
 
     public int getConcurrency() {
         return concurrency;
@@ -29,4 +30,11 @@ public class TransferConfig {
         this.exportBaseDirPrefix = exportBaseDirPrefix;
     }
 
+    public String getIntermediateStorage() {
+        return intermediateStorage;
+    }
+
+    public void setIntermediateStorage(String intermediateStorage) {
+        this.intermediateStorage = intermediateStorage;
+    }
 }
