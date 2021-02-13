@@ -95,6 +95,7 @@ public class Conversion {
                     .append("Partition<br/>Count").append("|")
                     .append("Actions").append("|")
                     .append("LEFT Table Actions").append("|")
+                    .append("RIGHT Table Actions").append("|")
                     .append("Added<br/>Properties").append("|")
                     .append("Issues").append("|");
             if (config.isSqlOutput()) {
@@ -106,6 +107,7 @@ public class Conversion {
                     .append(":---").append("|")
                     .append("---:").append("|")
                     .append("---:").append("|")
+                    .append(":---").append("|")
                     .append(":---").append("|")
                     .append(":---").append("|")
                     .append(":---").append("|")
@@ -138,7 +140,7 @@ public class Conversion {
                     sb.append("<tr>");
                     Map.Entry<String[], Object> item = aIter.next();
                     String[] keySet = item.getKey();
-                    sb.append("<td style=\"text-align:right\">").append(keySet[0]).append("</td>");
+                    sb.append("<td style=\"text-align:left\">").append(keySet[0]).append("</td>");
                     sb.append("<td>").append(keySet[1]).append("</td>");
                     if (item.getValue() != null)
                         sb.append("<td>").append(item.getValue().toString()).append("</td>");
@@ -149,13 +151,25 @@ public class Conversion {
                 sb.append("</table>");
                 sb.append("|");
 
-                // Lower Table Actions
+                // LEFT Table Actions
                 Iterator<String> a1Iter = tblMirror.getTableActions(Environment.LEFT).iterator();
                 sb.append("<table>");
                 while (a1Iter.hasNext()) {
                     sb.append("<tr>");
                     String item = a1Iter.next();
-                    sb.append("<td style=\"text-align:right\">").append(item).append("</td>");
+                    sb.append("<td style=\"text-align:left\">").append(item).append(";</td>");
+                    sb.append("</tr>");
+                }
+                sb.append("</table>");
+                sb.append("|");
+
+                // RIGHT Table Actions
+                Iterator<String> a2Iter = tblMirror.getTableActions(Environment.RIGHT).iterator();
+                sb.append("<table>");
+                while (a2Iter.hasNext()) {
+                    sb.append("<tr>");
+                    String item = a2Iter.next();
+                    sb.append("<td style=\"text-align:left\">").append(item).append(";</td>");
                     sb.append("</tr>");
                 }
                 sb.append("</table>");

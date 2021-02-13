@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -246,14 +247,34 @@ public class TableMirror {
             if (!takeOwnership) {
                 TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString(), upperTD);
                 addProp(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
-                addIssue("Schema was Legacy Managed. The new schema does NOT have the 'external.table.purge' flag set because: You've requested it to be RO or it shares the underlying data.");
+                addIssue("Schema was Legacy Managed or can be purged. The new schema does NOT have the " +
+                        "external.table.purge' flag set.  This must be done manually.");
+                // Provide detail to detach LEFT cluster table from data.
+                if (TableUtils.isLegacyManaged(config.getCluster(Environment.LEFT), getName(),
+                        getTableDefinition(Environment.LEFT))) {
+                    String extConversionSql = MessageFormat.format(MirrorConf.ADD_TBL_PROP, getDbName(),
+                            getName(), "EXTERNAL", "true");
+                    this.addTableAction(Environment.LEFT, extConversionSql);
+                    String extConversionSql2 = MessageFormat.format(MirrorConf.ADD_TBL_PROP,
+                            config.getResolvedDB(getDbName()), getName(), MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+                    this.addTableAction(Environment.RIGHT, extConversionSql2);
+
+                } else if (TableUtils.isExternalPurge(getName(), getTableDefinition(Environment.LEFT))) {
+                    String extConversionSql = MessageFormat.format(MirrorConf.REMOVE_TBL_PROP, getDbName(),
+                            getName(), MirrorConf.EXTERNAL_TABLE_PURGE);
+                    this.addTableAction(Environment.LEFT, extConversionSql);
+                }
             } else {
+                // TODO: This path isn't currently used (02-12-2021) because it can be quite tricky to
+                //       understand the users intent.  Need more field feedback.
                 TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString(), upperTD);
                 addProp(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString());
                 // We need to add actions to the LEFT cluster to disable legacy managed behavior
                 // When there is a shared dataset
                 if (config.getDataStrategy() == DataStrategy.COMMON || config.getDataStrategy() == DataStrategy.LINKED) {
                     this.addTableAction(Environment.LEFT, "You Need to detach table ownership from filesystem in order to prevent accidental deletion of data that is now controlled by the RIGHT cluster.");
+                    String extConversionSql = MessageFormat.format(MirrorConf.ADD_TBL_PROP, getDbName(), getName(), "EXTERNAL", "true");
+                    this.addTableAction(Environment.LEFT, "SQL: " + extConversionSql);
                 }
             }
         }
