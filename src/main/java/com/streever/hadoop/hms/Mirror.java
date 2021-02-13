@@ -29,6 +29,8 @@ public class Mirror {
     private Config config = null;
     private String configFile = null;
     private String reportOutputFile = null;
+    private String leftActionFile = null;
+    private String rightActionFile = null;
     private Boolean retry = Boolean.FALSE;
     private String dateMarker;
 
@@ -145,6 +147,11 @@ public class Mirror {
             reportOutputFile = System.getProperty("user.home") + System.getProperty("file.separator") +
                     ".hms-mirror/reports/hms-mirror-" + getDateMarker() + ".md";
         }
+
+        // Action Files
+        int suffixIndex = reportOutputFile.lastIndexOf(".");
+        leftActionFile = reportOutputFile.substring(0, suffixIndex) + "_LEFT_action.sql";
+        rightActionFile = reportOutputFile.substring(0, suffixIndex) + "_RIGHT_action.sql";
 
         try {
             String reportPath = reportOutputFile.substring(0, reportOutputFile.lastIndexOf(System.getProperty("file.separator")));
@@ -280,6 +287,8 @@ public class Mirror {
         // ?
         //        reporter.setVariable("log.file", log4j output file.);
         reporter.setVariable("report.file", reportOutputFile);
+        reporter.setVariable("left.action.file", leftActionFile);
+        reporter.setVariable("right.action.file", rightActionFile);
         reporter.setVariable("action.script", "none");
         reporter.setRetry(this.retry);
         reporter.start();
@@ -310,6 +319,8 @@ public class Mirror {
         conversion = runTransfer(conversion);
         stateMaintenance.saveState();
 
+        // Actions
+
         try {
             FileWriter reportFile = new FileWriter(reportOutputFile);
             reportFile.write(conversion.toReport(config));
@@ -322,6 +333,17 @@ public class Mirror {
 
             reportFile.close();
             LOG.info("Status Report of 'hms-mirror' is here: " + reportOutputFile.toString());
+
+            FileWriter leftActionOutput = new FileWriter(leftActionFile);
+            leftActionOutput.write(conversion.actionsSql(Environment.LEFT));
+            leftActionOutput.close();
+            LOG.info("LEFT action SQL script is here: " + leftActionFile.toString());
+
+            FileWriter rightActionOutput = new FileWriter(rightActionFile);
+            rightActionOutput.write(conversion.actionsSql(Environment.RIGHT));
+            rightActionOutput.close();
+            LOG.info("RIGHT action SQL script is here: " + rightActionFile.toString());
+
         } catch (IOException e) {
             e.printStackTrace();
         } finally {

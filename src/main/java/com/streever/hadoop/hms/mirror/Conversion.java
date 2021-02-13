@@ -55,6 +55,31 @@ public class Conversion {
         return databases.get(database);
     }
 
+    public String actionsSql(Environment env) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("-- ACTION script for ").append(env).append(" cluster\n\n");
+        sb.append("-- HELPER Script to assist with MANUAL updates.\n");
+        sb.append("-- RUN AT OWN RISK  !!!\n");
+        sb.append("-- REVIEW and UNDERSTAND the adjustments below before running.\n\n");
+        for (String database : databases.keySet()) {
+            DBMirror dbMirror = databases.get(database);
+            sb.append("-- DATABASE: ").append(database).append("\n");
+            Set<String> tables = dbMirror.getTableMirrors().keySet();
+            for (String table : tables) {
+                TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
+                sb.append("--    Table: ").append(table).append("\n");
+                // LEFT Table Actions
+                Iterator<String> a1Iter = tblMirror.getTableActions(env).iterator();
+                while (a1Iter.hasNext()) {
+                    String item = a1Iter.next();
+                    sb.append(item).append(";\n");
+                }
+                sb.append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
     public String toReport(Config config) throws JsonProcessingException {
         StringBuilder sb = new StringBuilder();
         Set<String> databaseSet = databases.keySet();
