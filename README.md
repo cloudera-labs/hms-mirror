@@ -12,7 +12,7 @@
 4. [Configuration](./configuration.md)   
 5. [RUN tips/Do NOT SKIP](./running_tips.md)
 6. [Running HMS Mirror](./running.md)
-7. [Logs and Reports](./logs_reports.md)   
+7. [Output Reports and Logs](./logs_reports.md)   
 8. [Strategies](#Strategies)
    1. [Schema Only](./schema_only.md)
    1. [Linked](./linked.md)
