@@ -28,12 +28,17 @@
     </formats>
     <includeBaseDirectory>false</includeBaseDirectory>
     <fileSets>
-        <!--fileSet>
-            <directory>${project.basedir}/src</directory>
-            <outputDirectory>/${project.name}/src</outputDirectory>
+        <fileSet>
+            <directory>${project.basedir}</directory>
+            <includes>
+                <include>src/main/**</include>
+                <include>images/**</include>
+                <include>*.md</include>
+                <include>pom.xml</include>
+            </includes>
+            <outputDirectory>sources</outputDirectory>
             <useDefaultExcludes>true</useDefaultExcludes>
-        </fileSet-->
-
+        </fileSet>
         <fileSet>
             <directory>${project.basedir}/bin</directory>
             <includes>
@@ -46,7 +51,7 @@
         <fileSet>
             <directory>${project.basedir}/configs</directory>
             <includes>
-                <include>default.yaml.template</include>
+                <include>default.template.yaml</include>
             </includes>
             <outputDirectory>hms-mirror</outputDirectory>
             <useDefaultExcludes>true</useDefaultExcludes>

@@ -7,4 +7,3 @@ Config file${retry} : ${config.file}
 Report file        : ${report.file}
 LEFT Action file   : ${left.action.file}
 RIGHT Action file  : ${right.action.file}
-Action script      : ${action.script}

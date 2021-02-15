@@ -289,7 +289,6 @@ public class Mirror {
         reporter.setVariable("report.file", reportOutputFile);
         reporter.setVariable("left.action.file", leftActionFile);
         reporter.setVariable("right.action.file", rightActionFile);
-        reporter.setVariable("action.script", "none");
         reporter.setRetry(this.retry);
         reporter.start();
 
