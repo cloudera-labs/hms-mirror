@@ -280,6 +280,15 @@ public class Cluster implements Comparable<Cluster> {
                     LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Exists in RIGHT cluster. ");
                     tblMirror.addIssue("Schema exists already");
                     tblMirror.addIssue("No Schema action performed");
+                    // Compare Schemas
+                    if (tblMirror.schemasEqual(Environment.LEFT, Environment.RIGHT)) {
+                        tblMirror.addIssue("Schema Fields(name, type, and order), Row Format, and Table Format are consistent between clusters.");
+                        tblMirror.addIssue("TBLProperties were NOT considered while comparing schemas");
+                    } else {
+                        tblMirror.addIssue("SCHEMA HAS CHANGED");
+                        tblMirror.addIssue("DROP before running again to MIGRATE FRESH SCHEMA.");
+                        tblMirror.addIssue("If you are dropping table, understand the impact on the underlying data (is it attached).");
+                    }
                     rtn = Boolean.FALSE;
                 }
 

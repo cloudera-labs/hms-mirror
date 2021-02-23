@@ -5,6 +5,9 @@ import com.streever.hadoop.hms.mirror.MirrorConf;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -211,6 +214,33 @@ public class TableUtils {
             }
         }
         return rtn;
+    }
+
+    public static String tableFieldsFingerPrint(List<String> tableDef) {
+        String hashText = null;
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i < tableDef.size(); i++) {
+            String item2 = tableDef.get(i);
+            if (!item2.equals(LOCATION)) {
+                sb.append(item2.trim());
+            } else {
+                break;
+            }
+        }
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-1");
+
+            byte[] messageDigest = md.digest(sb.toString().getBytes());
+
+            BigInteger no = new BigInteger(1, messageDigest);
+            hashText = no.toString(16);
+            while (hashText.length() < 32) {
+                hashText = "0" + hashText;
+            }
+        } catch (NoSuchAlgorithmException nsae) {
+            throw new RuntimeException(nsae);
+        }
+        return hashText;
     }
 
     public static Boolean isPartitioned(String tableName, List<String> tableDefinition) {

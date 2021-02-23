@@ -369,6 +369,22 @@ public class TableMirror {
         return tableDefinitions.get(environment);
     }
 
+    public boolean schemasEqual(Environment one, Environment two) {
+        List<String> schemaOne = tableDefinitions.get(one);
+        List<String> schemaTwo = tableDefinitions.get(two);
+        if (schemaOne != null && schemaTwo != null) {
+            String fpOne = TableUtils.tableFieldsFingerPrint(schemaOne);
+            String fpTwo = TableUtils.tableFieldsFingerPrint(schemaTwo);
+            if (fpOne.equals(fpTwo)) {
+                return Boolean.TRUE;
+            } else {
+                return Boolean.FALSE;
+            }
+        } else {
+            return false;
+        }
+    }
+
     public void setTableDefinition(Environment environment, List<String> tableDefList) {
         if (tableDefinitions.containsKey(environment)) {
             tableDefinitions.replace(environment, tableDefList);

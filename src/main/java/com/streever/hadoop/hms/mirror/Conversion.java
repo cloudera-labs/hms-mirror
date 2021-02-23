@@ -211,9 +211,12 @@ public class Conversion {
                 sb.append("|");
                 // Issues
                 if (tblMirror.isThereAnIssue()) {
+                    sb.append("<ul>");
                     for (String issue : tblMirror.getIssues()) {
-                        sb.append(issue).append("<br/>");
+                        sb.append("<li>").append(issue).append("</li>");
+//                        sb.append(append(issue).append("<br/>");
                     }
+                    sb.append("</ul>");
                 } else {
                     sb.append(" ");
                 }

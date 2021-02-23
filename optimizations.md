@@ -39,4 +39,24 @@ hive.load.dynamic.partitions.thread
 hive.metastore.fshandler.threads 
 ```
 
+#### Source Reference
+
+```
+    METASTORE_HOUSEKEEPING_LEADER_HOSTNAME("metastore.housekeeping.leader.hostname",
+            "hive.metastore.housekeeping.leader.hostname", "",
+"If there are multiple Thrift metastore services running, the hostname of Thrift metastore " +
+        "service to run housekeeping tasks at. By default this values is empty, which " +
+        "means that the current metastore will run the housekeeping tasks. If configuration" +
+        "metastore.thrift.bind.host is set on the intended leader metastore, this value should " +
+        "match that configuration. Otherwise it should be same as the hostname returned by " +
+        "InetAddress#getLocalHost#getHostName(). Given the uncertainty in the later " +
+        "it is desirable to configure metastore.thrift.bind.host on the intended leader HMS."),
+    METASTORE_HOUSEKEEPING_THREADS_ON("metastore.housekeeping.threads.on",
+        "hive.metastore.housekeeping.threads.on", false,
+        "Whether to run the tasks under metastore.task.threads.remote on this metastore instance or not.\n" +
+            "Set this to true on one instance of the Thrift metastore service as part of turning\n" +
+            "on Hive transactions. For a complete list of parameters required for turning on\n" +
+            "transactions, see hive.txn.manager."),
+```
+
 The default batch size for partition discovery via `msck` is 3000.  Adjustments to this can be made via the `hive.msck.repair.batch.size` property in HS2.
