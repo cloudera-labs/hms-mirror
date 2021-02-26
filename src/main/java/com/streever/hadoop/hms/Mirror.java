@@ -17,6 +17,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -367,6 +368,13 @@ public class Mirror {
         Set<String> collectedDbs = conversion.getDatabases().keySet();
         for (String database : collectedDbs) {
             DBMirror dbMirror = conversion.getDatabase(database);
+//            try {
+//                config.getCluster(Environment.LEFT).getDatabase(config, dbMirror);
+//                config.getCluster(Environment.RIGHT).getDatabase(config, dbMirror);
+//            } catch (SQLException se) {
+//                throw new RuntimeException(se);
+//            }
+
             Set<String> tables = dbMirror.getTableMirrors().keySet();
             for (String table : tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
@@ -524,6 +532,7 @@ public class Mirror {
             mirror.doit();
             System.exit(0);
         } catch (RuntimeException e) {
+            e.printStackTrace();
             LOG.error(e);
             System.err.println("\nERROR: ==============================================");
             System.err.println(e.getMessage());

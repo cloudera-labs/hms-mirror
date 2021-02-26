@@ -111,7 +111,12 @@ public class Conversion {
         sb.append("## Databases\n");
         for (String database : databaseSet) {
             sb.append("## ").append(database).append("\n");
+
             DBMirror dbMirror = databases.get(database);
+            sb.append("```").append("\n");
+            sb.append(dbMirror.rightDBCreate(config));
+            sb.append("```").append("\n");
+
             sb.append("\n");
 
             sb.append("|").append(" Table ").append("|")

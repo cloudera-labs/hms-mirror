@@ -3,6 +3,7 @@ package com.streever.hadoop.hms.mirror;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -10,6 +11,7 @@ public class DBMirror {
     private static Logger LOG = LogManager.getLogger(DBMirror.class);
 
     private String name;
+    private Map<Environment, Map<String, String>> dbDefinitions = new TreeMap<Environment, Map<String, String>>();
 
     private Map<String, TableMirror> tableMirrors = new TreeMap<String, TableMirror>();
 
@@ -26,6 +28,67 @@ public class DBMirror {
 
     public String getName() {
         return name;
+    }
+
+    public Map<Environment, Map<String, String>> getDBDefinitions() {
+        return dbDefinitions;
+    }
+
+    public Map<String, String> getDBDefinition(Environment environment) {
+        return dbDefinitions.get(environment);
+    }
+
+    public void setDBDefinition(Environment enviroment, Map<String, String> dbDefinition) {
+        dbDefinitions.put(enviroment, dbDefinition);
+    }
+
+    public void setDBDefinitions(Map<Environment, Map<String, String>> dbDefinitions) {
+        this.dbDefinitions = dbDefinitions;
+    }
+
+    public String rightDBCreate(Config config) {
+        StringBuilder sb = new StringBuilder();
+        // Start with the LEFT definition.
+        Map<String, String> dbDef = getDBDefinition(Environment.LEFT);
+        String database = config.getResolvedDB(getName());
+        String location = dbDef.get(MirrorConf.DB_LOCATION);
+        String managedLocation = null;
+        if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+            // Check for Managed Location.
+            managedLocation = dbDef.get(MirrorConf.DB_MANAGED_LOCATION);
+        }
+        String leftNamespace = config.getCluster(Environment.LEFT).getHcfsNamespace();
+        String rightNamespace = config.getCluster(Environment.RIGHT).getHcfsNamespace();
+
+        switch (config.getDataStrategy()) {
+            case SCHEMA_ONLY:
+            case SQL:
+            case EXPORT_IMPORT:
+            case HYBRID:
+            case INTERMEDIATE:
+                if (location != null) {
+                    location = location.replace(leftNamespace, rightNamespace);
+                }
+                if (managedLocation != null) {
+                    managedLocation = managedLocation.replace(leftNamespace, rightNamespace);
+                }
+                break;
+            case COMMON:
+            case LINKED:
+                break;
+        }
+        sb.append("CREATE DATABASE IF NOT EXISTS ").append(database).append("\n");
+        if (dbDef.get(MirrorConf.COMMENT) != null && dbDef.get(MirrorConf.COMMENT).trim().length() > 0) {
+            sb.append(MirrorConf.COMMENT).append(" \"").append(dbDef.get(MirrorConf.COMMENT)).append("\"\n");
+        }
+        if (location != null) {
+            sb.append(MirrorConf.DB_LOCATION).append(" \"").append(location).append("\"\n");
+        }
+        if (managedLocation != null) {
+            sb.append(MirrorConf.DB_MANAGED_LOCATION).append(" \"").append(managedLocation).append("\"\n");
+        }
+        // TODO: DB Properties.
+        return sb.toString();
     }
 
     public TableMirror addTable(String table) {

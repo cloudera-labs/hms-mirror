@@ -21,6 +21,13 @@ public class HiveServer2Config {
 
     public void setConnectionProperties(Properties connectionProperties) {
         this.connectionProperties = connectionProperties;
+        // Don't restrict max connections to the default.  Allow this to
+        // be controlled by the 'concurrency' value of the 'transfer'.
+        String maxConnections = connectionProperties.getProperty("maxTotal", "-1");
+        connectionProperties.setProperty("maxTotal", maxConnections);
+        // Default to 5 secs for timeout.
+        String maxWait = connectionProperties.getProperty("maxWaitMillis", "5000");
+        connectionProperties.setProperty("maxWaitMillis", maxWait);
     }
 
     public String getJarFile() {

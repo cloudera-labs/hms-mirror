@@ -39,6 +39,12 @@ public class TableMirror {
     private List<String> propAdd = new ArrayList<String>();
     private List<String> sql = new ArrayList<String>();
 
+    // There are two environments (RIGHT and LEFT)
+    private Map<Environment, List<String>> tableDefinitions = new TreeMap<Environment, List<String>>();
+    private Map<Environment, Boolean> tablePartitioned = new TreeMap<Environment, Boolean>();
+    private Map<Environment, List<String>> tablePartitions = new TreeMap<Environment, List<String>>();
+    private Map<Environment, List<String>> tableActions = new TreeMap<Environment, List<String>>();
+
     public String getName() {
         return name;
     }
@@ -183,12 +189,6 @@ public class TableMirror {
     public void addProp(String prop, String value) {
         getPropAdd().add(prop + "=" + value);
     }
-
-    // There are two environments (RIGHT and LEFT)
-    private Map<Environment, List<String>> tableDefinitions = new TreeMap<Environment, List<String>>();
-    private Map<Environment, Boolean> tablePartitioned = new TreeMap<Environment, Boolean>();
-    private Map<Environment, List<String>> tablePartitions = new TreeMap<Environment, List<String>>();
-    private Map<Environment, List<String>> tableActions = new TreeMap<Environment, List<String>>();
 
     public void setName(String name) {
         this.name = name;

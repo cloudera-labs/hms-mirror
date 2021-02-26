@@ -5,16 +5,12 @@ import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.Date;
-import java.util.List;
 import java.util.regex.Matcher;
 
 public class Cluster implements Comparable<Cluster> {
@@ -84,6 +80,63 @@ public class Cluster implements Comparable<Cluster> {
         Connection conn = null;
         conn = pools.getEnvironmentConnection(getEnvironment());
         return conn;
+    }
+
+    public void getDatabase(Config config, DBMirror dbMirror) throws SQLException {
+        Connection conn = null;
+        try {
+            conn = getConnection();
+
+            String database = (getEnvironment() == Environment.LEFT ? dbMirror.getName() : config.getResolvedDB(dbMirror.getName()));
+
+            LOG.debug(getEnvironment() + ":" + database + ": Loading database definition.");
+
+            Statement stmt = null;
+            ResultSet resultSet = null;
+            try {
+                stmt = conn.createStatement();
+                LOG.debug(getEnvironment() + ":" + database + ": Getting Database Definition");
+                resultSet = stmt.executeQuery(MessageFormat.format(MirrorConf.DESCRIBE_DB, database));
+                //Retrieving the ResultSetMetaData object
+                ResultSetMetaData rsmd = resultSet.getMetaData();
+                //getting the column type
+                int column_count = rsmd.getColumnCount();
+                Map<String, String> dbDef = new TreeMap<String, String>();
+                while (resultSet.next()) {
+                    for (int i = 0; i < column_count; i++) {
+                        String cName = rsmd.getColumnName(i + 1).toUpperCase(Locale.ROOT);
+                        String cValue = resultSet.getString(i + 1);
+                        dbDef.put(cName, cValue);
+                    }
+                }
+                dbMirror.setDBDefinition(getEnvironment(), dbDef);
+            } catch (SQLException sql) {
+                // DB Doesn't Exists.
+            } finally {
+                if (resultSet != null) {
+                    try {
+                        resultSet.close();
+                    } catch (SQLException sqlException) {
+                        // ignore
+                    }
+                }
+                if (stmt != null) {
+                    try {
+                        stmt.close();
+                    } catch (SQLException sqlException) {
+                        // ignore
+                    }
+                }
+            }
+        } catch (SQLException se) {
+            throw se;
+        } finally {
+            try {
+                conn.close();
+            } catch (SQLException throwables) {
+                //
+            }
+        }
     }
 
     public void getTables(Config config, DBMirror dbMirror) throws SQLException {
@@ -209,6 +262,52 @@ public class Cluster implements Comparable<Cluster> {
             }
         }
         return rtn;
+    }
+
+    public void createDatabase(Config config, String database, String createDBSql) {
+        // Open the connection and ensure we are running this on the "RIGHT" cluster.
+        Connection conn = null;
+        try {
+            conn = getConnection();
+
+            LOG.debug(getEnvironment() + " - Create Database: " + database);
+
+            Statement stmt = null;
+            try {
+                try {
+                    stmt = conn.createStatement();
+                } catch (SQLException throwables) {
+                    LOG.error("Issue building statement", throwables);
+                }
+
+                try {
+                    LOG.debug(getEnvironment() + ":" + createDBSql);
+                    if (config.isExecute()) // on dry-run, without db, hard to get through the rest of the steps.
+                        stmt.execute(createDBSql);
+                } catch (SQLException throwables) {
+                    LOG.error(getEnvironment() + ":Creating DB", throwables);
+                }
+
+            } finally {
+                if (stmt != null) {
+                    try {
+                        stmt.close();
+                    } catch (SQLException sqlException) {
+                        // ignore
+                    }
+                }
+            }
+        } catch (SQLException throwables) {
+            LOG.error("Issue", throwables);
+            throw new RuntimeException(throwables);
+        } finally {
+            try {
+                if (conn != null)
+                    conn.close();
+            } catch (SQLException throwables) {
+                //
+            }
+        }
     }
 
     public void createDatabase(Config config, String database) {
@@ -627,13 +726,11 @@ public class Cluster implements Comparable<Cluster> {
                 String useDb = MessageFormat.format(MirrorConf.USE, database);
 
                 LOG.debug(useDb);
-//                if (config.isExecute()) {
 
                 tblMirror.addSql(useDb);
-                stmt.execute(useDb);
-//                } else {
-////                    tblMirror.addIssue("DRY-RUN: USE not issued");
-//                }
+                if (config.isExecute())
+                    stmt.execute(useDb);
+
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror, transferPrefix)) {
 
                     Boolean buildUpper = tblMirror.buildUpperSchema(config, Boolean.FALSE);
@@ -731,24 +828,12 @@ public class Cluster implements Comparable<Cluster> {
                 String useDb = MessageFormat.format(MirrorConf.USE, database);
 
                 LOG.debug(useDb);
-//                if (config.isExecute())
                 tblMirror.addSql(useDb);
-                stmt.execute(useDb);
+                if (config.isExecute())
+                    stmt.execute(useDb);
 
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
-//                    Boolean buildUpper = tblMirror.buildUpperSchema(config, config.isCommitToUpper());
                     Boolean buildUpper = tblMirror.buildUpperSchema(config, false);
-
-                    // Turn off for the create/alter
-//                    TableUtils.upsertTblProperty(MirrorConf.DISCOVER_PARTITIONS, "false",
-//                            tblMirror.getTableDefinition(Environment.RIGHT));
-
-                    // WHEN BUILDING RIGHT SCHEMA, WE ARE GOING TO USE THE RIGHT CLUSTER LOCATION
-                    // FIRST WHILE CREATING THE TABLE.  THEN SWITCH IT TO THE LEFT AND RUN MSCK.
-                    // Adjust the Location to be Relative to the RIGHT cluster.
-//                    TableUtils.changeLocationNamespace(dbMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT),
-//                            config.getCluster(Environment.LEFT).getHcfsNamespace(),
-//                            config.getCluster(Environment.RIGHT).getHcfsNamespace());
 
                     // Get the Create State for this environment.
                     String createTable = tblMirror.getCreateStatement(this.getEnvironment());
@@ -828,7 +913,8 @@ public class Cluster implements Comparable<Cluster> {
 
                 LOG.debug(useDb);
                 tblMirror.addSql(useDb);
-                stmt.execute(useDb);
+                if (config.isExecute())
+                    stmt.execute(useDb);
 
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
                     Boolean buildUpper;
@@ -935,7 +1021,8 @@ public class Cluster implements Comparable<Cluster> {
 
                 LOG.debug(useDb);
                 tblMirror.addSql(useDb);
-                stmt.execute(useDb);
+                if (config.isExecute())
+                    stmt.execute(useDb);
 
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
                     // Get the definition for this environment.
@@ -1077,7 +1164,8 @@ public class Cluster implements Comparable<Cluster> {
 
                 LOG.debug(useDb);
                 tblMirror.addSql(useDb);
-                stmt.execute(useDb);
+                if (config.isExecute())
+                    stmt.execute(useDb);
 
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
 
@@ -1261,7 +1349,8 @@ public class Cluster implements Comparable<Cluster> {
                 String useDb = MessageFormat.format(MirrorConf.USE, database);
                 LOG.debug(useDb);
                 tblMirror.addSql(useDb);
-                stmt.execute(useDb);
+                if (config.isExecute())
+                    stmt.execute(useDb);
 
                 String sqlDataTransfer = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, tableName, transferPrefix + tableName);
 
@@ -1341,7 +1430,8 @@ public class Cluster implements Comparable<Cluster> {
                 String useDb = MessageFormat.format(MirrorConf.USE, database);
                 LOG.debug(useDb);
                 tblMirror.addSql(useDb);
-                stmt.execute(useDb);
+                if (config.isExecute())
+                    stmt.execute(useDb);
 
                 String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
 

@@ -6,6 +6,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.math.RoundingMode;
+import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -38,11 +39,17 @@ public class Setup {
         List<ScheduledFuture<ReturnStatus>> gtf = new ArrayList<ScheduledFuture<ReturnStatus>>();
         for (String database : config.getDatabases()) {
             DBMirror dbMirror = conversion.addDatabase(database);
+            try {
+                config.getCluster(Environment.LEFT).getDatabase(config, dbMirror);
+                config.getCluster(Environment.RIGHT).getDatabase(config, dbMirror);
+            } catch (SQLException se) {
+                throw new RuntimeException(se);
+            }
             Callable<ReturnStatus> gt = new GetTables(config, dbMirror);
             gtf.add(config.getTransferThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
         }
 
-        Callable<ReturnStatus> createDatabases = new CreateDatabases(config);
+        Callable<ReturnStatus> createDatabases = new CreateDatabases(config, conversion);
         gtf.add(config.getTransferThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
 
         // When the tables have been gathered, complete the process for the METADATA Stage.

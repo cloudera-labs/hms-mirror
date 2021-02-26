@@ -1,7 +1,8 @@
 package com.streever.hadoop.hms.mirror;
 
 public class MirrorConf {
-    public static final String USE_DB = "USE {0}";
+    public static final String DESCRIBE_DB = "DESCRIBE DATABASE EXTENDED {0}";
+
     public static final String SHOW_TABLES = "SHOW TABLES";
     public static final String SHOW_CREATE_TABLE = "SHOW CREATE TABLE {0}.{1}";
     public static final String SHOW_PARTITIONS = "SHOW PARTITIONS {0}.{1}";
@@ -70,5 +71,9 @@ public class MirrorConf {
     Requires EXTERNAL intervention.
      */
     public static final String HMS_MIRROR_STORAGE_DISTCP_FLAG = "hmsMirror_Storage_DISTCP_Stage2";
+
+    public static final String DB_LOCATION = "LOCATION";
+    public static final String DB_MANAGED_LOCATION = "MANAGEDLOCATION";
+    public static final String COMMENT = "COMMENT";
 
 }
