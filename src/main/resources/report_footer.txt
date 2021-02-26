@@ -5,5 +5,6 @@ TBLS (Started/Completed/Errors/Skipped)->([33m${started.tbls}[0m/[34m${comple
 Run Mode           : ${run.mode}
 Config file${retry} : ${config.file}
 Report file        : ${report.file}
+Execute file       : ${execute.file}
 LEFT Action file   : ${left.action.file}
 RIGHT Action file  : ${right.action.file}

@@ -17,7 +17,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
-import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -29,7 +28,9 @@ public class Mirror {
 
     private Config config = null;
     private String configFile = null;
+    private String reportOutputDir = null;
     private String reportOutputFile = null;
+    private String rightExecuteFile = null;
     private String leftActionFile = null;
     private String rightActionFile = null;
     private Boolean retry = Boolean.FALSE;
@@ -142,21 +143,25 @@ public class Mirror {
             retry = Boolean.TRUE;
         }
 
-        if (cmd.hasOption("f")) {
-            reportOutputFile = cmd.getOptionValue("f");
+        if (cmd.hasOption("o")) {
+            reportOutputDir = cmd.getOptionValue("o");
         } else {
-            reportOutputFile = System.getProperty("user.home") + System.getProperty("file.separator") +
-                    ".hms-mirror/reports/hms-mirror-" + getDateMarker() + ".md";
+            Date now = new Date();
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+            reportOutputDir = System.getProperty("user.home") + System.getProperty("file.separator") +
+                    ".hms-mirror/reports/" + df.format(now);
         }
 
         // Action Files
-        int suffixIndex = reportOutputFile.lastIndexOf(".");
-        leftActionFile = reportOutputFile.substring(0, suffixIndex) + "_LEFT_action.sql";
-        rightActionFile = reportOutputFile.substring(0, suffixIndex) + "_RIGHT_action.sql";
+//        int suffixIndex = reportOutputDir.lastIndexOf(".");
+        reportOutputFile = reportOutputDir + System.getProperty("file.separator") + "hms-mirror.md";
+        rightExecuteFile = reportOutputDir + System.getProperty("file.separator") + "execute.sql";
+        leftActionFile = reportOutputDir + System.getProperty("file.separator") + "LEFT_action.sql";
+        rightActionFile = reportOutputDir + System.getProperty("file.separator") + "RIGHT_action.sql";
 
         try {
-            String reportPath = reportOutputFile.substring(0, reportOutputFile.lastIndexOf(System.getProperty("file.separator")));
-            File reportPathDir = new File(reportPath);
+//            String reportPath = reportOutputDir.substring(0, reportOutputDir.lastIndexOf(System.getProperty("file.separator")));
+            File reportPathDir = new File(reportOutputDir);
             if (!reportPathDir.exists()) {
                 reportPathDir.mkdirs();
             }
@@ -288,6 +293,7 @@ public class Mirror {
         // ?
         //        reporter.setVariable("log.file", log4j output file.);
         reporter.setVariable("report.file", reportOutputFile);
+        reporter.setVariable("execute.file", rightExecuteFile);
         reporter.setVariable("left.action.file", leftActionFile);
         reporter.setVariable("right.action.file", rightActionFile);
         reporter.setRetry(this.retry);
@@ -332,7 +338,12 @@ public class Mirror {
 //            }
 
             reportFile.close();
-            LOG.info("Status Report of 'hms-mirror' is here: " + reportOutputFile.toString());
+            LOG.info("Status Report of 'hms-mirror' is here: " + reportOutputDir.toString());
+
+            FileWriter rightExecOutput = new FileWriter(rightExecuteFile);
+            rightExecOutput.write(conversion.executeSql());
+            rightExecOutput.close();
+            LOG.info("RIGHT Execution Script is here: " + rightExecuteFile.toString());
 
             FileWriter leftActionOutput = new FileWriter(leftActionFile);
             leftActionOutput.write(conversion.actionsSql(Environment.LEFT));
@@ -471,10 +482,10 @@ public class Mirror {
         helpOption.setRequired(false);
         options.addOption(helpOption);
 
-        Option outputOption = new Option("f", "output-file", true,
-                "Output Directory (default: $HOME/.hms-mirror/reports/hms-mirror-<timestamp>.md");
+        Option outputOption = new Option("o", "output-dir", true,
+                "Output Directory (default: $HOME/.hms-mirror/reports/<yyyy-MM-dd_HH-mm-ss>");
         outputOption.setRequired(false);
-        outputOption.setArgName("filename");
+        outputOption.setArgName("outputdir");
         options.addOption(outputOption);
 
         Option executeOption = new Option("e", "execute", false,

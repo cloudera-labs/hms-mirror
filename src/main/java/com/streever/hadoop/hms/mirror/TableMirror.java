@@ -178,8 +178,8 @@ public class TableMirror {
     }
 
     public void addSql(String sqlOutput) {
-        String scrubbedSql = sqlOutput.replace("\n", "<br/>");
-        getSql().add(scrubbedSql);
+//        String scrubbedSql = sqlOutput.replace("\n", "<br/>");
+        getSql().add(sqlOutput);
     }
 
     public void addProp(String propAdd) {

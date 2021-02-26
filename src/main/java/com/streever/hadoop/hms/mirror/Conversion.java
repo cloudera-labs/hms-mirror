@@ -55,6 +55,30 @@ public class Conversion {
         return databases.get(database);
     }
 
+    public String executeSql() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("-- EXECUTION script for ").append(Environment.RIGHT).append(" cluster\n\n");
+        sb.append("-- ").append(new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date()));
+        sb.append("-- These are the command run on the RIGHT cluster when `-e` is used.\n");
+        for (String database : databases.keySet()) {
+            DBMirror dbMirror = databases.get(database);
+//            sb.append("-- DATABASE: ").append(database).append("\n");
+            Set<String> tables = dbMirror.getTableMirrors().keySet();
+            for (String table : tables) {
+                TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
+                sb.append("--    Table: ").append(table).append("\n");
+                if (tblMirror.isThereSql()) {
+                    for (String sql : tblMirror.getSql()) {
+                        sb.append(sql).append(";\n");
+                    }
+                } else {
+                    sb.append("\n");
+                }
+            }
+        }
+        return sb.toString();
+    }
+
     public String actionsSql(Environment env) {
         StringBuilder sb = new StringBuilder();
         sb.append("-- ACTION script for ").append(env).append(" cluster\n\n");
@@ -230,7 +254,8 @@ public class Conversion {
                     // Issues
                     if (tblMirror.isThereSql()) {
                         for (String sql : tblMirror.getSql()) {
-                            sb.append(sql).append(";<br/><br/>");
+                            String scrubbedSql = sql.replace("\n", "<br/>");
+                            sb.append(scrubbedSql).append(";<br/><br/>");
                         }
                     } else {
                         sb.append(" ");

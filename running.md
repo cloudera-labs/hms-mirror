@@ -19,7 +19,7 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 **HELP**
 ```
 usage: hms-mirror
-                  version:1.8.0_275
+                  version: ....
  -accept,--accept                            Accept ALL confirmations and
                                              silence prompts
  -cfg,--config <filename>                    Config with details for the
@@ -39,13 +39,13 @@ usage: hms-mirror
  -e,--execute                                Execute actions request,
                                              without this flag the process
                                              is a dry-run.
- -f,--output-file <filename>                 Output Directory (default:
-                                             $HOME/.hms-mirror/reports/hms
-                                             -mirror-<timestamp>.md
  -h,--help                                   Help
  -is,--intermediate-storage <storage-path>   Intermediate Storage used
                                              with Data Strategy
                                              INTERMEDIATE.
+ -o,--output-dir <outputdir>                 Output Directory (default:
+                                             $HOME/.hms-mirror/reports/<yy
+                                             yy-MM-dd_HH-mm-ss>
  -r,--retry                                  Retry last incomplete run for
                                              'cfg'.  If none specified,
                                              will check for 'default'
