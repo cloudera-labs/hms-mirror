@@ -12,6 +12,10 @@ Under certain conditions, additional actions may be required to achieve the desi
 
 The locations are displayed at the bottom on the application window when it's complete.
 
+### SQL Execution Output
+
+A SQL script of all the actions taken will be written to the local output directory.
+
 ## Logs
 
 There is a running log of the process in `$HOME/.hms-mirror/logs/hms-mirror.log`.  Review this for details or issues of the running process.

@@ -154,10 +154,10 @@ public class Mirror {
 
         // Action Files
 //        int suffixIndex = reportOutputDir.lastIndexOf(".");
-        reportOutputFile = reportOutputDir + System.getProperty("file.separator") + "hms-mirror.md";
-        rightExecuteFile = reportOutputDir + System.getProperty("file.separator") + "execute.sql";
-        leftActionFile = reportOutputDir + System.getProperty("file.separator") + "LEFT_action.sql";
-        rightActionFile = reportOutputDir + System.getProperty("file.separator") + "RIGHT_action.sql";
+        reportOutputFile = reportOutputDir + System.getProperty("file.separator") + "<db>_hms-mirror.md";
+        rightExecuteFile = reportOutputDir + System.getProperty("file.separator") + "<db>_execute.sql";
+        leftActionFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_action.sql";
+        rightActionFile = reportOutputDir + System.getProperty("file.separator") + "<db>_RIGHT_action.sql";
 
         try {
 //            String reportPath = reportOutputDir.substring(0, reportOutputDir.lastIndexOf(System.getProperty("file.separator")));
@@ -169,7 +169,7 @@ public class Mirror {
             // no dir in -f variable.
         }
 
-        File reportFile = new File(reportOutputFile);
+        File testFile = new File(reportOutputDir + System.getProperty("file.separator") + ".dir-check");
 
         // Ensure the Retry Path is created.
         File retryPath = new File(System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror" +
@@ -180,7 +180,7 @@ public class Mirror {
 
         // Test file to ensure we can write to it for the report.
         try {
-            new FileOutputStream(reportFile).close();
+            new FileOutputStream(testFile).close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -292,7 +292,7 @@ public class Mirror {
 //        reporter.setVariable("stage", config.getStage().toString());
         // ?
         //        reporter.setVariable("log.file", log4j output file.);
-        reporter.setVariable("report.file", reportOutputFile);
+        reporter.setVariable("report.file.", reportOutputFile);
         reporter.setVariable("execute.file", rightExecuteFile);
         reporter.setVariable("left.action.file", leftActionFile);
         reporter.setVariable("right.action.file", rightActionFile);
@@ -327,45 +327,46 @@ public class Mirror {
 
         // Actions
 
-        try {
-            FileWriter reportFile = new FileWriter(reportOutputFile);
-            reportFile.write(conversion.toReport(config));
+        for (String database : config.getDatabases()) {
 
-            // When this happens, we need to output the sql to 'detach' the
-            //    lower cluster tables from the data WHEN shared storage is used.
-//            if (config.isCommitToUpper() && config.isShareStorage()) {
-                // TODO:
-//            }
+            String dbReportOutputFile = reportOutputDir + System.getProperty("file.separator") + database + "_hms-mirror.md";
+            String dbRightExecuteFile = reportOutputDir + System.getProperty("file.separator") + database + "_execute.sql";
+            String dbLeftActionFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_action.sql";
+            String dbRightActionFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_action.sql";
 
-            reportFile.close();
-            LOG.info("Status Report of 'hms-mirror' is here: " + reportOutputDir.toString());
+            try {
+                FileWriter reportFile = new FileWriter(dbReportOutputFile);
 
-            FileWriter rightExecOutput = new FileWriter(rightExecuteFile);
-            rightExecOutput.write(conversion.executeSql());
-            rightExecOutput.close();
-            LOG.info("RIGHT Execution Script is here: " + rightExecuteFile.toString());
+                reportFile.write(conversion.toReport(config, database));
 
-            FileWriter leftActionOutput = new FileWriter(leftActionFile);
-            leftActionOutput.write(conversion.actionsSql(Environment.LEFT));
-            leftActionOutput.close();
-            LOG.info("LEFT action SQL script is here: " + leftActionFile.toString());
+                reportFile.close();
+                LOG.info("Status Report of 'hms-mirror' is here: " + dbReportOutputFile.toString());
 
-            FileWriter rightActionOutput = new FileWriter(rightActionFile);
-            rightActionOutput.write(conversion.actionsSql(Environment.RIGHT));
-            rightActionOutput.close();
-            LOG.info("RIGHT action SQL script is here: " + rightActionFile.toString());
+                FileWriter rightExecOutput = new FileWriter(dbRightExecuteFile);
+                rightExecOutput.write(conversion.executeSql(database));
+                rightExecOutput.close();
+                LOG.info("RIGHT Execution Script is here: " + dbRightExecuteFile.toString());
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            Date endTime = new Date();
-            DecimalFormat decf = new DecimalFormat("#.###");
-            decf.setRoundingMode(RoundingMode.CEILING);
-            LOG.info("HMS-Mirror: Completed in " +
-                    decf.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
-            reporter.refresh();
-            reporter.stop();
+                FileWriter leftActionOutput = new FileWriter(dbLeftActionFile);
+                leftActionOutput.write(conversion.actionsSql(Environment.LEFT, database));
+                leftActionOutput.close();
+                LOG.info("LEFT action SQL script is here: " + dbLeftActionFile.toString());
+
+                FileWriter rightActionOutput = new FileWriter(dbRightActionFile);
+                rightActionOutput.write(conversion.actionsSql(Environment.RIGHT, database));
+                rightActionOutput.close();
+                LOG.info("RIGHT action SQL script is here: " + dbRightActionFile.toString());
+            } catch (IOException ioe) {
+                LOG.error("Issue writing report for: " + database, ioe);
+            }
         }
+        Date endTime = new Date();
+        DecimalFormat decf = new DecimalFormat("#.###");
+        decf.setRoundingMode(RoundingMode.CEILING);
+        LOG.info("HMS-Mirror: Completed in " +
+                decf.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
+        reporter.refresh();
+        reporter.stop();
     }
 
     public Conversion runTransfer(Conversion conversion) {
@@ -461,7 +462,7 @@ public class Mirror {
         options.addOption(metadataStage);
 
         Option intermediateStorageOption = new Option("is", "intermediate-storage", true,
-        "Intermediate Storage used with Data Strategy INTERMEDIATE.");
+                "Intermediate Storage used with Data Strategy INTERMEDIATE.");
         intermediateStorageOption.setOptionalArg(Boolean.TRUE);
         intermediateStorageOption.setArgName("storage-path");
         intermediateStorageOption.setRequired(Boolean.FALSE);
@@ -510,7 +511,7 @@ public class Mirror {
         options.addOptionGroup(dbGroup);
 
         Option sqlOutputOption = new Option("sql", "sql-output", false,
-        "Output the SQL to the report");
+                "Output the SQL to the report");
         sqlOutputOption.setRequired(Boolean.FALSE);
         options.addOption(sqlOutputOption);
 
