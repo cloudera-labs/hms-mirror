@@ -292,7 +292,7 @@ public class Mirror {
 //        reporter.setVariable("stage", config.getStage().toString());
         // ?
         //        reporter.setVariable("log.file", log4j output file.);
-        reporter.setVariable("report.file.", reportOutputFile);
+        reporter.setVariable("report.file", reportOutputFile);
         reporter.setVariable("execute.file", rightExecuteFile);
         reporter.setVariable("left.action.file", leftActionFile);
         reporter.setVariable("right.action.file", rightActionFile);
