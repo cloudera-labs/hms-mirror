@@ -10,11 +10,11 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 2. The **RIGHT** cluster has been configured to access the **LEFT** cluster storage. See [link clusters](./link_clusters.md).  This is the same configuration that would be required to support `distcp` from the **RIGHT** cluster to the **LEFT** cluster.
 3. The movement of metadata/data is from the **LEFT** cluster to the **RIGHT** cluster.
 4. With Kerberos, each cluster must share the same trust mechanism.
-    5. The **RIGHT** cluster must be Kerberized IF the **LEFT** cluster is.
-    6. The **LEFT** cluster does NOT need to be kerberized if the **RIGHT** cluster is kerberized.
+    - The **RIGHT** cluster must be Kerberized IF the **LEFT** cluster is.
+    - The **LEFT** cluster does NOT need to be kerberized if the **RIGHT** cluster is kerberized.
 7. The **LEFT* cluster does NOT have access to the **RIGHT** cluster.
 8. The credentials use by 'hive' (doas=false) in the **RIGHT** cluster must have access to the required storage (hdfs) locations on the lower cluster.
-    9. If the **RIGHT** cluster is running impersonation (doas=true), that user must have access to the required storage (hdfs) locations on the lower cluster.
+    - If the **RIGHT** cluster is running impersonation (doas=true), that user must have access to the required storage (hdfs) locations on the lower cluster.
 
 **HELP**
 ```
