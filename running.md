@@ -58,21 +58,9 @@ usage: hms-mirror
                                              matching RegEx
 ```
 
-There are 2 stages currently supported by the tool:
-- `m|metastore` - Will replicate the metadata and will use the **LEFT** clusters storage for the **RIGHT** clusters storage location.
-- `s|storage` - Will migrate the data from the **LEFT** cluster to the **RIGHT** cluster.
-
-## Application Flag Description
-
-| Flag | Argument(s) | Notes |
-|:---|:---|:---|
-| `-a` | na | When running the `-d` option with either an `EXPORT_IMPORT` or `HYBRID` strategy you can migrate Transactional/ACID table. This is a *ONE* time transfer using Hive EXPORT_IMPORT.  `hms-mirror` does NOT support incremental updates for transactional/ACID tables. |
-| `-dbp` | <dbname_prefix> | If you would like to alter the target database name, usually for testing, this will prepend the database name in the RIGHT cluster |
-
-
 ## Examples
 
 ### Replicating 2 database definitions
 
-`hms-mirror -m -db my_first_db,my_second_db`
+`hms-mirror -db my_first_db,my_second_db`
 
