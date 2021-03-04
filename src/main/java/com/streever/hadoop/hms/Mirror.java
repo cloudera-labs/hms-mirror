@@ -10,6 +10,11 @@ import org.apache.commons.cli.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.commonmark.Extension;
+import org.commonmark.ext.front.matter.YamlFrontMatterExtension;
+import org.commonmark.ext.gfm.tables.TablesExtension;
+import org.commonmark.node.Node;
+import org.commonmark.renderer.html.HtmlRenderer;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -154,7 +159,7 @@ public class Mirror {
 
         // Action Files
 //        int suffixIndex = reportOutputDir.lastIndexOf(".");
-        reportOutputFile = reportOutputDir + System.getProperty("file.separator") + "<db>_hms-mirror.md";
+        reportOutputFile = reportOutputDir + System.getProperty("file.separator") + "<db>_hms-mirror.md|html";
         rightExecuteFile = reportOutputDir + System.getProperty("file.separator") + "<db>_execute.sql";
         leftActionFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_action.sql";
         rightActionFile = reportOutputDir + System.getProperty("file.separator") + "<db>_RIGHT_action.sql";
@@ -329,18 +334,28 @@ public class Mirror {
 
         for (String database : config.getDatabases()) {
 
-            String dbReportOutputFile = reportOutputDir + System.getProperty("file.separator") + database + "_hms-mirror.md";
+            String dbReportOutputFile = reportOutputDir + System.getProperty("file.separator") + database + "_hms-mirror";
             String dbRightExecuteFile = reportOutputDir + System.getProperty("file.separator") + database + "_execute.sql";
             String dbLeftActionFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_action.sql";
             String dbRightActionFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_action.sql";
 
             try {
-                FileWriter reportFile = new FileWriter(dbReportOutputFile);
-
-                reportFile.write(conversion.toReport(config, database));
-
+                FileWriter reportFile = new FileWriter(dbReportOutputFile + ".md");
+                String mdReportStr = conversion.toReport(config, database);
+                reportFile.write(mdReportStr);
                 reportFile.close();
-                LOG.info("Status Report of 'hms-mirror' is here: " + dbReportOutputFile.toString());
+                // Convert to HTML
+                List<Extension> extensions = Arrays.asList(TablesExtension.create(), YamlFrontMatterExtension.create());
+
+                org.commonmark.parser.Parser parser = org.commonmark.parser.Parser.builder().extensions(extensions).build();
+                Node document = parser.parse(mdReportStr);
+                HtmlRenderer renderer = HtmlRenderer.builder().extensions(extensions).build();
+                String htmlReportStr = renderer.render(document);  // "<p>This is <em>Sparta</em></p>\n"
+                reportFile = new FileWriter(dbReportOutputFile + ".html");
+                reportFile.write(htmlReportStr);
+                reportFile.close();
+
+                LOG.info("Status Report of 'hms-mirror' is here: " + dbReportOutputFile.toString() + ".md|html");
 
                 FileWriter rightExecOutput = new FileWriter(dbRightExecuteFile);
                 rightExecOutput.write(conversion.executeSql(database));

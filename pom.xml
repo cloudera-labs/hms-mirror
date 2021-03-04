@@ -6,7 +6,7 @@
 
     <groupId>com.streever.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>1.2.4.1-SNAPSHOT</version>
+    <version>1.2.4.2-SNAPSHOT</version>
     <name>hms-mirror</name>
 
     <url>https://github.com/dstreev/hms_transparent_mirror</url>
@@ -45,7 +45,7 @@
         <commons-io.version>2.4</commons-io.version>
 
         <jcabi.manifests.version>1.1</jcabi.manifests.version>
-
+        <commonmark.version>0.17.1</commonmark.version>
         <!-- Log4j
         <log4j-2.version>2.11.1</log4j-2.version>
         -->
@@ -81,6 +81,22 @@
             <version>${hadoop-cli.version}</version>
         </dependency>
         -->
+        <dependency>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark</artifactId>
+            <version>${commonmark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark-ext-gfm-tables</artifactId>
+            <version>${commonmark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark-ext-yaml-front-matter</artifactId>
+            <version>${commonmark.version}</version>
+        </dependency>
+
 
         <dependency>
             <groupId>com.jcabi</groupId>
