@@ -6,7 +6,7 @@
 
     <groupId>com.streever.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>1.2.4.2-SNAPSHOT</version>
+    <version>1.2.4.3-SNAPSHOT</version>
     <name>hms-mirror</name>
 
     <url>https://github.com/dstreev/hms_transparent_mirror</url>
@@ -55,14 +55,15 @@
         <junit.version>4.13.1</junit.version>
 
         <hadoop.version>3.1.1</hadoop.version>
-        <cdp.version>7.1.1.0-565</cdp.version>
+        <cdp.version>7.1.5.0-257</cdp.version>
+
         <zookeeper.version>3.5.5</zookeeper.version>
 
         <gateway-shell.version>1.0.0</gateway-shell.version>
         <!--        <hadoop.major>3.1</hadoop.major>-->
         <!--        <hive.version>3.1.1</hive.version>-->
 
-        <hadoop-cli.version>2.2.3.4-SNAPSHOT</hadoop-cli.version>
+        <hadoop-cli.version>2.3.0.1-SNAPSHOT</hadoop-cli.version>
 
     </properties>
 
@@ -74,13 +75,11 @@
     </repositories>
 
     <dependencies>
-        <!--
-        <dependency>
-            <groupId>com.streever.hadoop</groupId>
-            <artifactId>hadoop-cli</artifactId>
-            <version>${hadoop-cli.version}</version>
-        </dependency>
-        -->
+<!--        <dependency>-->
+<!--            <groupId>com.streever.hadoop</groupId>-->
+<!--            <artifactId>hadoop-cli</artifactId>-->
+<!--            <version>${hadoop-cli.version}</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>org.commonmark</groupId>
             <artifactId>commonmark</artifactId>
@@ -97,6 +96,12 @@
             <version>${commonmark.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>${hadoop.version}.${cdp.version}</version>
+<!--            <scope>provided</scope>-->
+        </dependency>
 
         <dependency>
             <groupId>com.jcabi</groupId>
