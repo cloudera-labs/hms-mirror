@@ -73,7 +73,7 @@ public class ConnectionPools {
         Connection conn = null;
         try {
             conn = getEnvironmentDataSource(environment).getConnection();
-        } catch (SQLException se) {
+        } catch (Throwable se) {
             se.printStackTrace();
             throw new RuntimeException(se);
         } finally {

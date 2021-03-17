@@ -129,6 +129,7 @@ public class Cluster implements Comparable<Cluster> {
                 }
             }
         } catch (SQLException se) {
+            se.printStackTrace();
             throw se;
         } finally {
             try {

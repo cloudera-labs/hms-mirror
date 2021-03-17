@@ -7,11 +7,6 @@ if [[ ! -d ${HOME}/.hms-mirror/aux_libs ]]; then
   mkdir -p ${HOME}/.hms-mirror/aux_libs
 fi
 
-# Location we can use for custom control files
-if [[ ! -d ${HOME}/.hms-mirror/cust ]]; then
-  mkdir -p ${HOME}/.hms-mirror/cust
-fi
-
 if [ ! -z ${JAVA_HOME} ]; then
   JAVA="${JAVA_HOME}/bin/java"
 else
@@ -27,7 +22,7 @@ if [[ -f ./hms-mirror && "${APP_DIR}" != "${CURR_DIR}" && "${APP_DIR}" != "." ]]
 fi
 
 PRG_ARGS=
-CMD_CP=${HOME}/.hms-mirror/cust
+CMD_CP=
 
 if [[ -f ./hms-mirror-shaded.jar ]]; then
     # Look in Current Directory
@@ -68,6 +63,11 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     -D*)
       APP_JAVA_OPTS="${APP_JAVA_OPTS} ${1}"
+      shift
+      ;;
+    -CP)
+      shift
+      CMD_CP=${CMD_CP}:$1
       shift
       ;;
     --hadoop-classpath)
