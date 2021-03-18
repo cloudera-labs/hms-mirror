@@ -112,37 +112,6 @@ public class Mirror {
 
     public void init(String[] args) {
 
-//        String CURRENT_USER_PROP = "current.user";
-//
-//        String HADOOP_CONF_DIR = "HADOOP_CONF_DIR";
-//        String[] HADOOP_CONF_FILES = {"core-site.xml", "hdfs-site.xml", "mapred-site.xml", "yarn-site.xml"};
-//
-//        // Get a value that over rides the default, if nothing then use default.
-//        String hadoopConfDirProp = System.getenv().getOrDefault(HADOOP_CONF_DIR, "/etc/hadoop/conf");
-//
-//        // Set a default
-//        if (hadoopConfDirProp == null)
-//            hadoopConfDirProp = "/etc/hadoop/conf";
-//
-//        Configuration hadoopConfig = new Configuration(true);
-//
-//        File hadoopConfDir = new File(hadoopConfDirProp).getAbsoluteFile();
-//        for (String file : HADOOP_CONF_FILES) {
-//            File f = new File(hadoopConfDir, file);
-//            if (f.exists()) {
-//                hadoopConfig.addResource(new Path(f.getAbsolutePath()));
-//            }
-//        }
-//        // disable s3a fs cache
-////                hadoopConfig.set("fs.s3a.impl.disable.cache", "true");
-////                hadoopConfig.set("fs.s3a.bucket.probe","0");
-//
-//        // hadoop.security.authentication
-//        if (hadoopConfig.get("hadoop.security.authentication", "simple").equalsIgnoreCase("kerberos")) {
-//            UserGroupInformation.setConfiguration(hadoopConfig);
-////            env.getProperties().setProperty(CURRENT_USER_PROP, UserGroupInformation.getCurrentUser().getShortUserName());
-//        }
-
 //        HadoopSession main = HadoopSession.get("MAIN");
 //        String[] api = {"-api"};
 //        try {
