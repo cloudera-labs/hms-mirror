@@ -80,12 +80,16 @@ public class Mirror {
             for (String file : HADOOP_CONF_FILES) {
                 File f = new File(hadoopConfDir, file);
                 if (f.exists()) {
-                    LOG.debug("Adding conf resource: 'file:" + f.getAbsolutePath() + "'");
-                    hadoopConfig.addResource("file:" + f.getAbsolutePath());
-                    // I found this new Path call failed on the Squadron Clusters.
-                    // Not sure why.  Anyhow, the above seems to work the same.
-//                    LOG.debug("Adding conf resource: '" + f.getAbsolutePath() + "'");
-//                    hadoopConfig.addResource(new Path(f.getAbsolutePath()));
+                    LOG.debug("Adding conf resource: '" + f.getAbsolutePath() + "'");
+                    try {
+                        // I found this new Path call failed on the Squadron Clusters.
+                        // Not sure why.  Anyhow, the above seems to work the same.
+                        hadoopConfig.addResource(new Path(f.getAbsolutePath()));
+                    } catch (Throwable t) {
+                        // This worked for the Squadron Cluster.
+                        // I think it has something to do with the Docker images.
+                        hadoopConfig.addResource("file:" + f.getAbsolutePath());
+                    }
                 }
             }
             // disable s3a fs cache
