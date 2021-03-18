@@ -5,6 +5,10 @@ import com.streever.hadoop.hms.Mirror;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
@@ -19,16 +23,11 @@ public class Config {
 
     @JsonIgnore
     private ScheduledExecutorService transferThreadPool;
-//    @JsonIgnore
-//    private ScheduledExecutorService metadataThreadPool;
-//    @JsonIgnore
-//    private ScheduledExecutorService storageThreadPool;
 
     private DataStrategy dataStrategy = DataStrategy.SCHEMA_ONLY;
     private HybridConfig hybrid = new HybridConfig();
     private Boolean migrateACID = Boolean.FALSE;
 
-//    private Stage stage = null;
     private boolean execute = Boolean.FALSE;
     /*
     Used when a schema is transferred and has 'purge' properties for the table.
@@ -39,13 +38,25 @@ public class Config {
     private boolean readOnly = Boolean.FALSE;
 
     /*
+    Sync is valid for SCHEMA_ONLY, LINKED, COMMON, and INTERMEDIATE data strategies.
+    This will compare the tables between LEFT and RIGHT to ensure that they are in SYNC.
+    SYNC means: If a table on the LEFT:
+    - it will be created on the RIGHT
+    - exists on the right and has changed (Fields and/or Serde), it will be dropped and recreated
+    - missing and exists on the RIGHT, it will be dropped.
+
+    If the -ro option is used, the tables that are changed or dropped will be disconnected from the data before
+    the drop to ensure they don't modify the FileSystem.
+
+    Transactional tables are NOT considered in this process.
+     */
+    private boolean sync = Boolean.FALSE;
+
+    /*
     Output SQL to report
      */
     private boolean sqlOutput = Boolean.FALSE;
 
-//    private ReplicationStrategy replicationStrategy = ReplicationStrategy.SYNCHRONIZE;
-//    private boolean shareStorage = Boolean.FALSE;
-//    private boolean commitToUpper = Boolean.FALSE;
     private Acceptance acceptance = new Acceptance();
 
     @JsonIgnore // wip
@@ -64,8 +75,6 @@ public class Config {
     private String tblRegEx = null;
 
     private TransferConfig transfer = new TransferConfig();
-//    private MetadataConfig metadata = new MetadataConfig();
-//    private StorageConfig storage = new StorageConfig();
 
     private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
 
@@ -134,25 +143,9 @@ public class Config {
 
     public String getResolvedDB(String database) {
         String rtn = null;
-        rtn = (dbPrefix != null? dbPrefix + database: database);
+        rtn = (dbPrefix != null ? dbPrefix + database : database);
         return rtn;
     }
-
-//    public boolean isShareStorage() {
-//        return shareStorage;
-//    }
-//
-//    public void setShareStorage(boolean shareStorage) {
-//        this.shareStorage = shareStorage;
-//    }
-//
-//    public boolean isCommitToUpper() {
-//        return commitToUpper;
-//    }
-//
-//    public void setCommitToUpper(boolean commitToUpper) {
-//        this.commitToUpper = commitToUpper;
-//    }
 
     public ScheduledExecutorService getTransferThreadPool() {
         if (transferThreadPool == null) {
@@ -160,20 +153,6 @@ public class Config {
         }
         return transferThreadPool;
     }
-
-//    public ScheduledExecutorService getMetadataThreadPool() {
-//        if (metadataThreadPool == null) {
-//            metadataThreadPool = Executors.newScheduledThreadPool(getMetadata().getConcurrency());
-//        }
-//        return metadataThreadPool;
-//    }
-//
-//    public ScheduledExecutorService getStorageThreadPool() {
-//        if (storageThreadPool == null) {
-//            storageThreadPool = Executors.newScheduledThreadPool(getStorage().getConcurrency());
-//        }
-//        return storageThreadPool;
-//    }
 
     public String getDbRegEx() {
         return dbRegEx;
@@ -195,6 +174,70 @@ public class Config {
             dbFilterPattern = null;
     }
 
+    public Boolean isConnectionKerberized() {
+        Boolean rtn = Boolean.FALSE;
+        Set<Environment> envs = clusters.keySet();
+        for (Environment env : envs) {
+            Cluster cluster = clusters.get(env);
+            if (cluster.getHiveServer2().getUri().contains("principal")) {
+                rtn = Boolean.TRUE;
+            }
+        }
+        return rtn;
+    }
+
+    public Boolean checkConnections() {
+        Boolean rtn = Boolean.TRUE;
+        Set<Environment> envs = clusters.keySet();
+        for (Environment env : envs) {
+            Cluster cluster = clusters.get(env);
+            Connection conn = null;
+            try {
+                conn = cluster.getConnection();
+
+                Statement stmt = null;
+                ResultSet resultSet = null;
+                try {
+                    LOG.debug(env + ":" + ": Checking Hive Connection");
+                    stmt = conn.createStatement();
+                    resultSet = stmt.executeQuery("SHOW DATABASES");
+                    LOG.debug(env + ":" + ": Hive Connection Successful");
+                } catch (SQLException sql) {
+                    // DB Doesn't Exists.
+                    LOG.error(env + ": Hive Connection check failed.", sql);
+                    rtn = Boolean.FALSE;
+                } finally {
+                    if (resultSet != null) {
+                        try {
+                            resultSet.close();
+                        } catch (SQLException sqlException) {
+                            // ignore
+                        }
+                    }
+                    if (stmt != null) {
+                        try {
+                            stmt.close();
+                        } catch (SQLException sqlException) {
+                            // ignore
+                        }
+                    }
+                }
+
+            } catch (SQLException se) {
+                rtn = Boolean.FALSE;
+                LOG.error(env + ": Hive Connection check failed.", se);
+                se.printStackTrace();
+            } finally {
+                try {
+                    conn.close();
+                } catch (Throwable throwables) {
+                    //
+                }
+            }
+        }
+        return rtn;
+    }
+
     public Pattern getDbFilterPattern() {
         return dbFilterPattern;
     }
@@ -207,41 +250,9 @@ public class Config {
         this.databases = databases;
     }
 
-//    public Stage getStage() {
-//        return stage;
-//    }
-//
-//    public void setStage(Stage stage) {
-//        this.stage = stage;
-//    }
-
     public void setExecute(boolean execute) {
         this.execute = execute;
     }
-
-//    public ReplicationStrategy getReplicationStrategy() {
-//        return replicationStrategy;
-//    }
-//
-//    public void setReplicationStrategy(ReplicationStrategy replicationStrategy) {
-//        this.replicationStrategy = replicationStrategy;
-//    }
-//
-//    public MetadataConfig getMetadata() {
-//        return metadata;
-//    }
-//
-//    public void setMetadata(MetadataConfig metadata) {
-//        this.metadata = metadata;
-//    }
-//
-//    public StorageConfig getStorage() {
-//        return storage;
-//    }
-//
-//    public void setStorage(StorageConfig storage) {
-//        this.storage = storage;
-//    }
 
     public TransferConfig getTransfer() {
         return transfer;

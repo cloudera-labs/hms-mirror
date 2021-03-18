@@ -4,6 +4,8 @@ import com.streever.hadoop.hms.util.DriverUtils;
 import org.apache.commons.dbcp2.*;
 import org.apache.commons.pool2.ObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -15,6 +17,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 public class ConnectionPools {
+    private static Logger LOG = LogManager.getLogger(ConnectionPools.class);
 
     private Map<Environment, PoolingDataSource<PoolableConnection>> dataSources =
             new TreeMap<Environment, PoolingDataSource<PoolableConnection>>();
@@ -75,6 +78,7 @@ public class ConnectionPools {
             conn = getEnvironmentDataSource(environment).getConnection();
         } catch (Throwable se) {
             se.printStackTrace();
+            LOG.error(se);
             throw new RuntimeException(se);
         } finally {
             DriverManager.deregisterDriver(lclDriver);

@@ -15,9 +15,15 @@ rm -f /usr/local/hms-mirror/lib/*.jar
 if [ -f ../target/hms-mirror-shaded.jar ]; then
     cp -f ../target/hms-mirror-shaded.jar /usr/local/hms-mirror/lib
 fi
+if [ -f ../target/hms-mirror-shaded-no-hadoop.jar ]; then
+    cp -f ../target/hms-mirror-shaded-no-hadoop.jar /usr/local/hms-mirror/lib
+fi
 
 if [ -f hms-mirror-shaded.jar ]; then
     cp -f hms-mirror-shaded.jar /usr/local/hms-mirror/lib
+fi
+if [ -f hms-mirror-shaded-no-hadoop.jar ]; then
+    cp -f hms-mirror-shaded-no-hadoop.jar /usr/local/hms-mirror/lib
 fi
 
 chmod -R +r /usr/local/hms-mirror

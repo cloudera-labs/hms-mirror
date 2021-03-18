@@ -59,7 +59,7 @@
         <fileSet>
             <directory>${project.basedir}/target</directory>
             <includes>
-                <include>*shaded.jar</include>
+                <include>hms-mirror-shaded*.jar</include>
             </includes>
             <outputDirectory>hms-mirror</outputDirectory>
             <useDefaultExcludes>true</useDefaultExcludes>

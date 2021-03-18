@@ -1,11 +1,13 @@
 package com.streever.hadoop.hms.stage;
 
+import com.streever.hadoop.HadoopSession;
 import com.streever.hadoop.hms.mirror.*;
 import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.util.Date;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 public class Transfer implements Callable<ReturnStatus> {
@@ -15,6 +17,7 @@ public class Transfer implements Callable<ReturnStatus> {
     private DBMirror dbMirror = null;
     private TableMirror tblMirror = null;
     private boolean successful = Boolean.FALSE;
+    private HadoopSession cliSession;
 
     public boolean isSuccessful() {
         return successful;
@@ -24,6 +27,7 @@ public class Transfer implements Callable<ReturnStatus> {
         this.config = config;
         this.dbMirror = dbMirror;
         this.tblMirror = tblMirror;
+        this.cliSession = HadoopSession.get("Transfer: " + dbMirror.getName() + UUID.randomUUID());
     }
 
 

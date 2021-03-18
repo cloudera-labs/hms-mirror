@@ -28,6 +28,12 @@
         dest: /usr/local/hms-mirror/lib
         mode: 0755
 
+    - name: Copy No Hadoop lib
+      copy:
+        src: ../target/hms-mirror-shaded-no-hadoop.jar
+        dest: /usr/local/hms-mirror/lib
+        mode: 0755
+
     - name: Link executable
       file:
         src: /usr/local/hms-mirror/bin/hms-mirror

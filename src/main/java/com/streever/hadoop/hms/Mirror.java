@@ -4,10 +4,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.streever.hadoop.hms.mirror.*;
-import com.streever.hadoop.hms.stage.*;
+import com.streever.hadoop.hms.stage.ReturnStatus;
+import com.streever.hadoop.hms.stage.Setup;
+import com.streever.hadoop.hms.stage.Transfer;
 import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.commonmark.Extension;
@@ -26,7 +31,9 @@ import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 public class Mirror {
     private static Logger LOG = LogManager.getLogger(Mirror.class);
@@ -53,7 +60,98 @@ public class Mirror {
         this.dateMarker = dateMarker;
     }
 
+    protected void setupGSS() {
+        try {
+            String CURRENT_USER_PROP = "current.user";
+
+            String HADOOP_CONF_DIR = "HADOOP_CONF_DIR";
+            String[] HADOOP_CONF_FILES = {"core-site.xml", "hdfs-site.xml", "mapred-site.xml", "yarn-site.xml"};
+
+            // Get a value that over rides the default, if nothing then use default.
+            String hadoopConfDirProp = System.getenv().getOrDefault(HADOOP_CONF_DIR, "/etc/hadoop/conf");
+
+            // Set a default
+            if (hadoopConfDirProp == null)
+                hadoopConfDirProp = "/etc/hadoop/conf";
+
+            Configuration hadoopConfig = new Configuration(true);
+
+            File hadoopConfDir = new File(hadoopConfDirProp).getAbsoluteFile();
+            for (String file : HADOOP_CONF_FILES) {
+                File f = new File(hadoopConfDir, file);
+                if (f.exists()) {
+                    LOG.debug("Adding conf resource: 'file:" + f.getAbsolutePath() + "'");
+                    hadoopConfig.addResource("file:" + f.getAbsolutePath());
+                    // I found this new Path call failed on the Squadron Clusters.
+                    // Not sure why.  Anyhow, the above seems to work the same.
+//                    LOG.debug("Adding conf resource: '" + f.getAbsolutePath() + "'");
+//                    hadoopConfig.addResource(new Path(f.getAbsolutePath()));
+                }
+            }
+            // disable s3a fs cache
+//                hadoopConfig.set("fs.s3a.impl.disable.cache", "true");
+//                hadoopConfig.set("fs.s3a.bucket.probe","0");
+
+            // hadoop.security.authentication
+            if (hadoopConfig.get("hadoop.security.authentication", "simple").equalsIgnoreCase("kerberos")) {
+                try {
+                    UserGroupInformation.setConfiguration(hadoopConfig);
+                } catch (Throwable t) {
+                    // Revert to non JNI. This happens in Squadron (Docker Imaged Hosts)
+                    LOG.error("Failed GSS Init.  Attempting different Group Mapping");
+                    hadoopConfig.set("hadoop.security.group.mapping", "org.apache.hadoop.security.ShellBasedUnixGroupsMapping");
+                    UserGroupInformation.setConfiguration(hadoopConfig);
+                }
+            }
+        } catch (Throwable t) {
+            LOG.error("Issue initializing Kerberos", t);
+            t.printStackTrace();
+            throw t;
+        }
+    }
+
     public void init(String[] args) {
+
+//        String CURRENT_USER_PROP = "current.user";
+//
+//        String HADOOP_CONF_DIR = "HADOOP_CONF_DIR";
+//        String[] HADOOP_CONF_FILES = {"core-site.xml", "hdfs-site.xml", "mapred-site.xml", "yarn-site.xml"};
+//
+//        // Get a value that over rides the default, if nothing then use default.
+//        String hadoopConfDirProp = System.getenv().getOrDefault(HADOOP_CONF_DIR, "/etc/hadoop/conf");
+//
+//        // Set a default
+//        if (hadoopConfDirProp == null)
+//            hadoopConfDirProp = "/etc/hadoop/conf";
+//
+//        Configuration hadoopConfig = new Configuration(true);
+//
+//        File hadoopConfDir = new File(hadoopConfDirProp).getAbsoluteFile();
+//        for (String file : HADOOP_CONF_FILES) {
+//            File f = new File(hadoopConfDir, file);
+//            if (f.exists()) {
+//                hadoopConfig.addResource(new Path(f.getAbsolutePath()));
+//            }
+//        }
+//        // disable s3a fs cache
+////                hadoopConfig.set("fs.s3a.impl.disable.cache", "true");
+////                hadoopConfig.set("fs.s3a.bucket.probe","0");
+//
+//        // hadoop.security.authentication
+//        if (hadoopConfig.get("hadoop.security.authentication", "simple").equalsIgnoreCase("kerberos")) {
+//            UserGroupInformation.setConfiguration(hadoopConfig);
+////            env.getProperties().setProperty(CURRENT_USER_PROP, UserGroupInformation.getCurrentUser().getShortUserName());
+//        }
+
+//        HadoopSession main = HadoopSession.get("MAIN");
+//        String[] api = {"-api"};
+//        try {
+//            main.start(api);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+//        CommandReturn cr = main.processInput("connect");
 
         Options options = getOptions();
 
@@ -79,7 +177,6 @@ public class Mirror {
 
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
 
         // Initialize with config and output directory.
         if (cmd.hasOption("cfg")) {
@@ -259,6 +356,18 @@ public class Mirror {
         config.getCluster(Environment.LEFT).setPools(connPools);
         config.getCluster(Environment.RIGHT).setPools(connPools);
 
+        if (config.isConnectionKerberized()) {
+            LOG.debug("Detected a Kerberized JDBC Connection.  Attempting to setup/initialize GSS.");
+            setupGSS();
+        }
+        LOG.debug("Checking Hive Connections");
+        if (!config.checkConnections()) {
+            LOG.error("Check Hive Connections Failed.");
+            if (config.isConnectionKerberized()) {
+                LOG.error("Check Kerberos configuration if GSS issues are encountered.  See the running.md docs for details.");
+            }
+            throw new RuntimeException("Check Hive Connections Failed.  Check Logs.");
+        }
     }
 
     public void doit() {

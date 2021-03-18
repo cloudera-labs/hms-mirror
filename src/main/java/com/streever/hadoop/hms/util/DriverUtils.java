@@ -20,16 +20,21 @@ public class DriverUtils {
     public static Driver getDriver(String jarFile) {
         Driver hiveShim = null;
         try {
-            File jdbcJar = new File(jarFile);
-            URL[] urls = {jdbcJar.toURI().toURL()};
-            LOG.trace("Building Classloader to isolate JDBC Library for: " + jarFile);
-            URLClassLoader hive3ClassLoader = URLClassLoader.newInstance(urls, jdbcJar.getClass().getClassLoader());
-            LOG.trace("Loading Hive JDBC Driver");
-            Class<?> classToLoad = hive3ClassLoader.loadClass("org.apache.hive.jdbc.HiveDriver");
-            Driver hiveDriver = (Driver) classToLoad.newInstance();
-            LOG.trace("Building Hive Driver Shim");
-            hiveShim = new DriverShim(hiveDriver);
-            LOG.trace("Registering Hive Shim Driver with JDBC 'DriverManager'");
+            if (jarFile != null) {
+                File jdbcJar = new File(jarFile);
+                URL[] urls = {jdbcJar.toURI().toURL()};
+                LOG.trace("Building Classloader to isolate JDBC Library for: " + jarFile);
+                URLClassLoader hive3ClassLoader = URLClassLoader.newInstance(urls, jdbcJar.getClass().getClassLoader());
+                LOG.trace("Loading Hive JDBC Driver");
+                Class<?> classToLoad = hive3ClassLoader.loadClass("org.apache.hive.jdbc.HiveDriver");
+                Driver hiveDriver = (Driver) classToLoad.newInstance();
+                LOG.trace("Building Hive Driver Shim");
+                hiveShim = new DriverShim(hiveDriver);
+                LOG.trace("Registering Hive Shim Driver with JDBC 'DriverManager'");
+            } else {
+                Class hiveDriverClass = Class.forName("org.apache.hive.jdbc.HiveDriver");
+                hiveShim = (Driver) hiveDriverClass.newInstance();
+            }
             DriverManager.registerDriver(hiveShim);
         } catch (SQLException | MalformedURLException |
                 ClassNotFoundException | InstantiationException |

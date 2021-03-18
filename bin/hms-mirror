@@ -24,25 +24,6 @@ fi
 PRG_ARGS=
 CMD_CP=
 
-if [[ -f ./hms-mirror-shaded.jar ]]; then
-    # Look in Current Directory
-    CMD_CP=$APP_DIR/hms-mirror-shaded.jar:${CMD_CP}
-    #echo "Using bin from same directory"
-elif [[ -f $APP_DIR/../target/hms-mirror-shaded.jar ]]; then
-    # Look in ../target
-    CMD_CP=$APP_DIR/../target/hms-mirror-shaded.jar:${CMD_CP}
-    #echo "Using bin from build directory"
-else
-    # Look in /usr/local/hms-mirror/lib
-    if [[ -f /usr/local/hms-mirror/lib/hms-mirror-shaded.jar ]]; then
-        CMD_CP=/usr/local/hms-mirror/lib/hms-mirror-shaded.jar:${CMD_CP}
-        #echo "Using bin from installation directory"
-    else
-        echo "Couldn't locate hms-mirror Library" >&2
-        exit -1
-    fi
-fi
-
 # Set the default.
 export HADOOP_CONF_DIR="/etc/hadoop/conf"
 
@@ -99,8 +80,46 @@ for jarFile in `ls -d ${AUX_LIBS_DIR}/*.jar 2> /dev/null`; do
     CMD_CP=${CMD_CP}:$jarFile
 done
 
+# Choose to use embedded libs (Hadoop 3+) or get Hadoop Classpath locally
 if [[ "${HADOOP_CLASSPATH}x" != "x" ]]; then
+    if [[ -f ./hms-mirror-shaded-no-hadoop.jar ]]; then
+        # Look in Current Directory
+        CMD_CP=$APP_DIR/hms-mirror-shaded-no-hadoop.jar:${CMD_CP}
+        #echo "Using bin from same directory"
+    elif [[ -f $APP_DIR/../target/hms-mirror-shaded-no-hadoop.jar ]]; then
+        # Look in ../target
+        CMD_CP=$APP_DIR/../target/hms-mirror-shaded-no-hadoop.jar:${CMD_CP}
+        #echo "Using bin from build directory"
+    else
+        # Look in /usr/local/hadoop-cli/lib
+        if [[ -f /usr/local/hms-mirror/lib/hms-mirror-shaded-no-hadoop.jar ]]; then
+            CMD_CP=/usr/local/hms-mirror/lib/hms-mirror-shaded-no-hadoop.jar:${CMD_CP}
+            #echo "Using bin from installation directory"
+        else
+            #echo "Couldn't locate Hadoop Cli Library"
+            exit 1
+        fi
+    fi
     CMD_CP=${CMD_CP}:`hadoop classpath`
+else
+  if [[ -f ./hms-mirror-shaded.jar ]]; then
+      # Look in Current Directory
+      CMD_CP=$APP_DIR/hms-mirror-shaded.jar:${CMD_CP}
+      #echo "Using bin from same directory"
+  elif [[ -f $APP_DIR/../target/hms-mirror-shaded.jar ]]; then
+      # Look in ../target
+      CMD_CP=$APP_DIR/../target/hms-mirror-shaded.jar:${CMD_CP}
+      #echo "Using bin from build directory"
+  else
+      # Look in /usr/local/hms-mirror/lib
+      if [[ -f /usr/local/hms-mirror/lib/hms-mirror-shaded.jar ]]; then
+          CMD_CP=/usr/local/hms-mirror/lib/hms-mirror-shaded.jar:${CMD_CP}
+          #echo "Using bin from installation directory"
+      else
+          #echo "Couldn't locate hms-mirror Library"
+          exit 1
+      fi
+  fi
 fi
 
 CLI_CMD=""
