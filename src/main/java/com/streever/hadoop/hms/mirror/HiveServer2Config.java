@@ -16,6 +16,9 @@ public class HiveServer2Config {
     }
 
     public Properties getConnectionProperties() {
+        if (connectionProperties == null) {
+            setConnectionProperties(new Properties());
+        }
         return connectionProperties;
     }
 

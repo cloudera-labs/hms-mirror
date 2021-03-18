@@ -53,6 +53,8 @@ public class Cluster implements Comparable<Cluster> {
     }
 
     public HiveServer2Config getHiveServer2() {
+        if (hiveServer2 == null)
+            hiveServer2 = new HiveServer2Config();
         return hiveServer2;
     }
 

@@ -156,6 +156,10 @@ public class Mirror {
             configFile = cmd.getOptionValue("cfg");
         } else {
             configFile = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/cfg/default.yaml";
+            File defaultCfg = new File(configFile);
+            if (!defaultCfg.exists()) {
+                Config.setup(configFile);
+            }
         }
 
         File cfgFile = new File(configFile);
@@ -324,7 +328,12 @@ public class Mirror {
         ConnectionPools connPools = new ConnectionPools();
         connPools.addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
         connPools.addHiveServer2(Environment.RIGHT, config.getCluster(Environment.RIGHT).getHiveServer2());
-        connPools.init();
+        try {
+            connPools.init();
+        } catch (RuntimeException cnfe) {
+            LOG.error("Issue initializing connections.  Check driver locations", cnfe);
+            throw new RuntimeException(cnfe);
+        }
 
         config.getCluster(Environment.LEFT).setPools(connPools);
         config.getCluster(Environment.RIGHT).setPools(connPools);
@@ -642,7 +651,7 @@ public class Mirror {
             System.exit(0);
         } catch (RuntimeException e) {
             e.printStackTrace();
-            LOG.error(e);
+            LOG.error(e.getMessage(), e);
             System.err.println("\nERROR: ==============================================");
             System.err.println(e.getMessage());
             System.err.println("\nSee log for stack trace");

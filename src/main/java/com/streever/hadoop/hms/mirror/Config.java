@@ -1,18 +1,22 @@
 package com.streever.hadoop.hms.mirror;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.streever.hadoop.hms.Mirror;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
@@ -174,6 +178,7 @@ public class Config {
             dbFilterPattern = null;
     }
 
+    @JsonIgnore
     public Boolean isConnectionKerberized() {
         Boolean rtn = Boolean.FALSE;
         Set<Environment> envs = clusters.keySet();
@@ -184,6 +189,119 @@ public class Config {
             }
         }
         return rtn;
+    }
+
+    /*
+    Use this to initialize a default config.
+     */
+    public static void setup(String configFile) {
+        Config config = new Config();
+        Scanner scanner = new Scanner(System.in);
+
+        //  prompt for the user's name
+        System.out.println("----------------------------------------------------------------");
+        System.out.println(".... Default Config not found.  Setup default config.");
+        System.out.println("----------------------------------------------------------------");
+        Boolean kerb = Boolean.FALSE;
+        for (Environment env: Environment.values()) {
+            System.out.println("");
+            System.out.println("Setup " + env.toString() + " cluster....");
+            System.out.println("");
+
+
+            // get their input as a String
+            // Legacy?
+            System.out.print("Is the " + env.toString() + " hive instance Hive 1 or Hive 2? (Y/N)");
+            String response = scanner.next();
+            if (response.equalsIgnoreCase("y")) {
+                config.getCluster(env).setLegacyHive(Boolean.TRUE);
+            } else {
+                config.getCluster(env).setLegacyHive(Boolean.FALSE);
+            }
+
+            // hcfsNamespace
+            System.out.print("What is the namespace for the " + env.toString() + " cluster? ");
+            response = scanner.next();
+            config.getCluster(env).setHcfsNamespace(response);
+
+            // HS2 URI
+            System.out.print("What is the JDBC URI for the " + env.toString() + " cluster? ");
+            response = scanner.next();
+            HiveServer2Config hs2Cfg = config.getCluster(env).getHiveServer2();
+            hs2Cfg.setUri(response);
+
+            // If Kerberized, notify to include hive jar in 'aux_libs'
+            if (!kerb && response.contains("principal")) {
+                // appears the connection is kerberized.
+                System.out.println("----------------------------------------------------------------------------------------");
+                System.out.println("The connection appears to be Kerberized.\n\t\tPlace the 'hive standalone' driver in '$HOME/.hms-mirror/aux_libs'");
+                System.out.println("----------------------------------------------------------------------------------------");
+                kerb = Boolean.TRUE;
+            } else if (response.contains("principal")) {
+                System.out.println("----------------------------------------------------------------------------------------");
+                System.out.println("The connection ALSO appears to be Kerberized.\n");
+                System.out.println(" >> Will your Kerberos Ticket be TRUSTED for BOTH JDBC Kerberos Connections? (Y/N)");
+                response = scanner.next();
+                if (!response.equalsIgnoreCase("y")) {
+                    throw new RuntimeException("Both JDBC connection must trust your kerberos ticket.");
+                }
+            } else {
+                //    get jarFile location.
+                //    get username
+                //    get password
+                System.out.println("----------------------------------------------------------------------------------------");
+                System.out.println("What is the location (local) of the 'hive standalone' jar file?");
+                response = scanner.next();
+                hs2Cfg.setJarFile(response);
+                System.out.println("Connection username?");
+                response = scanner.next();
+                hs2Cfg.getConnectionProperties().put("user", response);
+                System.out.println("Connection password?");
+                response = scanner.next();
+                hs2Cfg.getConnectionProperties().put("password", response);
+            }
+            // Partition Discovery
+            // Only on the RIGHT cluster.
+            if (env == Environment.RIGHT) {
+                PartitionDiscovery pd = config.getCluster(env).getPartitionDiscovery();
+                if (!config.getCluster(env).getLegacyHive()) {
+                    // Can only auto-discover in Hive 3
+                    System.out.println("Set created tables to 'auto-discover' partitions?(Y/N)");
+                    response = scanner.next();
+                    if (response.equalsIgnoreCase("y")) {
+                        pd.setAuto(Boolean.TRUE);
+                    }
+                }
+                System.out.println("Run 'MSCK' after table creation?(Y/N)");
+                response = scanner.next();
+                if (response.equalsIgnoreCase("y")) {
+                    pd.setInitMSCK(Boolean.TRUE);
+                }
+            }
+        }
+
+        try {
+            ObjectMapper mapper;
+            mapper = new ObjectMapper(new YAMLFactory());
+            mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+            String configStr = mapper.writeValueAsString(config);
+            File cfgFile = new File(configFile);
+            FileWriter cfgFileWriter = null;
+            try {
+                cfgFileWriter = new FileWriter(cfgFile);
+                cfgFileWriter.write(configStr);
+                LOG.debug("Default Config 'saved' to: " + cfgFile.getPath());
+            } catch (IOException ioe) {
+                LOG.error("Problem 'writing' default config", ioe);
+            } finally {
+                cfgFileWriter.close();
+            }
+        } catch (JsonProcessingException e) {
+            LOG.error("Problem 'saving' default config", e);
+        } catch (IOException ioe) {
+            LOG.error("Problem 'closing' default config file", ioe);
+        }
     }
 
     public Boolean checkConnections() {
@@ -272,6 +390,10 @@ public class Config {
 
     public Cluster getCluster(Environment environment) {
         Cluster cluster = getClusters().get(environment);
+        if (cluster == null) {
+            cluster = new Cluster();
+            getClusters().put(environment, cluster);
+        }
         if (cluster.getEnvironment() == null) {
             cluster.setEnvironment(environment);
         }
