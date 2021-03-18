@@ -2,6 +2,8 @@
 
 "hms-mirror" is a utility used to bridge the gap between two clusters and migrate `hive` _metadata_ **AND** _data_.
 
+Get [pdf version](./README.pdf) of this README.
+
 <!-- toc -->
 
 - [Setup](#setup)
