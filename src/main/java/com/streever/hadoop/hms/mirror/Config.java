@@ -32,6 +32,9 @@ public class Config {
     private HybridConfig hybrid = new HybridConfig();
     private Boolean migrateACID = Boolean.FALSE;
 
+    @JsonIgnore
+    private List<String> issues = new ArrayList<String>();
+
     private boolean execute = Boolean.FALSE;
     /*
     Used when a schema is transferred and has 'purge' properties for the table.
@@ -42,7 +45,7 @@ public class Config {
     private boolean readOnly = Boolean.FALSE;
 
     /*
-    Sync is valid for SCHEMA_ONLY, LINKED, COMMON, and INTERMEDIATE data strategies.
+    Sync is valid for SCHEMA_ONLY, LINKED, and COMMON data strategies.
     This will compare the tables between LEFT and RIGHT to ensure that they are in SYNC.
     SYNC means: If a table on the LEFT:
     - it will be created on the RIGHT
@@ -51,6 +54,8 @@ public class Config {
 
     If the -ro option is used, the tables that are changed or dropped will be disconnected from the data before
     the drop to ensure they don't modify the FileSystem.
+
+    This option can NOT be used with -tf (table filter).
 
     Transactional tables are NOT considered in this process.
      */
@@ -81,6 +86,14 @@ public class Config {
     private TransferConfig transfer = new TransferConfig();
 
     private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
+
+    public List<String> getIssues() {
+        return issues;
+    }
+
+    public void setIssues(List<String> issues) {
+        this.issues = issues;
+    }
 
     public Boolean getMigrateACID() {
         return migrateACID;
@@ -119,6 +132,14 @@ public class Config {
 
     public void setReadOnly(boolean readOnly) {
         this.readOnly = readOnly;
+    }
+
+    public boolean isSync() {
+        return sync;
+    }
+
+    public void setSync(boolean sync) {
+        this.sync = sync;
     }
 
     public boolean isSqlOutput() {
@@ -187,6 +208,29 @@ public class Config {
             if (cluster.getHiveServer2().getUri().contains("principal")) {
                 rtn = Boolean.TRUE;
             }
+        }
+        return rtn;
+    }
+
+    /*
+    Before processing, validate the config for issues and warn.  A valid configuration will return 'null'.  An invalid
+    config will return an array of String representing the issues.
+     */
+    public Boolean validate() {
+        Boolean rtn = Boolean.TRUE;
+        issues.clear();
+        if (sync && tblRegEx != null) {
+            issues.add("'sync' can NOT be used with a 'table filter'");
+            rtn = Boolean.FALSE;
+        }
+        if (sync && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.LINKED ||
+                 dataStrategy == DataStrategy.LINKED)) {
+            issues.add("'sync' only valid for SCHEMA_ONLY, LINKED, and COMMON data strategies");
+            rtn = Boolean.FALSE;
+        }
+        if (migrateACID && !(dataStrategy == DataStrategy.EXPORT_IMPORT || dataStrategy == DataStrategy.HYBRID)) {
+            issues.add("Migrating ACID tables only valid for EXPORT_IMPORT and HYBRID data strategies");
+            rtn = Boolean.FALSE;
         }
         return rtn;
     }

@@ -1,9 +1,12 @@
 package com.streever.hadoop.hms.mirror;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.streever.hadoop.HadoopSession;
 import com.streever.hadoop.hms.util.TableUtils;
+import com.streever.hadoop.shell.command.CommandReturn;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.server.admin.CommandResponse;
 
 import java.sql.*;
 import java.text.DateFormat;
@@ -381,17 +384,47 @@ public class Cluster implements Comparable<Cluster> {
                     // TODO: If the schemas are different, drop and recreate.  If the same, do nothing.
                     LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Exists in RIGHT cluster. ");
                     tblMirror.addIssue("Schema exists already");
-                    tblMirror.addIssue("No Schema action performed");
+//                    tblMirror.addIssue("No Schema action performed");
                     // Compare Schemas
                     if (tblMirror.schemasEqual(Environment.LEFT, Environment.RIGHT)) {
                         tblMirror.addIssue("Schema Fields(name, type, and order), Row Format, and Table Format are consistent between clusters.");
                         tblMirror.addIssue("TBLProperties were NOT considered while comparing schemas");
+                        tblMirror.addIssue("No Schema action performed");
+                        rtn = Boolean.FALSE;
                     } else {
-                        tblMirror.addIssue("SCHEMA HAS CHANGED");
-                        tblMirror.addIssue("DROP before running again to MIGRATE FRESH SCHEMA.");
-                        tblMirror.addIssue("If you are dropping table, understand the impact on the underlying data (is it attached).");
+                        if (config.isSync()) {
+                            // ? Check for ACID table ?
+                            tblMirror.addIssue("Schema has changed and 'sync' is set. Will drop table so it can be recreated.");
+                            if (config.isReadOnly()) {
+                                // Alter target table and unset external.table.purge property.  May fail if not set, which is ok.
+                                String removePurgePropSql = MessageFormat.format(MirrorConf.REMOVE_TBL_PROP, config.getResolvedDB(database), tableName, MirrorConf.EXTERNAL_TABLE_PURGE);
+                                LOG.debug(getEnvironment() + ":" + removePurgePropSql);
+                                try {
+                                    stmt.execute(removePurgePropSql);
+                                    tblMirror.addIssue(getEnvironment() + ":Removed " + MirrorConf.EXTERNAL_TABLE_PURGE + " property from " + config.getResolvedDB(database) + "." + tableName);
+                                } catch (SQLException sqle) {
+                                    LOG.debug(getEnvironment() + ":" + removePurgePropSql + " failed, reason: " + sqle.getMessage());
+                                    tblMirror.addIssue(getEnvironment() + ":Failed to Removed " + MirrorConf.EXTERNAL_TABLE_PURGE + " property from " +
+                                            config.getResolvedDB(database) + "." + tableName + ". It probably wasn't set.");
+                                }
+                            }
+                            // Drop table.
+                            String dropTableSql = MessageFormat.format(MirrorConf.DROP_TABLE, config.getResolvedDB(database), tableName);
+                            LOG.debug(getEnvironment() + ":" + dropTableSql);
+                            try {
+                                stmt.execute(dropTableSql);
+                                tblMirror.addIssue(getEnvironment() + ": Dropped table " + config.getResolvedDB(database) + "." + tableName);
+                            } catch (SQLException sqle) {
+                                LOG.debug(getEnvironment() + ":" + dropTableSql + " failed, reason: " + sqle.getMessage());
+                            }
+                        } else {
+                            tblMirror.addIssue("SCHEMA HAS CHANGED");
+                            tblMirror.addIssue("DROP before running again to MIGRATE FRESH SCHEMA.");
+                            tblMirror.addIssue("If you are dropping table, understand the impact on the underlying data (is it attached).");
+                            tblMirror.addIssue("No Schema action performed");
+                            rtn = Boolean.FALSE;
+                        }
                     }
-                    rtn = Boolean.FALSE;
                 }
 
 //                switch (config.getReplicationStrategy()) {
@@ -498,6 +531,79 @@ public class Cluster implements Comparable<Cluster> {
         } catch (SQLException throwables) {
             tblMirror.addIssue(this.getEnvironment() + ":" + tableName + "->" + throwables.getMessage());
         }
+        return rtn;
+    }
+
+    public Boolean dropTable(Config config, DBMirror dbMirror, TableMirror tblMirror) {
+        Boolean rtn = Boolean.TRUE;
+
+        Connection conn = null;
+        try {
+            conn = getConnection();
+
+            String database = (getEnvironment() == Environment.LEFT ? dbMirror.getName() : config.getResolvedDB(dbMirror.getName()));
+            String tableName = tblMirror.getName();
+
+            Statement stmt = null;
+            try {
+                try {
+                    stmt = conn.createStatement();
+                } catch (SQLException throwables) {
+                    LOG.error("Issue building statement", throwables);
+                    rtn = Boolean.FALSE;
+                }
+
+                if (config.isReadOnly()) {
+                    // Alter target table and unset external.table.purge property.  May fail if not set, which is ok.
+                    String removePurgePropSql = MessageFormat.format(MirrorConf.REMOVE_TBL_PROP, database, tableName, MirrorConf.EXTERNAL_TABLE_PURGE);
+                    LOG.debug(getEnvironment() + ":" + removePurgePropSql);
+                    try {
+                        if (config.isExecute()) {
+                            stmt.execute(removePurgePropSql);
+                        }
+                        tblMirror.addSql(removePurgePropSql);
+                        tblMirror.addIssue(getEnvironment() + ":Removed " + MirrorConf.EXTERNAL_TABLE_PURGE + " property from " + database + "." + tableName);
+                    } catch (SQLException sqle) {
+                        LOG.debug(getEnvironment() + ":" + removePurgePropSql + " failed, reason: " + sqle.getMessage());
+                        tblMirror.addIssue(getEnvironment() + ":Failed to Removed " + MirrorConf.EXTERNAL_TABLE_PURGE + " property from " +
+                                config.getResolvedDB(database) + "." + tableName + ". It probably wasn't set.");
+                    }
+                }
+                // Drop table.
+                String dropTableSql = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
+                LOG.debug(getEnvironment() + ":" + dropTableSql);
+                try {
+                    if (config.isExecute()) {
+                        stmt.execute(dropTableSql);
+                    }
+                    tblMirror.addSql(dropTableSql);
+                    tblMirror.addIssue(getEnvironment() + ": Dropped table " + database + "." + tableName);
+                } catch (SQLException sqle) {
+                    LOG.debug(getEnvironment() + ":" + dropTableSql + " failed, reason: " + sqle.getMessage());
+                    rtn = Boolean.FALSE;
+                }
+
+            } finally {
+                if (stmt != null) {
+                    try {
+                        stmt.close();
+                    } catch (SQLException sqlException) {
+                        // ignore
+                    }
+                }
+            }
+        } catch (SQLException throwables) {
+            LOG.error("Issue", throwables);
+            throw new RuntimeException(throwables);
+        } finally {
+            try {
+                if (conn != null)
+                    conn.close();
+            } catch (SQLException throwables) {
+                //
+            }
+        }
+
         return rtn;
     }
 
@@ -647,7 +753,8 @@ public class Cluster implements Comparable<Cluster> {
         return rtn;
     }
 
-    public Boolean exportSchema(Config config, String database, DBMirror dbMirror, TableMirror tblMirror, String exportBaseDirPrefix) {
+    public Boolean exportSchema(Config config, String database, DBMirror dbMirror, TableMirror tblMirror, String
+            exportBaseDirPrefix) {
         Connection conn = null;
         Statement stmt = null;
         Boolean rtn = Boolean.FALSE;
@@ -706,7 +813,8 @@ public class Cluster implements Comparable<Cluster> {
     where the data was in the LEFT cluster.
     Once the transfer is complete, the two tables can be swapped in a move that is quick.
     */
-    public Boolean buildUpperTransferTable(Config config, DBMirror dbMirror, TableMirror tblMirror, String transferPrefix) {
+    public Boolean buildUpperTransferTable(Config config, DBMirror dbMirror, TableMirror tblMirror, String
+            transferPrefix) {
         // Open the connection and ensure we are running this on the "RIGHT" cluster.
         Boolean rtn = Boolean.FALSE;
         if (this.getEnvironment() == Environment.RIGHT) {
@@ -838,26 +946,53 @@ public class Cluster implements Comparable<Cluster> {
                 if (checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
                     Boolean buildUpper = tblMirror.buildUpperSchema(config, false);
 
-                    // Get the Create State for this environment.
-                    String createTable = tblMirror.getCreateStatement(this.getEnvironment());
-                    LOG.debug(getEnvironment() + ":" + database + "." + tableName + ":(SQL)" + createTable);
-                    tblMirror.setMigrationStageMessage("Creating Table in RIGHT cluster");
-                    if (tblMirror.isPartitioned(Environment.LEFT)) {
-                        tblMirror.addIssue("If CREATE/ALTER is slow for migration, add `ranger.plugin.hive.urlauth.filesystem.schemes=file`" +
-                                " to the HS2 hive-ranger-security.xml configurations.");
+                    boolean okToGo = Boolean.TRUE;
+                    // Before Create, we need to check for -ro flag.
+                    // The -ro flag is meant for DR and the underlying data is managed through a separate process like
+                    // HDFS distcp via snapshots.
+                    // If the directory doesn't exist already, we can't create the table.  Creating the table
+                    // will alter the filesystem and corrupt the hdfs sync process.
+                    if (config.isReadOnly()) {
+                        List<String> tblDef = tblMirror.getTableDefinition(this.getEnvironment());
+                        String tableLocation = TableUtils.getLocation(tableName, tblDef);
+                        // With the table location, test that the directory exists in HDFS.
+                        HadoopSession session = HadoopSession.get(Long.toString(Thread.currentThread().getId()));
+                        CommandReturn cr = session.processInput("test -d " + tableLocation);
+                        if (cr.isError()) {
+                            // directory doesn't exist.
+                            okToGo = Boolean.FALSE;
+                            LOG.warn(getEnvironment() + ": Directory '" + tableLocation + "' for table '" +
+                                    tableName + "' does NOT exist and you have select 'readOnly'.  Creating the table without " +
+                                    "the directory will CREATE the directory and ALTER the FILE SYSTEM, corrupting the READ-ONLY state.");
+                            tblMirror.addIssue(getEnvironment() + ": Directory '" + tableLocation + "' for table '" +
+                                    tableName + "' does NOT exist and you have select 'readOnly'.  Creating the table without " +
+                                    "the directory will CREATE the directory and ALTER the FILE SYSTEM, corrupting the READ-ONLY state.");
+                            tblMirror.addIssue(getEnvironment() + "Table: " + tableName + " not created.");
+                            tblMirror.addIssue(getEnvironment() + "Table: " + tableName + ". Run the file-sync process before sync'ing the metadata.");
+                        }
                     }
-                    tblMirror.addSql(createTable);
-                    if (config.isExecute()) {
-                        stmt.execute(createTable);
-                    } else {
-                        tblMirror.addIssue("DRY-RUN: RIGHT Table NOT created");
+
+                    if (okToGo) {
+                        // Get the Create State for this environment.
+                        String createTable = tblMirror.getCreateStatement(this.getEnvironment());
+                        LOG.debug(getEnvironment() + ":" + database + "." + tableName + ":(SQL)" + createTable);
+                        tblMirror.setMigrationStageMessage("Creating Table in RIGHT cluster");
+                        if (tblMirror.isPartitioned(Environment.LEFT)) {
+                            tblMirror.addIssue("If CREATE/ALTER is slow for migration, add `ranger.plugin.hive.urlauth.filesystem.schemes=file`" +
+                                    " to the HS2 hive-ranger-security.xml configurations.");
+                        }
+                        tblMirror.addSql(createTable);
+                        if (config.isExecute()) {
+                            stmt.execute(createTable);
+                        } else {
+                            tblMirror.addIssue("DRY-RUN: RIGHT Table NOT created");
+                        }
+
+                        tblMirror.addAction("Shadow(using LEFT data) Schema Create", Boolean.TRUE);
+                        tblMirror.setMigrationStageMessage("Table created in RIGHT cluster");
+
+                        rtn = Boolean.TRUE;
                     }
-
-                    tblMirror.addAction("Shadow(using LEFT data) Schema Create", Boolean.TRUE);
-                    tblMirror.setMigrationStageMessage("Table created in RIGHT cluster");
-
-                    rtn = Boolean.TRUE;
-
                 }
             } catch (SQLException throwables) {
                 tblMirror.addIssue(throwables.getMessage());
@@ -1269,7 +1404,7 @@ public class Cluster implements Comparable<Cluster> {
                     if (config.isExecute()) {
                         stmt.execute(hmsMirrorImportFlag);
                     } else {
-                        tblMirror.addIssue("DRY-RUN: RIGHT table properties not set: " + MirrorConf.HMS_MIRROR_STORAGE_IMPORT_FLAG );
+                        tblMirror.addIssue("DRY-RUN: RIGHT table properties not set: " + MirrorConf.HMS_MIRROR_STORAGE_IMPORT_FLAG);
                     }
                     tblMirror.setMigrationStageMessage("'" + MirrorConf.HMS_MIRROR_STORAGE_IMPORT_FLAG + "' table property added");
 

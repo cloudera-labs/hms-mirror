@@ -182,6 +182,10 @@ public class Mirror {
             config.setDbPrefix(cmd.getOptionValue("dbp"));
         }
 
+        if (cmd.hasOption("ma")) {
+            config.setMigrateACID(Boolean.TRUE);
+        }
+
         String dataStrategyStr = cmd.getOptionValue("d");
         // default is SCHEMA_ONLY
         if (dataStrategyStr != null) {
@@ -270,6 +274,10 @@ public class Mirror {
                 config.setDatabases(databases);
         }
 
+        if (cmd.hasOption("sync")) {
+            config.setSync(Boolean.TRUE);
+        }
+
         if (cmd.hasOption("dbRegEx")) {
             config.setDbRegEx(cmd.getOptionValue("dbRegEx"));
         }
@@ -289,13 +297,34 @@ public class Mirror {
                 Scanner scanner = new Scanner(System.in);
 
                 //  prompt for the user's name
-                System.out.println("----------------------------");
-                System.out.println(".... Accept to continue ....");
-                System.out.println("----------------------------");
-                System.out.print("I have made backups of both the 'Hive Metastore' in the LEFT and RIGHT clusters (TRUE to proceed): ");
+                System.out.println("----------------------------------------");
+                System.out.println(".... Accept/Acknowledge to continue ....");
+                System.out.println("----------------------------------------");
+
+                if (config.isSync() && !config.isReadOnly()) {
+                    System.out.println("You have chosen to 'sync' WITHOUT 'Read-Only'");
+                    System.out.println("\tWhich means there is a potential for DATA LOSS when out of sync tables are DROPPED and RECREATED.");
+                    System.out.print("\tDo you accept this responsibility/scenario and the potential LOSS of DATA? (YES to proceed)");
+                    String response = scanner.next();
+                    if (!response.equalsIgnoreCase("yes")) {
+                        throw new RuntimeException("You must accept to proceed.");
+                    } else {
+                        config.getAcceptance().setPotentialDataLoss(Boolean.TRUE);
+                    }
+                }
 
                 // get their input as a String
                 String response = scanner.next();
+                if (!response.equalsIgnoreCase("true")) {
+                    throw new RuntimeException("You must affirm to proceed.");
+                } else {
+                    config.getAcceptance().setBackedUpMetastore(Boolean.TRUE);
+                }
+
+                System.out.print("I have made backups of both the 'Hive Metastore' in the LEFT and RIGHT clusters (TRUE to proceed): ");
+
+                // get their input as a String
+                response = scanner.next();
                 if (!response.equalsIgnoreCase("true")) {
                     throw new RuntimeException("You must affirm to proceed.");
                 } else {
@@ -350,6 +379,15 @@ public class Mirror {
             }
             throw new RuntimeException("Check Hive Connections Failed.  Check Logs.");
         }
+
+        if (!config.validate()) {
+            List<String> issues = config.getIssues();
+            for (String issue: issues) {
+                LOG.error(issue);
+            }
+            throw new RuntimeException("Configuration issues, check log for details");
+        }
+
     }
 
     public void doit() {
@@ -500,13 +538,8 @@ public class Mirror {
                     case INIT:
                     case STARTED:
                     case ERROR:
-                        if (!TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT))) {
-                            Transfer md = new Transfer(config, dbMirror, tblMirror);
-                            mdf.add(config.getTransferThreadPool().schedule(md, 1, TimeUnit.MILLISECONDS));
-                        } else {
-                            tblMirror.addIssue("ACID Table not supported for METADATA phase");
-                            tblMirror.setPhaseState(PhaseState.ERROR);
-                        }
+                        Transfer md = new Transfer(config, dbMirror, tblMirror);
+                        mdf.add(config.getTransferThreadPool().schedule(md, 1, TimeUnit.MILLISECONDS));
                         break;
                     case SUCCESS:
                         LOG.debug("DB.tbl: " + tblMirror.getDbName() + "." + tblMirror.getName() + " was SUCCESSFUL in " +
@@ -573,6 +606,16 @@ public class Mirror {
         intermediateStorageOption.setArgName("storage-path");
         intermediateStorageOption.setRequired(Boolean.FALSE);
         options.addOption(intermediateStorageOption);
+
+        Option maOption = new Option("ma", "migrate-acid", false,
+                "For EXPORT_IMPORT and HYBRID data strategies.  Include ACID tables in migration.");
+        maOption.setRequired(false);
+        options.addOption(maOption);
+
+        Option syncOption = new Option("s", "sync", false,
+                "For SCHEMA_ONLY, COMMON, and LINKED data strategies.  Drop and Recreate Schema's when different.  Best to use with RO to ensure table/partition drops don't delete data.");
+        syncOption.setRequired(false);
+        options.addOption(syncOption);
 
         Option roOption = new Option("ro", "read-only", false,
                 "For SCHEMA_ONLY, COMMON, and LINKED data strategies set RIGHT table to NOT purge on DROP");

@@ -47,7 +47,8 @@ public class Transfer implements Callable<ReturnStatus> {
             tblMirror.incPhase();
             tblMirror.addAction("TRANSFER", config.getDataStrategy().toString());
 
-            if (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT))) {
+            // Checking for null LEFT.  Happens with SCHEMA_ONLY and SYNC when RIGHT exists but LEFT doesn't.
+            if (tblMirror.getTableDefinition(Environment.LEFT) != null && TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT))) {
                 if (config.getDataStrategy() == DataStrategy.EXPORT_IMPORT || config.getDataStrategy() == DataStrategy.HYBRID) {
                     switch (config.getDataStrategy()) {
                         case EXPORT_IMPORT:
@@ -74,12 +75,24 @@ public class Transfer implements Callable<ReturnStatus> {
             } else {
                 switch (config.getDataStrategy()) {
                     case SCHEMA_ONLY:
-                        successful = (!TableUtils.isACID(tblMirror.getName(),
-                                tblMirror.getTableDefinition(Environment.LEFT)) && doSchemaOnly());
+                        if (tblMirror.getTableDefinition(Environment.LEFT) == null &&
+                                !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT))) {
+                            successful = doSchemaOnly();
+                        } else {
+                            successful = (tblMirror.getTableDefinition(Environment.LEFT) != null &&
+                                    !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) &&
+                                            doSchemaOnly());
+                        }
                         break;
                     case LINKED:
-                        successful = (!TableUtils.isACID(tblMirror.getName(),
-                                tblMirror.getTableDefinition(Environment.LEFT)) && doLinked());
+                        if (tblMirror.getTableDefinition(Environment.LEFT) == null &&
+                                !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT))) {
+                            successful = doLinked();
+                        } else {
+                            successful = (tblMirror.getTableDefinition(Environment.LEFT) != null &&
+                                    !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) &&
+                                    doLinked());
+                        }
                         break;
                     case EXPORT_IMPORT:
                         successful = doExportImport();
@@ -89,8 +102,14 @@ public class Transfer implements Callable<ReturnStatus> {
                                 tblMirror.getTableDefinition(Environment.LEFT)) && doIntermediate());
                         break;
                     case COMMON:
-                        successful = (!TableUtils.isACID(tblMirror.getName(),
-                                tblMirror.getTableDefinition(Environment.LEFT)) && doCommon());
+                        if (tblMirror.getTableDefinition(Environment.LEFT) == null &&
+                                !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT))) {
+                            successful = doCommon();
+                        } else {
+                            successful = (tblMirror.getTableDefinition(Environment.LEFT) != null &&
+                                    !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) &&
+                                    doCommon());
+                        }
                         break;
                     case SQL:
                         successful = doSQL();
@@ -211,10 +230,19 @@ public class Transfer implements Callable<ReturnStatus> {
     protected Boolean doSchemaOnly() {
         Boolean rtn = Boolean.FALSE;
 
-        rtn = config.getCluster(Environment.RIGHT).buildUpperSchemaWithRelativeData(config, dbMirror, tblMirror);
+        // Check for sync.
+        // When right is there but left is NOT.
+        if (config.isSync() && tblMirror.getTableDefinition(Environment.LEFT) ==
+                null && tblMirror.getTableDefinition(Environment.RIGHT) != null) {
+            // DROP table
+            tblMirror.addIssue("SYNC requested.  Orphaned table identified.  Dropping to match source cluster.");
+            rtn = config.getCluster(Environment.RIGHT).dropTable(config, dbMirror, tblMirror);
+        } else {
+            rtn = config.getCluster(Environment.RIGHT).buildUpperSchemaWithRelativeData(config, dbMirror, tblMirror);
 //        if (rtn || (config.getReplicationStrategy() == ReplicationStrategy.SYNCHRONIZE && !rtn)) {
-        if (rtn) {
-            rtn = config.getCluster(Environment.RIGHT).partitionMaintenance(config, dbMirror, tblMirror);
+            if (rtn) {
+                rtn = config.getCluster(Environment.RIGHT).partitionMaintenance(config, dbMirror, tblMirror);
+            }
         }
         return rtn;
     }

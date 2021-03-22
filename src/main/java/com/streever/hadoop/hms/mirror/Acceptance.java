@@ -6,6 +6,7 @@ public class Acceptance {
     private Boolean backedUpHDFS;
     private Boolean backedUpMetastore;
     private Boolean trashConfigured;
+    private Boolean potentialDataLoss;
 
     public Boolean getSilentOverride() {
         return silentOverride;
@@ -37,5 +38,13 @@ public class Acceptance {
 
     public void setTrashConfigured(Boolean trashConfigured) {
         this.trashConfigured = trashConfigured;
+    }
+
+    public Boolean getPotentialDataLoss() {
+        return potentialDataLoss;
+    }
+
+    public void setPotentialDataLoss(Boolean potentialDataLoss) {
+        this.potentialDataLoss = potentialDataLoss;
     }
 }

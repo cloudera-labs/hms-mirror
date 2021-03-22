@@ -155,7 +155,9 @@ It you are able to [`distcp` between the clusters](#linking-clusters-storage-lay
 
 ## Linking Clusters Storage Layers
 
-For the `hms-mirror` process to work, it relies on the RIGHT clusters ability to _SEE_ and _ACCESS_ data in the LEFT clusters HDFS namespace.  This is the same access/configuration required to support DISTCP.
+For the `hms-mirror` process to work, it relies on the RIGHT clusters ability to _SEE_ and _ACCESS_ data in the LEFT clusters HDFS namespace.  This is the same access/configuration required to support DISTCP for an HA environment and account for failovers.
+
+We suggest that `distcp` operations be run from the RIGHT cluster, which usually has the greater 'hdfs' version in a migration scenario.
 
 Access is required by the RIGHT cluster HCFS namespace to the LEFT clusters HCFS namespace.  RIGHT clusters with a greater HDFS version support **LIMITED** functionality for data access in the LEFT cluster.
 
@@ -351,7 +353,6 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 **HELP**
 ```
 usage: hms-mirror
-                  version: ....
  -accept,--accept                            Accept ALL confirmations and
                                              silence prompts
  -cfg,--config <filename>                    Config with details for the
@@ -385,10 +386,15 @@ usage: hms-mirror
                                              LINKED data strategies set
                                              RIGHT table to NOT purge on
                                              DROP
+ -s,--sync                                   For SCHEMA_ONLY, COMMON, and
+                                             LINKED data strategies.  Drop
+                                             and Recreate Schema's when
+                                             different.  Best to use with
+                                             RO to ensure table/partition
+                                             drops don't delete data.
  -sql,--sql-output                           Output the SQL to the report
  -tf,--table-filter <regex>                  Filter tables with name
-                                             matching RegEx
-```
+                                             matching RegEx```
 
 ### Connections
 

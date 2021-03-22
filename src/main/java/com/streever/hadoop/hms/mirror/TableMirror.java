@@ -235,7 +235,11 @@ public class TableMirror {
         TableUtils.stripDatabase(this.getName(), upperTD);
 
         // 1. If Managed, convert to EXTERNAL
-        Boolean converted = TableUtils.makeExternal(this.getName(), upperTD);
+        // When coming from legacy and going to non-legacy (Hive 3).
+        Boolean converted = Boolean.FALSE;
+        if (config.getCluster(Environment.LEFT).getLegacyHive() && !config.getCluster(Environment.RIGHT).getLegacyHive()) {
+            converted = TableUtils.makeExternal(this.getName(), upperTD);
+        }
 
         // 2. Set mirror stage one flag
 //        TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_METADATA_FLAG, df.format(new Date()), upperTD);

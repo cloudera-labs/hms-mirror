@@ -39,6 +39,11 @@ public class GetTables implements Callable<ReturnStatus> {
         LOG.debug("Getting tables for: " +dbMirror.getName());
         try {
             config.getCluster(Environment.LEFT).getTables(config, dbMirror);
+            if (config.isSync()) {
+                // Get the tables on the RIGHT side.  Used to determine if a table has been dropped on the LEFT
+                // and later needs to be removed on the RIGHT.
+                config.getCluster(Environment.RIGHT).getTables(config, dbMirror);
+            }
             successful = Boolean.TRUE;
             rtn.setStatus(ReturnStatus.Status.SUCCESS);
         } catch (SQLException throwables) {

@@ -40,7 +40,7 @@ public class GetTableMetadata implements Runnable {
         LOG.debug("Getting table definition for: " + dbMirror.getName() + "." + tblMirror.getName());
         try {
             successful = config.getCluster(Environment.LEFT).getTableDefinition(dbMirror.getName(), tblMirror);
-            if (successful) {
+            if (successful || config.isSync()) {
                 successful = config.getCluster(Environment.RIGHT).getTableDefinition(config.getResolvedDB(dbMirror.getName()), tblMirror);
             } else {
                 successful = Boolean.FALSE;
