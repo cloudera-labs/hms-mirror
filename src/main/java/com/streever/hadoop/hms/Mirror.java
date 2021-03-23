@@ -690,7 +690,12 @@ public class Mirror {
         LOG.info("===================================================");
         try {
             mirror.init(args);
-            mirror.doit();
+            try {
+                mirror.doit();
+            } catch (RuntimeException rte) {
+                System.out.println(rte.getMessage());
+                rte.printStackTrace();
+            }
             System.exit(0);
         } catch (RuntimeException e) {
             e.printStackTrace();

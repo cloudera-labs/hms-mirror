@@ -129,7 +129,7 @@ public class Conversion {
         DBMirror dbMirror = databases.get(database);
         sb.append("## DB Create Statement").append("\n\n");
         sb.append("```").append("\n");
-        sb.append(dbMirror.rightDBCreate(config));
+        sb.append(dbMirror.rightDBCreate(config)[0]);
         sb.append("```").append("\n");
 
         sb.append("\n");

@@ -72,6 +72,10 @@ public class MirrorConf {
      */
     public static final String HMS_MIRROR_STORAGE_DISTCP_FLAG = "hmsMirror_Storage_DISTCP_Stage2";
 
+    public static final String LEGACY_DB_LOCATION_PROP = "hive.metastore.warehouse.dir";
+    public static final String EXT_DB_LOCATION_PROP = "hive.metastore.warehouse.external.dir";
+    public static final String MNGD_DB_LOCATION_PROP = "hive.metastore.warehouse.dir";
+
     public static final String DB_LOCATION = "LOCATION";
     public static final String DB_MANAGED_LOCATION = "MANAGEDLOCATION";
     public static final String COMMENT = "COMMENT";

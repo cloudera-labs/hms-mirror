@@ -81,7 +81,8 @@ public class Cluster implements Comparable<Cluster> {
         this.pools = pools;
     }
 
-    protected Connection getConnection() throws SQLException {
+    @JsonIgnore
+    public Connection getConnection() throws SQLException {
         Connection conn = null;
         conn = pools.getEnvironmentConnection(getEnvironment());
         return conn;
@@ -400,7 +401,10 @@ public class Cluster implements Comparable<Cluster> {
                                 String removePurgePropSql = MessageFormat.format(MirrorConf.REMOVE_TBL_PROP, config.getResolvedDB(database), tableName, MirrorConf.EXTERNAL_TABLE_PURGE);
                                 LOG.debug(getEnvironment() + ":" + removePurgePropSql);
                                 try {
-                                    stmt.execute(removePurgePropSql);
+                                    if (config.isExecute()) {
+                                        stmt.execute(removePurgePropSql);
+                                    }
+                                    tblMirror.addSql(removePurgePropSql);
                                     tblMirror.addIssue(getEnvironment() + ":Removed " + MirrorConf.EXTERNAL_TABLE_PURGE + " property from " + config.getResolvedDB(database) + "." + tableName);
                                 } catch (SQLException sqle) {
                                     LOG.debug(getEnvironment() + ":" + removePurgePropSql + " failed, reason: " + sqle.getMessage());
@@ -412,7 +416,10 @@ public class Cluster implements Comparable<Cluster> {
                             String dropTableSql = MessageFormat.format(MirrorConf.DROP_TABLE, config.getResolvedDB(database), tableName);
                             LOG.debug(getEnvironment() + ":" + dropTableSql);
                             try {
-                                stmt.execute(dropTableSql);
+                                if (config.isExecute()) {
+                                    stmt.execute(dropTableSql);
+                                }
+                                tblMirror.addSql(dropTableSql);
                                 tblMirror.addIssue(getEnvironment() + ": Dropped table " + config.getResolvedDB(database) + "." + tableName);
                             } catch (SQLException sqle) {
                                 LOG.debug(getEnvironment() + ":" + dropTableSql + " failed, reason: " + sqle.getMessage());
@@ -1086,19 +1093,45 @@ public class Cluster implements Comparable<Cluster> {
                     }
 
                     // Get the Create State for this environment.
-                    String createTable = tblMirror.getCreateStatement(this.getEnvironment());
-                    LOG.debug(getEnvironment() + ":(SQL)" + createTable);
-                    tblMirror.setMigrationStageMessage("Creating Table in RIGHT cluster");
-                    tblMirror.addSql(createTable);
-                    if (config.isExecute()) {
-                        stmt.execute(createTable);
-                    } else {
-                        tblMirror.addIssue("DRY-RUN: Schema NOT Transferred");
-                    }
-                    tblMirror.addAction("RIGHT Schema Create", Boolean.TRUE);
-                    tblMirror.setMigrationStageMessage("Table created in RIGHT cluster");
-                    rtn = Boolean.TRUE;
+                    // For READ-ONLY
+                    boolean ok2go = Boolean.TRUE;
+                    if (config.isReadOnly()) {
+                        String tableLocation = TableUtils.getLocation(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT));
+                        LOG.debug("Config set to 'read-only'.  Validating FS before continuing for table: " + tblMirror.getName() +
+                                " at location " + tableLocation);
+                        HadoopSession main = HadoopSession.get(Long.toString(Thread.currentThread().getId()));
+                        String[] api = {"-api"};
+                        try {
+                            main.start(api);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
 
+                        CommandReturn cr = main.processInput("connect");
+                        cr = main.processInput("test -d " + tableLocation);
+                        if (cr.isError()) {
+                            // Dir doesn't exist.  Do NOT proceed.
+                            tblMirror.addIssue("FS location " + tableLocation + " doesn't exist.  With 'read-only' directive " +
+                                    "we can't create table without altering FS");
+                            rtn = Boolean.FALSE;
+                            ok2go = Boolean.FALSE;
+                        }
+                    }
+                    if (ok2go) {
+                        //
+                        String createTable = tblMirror.getCreateStatement(this.getEnvironment());
+                        LOG.debug(getEnvironment() + ":(SQL)" + createTable);
+                        tblMirror.setMigrationStageMessage("Creating Table in RIGHT cluster");
+                        tblMirror.addSql(createTable);
+                        if (config.isExecute()) {
+                            stmt.execute(createTable);
+                        } else {
+                            tblMirror.addIssue("DRY-RUN: Schema NOT Transferred");
+                        }
+                        tblMirror.addAction("RIGHT Schema Create", Boolean.TRUE);
+                        tblMirror.setMigrationStageMessage("Table created in RIGHT cluster");
+                        rtn = Boolean.TRUE;
+                    }
                 }
 
             } catch (SQLException throwables) {

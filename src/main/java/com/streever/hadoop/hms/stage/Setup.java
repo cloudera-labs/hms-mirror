@@ -49,10 +49,33 @@ public class Setup {
             gtf.add(config.getTransferThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
         }
 
+        // Check and Build DB's First.
+        while (true) {
+            boolean check = true;
+            for (ScheduledFuture<ReturnStatus> sf : gtf) {
+                if (!sf.isDone()) {
+                    check = false;
+                    break;
+                }
+                try {
+                    if (sf.isDone() && sf.get() != null) {
+                        if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
+                            throw new RuntimeException(sf.get().getException());
+                        }
+                    }
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            if (check)
+                break;
+        }
+        gtf.clear(); // reset
+
         Callable<ReturnStatus> createDatabases = new CreateDatabases(config, conversion);
         gtf.add(config.getTransferThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
 
-        // When the tables have been gathered, complete the process for the METADATA Stage.
+        // Check and Build DB's First.
         while (true) {
             boolean check = true;
             for (ScheduledFuture<ReturnStatus> sf : gtf) {

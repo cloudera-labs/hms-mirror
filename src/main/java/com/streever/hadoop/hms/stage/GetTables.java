@@ -42,7 +42,11 @@ public class GetTables implements Callable<ReturnStatus> {
             if (config.isSync()) {
                 // Get the tables on the RIGHT side.  Used to determine if a table has been dropped on the LEFT
                 // and later needs to be removed on the RIGHT.
-                config.getCluster(Environment.RIGHT).getTables(config, dbMirror);
+                try {
+                    config.getCluster(Environment.RIGHT).getTables(config, dbMirror);
+                } catch (SQLException se) {
+                    // OK, if the db doesn't exist yet.
+                }
             }
             successful = Boolean.TRUE;
             rtn.setStatus(ReturnStatus.Status.SUCCESS);

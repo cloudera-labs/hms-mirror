@@ -46,7 +46,11 @@ public class DBMirror {
         this.dbDefinitions = dbDefinitions;
     }
 
-    public String rightDBCreate(Config config) {
+    /*
+    Return String[3].  0-Create Sql, 1-Location, 2-Mngd Location.
+     */
+    public String[] rightDBCreate(Config config) {
+        String[] rtn = new String[3];
         StringBuilder sb = new StringBuilder();
         // Start with the LEFT definition.
         Map<String, String> dbDef = getDBDefinition(Environment.LEFT);
@@ -68,9 +72,11 @@ public class DBMirror {
             case INTERMEDIATE:
                 if (location != null) {
                     location = location.replace(leftNamespace, rightNamespace);
+                    rtn[1] = location;
                 }
                 if (managedLocation != null) {
                     managedLocation = managedLocation.replace(leftNamespace, rightNamespace);
+                    rtn[2] = managedLocation;
                 }
                 break;
             case COMMON:
@@ -88,7 +94,8 @@ public class DBMirror {
             sb.append(MirrorConf.DB_MANAGED_LOCATION).append(" \"").append(managedLocation).append("\"\n");
         }
         // TODO: DB Properties.
-        return sb.toString();
+        rtn[0] = sb.toString();
+        return rtn;
     }
 
     public TableMirror addTable(String table) {
