@@ -1,6 +1,6 @@
 # HMS-Mirror
 
-"hms-mirror" is a utility used to bridge the gap between two clusters and migrate `hive` _metadata_ **AND** _data_.
+"hms-mirror" is a utility used to bridge the gap between two clusters and migrate `hive` _metadata_ **AND** _data_.  HMS-Mirror is distributed under the [AGPLv3](./license.md) license.
 
 Get [pdf version](./README.pdf) of this README.
 
@@ -75,6 +75,9 @@ Moving metadata and data between two clusters is a pretty straight forward proce
 Take snapshots of areas you'll touch:
 - The HMS database on the LEFT and RIGHT clusters
 - A snapshot of the HDFS directories on BOTH the LEFT and RIGHT clusters that will be used/touched.
+  > NOTE: If you are testing and "DROPPING" dbs, Snapshots of those data directories could protect you from accidental deletions if you don't manage purge options correctly.  Don't skip this...
+  > A snapshot of the db directory on HDFS will prevent `DROP DATABASE x CASCADE` from removing the DB directory (observed in CDP 7.1.4+ as tested, check your version) and all sub-directories even though tables were NOT configured with `purge` options.
+
 
 ### Isolate Migration Activities
 
@@ -394,7 +397,8 @@ usage: hms-mirror
                                              drops don't delete data.
  -sql,--sql-output                           Output the SQL to the report
  -tf,--table-filter <regex>                  Filter tables with name
-                                             matching RegEx```
+                                             matching RegEx
+```
 
 ### Connections
 

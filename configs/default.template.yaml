@@ -45,5 +45,6 @@ clusters:
       jarFile: "<environment-specific-jdbc-standalone-driver>"
     partitionDiscovery:
       # Addition HMS configuration needed for this "discover.partitions"="true"
-      auto: false
+      auto: true
+      # When a table is created, run MSCK when there are partitions.
       initMSCK: true
