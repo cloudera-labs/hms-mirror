@@ -1,8 +1,10 @@
 package com.streever.hadoop.hms.mirror;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -12,6 +14,7 @@ public class DBMirror {
 
     private String name;
     private Map<Environment, Map<String, String>> dbDefinitions = new TreeMap<Environment, Map<String, String>>();
+    private List<String> issues = new ArrayList<String>();
 
     private Map<String, TableMirror> tableMirrors = new TreeMap<String, TableMirror>();
 
@@ -29,6 +32,21 @@ public class DBMirror {
     public String getName() {
         return name;
     }
+
+    @JsonIgnore
+    public boolean isThereAnIssue() {
+        return issues.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
+    }
+
+    public void addIssue(String issue) {
+        String scrubbedIssue = issue.replace("\n", "<br/>");
+        getIssues().add(scrubbedIssue);
+    }
+
+    public List<String> getIssues() {
+        return issues;
+    }
+
 
     public Map<Environment, Map<String, String>> getDBDefinitions() {
         return dbDefinitions;

@@ -135,9 +135,11 @@ public class CreateDatabases implements Callable<ReturnStatus> {
                                 CommandReturn testCr = main.processInput("test -d " + dbLocation);
                                 if (testCr.isError()) {
                                     // Doesn't exist.  So we can't create the DB in a "read-only" mode.
-                                    throw new RuntimeException("Database directory: " + dbLocation + " on the RIGHT cluster does NOT exist. " +
+                                    String message = "Database directory: **'" + dbLocation + "'** on the RIGHT cluster does NOT exist. " +
                                             "In 'read-only' mode, it must exist before creating the database to ensure we " +
-                                            "don't corrupt the Filesystems Read-Only State.");
+                                            "don't corrupt the Filesystems Read-Only State.";
+                                    dbMirror.addIssue(message);
+                                    throw new RuntimeException(message);
                                 } else {
                                     config.getCluster(Environment.RIGHT).createDatabase(config, database, rightDBCreate[0]);
                                 }

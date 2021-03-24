@@ -238,9 +238,10 @@ public class Transfer implements Callable<ReturnStatus> {
             tblMirror.addIssue("SYNC requested.  Orphaned table identified.  Dropping to match source cluster.");
             rtn = config.getCluster(Environment.RIGHT).dropTable(config, dbMirror, tblMirror);
         } else {
+            Boolean seq = tblMirror.schemasEqual(Environment.LEFT, Environment.RIGHT);
             rtn = config.getCluster(Environment.RIGHT).buildUpperSchemaWithRelativeData(config, dbMirror, tblMirror);
 //        if (rtn || (config.getReplicationStrategy() == ReplicationStrategy.SYNCHRONIZE && !rtn)) {
-            if (rtn) {
+            if (rtn && !seq) {
                 rtn = config.getCluster(Environment.RIGHT).partitionMaintenance(config, dbMirror, tblMirror);
             }
         }

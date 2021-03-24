@@ -385,7 +385,7 @@ public class TableMirror {
                 return Boolean.FALSE;
             }
         } else {
-            return false;
+            return Boolean.FALSE;
         }
     }
 

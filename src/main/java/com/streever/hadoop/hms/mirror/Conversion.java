@@ -133,7 +133,18 @@ public class Conversion {
         sb.append("```").append("\n");
 
         sb.append("\n");
-        sb.append("## Table Status").append("\n\n");
+
+        sb.append("## DB Issues").append("\n\n");
+        // Issues
+        if (dbMirror.isThereAnIssue()) {
+            for (String issue : dbMirror.getIssues()) {
+                sb.append("* ").append(issue).append("\n");
+            }
+        } else {
+            sb.append("none\n");
+        }
+
+        sb.append("\n## Table Status").append("\n\n");
 
         sb.append("|").append(" Table ").append("|")
                 .append("Phase<br/>State").append("|")
