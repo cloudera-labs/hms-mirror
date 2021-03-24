@@ -7,6 +7,7 @@ Get [pdf version](./README.pdf) of this README.
 <!-- toc -->
 
 - [Setup](#setup)
+  * [Binary Package](#binary-package)
   * [HMS-Mirror Setup from Binary Distribution](#hms-mirror-setup-from-binary-distribution)
 - [Optimizations](#optimizations)
   * [Make Backups before running `hms-mirror`](#make-backups-before-running-hms-mirror)
@@ -55,9 +56,10 @@ Get [pdf version](./README.pdf) of this README.
 
 ## Setup
 
-#### Obtaining Pre-Built Binary
+### Binary Package
 
-Ask your account rep or check the PS Asset Repo for links.
+#### Don't Build, Download the LATEST binary here!!!
+[![Download the LATEST Binary](./images/download.png)](https://github.com/dstreev/hms-mirror/releases)
 
 ### HMS-Mirror Setup from Binary Distribution
 
