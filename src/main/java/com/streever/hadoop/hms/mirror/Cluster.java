@@ -170,8 +170,8 @@ public class Cluster implements Comparable<Cluster> {
                         tableMirror.setMigrationStageMessage("Added to evaluation inventory");
                     } else {
                         // Filter Tables
-                        assert (config.getDbFilterPattern() != null);
-                        Matcher matcher = config.getDbFilterPattern().matcher(tableName);
+                        assert (config.getTblFilterPattern() != null);
+                        Matcher matcher = config.getTblFilterPattern().matcher(tableName);
                         if (matcher.matches()) {
                             TableMirror tableMirror = dbMirror.addTable(tableName);
                             tableMirror.setMigrationStageMessage("Added to evaluation inventory");

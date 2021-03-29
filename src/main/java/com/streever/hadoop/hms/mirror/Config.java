@@ -72,6 +72,11 @@ public class Config {
     private String dbRegEx = null;
     @JsonIgnore
     private Pattern dbFilterPattern = null;
+
+    private String tblRegEx = null;
+    @JsonIgnore
+    private Pattern tblFilterPattern = null;
+
     /*
    Prefix the DB with this to create an alternate db.
    Good for testing.
@@ -81,7 +86,6 @@ public class Config {
     private String dbPrefix = null;
 
     private String[] databases = null;
-    private String tblRegEx = null;
 
     private TransferConfig transfer = new TransferConfig();
 
@@ -185,6 +189,15 @@ public class Config {
 
     public void setDbRegEx(String dbRegEx) {
         this.dbRegEx = dbRegEx;
+        if (this.dbRegEx != null)
+            dbFilterPattern = Pattern.compile(dbRegEx);
+        else
+            dbFilterPattern = null;
+
+    }
+
+    public Pattern getDbFilterPattern() {
+        return dbFilterPattern;
     }
 
     public String getTblRegEx() {
@@ -194,9 +207,13 @@ public class Config {
     public void setTblRegEx(String tblRegEx) {
         this.tblRegEx = tblRegEx;
         if (this.tblRegEx != null)
-            dbFilterPattern = Pattern.compile(tblRegEx);
+            tblFilterPattern = Pattern.compile(tblRegEx);
         else
-            dbFilterPattern = null;
+            tblFilterPattern = null;
+    }
+
+    public Pattern getTblFilterPattern() {
+        return tblFilterPattern;
     }
 
     @JsonIgnore
@@ -398,10 +415,6 @@ public class Config {
             }
         }
         return rtn;
-    }
-
-    public Pattern getDbFilterPattern() {
-        return dbFilterPattern;
     }
 
     public String[] getDatabases() {

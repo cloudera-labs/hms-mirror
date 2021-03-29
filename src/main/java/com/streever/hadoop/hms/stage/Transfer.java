@@ -50,23 +50,31 @@ public class Transfer implements Callable<ReturnStatus> {
             // Checking for null LEFT.  Happens with SCHEMA_ONLY and SYNC when RIGHT exists but LEFT doesn't.
             if (tblMirror.getTableDefinition(Environment.LEFT) != null && TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT))) {
                 if (config.getDataStrategy() == DataStrategy.EXPORT_IMPORT || config.getDataStrategy() == DataStrategy.HYBRID) {
-                    switch (config.getDataStrategy()) {
-                        case EXPORT_IMPORT:
-                            successful = doExportImport();
-                            break;
-                        case HYBRID:
-                            if (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) ||
-                                    (TableUtils.isPartitioned(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) &&
-                                            tblMirror.getPartitionDefinition(Environment.LEFT).size() >
-                                                    config.getHybrid().getSqlPartitionLimit())) {
+                    if (config.getCluster(Environment.LEFT).getLegacyHive() || !config.getCluster(Environment.RIGHT).getLegacyHive()) {
+                        successful = Boolean.FALSE;
+                        dbMirror.addIssue("Table: " + tblMirror.getName() + " is an ACIDv1 table. ACIDv1 to ACIDv2 is not supported with "+
+                                "Hive's EXPORT_IMPORT processes. Recommend converting table to a NON-ACID table and try again.");
+                        tblMirror.addIssue("ACIDv1 to ACIDv2 is not supported with Hive's EXPORT_IMPORT processes.");
+                        tblMirror.addIssue("Recommend converting table to a NON-ACID table and try again.");
+                    } else {
+                        switch (config.getDataStrategy()) {
+                            case EXPORT_IMPORT:
                                 successful = doExportImport();
-                            } else {
-                                successful = doSQL();
-                            }
-                            break;
-                        default:
-                            // Shouldn't end up here.
-                            throw new RuntimeException("BAD flow.  Check ACID / data strategy logic.");
+                                break;
+                            case HYBRID:
+                                if (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) ||
+                                        (TableUtils.isPartitioned(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) &&
+                                                tblMirror.getPartitionDefinition(Environment.LEFT).size() >
+                                                        config.getHybrid().getSqlPartitionLimit())) {
+                                    successful = doExportImport();
+                                } else {
+                                    successful = doSQL();
+                                }
+                                break;
+                            default:
+                                // Shouldn't end up here.
+                                throw new RuntimeException("BAD flow.  Check ACID / data strategy logic.");
+                        }
                     }
                 } else {
                     successful = Boolean.FALSE;
@@ -81,7 +89,7 @@ public class Transfer implements Callable<ReturnStatus> {
                         } else {
                             successful = (tblMirror.getTableDefinition(Environment.LEFT) != null &&
                                     !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) &&
-                                            doSchemaOnly());
+                                    doSchemaOnly());
                         }
                         break;
                     case LINKED:
