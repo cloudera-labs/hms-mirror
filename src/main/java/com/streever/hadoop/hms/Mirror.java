@@ -7,7 +7,7 @@ import com.streever.hadoop.hms.mirror.*;
 import com.streever.hadoop.hms.stage.ReturnStatus;
 import com.streever.hadoop.hms.stage.Setup;
 import com.streever.hadoop.hms.stage.Transfer;
-import com.streever.hadoop.hms.util.TableUtils;
+import com.streever.hadoop.hms.util.Protect;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -116,16 +116,6 @@ public class Mirror {
 
     public void init(String[] args) {
 
-//        HadoopSession main = HadoopSession.get("MAIN");
-//        String[] api = {"-api"};
-//        try {
-//            main.start(api);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//
-//        CommandReturn cr = main.processInput("connect");
-
         Options options = getOptions();
 
         CommandLineParser parser = new PosixParser();
@@ -145,6 +135,26 @@ public class Mirror {
             HelpFormatter formatter = new HelpFormatter();
             String cmdline = ReportingConf.substituteVariablesFromManifest("hms-mirror \nversion:${Implementation-Version}");
             formatter.printHelp(cmdline, options);
+            System.exit(0);
+        }
+
+        if (cmd.hasOption("p")) {
+            // Used to generate encrypted password.
+            if (cmd.hasOption("pkey")) {
+                Protect protect = new Protect(cmd.getOptionValue("pkey"));
+                String epassword = null;
+                try {
+                    epassword = protect.encrypt(cmd.getOptionValue("p"));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    System.exit(-1);
+                }
+                System.out.println("Encrypted password: " + epassword);
+            } else {
+                System.err.println("Need to include '-pkey' with '-p'.");
+                System.exit(-1);
+            }
+
             System.exit(0);
         }
 
@@ -176,6 +186,34 @@ public class Mirror {
             config = mapper.readerFor(Config.class).readValue(yamlCfgFile);
         } catch (Throwable t) {
             throw new RuntimeException(t);
+        }
+
+        // When the pkey is specified, we assume the config passwords are encrytped and we'll decrypt them before continuing.
+        if (cmd.hasOption("pkey")) {
+            // Loop through the HiveServer2 Configs and decode the password.
+            System.out.println("Password Key specified.  Decrypting config password before submitting.");
+
+            String pkey = cmd.getOptionValue("pkey");
+            Protect protect = new Protect(pkey);
+
+            for (Environment env: Environment.values()) {
+                Cluster cluster = config.getCluster(env);
+                if (cluster != null) {
+                    HiveServer2Config hiveServer2Config = cluster.getHiveServer2();
+                    Properties props = hiveServer2Config.getConnectionProperties();
+                    String password = props.getProperty("password");
+                    if (password != null) {
+                        try {
+                            String decryptedPassword = protect.decrypt(password);
+                            props.put("password", decryptedPassword);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            System.err.println("Issue decrypting password");
+                            System.exit(-1);
+                        }
+                    }
+                }
+            }
         }
 
         if (cmd.hasOption("dbp")) {
@@ -382,7 +420,7 @@ public class Mirror {
 
         if (!config.validate()) {
             List<String> issues = config.getIssues();
-            for (String issue: issues) {
+            for (String issue : issues) {
                 LOG.error(issue);
             }
             throw new RuntimeException("Configuration issues, check log for details");
@@ -627,10 +665,6 @@ public class Mirror {
         acceptOption.setRequired(false);
         options.addOption(acceptOption);
 
-        Option helpOption = new Option("h", "help", false,
-                "Help");
-        helpOption.setRequired(false);
-        options.addOption(helpOption);
 
         Option outputOption = new Option("o", "output-dir", true,
                 "Output Directory (default: $HOME/.hms-mirror/reports/<yyyy-MM-dd_HH-mm-ss>");
@@ -654,8 +688,22 @@ public class Mirror {
         dbOption.setValueSeparator(',');
         dbOption.setArgName("databases");
         dbOption.setArgs(100);
+
+        Option helpOption = new Option("h", "help", false,
+                "Help");
+        helpOption.setRequired(false);
+//        options.addOption(helpOption);
+
+        Option pwOption = new Option("p", "password", true,
+                "Used this in conjunction with '-pkey' to generate the encrypted password that you'll add to the configs for the JDBC connections.");
+        pwOption.setRequired(false);
+        pwOption.setArgName("password");
+//        options.addOption(pwOption);
+
         OptionGroup dbGroup = new OptionGroup();
         dbGroup.addOption(dbOption);
+        dbGroup.addOption(helpOption);
+        dbGroup.addOption(pwOption);
         dbGroup.setRequired(true);
         options.addOptionGroup(dbGroup);
 
@@ -674,6 +722,13 @@ public class Mirror {
         cfgOption.setRequired(false);
         cfgOption.setArgName("filename");
         options.addOption(cfgOption);
+
+        Option pKeyOption = new Option("pkey", "password-key", true,
+                "The key used to encrypt / decrypt the cluster jdbc passwords.  If not present, the passwords will be processed as is (clear text) from the config file.");
+        pKeyOption.setRequired(false);
+        pKeyOption.setArgName("password-key");
+        options.addOption(pKeyOption);
+
 
         Option retryOption = new Option("r", "retry", false,
                 "Retry last incomplete run for 'cfg'.  If none specified, will check for 'default'");

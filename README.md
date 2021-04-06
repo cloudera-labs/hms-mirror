@@ -22,6 +22,7 @@ Get [pdf version](./README.pdf) of this README.
   * [Scenario #1](#scenario-%231)
 - [Permissions](#permissions)
 - [Configuration](#configuration)
+  * [Secure Passwords in Configuration](#secure-passwords-in-configuration)
 - [Tips for Running `hms-miror`](#tips-for-running-hms-miror)
   * [Run in `screen` or `tmux`](#run-in-screen-or-tmux)
   * [Use `dryrun` FIRST](#use-dryrun-first)
@@ -311,6 +312,36 @@ There are two ways to get started:
 You'll need jdbc driver jar files that are **specific* to the clusters you'll integrate with.  If the **LEFT** cluster isn't the same version as the **RIGHT** cluster, don't use the same jdbc jar file especially when integrating Hive 1 and Hive 3 services.  The Hive 3 driver is NOT backwardly compatible with Hive 1.
 
 See the [running](#running-hms-mirror) section for examples on running `hms-mirror` for various environment types and connections.
+
+### Secure Passwords in Configuration
+
+There are two passwords stored in the configuration file mentioned above.  One for each 'jdbc' connection, if those rely on a password for connect.  By default, the passwords are in clear text in the configuration file.  Which usually isn't an issue since the file can be protected at the unix level from peering eyes.  But if you do need to protect those passwords, `hms-mirror` supports storing an encrypted version of the password in the configuration.
+
+The `password` element for each JDBC connection can be replace with an **encrypted** version of the password and read by `hms-mirror` during execution, so the clear text version of the password isn't persisted anywhere.
+
+When you're using this feature, you need to have a `password-key`.  This is a key used to encrypt and decrypt the password in the configuration.  The same `password-key` must be used for each password in the configuration file.
+
+#### Generate the Encrypted Password
+
+Use the `-pkey` and `-p` options of `hms-mirror`
+
+`hms-mirror -pkey cloudera -p have-a-nice-day`
+
+Will generate:
+```
+...
+Encrypted password: HD1eNF8NMFahA2smLM9c4g==
+```
+
+Copy this encrypted password and place it in your configuration file for the jdbc connection.  Repeat for the other password, if it's different and paste it in the configuration as well.
+
+#### Running `hms-mirror` with Encrypted Passwords
+
+Using the **same** `-pkey` you used to generate the encrypted password, we'll run `hms-mirror`
+
+`hms-mirror -db <db> -pkey cloudera ...`
+
+When the `-pkey` option is specified **WITHOUT** the `-p` option (used previously), `hms-mirror` will understand to **decrypt** the configuration passwords before connecting to jdbc.  If you receive jdbc connection exceptions, recheck the `-pkey` and encrypted password from before.
 
 ## Tips for Running `hms-miror`
 
