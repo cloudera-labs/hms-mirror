@@ -65,7 +65,7 @@ public class DBMirror {
     }
 
     /*
-    Return String[3].  0-Create Sql, 1-Location, 2-Mngd Location.
+    Return String[3] for Hive.  0-Create Sql, 1-Location, 2-Mngd Location.
      */
     public String[] rightDBCreate(Config config) {
         String[] rtn = new String[3];

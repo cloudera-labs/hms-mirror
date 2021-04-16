@@ -237,16 +237,22 @@ public class Config {
         Boolean rtn = Boolean.TRUE;
         issues.clear();
         if (sync && tblRegEx != null) {
-            issues.add("'sync' can NOT be used with a 'table filter'");
+            String issue = "'sync' can NOT be used with a 'table filter'";
+            issues.add(issue);
+            System.err.println(issue);
             rtn = Boolean.FALSE;
         }
         if (sync && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.LINKED ||
                  dataStrategy == DataStrategy.LINKED)) {
-            issues.add("'sync' only valid for SCHEMA_ONLY, LINKED, and COMMON data strategies");
+            String issue = "'sync' only valid for SCHEMA_ONLY, LINKED, and COMMON data strategies";
+            issues.add(issue);
+            System.err.println(issue);
             rtn = Boolean.FALSE;
         }
         if (migrateACID && !(dataStrategy == DataStrategy.EXPORT_IMPORT || dataStrategy == DataStrategy.HYBRID)) {
-            issues.add("Migrating ACID tables only valid for EXPORT_IMPORT and HYBRID data strategies");
+            String issue = "Migrating ACID tables only valid for EXPORT_IMPORT and HYBRID data strategies";
+            issues.add(issue);
+            System.err.println(issue);
             rtn = Boolean.FALSE;
         }
         return rtn;

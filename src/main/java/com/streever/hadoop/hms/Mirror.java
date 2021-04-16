@@ -351,18 +351,9 @@ public class Mirror {
                     }
                 }
 
+                System.out.print("I have made backups of both the 'Hive Metastore' in the LEFT and RIGHT clusters (TRUE to proceed): ");
                 // get their input as a String
                 String response = scanner.next();
-                if (!response.equalsIgnoreCase("true")) {
-                    throw new RuntimeException("You must affirm to proceed.");
-                } else {
-                    config.getAcceptance().setBackedUpMetastore(Boolean.TRUE);
-                }
-
-                System.out.print("I have made backups of both the 'Hive Metastore' in the LEFT and RIGHT clusters (TRUE to proceed): ");
-
-                // get their input as a String
-                response = scanner.next();
                 if (!response.equalsIgnoreCase("true")) {
                     throw new RuntimeException("You must affirm to proceed.");
                 } else {
