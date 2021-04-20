@@ -1,6 +1,7 @@
 package com.streever.hadoop.hms.mirror;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.streever.hadoop.hms.mirror.feature.Feature;
 import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -305,6 +306,13 @@ public class TableMirror {
         // 5. Location Adjustments
         //    Since we are looking at the same data as the original, we're not changing this now.
         //    Any changes to data location are a part of stage-2 (STORAGE).
+
+        // 6. Go through the features, if any.
+        if (config.getFeatureList() != null) {
+            for (Feature feature: config.getFeatureList()) {
+                upperTD = feature.fixSchema(upperTD);
+            }
+        }
 
         this.setTableDefinition(Environment.RIGHT, upperTD);
 

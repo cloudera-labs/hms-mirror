@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.streever.hadoop.hms.mirror.*;
+import com.streever.hadoop.hms.mirror.feature.Features;
 import com.streever.hadoop.hms.stage.ReturnStatus;
 import com.streever.hadoop.hms.stage.Setup;
 import com.streever.hadoop.hms.stage.Transfer;
@@ -196,7 +197,7 @@ public class Mirror {
             String pkey = cmd.getOptionValue("pkey");
             Protect protect = new Protect(pkey);
 
-            for (Environment env: Environment.values()) {
+            for (Environment env : Environment.values()) {
                 Cluster cluster = config.getCluster(env);
                 if (cluster != null) {
                     HiveServer2Config hiveServer2Config = cluster.getHiveServer2();
@@ -310,6 +311,26 @@ public class Mirror {
             String[] databases = cmd.getOptionValues("db");
             if (databases != null)
                 config.setDatabases(databases);
+        }
+
+        if (cmd.hasOption("f")) {
+            String[] featuresStr = cmd.getOptionValues("f");
+            List<Features> featuresList = new ArrayList<Features>();
+//            Feature[] features = new Feature[featuresStr.length];
+            // convert feature string to feature enum.q
+            for (String featureStr : featuresStr) {
+                try {
+                    Features feature = Features.valueOf(featureStr);
+                    featuresList.add(feature);
+                } catch (IllegalArgumentException iae) {
+                    throw new RuntimeException(featureStr + " is NOT a valid 'feature'. One or more of: " + Arrays.deepToString(Features.values()));
+                }
+
+            }
+            if (featuresList.size() > 0) {
+                Features[] features = featuresList.toArray(new Features[0]);
+                config.setFeatures(features);
+            }
         }
 
         if (cmd.hasOption("sync")) {
@@ -656,6 +677,13 @@ public class Mirror {
         acceptOption.setRequired(false);
         options.addOption(acceptOption);
 
+        Option featureOption = new Option("f", "feature", true,
+                "Added Feature Checks[BAD_ORC_DEF]");
+        featureOption.setValueSeparator(',');
+        featureOption.setArgName("features");
+        featureOption.setArgs(20);
+        featureOption.setRequired(false);
+        options.addOption(featureOption);
 
         Option outputOption = new Option("o", "output-dir", true,
                 "Output Directory (default: $HOME/.hms-mirror/reports/<yyyy-MM-dd_HH-mm-ss>");

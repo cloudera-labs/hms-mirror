@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.streever.hadoop.hms.Mirror;
+import com.streever.hadoop.hms.mirror.feature.Feature;
+import com.streever.hadoop.hms.mirror.feature.Features;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -86,6 +88,10 @@ public class Config {
     private String dbPrefix = null;
 
     private String[] databases = null;
+    private Features[] features = null;
+
+    @JsonIgnore
+    private List<Feature> featureList = new ArrayList<Feature>();
 
     private TransferConfig transfer = new TransferConfig();
 
@@ -160,6 +166,25 @@ public class Config {
 
     public void setAcceptance(Acceptance acceptance) {
         this.acceptance = acceptance;
+    }
+
+    public Features[] getFeatures() {
+        return features;
+    }
+
+    public void setFeatures(Features[] featuresSet) {
+        this.features = featuresSet;
+        for (Features featuresEnum: features) {
+            featureList.add(featuresEnum.getFeature());
+        }
+    }
+
+    public List<Feature> getFeatureList() {
+        return featureList;
+    }
+
+    public void setFeatureList(List<Feature> featureList) {
+        this.featureList = featureList;
     }
 
     public String getDbPrefix() {
