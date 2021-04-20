@@ -146,52 +146,77 @@ public class Conversion {
 
         sb.append("\n## Table Status").append("\n\n");
 
-        sb.append("|").append(" Table ").append("|")
-                .append("Phase<br/>State").append("|")
-                .append("Phase<br/>Duration").append("|")
-                .append("Partition<br/>Count").append("|")
-                .append("Actions").append("|")
-                .append("LEFT Table Actions").append("|")
-                .append("RIGHT Table Actions").append("|")
-                .append("Added<br/>Properties").append("|")
-                .append("Issues").append("|");
+        sb.append("<table>").append("\n");
+        sb.append("<tr>").append("\n");
+        sb.append("<th style=\"test-align:left\">Table</th>").append("\n");
+        sb.append("<th style=\"test-align:left\">Phase<br/>State</th>").append("\n");
+        sb.append("<th style=\"test-align:right\">Duration</th>").append("\n");
+        sb.append("<th style=\"test-align:right\">Partition<br/>Count</th>").append("\n");
+        sb.append("<th style=\"test-align:left\">Actions</th>").append("\n");
+        sb.append("<th style=\"test-align:left\">LEFT Table Actions</th>").append("\n");
+        sb.append("<th style=\"test-align:left\">RIGHT Table Actions</th>").append("\n");
+        sb.append("<th style=\"test-align:left\">Added<br/>Properties</th>").append("\n");
+        sb.append("<th style=\"test-align:left\">Issues</th>").append("\n");
         if (config.isSqlOutput()) {
-            sb.append("SQL").append("|");
+            sb.append("<th style=\"test-align:left\">SQL</th>").append("\n");
         }
-        sb.append("\n");
+        sb.append("</tr>").append("\n");
 
-        sb.append("|").append(":---").append("|")
-                .append(":---").append("|")
-                .append("---:").append("|")
-                .append("---:").append("|")
-                .append(":---").append("|")
-                .append(":---").append("|")
-                .append(":---").append("|")
-                .append(":---").append("|")
-                .append(":---").append("|");
-        if (config.isSqlOutput()) {
-            sb.append(":---").append("|");
-        }
-        sb.append("\n");
+
+//        sb.append("|").append(" Table ").append("|")
+//                .append("Phase<br/>State").append("|")
+//                .append("Phase<br/>Duration").append("|")
+//                .append("Partition<br/>Count").append("|")
+//                .append("Actions").append("|")
+//                .append("LEFT Table Actions").append("|")
+//                .append("RIGHT Table Actions").append("|")
+//                .append("Added<br/>Properties").append("|")
+//                .append("Issues").append("|");
+//        if (config.isSqlOutput()) {
+//            sb.append("SQL").append("|");
+//        }
+//        sb.append("\n");
+
+//        sb.append("|").append(":---").append("|")
+//                .append(":---").append("|")
+//                .append("---:").append("|")
+//                .append("---:").append("|")
+//                .append(":---").append("|")
+//                .append(":---").append("|")
+//                .append(":---").append("|")
+//                .append(":---").append("|")
+//                .append(":---").append("|");
+//        if (config.isSqlOutput()) {
+//            sb.append(":---").append("|");
+//        }
+//        sb.append("\n");
 
         Set<String> tables = dbMirror.getTableMirrors().keySet();
         for (String table : tables) {
+            sb.append("<tr>").append("\n");
             TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
-            sb.append("|").append(table).append("|")
-                    .append(tblMirror.getPhaseState().toString()).append("|");
+            sb.append("<td>").append(table).append("</td>").append("\n");
+            sb.append("<td>").append(tblMirror.getPhaseState().toString()).append("</td>").append("\n");
+//            sb.append("|").append(table).append("|")
+//                    .append(tblMirror.getPhaseState().toString()).append("|");
 
             // Stage Duration
             BigDecimal secs = new BigDecimal(tblMirror.getStageDuration()).divide(new BigDecimal(1000));///1000
             DecimalFormat decf = new DecimalFormat("#,###.00");
             String secStr = decf.format(secs);
-            sb.append(secStr).append(" secs |");
+            sb.append("<td>").append(secStr).append("</td>").append("\n");
+
+//            sb.append(secStr).append(" secs |");
 
             // Partition Count
-            sb.append(tblMirror.getPartitionDefinition(Environment.LEFT) != null ?
-                    tblMirror.getPartitionDefinition(Environment.LEFT).size() : " ").append("|");
+            sb.append("<td>").append(tblMirror.getPartitionDefinition(Environment.LEFT) != null ?
+                    tblMirror.getPartitionDefinition(Environment.LEFT).size() : " ").append("</td>").append("\n");
+//            sb.append(tblMirror.getPartitionDefinition(Environment.LEFT) != null ?
+//                    tblMirror.getPartitionDefinition(Environment.LEFT).size() : " ").append("|");
 
             // Actions
             Iterator<Map.Entry<String[], Object>> aIter = tblMirror.getActions().entrySet().iterator();
+            sb.append("<td>").append("\n");
             sb.append("<table>");
             while (aIter.hasNext()) {
                 sb.append("<tr>");
@@ -206,10 +231,12 @@ public class Conversion {
                 sb.append("</tr>");
             }
             sb.append("</table>");
-            sb.append("|");
+            sb.append("</td>").append("\n");
+//            sb.append("|");
 
             // LEFT Table Actions
             Iterator<String> a1Iter = tblMirror.getTableActions(Environment.LEFT).iterator();
+            sb.append("<td>").append("\n");
             sb.append("<table>");
             while (a1Iter.hasNext()) {
                 sb.append("<tr>");
@@ -218,10 +245,12 @@ public class Conversion {
                 sb.append("</tr>");
             }
             sb.append("</table>");
-            sb.append("|");
+            sb.append("</td>").append("\n");
+//            sb.append("|");
 
             // RIGHT Table Actions
             Iterator<String> a2Iter = tblMirror.getTableActions(Environment.RIGHT).iterator();
+            sb.append("<td>").append("\n");
             sb.append("<table>");
             while (a2Iter.hasNext()) {
                 sb.append("<tr>");
@@ -230,9 +259,11 @@ public class Conversion {
                 sb.append("</tr>");
             }
             sb.append("</table>");
-            sb.append("|");
+            sb.append("</td>").append("\n");
+//            sb.append("|");
 
             // Properties
+            sb.append("<td>").append("\n");
             if (tblMirror.whereTherePropsAdded()) {
                 for (String propAdd : tblMirror.getPropAdd()) {
                     sb.append(propAdd).append("<br/>");
@@ -240,8 +271,10 @@ public class Conversion {
             } else {
                 sb.append(" ");
             }
-            sb.append("|");
+            sb.append("</td>").append("\n");
+//            sb.append("|");
             // Issues
+            sb.append("<td>").append("\n");
             if (tblMirror.isThereAnIssue()) {
                 sb.append("<ul>");
                 for (String issue : tblMirror.getIssues()) {
@@ -252,8 +285,10 @@ public class Conversion {
             } else {
                 sb.append(" ");
             }
-            sb.append("|");
+            sb.append("</td>").append("\n");
+//            sb.append("|");
             if (config.isSqlOutput()) {
+                sb.append("<td>").append("\n");
                 // Issues
                 if (tblMirror.isThereSql()) {
                     for (String sql : tblMirror.getSql()) {
@@ -263,10 +298,12 @@ public class Conversion {
                 } else {
                     sb.append(" ");
                 }
+                sb.append("</td>").append("\n");
             }
-            sb.append("|\n");
+            sb.append("</tr>").append("\n");
+//            sb.append("|\n");
         }
-
+        sb.append("</table>").append("\n");
         return sb.toString();
     }
 

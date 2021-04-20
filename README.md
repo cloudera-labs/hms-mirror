@@ -391,7 +391,7 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 8. The credentials use by 'hive' (doas=false) in the **RIGHT** cluster must have access to the required storage (hdfs) locations on the lower cluster.
    - If the **RIGHT** cluster is running impersonation (doas=true), that user must have access to the required storage (hdfs) locations on the lower cluster.
 
-**HELP**
+### Options (Help)
 ```
 usage: hms-mirror
  -accept,--accept                            Accept ALL confirmations and
@@ -413,13 +413,29 @@ usage: hms-mirror
  -e,--execute                                Execute actions request,
                                              without this flag the process
                                              is a dry-run.
+ -f,--feature <features>                     Added Feature
+                                             Checks[BAD_ORC_DEF]
  -h,--help                                   Help
  -is,--intermediate-storage <storage-path>   Intermediate Storage used
                                              with Data Strategy
                                              INTERMEDIATE.
+ -ma,--migrate-acid                          For EXPORT_IMPORT and HYBRID
+                                             data strategies.  Include
+                                             ACID tables in migration.
  -o,--output-dir <outputdir>                 Output Directory (default:
                                              $HOME/.hms-mirror/reports/<yy
                                              yy-MM-dd_HH-mm-ss>
+ -p,--password <password>                    Used this in conjunction with
+                                             '-pkey' to generate the
+                                             encrypted password that
+                                             you'll add to the configs for
+                                             the JDBC connections.
+ -pkey,--password-key <password-key>         The key used to encrypt /
+                                             decrypt the cluster jdbc
+                                             passwords.  If not present,
+                                             the passwords will be
+                                             processed as is (clear text)
+                                             from the config file.
  -r,--retry                                  Retry last incomplete run for
                                              'cfg'.  If none specified,
                                              will check for 'default'
@@ -436,6 +452,33 @@ usage: hms-mirror
  -sql,--sql-output                           Output the SQL to the report
  -tf,--table-filter <regex>                  Filter tables with name
                                              matching RegEx
+```
+
+#### Features
+
+Features are a way to inject special considerations into the replay of a schema between clusters.  Using the `-f` option you can specify the 'features' you want to use on the schemas.  Features should only be used when you know a particular scenario exists.  Don't use them automatically.
+
+`BAD_ORC_DEF` is a feature that corrects pooring executed schema definitions in legacy Hive 1/2 that don't translate into a functioning table in Hive 3.  In this case, the legacy definition was defined with:
+```
+ROW FORMAT DELIMITED
+  FIELDS TERMINATED BY '\t'
+  LINES TERMINATED BY '\n'
+STORED AS INPUTFORMAT
+  'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'
+OUTPUTFORMAT
+  'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
+```
+
+when it should have been created with:
+
+```
+STORED AS ORC
+```
+
+the result, when not modified and replayed in Hive 3 is a table that isn't functional.  The `BAD_ORC_DEF` feature will replace the above definition with:
+
+```
+
 ```
 
 ### Connections

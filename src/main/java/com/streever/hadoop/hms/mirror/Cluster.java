@@ -1122,9 +1122,14 @@ public class Cluster implements Comparable<Cluster> {
                         tblMirror.setMigrationStageMessage("Table created in RIGHT cluster");
                         rtn = Boolean.TRUE;
                     }
-                } else if (config.isSync() && tblMirror.schemasEqual(Environment.LEFT, Environment.RIGHT)) {
+                } else if (tblMirror.schemasEqual(Environment.LEFT, Environment.RIGHT)) {
                     tblMirror.addIssue("Schema Fields(name, type, and order), Row Format, and Table Format are consistent between clusters.");
                     tblMirror.addIssue("TBLProperties were NOT considered while comparing schemas");
+                    tblMirror.addIssue("No Schema action performed");
+                    rtn = Boolean.TRUE;
+                } else {
+                    tblMirror.addIssue("Schema Fields(name, type, and order), Row Format, and Table Format are NOT consistent between clusters.");
+                    tblMirror.addIssue("Use --sync option to overwrite table schema with changes");
                     tblMirror.addIssue("No Schema action performed");
                     rtn = Boolean.TRUE;
                 }
