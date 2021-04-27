@@ -1115,8 +1115,6 @@ public class Cluster implements Comparable<Cluster> {
                         tblMirror.addSql(createTable);
                         if (config.isExecute()) {
                             stmt.execute(createTable);
-                        } else {
-                            tblMirror.addIssue("DRY-RUN: Schema NOT Transferred");
                         }
                         tblMirror.addAction("RIGHT Schema Create", Boolean.TRUE);
                         tblMirror.setMigrationStageMessage("Table created in RIGHT cluster");
@@ -1132,6 +1130,9 @@ public class Cluster implements Comparable<Cluster> {
                     tblMirror.addIssue("Use --sync option to overwrite table schema with changes");
                     tblMirror.addIssue("No Schema action performed");
                     rtn = Boolean.TRUE;
+                }
+                if (!config.isExecute()) {
+                   tblMirror.addIssue("DRY-RUN mode");
                 }
 
             } catch (SQLException throwables) {

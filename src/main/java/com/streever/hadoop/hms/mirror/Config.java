@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 
 public class Config {
 
-    private static Logger LOG = LogManager.getLogger(Mirror.class);
+    private static Logger LOG = LogManager.getLogger(Config.class);
 
     @JsonIgnore
     private ScheduledExecutorService transferThreadPool;
