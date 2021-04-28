@@ -167,13 +167,13 @@ public class Transfer implements Callable<ReturnStatus> {
 
         // Create table in new cluster.
         // Associate data to original cluster data.
-        rtn = config.getCluster(Environment.RIGHT).buildUpperSchemaUsingLowerData(config, dbMirror, tblMirror);
+        rtn = config.getCluster(Environment.RIGHT).createUpperSchema(config, dbMirror, tblMirror);
 
         // Build the Transfer table (with prefix)
         // NOTE: This will change the RIGHT tabledef, so run this AFTER the buildUpperSchemaUsingLowerData
         // process
         if (rtn) {
-            rtn = config.getCluster(Environment.RIGHT).buildUpperTransferTable(config, dbMirror, tblMirror, config.getTransfer().getTransferPrefix());
+            rtn = config.getCluster(Environment.RIGHT).createUpperTransferTable(config, dbMirror, tblMirror, config.getTransfer().getTransferPrefix());
         }
 
         // Force the MSCK to enable the SQL transfer
@@ -222,7 +222,7 @@ public class Transfer implements Callable<ReturnStatus> {
     protected Boolean doLinked() {
         Boolean rtn = Boolean.FALSE;
 
-        rtn = config.getCluster(Environment.RIGHT).buildUpperSchemaUsingLowerData(config, dbMirror, tblMirror);
+        rtn = config.getCluster(Environment.RIGHT).createUpperSchema(config, dbMirror, tblMirror);
 
 //        if (rtn || (config.getReplicationStrategy() == ReplicationStrategy.SYNCHRONIZE && !rtn)) {
         if (rtn) {
@@ -247,7 +247,7 @@ public class Transfer implements Callable<ReturnStatus> {
             rtn = config.getCluster(Environment.RIGHT).dropTable(config, dbMirror, tblMirror);
         } else {
             Boolean seq = tblMirror.schemasEqual(Environment.LEFT, Environment.RIGHT);
-            rtn = config.getCluster(Environment.RIGHT).buildUpperSchemaWithRelativeData(config, dbMirror, tblMirror);
+            rtn = config.getCluster(Environment.RIGHT).createUpperSchema(config, dbMirror, tblMirror);
 //        if (rtn || (config.getReplicationStrategy() == ReplicationStrategy.SYNCHRONIZE && !rtn)) {
             if (rtn && !seq) {
                 rtn = config.getCluster(Environment.RIGHT).partitionMaintenance(config, dbMirror, tblMirror);

@@ -265,8 +265,13 @@ public class Conversion {
             // Properties
             sb.append("<td>").append("\n");
             if (tblMirror.whereTherePropsAdded()) {
-                for (String propAdd : tblMirror.getPropAdd()) {
-                    sb.append(propAdd).append("<br/>");
+                Set<String> keys = tblMirror.getPropAdd().keySet();
+                for (String key: keys) {
+                    if (tblMirror.getPropAdd().get(key) != null) {
+                        sb.append("'").append(key).append("'='").append(tblMirror.getPropAdd().get(key)).append("'<br/>");
+                    } else {
+                        sb.append("'").append(key).append("'<br/>");
+                    }
                 }
             } else {
                 sb.append(" ");

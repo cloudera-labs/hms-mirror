@@ -300,8 +300,12 @@ public class TableUtils {
                     // Found existing Property, replace it.
                     tableDefinition.remove(i);
                     StringBuilder sb = new StringBuilder();
-                    sb.append("'").append(key).append("'='");
-                    sb.append(value).append("'");
+                    if (value != null) {
+                        sb.append("'").append(key).append("'='");
+                        sb.append(value).append("'");
+                    } else {
+                        sb.append("'").append(key).append("'");
+                    }
                     if (line.trim().endsWith(",")) {
                         sb.append(",");
                     }
@@ -312,7 +316,12 @@ public class TableUtils {
             }
             if (!found) {
                 // Add Property.
-                String newProp = "'" + key + "'='" + value + "',";
+                String newProp = null;
+                if (value != null) {
+                    newProp = "'" + key + "'='" + value + "',";
+                } else {
+                    newProp = "'" + key + "',";
+                }
                 tableDefinition.add(tpIdx + 1, newProp);
             }
         } else {

@@ -37,7 +37,7 @@ public class TableMirror {
     private Long stageDuration = 0l;
 
     private List<String> issues = new ArrayList<String>();
-    private List<String> propAdd = new ArrayList<String>();
+    private Map<String, String> propAdd = new TreeMap<String, String>();
     private List<String> sql = new ArrayList<String>();
 
     // There are two environments (RIGHT and LEFT)
@@ -165,7 +165,7 @@ public class TableMirror {
         return issues;
     }
 
-    public List<String> getPropAdd() {
+    public Map<String, String> getPropAdd() {
         return propAdd;
     }
 
@@ -179,23 +179,18 @@ public class TableMirror {
     }
 
     public void addSql(String sqlOutput) {
-//        String scrubbedSql = sqlOutput.replace("\n", "<br/>");
         getSql().add(sqlOutput);
     }
 
-    public void addProp(String propAdd) {
-        getPropAdd().add(propAdd);
-    }
-
     public void addProp(String prop, String value) {
-        getPropAdd().add(prop + "=" + value);
+        getPropAdd().put(prop, value);
     }
 
     public void setName(String name) {
         this.name = name;
     }
 
-    public void setPropAdd(List<String> propAdd) {
+    public void setPropAdd(Map<String, String> propAdd) {
         this.propAdd = propAdd;
     }
 
@@ -243,7 +238,7 @@ public class TableMirror {
         }
 
         // 2. Set mirror stage one flag
-//        TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_METADATA_FLAG, df.format(new Date()), upperTD);
+        addProp(MirrorConf.HMS_MIRROR_METADATA_FLAG, df.format(new Date()));
 
         // 3. setting legacy flag - At a later date, we'll convert this to
         //     'external.table.purge'='true'
@@ -270,9 +265,7 @@ public class TableMirror {
                     this.addTableAction(Environment.LEFT, extConversionSql);
                 }
             } else {
-                // TODO: This path isn't currently used (02-12-2021) because it can be quite tricky to
-                //       understand the users intent.  Need more field feedback.
-                TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString(), upperTD);
+//                TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString(), upperTD);
                 addProp(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString());
                 // We need to add actions to the LEFT cluster to disable legacy managed behavior
                 // When there is a shared dataset
@@ -286,7 +279,7 @@ public class TableMirror {
 
 
         // 4. identify this table as being converted by hms-mirror
-        TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, Boolean.TRUE.toString(), upperTD);
+//        TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, Boolean.TRUE.toString(), upperTD);
         addProp(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, converted.toString());
 
         // 5. Strip stat properties
@@ -297,11 +290,13 @@ public class TableMirror {
         TableUtils.removeTblProperty("totalSize", upperTD);
         TableUtils.removeTblProperty("discover.partitions", upperTD);
 
-        // 6. Set 'discover.partitions' if config
-        if (config.getCluster(Environment.RIGHT).getPartitionDiscovery().getAuto()) {
-            TableUtils.upsertTblProperty(MirrorConf.DISCOVER_PARTITIONS, "true", upperTD);
+        // 6. Set 'discover.partitions' if config and non-acid
+        if (!config.getCluster(Environment.RIGHT).getLegacyHive() &&
+                !TableUtils.isACID(getName(), upperTD) &&
+                config.getCluster(Environment.RIGHT).getPartitionDiscovery().getAuto()) {
             addProp(MirrorConf.DISCOVER_PARTITIONS, converted.toString());
         }
+
 
         // 5. Location Adjustments
         //    Since we are looking at the same data as the original, we're not changing this now.
@@ -309,8 +304,16 @@ public class TableMirror {
 
         // 6. Go through the features, if any.
         if (config.getFeatureList() != null) {
-            for (Feature feature: config.getFeatureList()) {
+            for (Feature feature : config.getFeatureList()) {
                 upperTD = feature.fixSchema(upperTD);
+            }
+        }
+
+        // Add props to definition.
+        if (whereTherePropsAdded()) {
+            Set<String> keys = getPropAdd().keySet();
+            for (String key : keys) {
+                TableUtils.upsertTblProperty(key, getPropAdd().get(key), upperTD);
             }
         }
 
