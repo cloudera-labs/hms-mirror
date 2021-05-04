@@ -29,6 +29,10 @@ public class Config {
 
     @JsonIgnore
     private ScheduledExecutorService transferThreadPool;
+    @JsonIgnore
+    private Translator translator = new Translator();
+    @JsonIgnore
+    private List<String> flags = new LinkedList<String>();
 
     private DataStrategy dataStrategy = DataStrategy.SCHEMA_ONLY;
     private HybridConfig hybrid = new HybridConfig();
@@ -96,6 +100,14 @@ public class Config {
     private TransferConfig transfer = new TransferConfig();
 
     private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
+
+    public Translator getTranslator() {
+        return translator;
+    }
+
+    public void setTranslator(Translator translator) {
+        this.translator = translator;
+    }
 
     public List<String> getIssues() {
         return issues;

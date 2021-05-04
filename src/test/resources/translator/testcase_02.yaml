@@ -1,0 +1,46 @@
+distcpCompatible: true
+databases:
+  tpcds_10:
+    rename: "tpc_ds_10"
+    # Locations WITHOUT the NS prefix. Should start with '/'.
+    location: "/warehouse/tablespace/external/hive/tpcds_10.db"
+    managedLocation: "/warehouse/tablespace/managed/hive/tpcds_10.db"
+    # Bring all root table locations under the defaults for the DB.
+    # 'location' must be specified for this to work.
+    consolidateExternal: true
+    tables:
+      call_center:
+      #        rename: "call_center_renamed"
+      # hierarchy of location.  this, db, no-change(relative)
+      # db is consolidateExternal then build dir. hcfs namespace + db.location + tbl.location
+      # if no db location, append location to hcfs namespace.
+  #        location: "new_location"
+  tpcds_11:
+    # Locations WITHOUT the NS prefix. Should start with '/'.
+    location: "/warehouse/tablespace/external/hive/tpcds_11.db"
+    managedLocation: "/warehouse/tablespace/managed/hive/tpcds_11.db"
+    # Bring all root table locations under the defaults for the DB.
+    # 'location' must be specified for this to work.
+    consolidateExternal: false
+    tables:
+      call_center:
+        rename: "call_center_orig"
+        # hierarchy of location.  this, db, no-change(relative)
+        # db is consolidateExternal then build dir. hcfs namespace + db.location + tbl.location
+        # if no db location, append location to hcfs namespace.
+#        location: "/user/dstreev/datasets/tpcds_11.db/call_center"
+      web_returns:
+        rename: "call_center_orig"
+        # hierarchy of location.  this, db, no-change(relative)
+        # db is consolidateExternal then build dir. hcfs namespace + db.location + tbl.location
+        # if no db location, append location to hcfs namespace.
+#        location: "/user/dstreev/datasets/tpcds_11.db/web_returns"
+  tpcds_12:
+    # Locations WITHOUT the NS prefix. Should start with '/'.
+    tables:
+      call_center:
+        rename: "call_center_new"
+        # hierarchy of location.  this, db, no-change(relative)
+        # db is consolidateExternal then build dir. hcfs namespace + db.location + tbl.location
+        # if no db location, append location to hcfs namespace.
+#        location: "/myspace/alt/ext/call_center"

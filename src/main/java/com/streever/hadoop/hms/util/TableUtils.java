@@ -8,7 +8,6 @@ import org.apache.log4j.Logger;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class TableUtils {
@@ -22,32 +21,28 @@ public class TableUtils {
     public static final String EXTERNAL_PURGE = "external.table.purge";
     public static final String LOCATION = "LOCATION";
     public static final String TBL_PROPERTIES = "TBLPROPERTIES (";
-//    public static final String HMS_CONVERTED = "CREATE TABLE";
 
     public static String getLocation(String tableName, List<String> tableDefinition) {
         LOG.trace("Getting table location data for: " + tableName);
+        String location = null;
         int locIdx = tableDefinition.indexOf(LOCATION);
         if (locIdx > 0) {
-            String location = tableDefinition.get(locIdx + 1).trim().replace("'", "");
-            return location;
-        } else {
-            return null;
+            location = tableDefinition.get(locIdx + 1).trim().replace("'", "");
         }
+        return location;
     }
 
-    public static Boolean changeLocationNamespace(String tableName, List<String> tableDefinition,
-                                                  String oldNamespace, String newNamespace) {
-        LOG.trace("Changing table location namespace for: " + tableName);
-        int locIdx = tableDefinition.indexOf(LOCATION);
-        if (locIdx > 0) {
-            String location = tableDefinition.get(locIdx + 1);
-            String newLocation = location.replace(oldNamespace, newNamespace);
-            tableDefinition.set(locIdx + 1, newLocation);
+    public static Boolean updateTableLocation(String tableName, List<String> tableDefinition,
+                                              String newLocation) {
+        LOG.trace("Updating table location for: " + tableName);
+
+        if (newLocation != null) {
+            int locIdx = tableDefinition.indexOf(LOCATION);
+            tableDefinition.set(locIdx + 1, "'" + newLocation + "'");
             return Boolean.TRUE;
         } else {
-            return null;
+            return Boolean.FALSE;
         }
-
     }
 
     public static Boolean isManaged(String tableName, List<String> tableDefinition) {
@@ -162,7 +157,6 @@ public class TableUtils {
         }
         return rtn;
     }
-
 
     public static Boolean isACID(String tableName, List<String> tableDefinition) {
         Boolean rtn = Boolean.FALSE;

@@ -189,6 +189,28 @@ public class Mirror {
             throw new RuntimeException(t);
         }
 
+        if (cmd.hasOption("t")) {
+            Translator translator = null;
+            File tCfgFile = new File(cmd.getOptionValue("t"));
+            if (!tCfgFile.exists()) {
+                throw new RuntimeException("Couldn't locate translation configuration file: " + cmd.getOptionValue("t"));
+            } else {
+                try {
+                    System.out.println("Using Translation Config: " + cmd.getOptionValue("t"));
+                    String yamlCfgFile = FileUtils.readFileToString(tCfgFile, Charset.forName("UTF-8"));
+                    translator = mapper.readerFor(Translator.class).readValue(yamlCfgFile);
+                    if (translator.validate()) {
+                        config.setTranslator(translator);
+                    } else {
+                        throw new RuntimeException("Translator config can't be validated, check logs.");
+                    }
+                } catch (Throwable t) {
+                    throw new RuntimeException(t);
+                }
+
+            }
+        }
+
         // When the pkey is specified, we assume the config passwords are encrytped and we'll decrypt them before continuing.
         if (cmd.hasOption("pkey")) {
             // Loop through the HiveServer2 Configs and decode the password.
@@ -323,7 +345,11 @@ public class Mirror {
                     Features feature = Features.valueOf(featureStr);
                     featuresList.add(feature);
                 } catch (IllegalArgumentException iae) {
-                    throw new RuntimeException(featureStr + " is NOT a valid 'feature'. One or more of: " + Arrays.deepToString(Features.values()));
+                    if (featureStr.equalsIgnoreCase("TRANSLATE")) {
+                        config.getTranslator().setOn(Boolean.TRUE);
+                    } else {
+                        throw new RuntimeException(featureStr + " is NOT a valid 'feature'. One or more of: " + Arrays.deepToString(Features.values()) + ",TRANSLATE");
+                    }
                 }
 
             }
@@ -557,6 +583,36 @@ public class Mirror {
         Date endTime = new Date();
         DecimalFormat decf = new DecimalFormat("#.###");
         decf.setRoundingMode(RoundingMode.CEILING);
+        // Output directory maps
+        try {
+            String distcpWorkbookFile = reportOutputDir + System.getProperty("file.separator") + "distcp_workbook.md";
+            FileWriter distcpWorkbookFW = new FileWriter(distcpWorkbookFile);
+
+            distcpWorkbookFW.write("| Database | Target | Sources |\n");
+            distcpWorkbookFW.write("|:---|:---|:---|\n");
+
+
+            for (Map.Entry<String, Map<String, Set<String>>> entry :
+                    config.getTranslator().buildDistcpList(1).entrySet()) {
+                distcpWorkbookFW.write("| " + entry.getKey() + " | | |\n");
+                Map<String, Set<String>> value = entry.getValue();
+                for (Map.Entry<String, Set<String>> dbMap : value.entrySet()) {
+                    StringBuilder line = new StringBuilder();
+                    line.append("| | ").append(dbMap.getKey()).append(" | ");
+
+                    for (String source: dbMap.getValue()) {
+                        line.append(source).append("<br>");
+                    }
+                    line.append(" | ").append("\n");
+                    distcpWorkbookFW.write(line.toString());
+                }
+            }
+
+            distcpWorkbookFW.close();
+        } catch (IOException ioe) {
+            LOG.error("Issue writing distcp workbook", ioe);
+        }
+
         LOG.info("HMS-Mirror: Completed in " +
                 decf.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
         reporter.refresh();
@@ -677,8 +733,16 @@ public class Mirror {
         acceptOption.setRequired(false);
         options.addOption(acceptOption);
 
+        Option translateConfigOption = new Option("t", "translate-config", true,
+                "Translator Configuration File (Experimental)");
+        translateConfigOption.setRequired(false);
+        translateConfigOption.setArgName("translate-config-file");
+        options.addOption(translateConfigOption);
+
         Option featureOption = new Option("f", "feature", true,
                 "Added Feature Checks[BAD_ORC_DEF]");
+        // Let's not advertise the TRANSLATE feature yet.
+//                "Added Feature Checks[BAD_ORC_DEF,TRANSLATE(WIP)]");
         featureOption.setValueSeparator(',');
         featureOption.setArgName("features");
         featureOption.setArgs(20);

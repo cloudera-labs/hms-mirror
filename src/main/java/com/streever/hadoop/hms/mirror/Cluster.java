@@ -664,11 +664,17 @@ public class Cluster implements Comparable<Cluster> {
                     Boolean buildUpper = tblMirror.buildUpperSchema(config, takeOwnership);
 
                     // Don't change namespace when using Shared Storage.
-                    if (config.getDataStrategy() != DataStrategy.COMMON) {
-                        TableUtils.changeLocationNamespace(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT),
-                                config.getCluster(Environment.LEFT).getHcfsNamespace(),
-                                config.getCluster(Environment.RIGHT).getHcfsNamespace());
+                    String leftLocation = TableUtils.getLocation(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT));
+                    String rightLocation = config.getTranslator().translateTableLocation(dbMirror.getName(), tblMirror.getName(), leftLocation, config);
+                    if (!TableUtils.updateTableLocation(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT), rightLocation)) {
+                        // throw error!!
                     }
+
+//                    if (config.getDataStrategy() != DataStrategy.COMMON) {
+//                        TableUtils.changeLocationNamespace(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT),
+//                                config.getCluster(Environment.LEFT).getHcfsNamespace(),
+//                                config.getCluster(Environment.RIGHT).getHcfsNamespace());
+//                    }
 
                     if (TableUtils.isHMSLegacyManaged(this, tableName, tblMirror.getTableDefinition(Environment.RIGHT))) {
                         tblMirror.setMigrationStageMessage("Adding EXTERNAL purge to table properties");
@@ -757,6 +763,10 @@ public class Cluster implements Comparable<Cluster> {
 
                 // TODO: here. need to figure out what comparisons are needed (if any)
                 //       for non schema-only transfers.
+
+                String leftLocation = TableUtils.getLocation(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT));
+                String rightLocation = config.getTranslator().translateTableLocation(dbMirror.getName(), tblMirror.getName(), leftLocation, config);
+
                 if (!tblMirror.schemasEqual(Environment.LEFT, Environment.RIGHT) &&
                         checkAndDoOverwrite(stmt, config, dbMirror, tblMirror)) {
 
@@ -769,14 +779,23 @@ public class Cluster implements Comparable<Cluster> {
 
                     // Adjust the Location to be Relative to the RIGHT cluster.
                     // as long as we're not using shared storage or linked
-                    if (config.getDataStrategy() != DataStrategy.LINKED &&
-                            config.getDataStrategy() != DataStrategy.COMMON &&
-                            config.getDataStrategy() != DataStrategy.SQL &&
+                    if (config.getDataStrategy() != DataStrategy.SQL &&
                             config.getDataStrategy() != DataStrategy.HYBRID) {
-                        TableUtils.changeLocationNamespace(dbMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT),
-                                config.getCluster(Environment.LEFT).getHcfsNamespace(),
-                                config.getCluster(Environment.RIGHT).getHcfsNamespace());
+//                        String leftLocation = TableUtils.getLocation(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT));
+//                        String rightLocation = config.getTranslator().translateTableLocation(dbMirror.getName(), tblMirror.getName(), leftLocation, config);
+
+                        if (!TableUtils.updateTableLocation(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT), rightLocation)) {
+                            // throw error!!
+                        }
                     }
+//                    if (config.getDataStrategy() != DataStrategy.LINKED &&
+//                            config.getDataStrategy() != DataStrategy.COMMON &&
+//                            config.getDataStrategy() != DataStrategy.SQL &&
+//                            config.getDataStrategy() != DataStrategy.HYBRID) {
+//                        TableUtils.changeLocationNamespace(dbMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT),
+//                                config.getCluster(Environment.LEFT).getHcfsNamespace(),
+//                                config.getCluster(Environment.RIGHT).getHcfsNamespace());
+//                    }
 
                     // Get the Create State for this environment.
                     // For READ-ONLY
