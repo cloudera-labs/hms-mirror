@@ -17,7 +17,6 @@ public class Transfer implements Callable<ReturnStatus> {
     private DBMirror dbMirror = null;
     private TableMirror tblMirror = null;
     private boolean successful = Boolean.FALSE;
-    private HadoopSession cliSession;
 
     public boolean isSuccessful() {
         return successful;
@@ -27,7 +26,6 @@ public class Transfer implements Callable<ReturnStatus> {
         this.config = config;
         this.dbMirror = dbMirror;
         this.tblMirror = tblMirror;
-        this.cliSession = HadoopSession.get("Transfer: " + dbMirror.getName() + UUID.randomUUID());
     }
 
 

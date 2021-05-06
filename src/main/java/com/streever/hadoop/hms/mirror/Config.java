@@ -5,9 +5,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.streever.hadoop.HadoopSession;
+import com.streever.hadoop.HadoopSessionFactory;
+import com.streever.hadoop.HadoopSessionPool;
 import com.streever.hadoop.hms.Mirror;
 import com.streever.hadoop.hms.mirror.feature.Feature;
 import com.streever.hadoop.hms.mirror.feature.Features;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -33,6 +38,9 @@ public class Config {
     private Translator translator = new Translator();
     @JsonIgnore
     private List<String> flags = new LinkedList<String>();
+
+    @JsonIgnore
+    private HadoopSessionPool cliPool;
 
     private DataStrategy dataStrategy = DataStrategy.SCHEMA_ONLY;
     private HybridConfig hybrid = new HybridConfig();
@@ -96,6 +104,19 @@ public class Config {
 
     @JsonIgnore
     private List<Feature> featureList = new ArrayList<Feature>();
+
+    public HadoopSessionPool getCliPool() {
+        if (cliPool == null) {
+            GenericObjectPoolConfig<HadoopSession> hspCfg = new GenericObjectPoolConfig<HadoopSession>();
+            hspCfg.setMaxTotal(transfer.getConcurrency());
+            this.cliPool = new HadoopSessionPool(new GenericObjectPool<HadoopSession>(new HadoopSessionFactory(), hspCfg));
+        }
+        return cliPool;
+    }
+
+    public void setCliPool(HadoopSessionPool cliPool) {
+        this.cliPool = cliPool;
+    }
 
     private TransferConfig transfer = new TransferConfig();
 
@@ -500,13 +521,13 @@ public class Config {
         return cluster;
     }
 
-    public void init() {
-        // Link Cluster and it's Environment Type.
-        Set<Environment> environmentSet = this.getClusters().keySet();
-        for (Environment environment : environmentSet) {
-            Cluster cluster = clusters.get(environment);
-            cluster.setEnvironment(environment);
-        }
-    }
+//    public void init() {
+//        // Link Cluster and it's Environment Type.
+//        Set<Environment> environmentSet = this.getClusters().keySet();
+//        for (Environment environment : environmentSet) {
+//            Cluster cluster = clusters.get(environment);
+//            cluster.setEnvironment(environment);
+//        }
+//    }
 
 }

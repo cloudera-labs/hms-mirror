@@ -807,24 +807,29 @@ public class Cluster implements Comparable<Cluster> {
                         String tableLocation = TableUtils.getLocation(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT));
                         LOG.debug("Config set to 'read-only'.  Validating FS before continuing for table: " + tblMirror.getName() +
                                 " at location " + tableLocation);
-                        HadoopSession main = HadoopSession.get(Long.toString(Thread.currentThread().getId()));
-                        String[] api = {"-api"};
+                        HadoopSession main = null;
                         try {
-                            main.start(api);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                            main = config.getCliPool().borrow();
+                            String[] api = {"-api"};
+                            try {
+                                main.start(api);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
 
-                        CommandReturn cr = main.processInput("connect");
-                        cr = main.processInput("test -d " + tableLocation);
-                        if (cr.isError()) {
-                            // Dir doesn't exist.  Do NOT proceed.
-                            String message = "FS location **'" + tableLocation + "'** doesn't exist.  With 'read-only' directive " +
-                                    "we can't create table **'" + tblMirror.getName() + "'** without altering FS";
-                            tblMirror.addIssue(message);
-                            dbMirror.addIssue(message);
-                            rtn = Boolean.FALSE;
-                            ok2go = Boolean.FALSE;
+                            CommandReturn cr = main.processInput("connect");
+                            cr = main.processInput("test -d " + tableLocation);
+                            if (cr.isError()) {
+                                // Dir doesn't exist.  Do NOT proceed.
+                                String message = "FS location **'" + tableLocation + "'** doesn't exist.  With 'read-only' directive " +
+                                        "we can't create table **'" + tblMirror.getName() + "'** without altering FS";
+                                tblMirror.addIssue(message);
+                                dbMirror.addIssue(message);
+                                rtn = Boolean.FALSE;
+                                ok2go = Boolean.FALSE;
+                            }
+                        } finally {
+                            config.getCliPool().returnSession(main);
                         }
                     }
                     if (ok2go) {

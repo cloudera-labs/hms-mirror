@@ -6,7 +6,7 @@
 
     <groupId>com.streever.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>1.2.8.0-SNAPSHOT</version>
+    <version>1.2.8.1-SNAPSHOT</version>
     <name>hms-mirror</name>
 
     <url>https://github.com/dstreev/hms_transparent_mirror</url>
@@ -63,7 +63,7 @@
         <!--        <hadoop.major>3.1</hadoop.major>-->
         <!--        <hive.version>3.1.1</hive.version>-->
 
-        <hadoop-cli.version>2.3.1.0-SNAPSHOT</hadoop-cli.version>
+        <hadoop-cli.version>2.3.1.2-SNAPSHOT</hadoop-cli.version>
 
     </properties>
 
