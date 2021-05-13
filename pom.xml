@@ -42,7 +42,7 @@
         <commons-lang.version>3.11</commons-lang.version>
         <commons-dbcp2.version>2.8.0</commons-dbcp2.version>
         <commons-cli.version>1.2</commons-cli.version>
-        <commons-io.version>2.4</commons-io.version>
+        <commons-io.version>2.8.0</commons-io.version>
 
         <jcabi.manifests.version>1.1</jcabi.manifests.version>
         <commonmark.version>0.17.1</commonmark.version>
