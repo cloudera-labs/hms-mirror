@@ -114,6 +114,21 @@ public class TableUtils {
         return rtn;
     }
 
+    /*
+    Check that its a Hive table and not a connector like HBase, Kafka, RDBMS, etc.
+     */
+    public static Boolean isHiveNative(String tableName, List<String> tableDefinition) {
+        Boolean rtn = Boolean.FALSE;
+        LOG.debug("Checking if table '" + tableName + "' is 'native' (not a connector [HBase, Kafka, etc])");
+        for (String line : tableDefinition) {
+            if (line.trim().startsWith(LOCATION)) {
+                rtn = Boolean.TRUE;
+                break;
+            }
+        }
+        return rtn;
+    }
+
     public static Boolean isExternal(String tableName, List<String> tableDefinition) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Checking if table '" + tableName + "' is 'external'");

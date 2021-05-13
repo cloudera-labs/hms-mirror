@@ -84,6 +84,7 @@ public class DBMirror {
 
         switch (config.getDataStrategy()) {
             case SCHEMA_ONLY:
+            case DUMP:
             case SQL:
             case EXPORT_IMPORT:
             case HYBRID:

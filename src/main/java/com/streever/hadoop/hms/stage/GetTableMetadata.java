@@ -1,21 +1,19 @@
 package com.streever.hadoop.hms.stage;
 
-import com.streever.hadoop.hms.mirror.Config;
-import com.streever.hadoop.hms.mirror.DBMirror;
-import com.streever.hadoop.hms.mirror.Environment;
-import com.streever.hadoop.hms.mirror.TableMirror;
+import com.streever.hadoop.hms.mirror.*;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.sql.SQLException;
+import java.util.concurrent.Callable;
 
-public class GetTableMetadata implements Runnable {
+public class GetTableMetadata implements Callable<ReturnStatus> {
     private static Logger LOG = LogManager.getLogger(GetTableMetadata.class);
 
     private Config config = null;
     private DBMirror dbMirror = null;
     private TableMirror tblMirror = null;
-    private boolean successful = Boolean.FALSE;
+    private boolean successful = Boolean.TRUE;
 
     public Config getConfig() {
         return config;
@@ -36,17 +34,33 @@ public class GetTableMetadata implements Runnable {
     }
 
     @Override
-    public void run() {
+    public ReturnStatus call() {
+        return doit();
+    }
+
+    public ReturnStatus doit() {
+        ReturnStatus rtn = new ReturnStatus();
         LOG.debug("Getting table definition for: " + dbMirror.getName() + "." + tblMirror.getName());
         try {
-            successful = config.getCluster(Environment.LEFT).getTableDefinition(dbMirror.getName(), tblMirror);
-            if (successful || config.isSync()) {
-                successful = config.getCluster(Environment.RIGHT).getTableDefinition(config.getResolvedDB(dbMirror.getName()), tblMirror);
-            } else {
-                successful = Boolean.FALSE;
+            config.getCluster(Environment.LEFT).getTableDefinition(dbMirror.getName(), tblMirror);
+            switch (config.getDataStrategy()) {
+                case DUMP:
+                    successful = Boolean.TRUE;
+                    break;
+                default:
+                    if (config.isSync()) {
+                        config.getCluster(Environment.RIGHT).getTableDefinition(config.getResolvedDB(dbMirror.getName()), tblMirror);
+                    }
             }
         } catch (SQLException throwables) {
             successful = Boolean.FALSE;
         }
+        if (successful) {
+            rtn.setStatus(ReturnStatus.Status.SUCCESS);
+        } else {
+            rtn.setStatus(ReturnStatus.Status.ERROR);
+        }
+        LOG.debug("Completed table definition for: " + dbMirror.getName() + "." + tblMirror.getName());
+        return rtn;
     }
 }

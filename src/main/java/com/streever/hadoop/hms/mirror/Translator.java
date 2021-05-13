@@ -228,6 +228,7 @@ public class Translator {
                 rightNS.trim().substring(0, rightNS.trim().length() - 2);
             }
             switch (config.getDataStrategy()) {
+                case DUMP:
                 case SCHEMA_ONLY:
                 case EXPORT_IMPORT:
                 case HYBRID:
@@ -308,6 +309,7 @@ public class Translator {
                 case HYBRID:
                 case SQL:
                 case SCHEMA_ONLY:
+                case DUMP:
                     newLocation = originalLocation.replace(leftNS, rightNS);
                     break;
                 case LINKED:

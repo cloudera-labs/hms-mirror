@@ -33,6 +33,7 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -253,6 +254,10 @@ public class Mirror {
             try {
                 DataStrategy dataStrategy = DataStrategy.valueOf(dataStrategyStr.toUpperCase());
                 config.setDataStrategy(dataStrategy);
+                if (config.getDataStrategy() == DataStrategy.DUMP) {
+                    config.setExecute(Boolean.FALSE); // No Actions.
+                    config.setSync(Boolean.FALSE);
+                }
             } catch (Exception e) {
                 throw new RuntimeException("Can't translate " + dataStrategyStr + " to a known 'data strategy'.  Use one of " + Arrays.deepToString(DataStrategy.values()));
             }
@@ -359,7 +364,7 @@ public class Mirror {
             }
         }
 
-        if (cmd.hasOption("sync")) {
+        if (cmd.hasOption("sync") && config.getDataStrategy() != DataStrategy.DUMP) {
             config.setSync(Boolean.TRUE);
         }
 
@@ -375,7 +380,7 @@ public class Mirror {
             throw new RuntimeException("No databases specified");
         }
 
-        if (cmd.hasOption("e")) {
+        if (cmd.hasOption("e") && config.getDataStrategy() != DataStrategy.DUMP) {
             if (cmd.hasOption("accept")) {
                 config.getAcceptance().setSilentOverride(Boolean.TRUE);
             } else {
@@ -432,7 +437,13 @@ public class Mirror {
 
         ConnectionPools connPools = new ConnectionPools();
         connPools.addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
-        connPools.addHiveServer2(Environment.RIGHT, config.getCluster(Environment.RIGHT).getHiveServer2());
+        switch (config.getDataStrategy()) {
+            case DUMP:
+                // Don't load the datasource for the right with DUMP strategy.
+                break;
+            default:
+               connPools.addHiveServer2(Environment.RIGHT, config.getCluster(Environment.RIGHT).getHiveServer2());
+        }
         try {
             connPools.init();
         } catch (RuntimeException cnfe) {
@@ -441,7 +452,13 @@ public class Mirror {
         }
 
         config.getCluster(Environment.LEFT).setPools(connPools);
-        config.getCluster(Environment.RIGHT).setPools(connPools);
+        switch (config.getDataStrategy()) {
+            case DUMP:
+                // Don't load the datasource for the right with DUMP strategy.
+                break;
+            default:
+                config.getCluster(Environment.RIGHT).setPools(connPools);
+        }
 
         if (config.isConnectionKerberized()) {
             LOG.debug("Detected a Kerberized JDBC Connection.  Attempting to setup/initialize GSS.");
@@ -625,7 +642,7 @@ public class Mirror {
 //        Conversion conversion = new Conversion();
 
         LOG.info(">>>>>>>>>>> Building/Starting Transition.");
-        List<ScheduledFuture<ReturnStatus>> mdf = new ArrayList<ScheduledFuture<ReturnStatus>>();
+        List<Future<ReturnStatus>> mdf = new ArrayList<Future<ReturnStatus>>();
 
         Set<String> collectedDbs = conversion.getDatabases().keySet();
         for (String database : collectedDbs) {
@@ -646,6 +663,7 @@ public class Mirror {
                     case ERROR:
                         Transfer md = new Transfer(config, dbMirror, tblMirror);
                         mdf.add(config.getTransferThreadPool().schedule(md, 1, TimeUnit.MILLISECONDS));
+//                        mdf.add(config.getTransferThreadPool().submit(md));
                         break;
                     case SUCCESS:
                         LOG.debug("DB.tbl: " + tblMirror.getDbName() + "." + tblMirror.getName() + " was SUCCESSFUL in " +
@@ -663,7 +681,7 @@ public class Mirror {
 
         while (true) {
             boolean check = true;
-            for (ScheduledFuture<ReturnStatus> sf : mdf) {
+            for (Future<ReturnStatus> sf : mdf) {
                 if (!sf.isDone()) {
                     check = false;
                     break;
@@ -739,8 +757,9 @@ public class Mirror {
         translateConfigOption.setArgName("translate-config-file");
         options.addOption(translateConfigOption);
 
+
         Option featureOption = new Option("f", "feature", true,
-                "Added Feature Checks[BAD_ORC_DEF]");
+                "Added Feature Checks: " + Arrays.deepToString(Features.values()));
         // Let's not advertise the TRANSLATE feature yet.
 //                "Added Feature Checks[BAD_ORC_DEF,TRANSLATE(WIP)]");
         featureOption.setValueSeparator(',');

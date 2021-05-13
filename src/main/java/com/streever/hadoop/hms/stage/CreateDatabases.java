@@ -51,6 +51,7 @@ public class CreateDatabases implements Callable<ReturnStatus> {
                         // Transfer DB
                         config.getCluster(Environment.RIGHT).createDatabase(config, config.getTransfer().getTransferPrefix() + database);
                     case SCHEMA_ONLY:
+                    case DUMP:
                     case COMMON:
                     case LINKED:
                     case INTERMEDIATE:
@@ -139,7 +140,7 @@ public class CreateDatabases implements Callable<ReturnStatus> {
                                         // Doesn't exist.  So we can't create the DB in a "read-only" mode.
                                         String message = "Database directory: **'" + dbLocation + "'** on the RIGHT cluster does NOT exist. " +
                                                 "In 'read-only' mode, it must exist before creating the database to ensure we " +
-                                                "don't corrupt the Filesystems Read-Only State.";
+                                                "don't corrupt the Filesystems Read-Only State. ErrCode: " + testCr.getCode() + "HDFS Command: " + testCr.getCommand();
                                         dbMirror.addIssue(message);
                                         throw new RuntimeException(message);
                                     } else {

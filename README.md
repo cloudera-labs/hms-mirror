@@ -30,15 +30,17 @@ Get [pdf version](./README.pdf) of this README.
   * [RETRY (WIP-NOT FULLY IMPLEMENTED YET)](#retry-wip-not-fully-implemented-yet)
 - [Running HMS Mirror](#running-hms-mirror)
   * [Assumptions](#assumptions)
+  * [Options (Help)](#options-help)
   * [Connections](#connections)
   * [Troubleshooting](#troubleshooting)
 - [Output](#output)
+  * [distcp Workbook (Tech Preview)](#distcp-workbook-tech-preview)
   * [Application Report](#application-report)
   * [Action Report for LEFT and RIGHT Clusters](#action-report-for-left-and-right-clusters)
   * [SQL Execution Output](#sql-execution-output)
   * [Logs](#logs)
 - [Strategies](#strategies)
-  * [Schema Only](#schema-only)
+  * [Schema Only and DUMP](#schema-only-and-dump)
   * [Linked](#linked)
   * [SQL](#sql)
   * [Export Import](#export-import)
@@ -107,7 +109,7 @@ I recommend turning this back after the migration is complete.  This setting exp
 In CDP 7.1.4 and below, the house keeping threads in HMS used to discover partitions is NOT running.  Add `metastore.housekeeping.threads.on=true` to the HMS Safety Value to activate the partition discovery thread.  Once this has been set, the following parameters can be used to modify the default behavior.
 
 ```
-metastore.partition.management.task.frequency
+hive.metastore.partition.management.task.frequency
 hive.exec.input.listing.max.threads
 hive.load.dynamic.partitions.thread
 hive.metastore.fshandler.threads 
@@ -198,13 +200,9 @@ Initialize zkfc
 hdfs zkfc -formatZK
 ```
 
-_hdfs-site.xml_
-```
-hadoop.rpc.protection=true
-```
-
 _core-site.xml_
 ```
+hadoop.rpc.protection=true
 dfs.encrypt.data.transfer=true
 dfs.encrypt.data.transfer.algorithm=3des
 dfs.encrypt.data.transfer.cipher.key.bitlength=256
@@ -394,71 +392,86 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 ### Options (Help)
 ```
 usage: hms-mirror
- -accept,--accept                            Accept ALL confirmations and
-                                             silence prompts
- -cfg,--config <filename>                    Config with details for the
-                                             HMS-Mirror.  Default:
-                                             $HOME/.hms-mirror/cfg/default
-                                             .yaml
- -d,--data <strategy>                        Specify how the data will
-                                             follow the schema.
-                                             [SCHEMA_ONLY, LINKED, SQL,
-                                             EXPORT_IMPORT, HYBRID,
-                                             INTERMEDIATE, COMMON]
- -db,--database <databases>                  Comma separated list of
-                                             Databases (upto 100).
- -dbp,--db-prefix <prefix>                   Optional: A prefix to add to
-                                             the RIGHT cluster DB Name.
-                                             Usually used for testing.
- -e,--execute                                Execute actions request,
-                                             without this flag the process
-                                             is a dry-run.
- -f,--feature <features>                     Added Feature
-                                             Checks[BAD_ORC_DEF]
- -h,--help                                   Help
- -is,--intermediate-storage <storage-path>   Intermediate Storage used
-                                             with Data Strategy
-                                             INTERMEDIATE.
- -ma,--migrate-acid                          For EXPORT_IMPORT and HYBRID
-                                             data strategies.  Include
-                                             ACID tables in migration.
- -o,--output-dir <outputdir>                 Output Directory (default:
-                                             $HOME/.hms-mirror/reports/<yy
-                                             yy-MM-dd_HH-mm-ss>
- -p,--password <password>                    Used this in conjunction with
-                                             '-pkey' to generate the
-                                             encrypted password that
-                                             you'll add to the configs for
-                                             the JDBC connections.
- -pkey,--password-key <password-key>         The key used to encrypt /
-                                             decrypt the cluster jdbc
-                                             passwords.  If not present,
-                                             the passwords will be
-                                             processed as is (clear text)
-                                             from the config file.
- -r,--retry                                  Retry last incomplete run for
-                                             'cfg'.  If none specified,
-                                             will check for 'default'
- -ro,--read-only                             For SCHEMA_ONLY, COMMON, and
-                                             LINKED data strategies set
-                                             RIGHT table to NOT purge on
-                                             DROP
- -s,--sync                                   For SCHEMA_ONLY, COMMON, and
-                                             LINKED data strategies.  Drop
-                                             and Recreate Schema's when
-                                             different.  Best to use with
-                                             RO to ensure table/partition
-                                             drops don't delete data.
- -sql,--sql-output                           Output the SQL to the report
- -tf,--table-filter <regex>                  Filter tables with name
-                                             matching RegEx
+                  version: ....
+ -accept,--accept                                Accept ALL confirmations
+                                                 and silence prompts
+ -cfg,--config <filename>                        Config with details for
+                                                 the HMS-Mirror.  Default:
+                                                 $HOME/.hms-mirror/cfg/def
+                                                 ault.yaml
+ -d,--data <strategy>                            Specify how the data will
+                                                 follow the schema. [DUMP,
+                                                 SCHEMA_ONLY, LINKED, SQL,
+                                                 EXPORT_IMPORT, HYBRID,
+                                                 INTERMEDIATE, COMMON]
+ -db,--database <databases>                      Comma separated list of
+                                                 Databases (upto 100).
+ -dbp,--db-prefix <prefix>                       Optional: A prefix to add
+                                                 to the RIGHT cluster DB
+                                                 Name. Usually used for
+                                                 testing.
+ -e,--execute                                    Execute actions request,
+                                                 without this flag the
+                                                 process is a dry-run.
+ -f,--feature <features>                         Added Feature Checks:
+                                                 [BAD_ORC_DEF, BAD_RC_DEF]
+ -h,--help                                       Help
+ -is,--intermediate-storage <storage-path>       Intermediate Storage used
+                                                 with Data Strategy
+                                                 INTERMEDIATE.
+ -ma,--migrate-acid                              For EXPORT_IMPORT and
+                                                 HYBRID data strategies.
+                                                 Include ACID tables in
+                                                 migration.
+ -o,--output-dir <outputdir>                     Output Directory
+                                                 (default:
+                                                 $HOME/.hms-mirror/reports
+                                                 /<yyyy-MM-dd_HH-mm-ss>
+ -p,--password <password>                        Used this in conjunction
+                                                 with '-pkey' to generate
+                                                 the encrypted password
+                                                 that you'll add to the
+                                                 configs for the JDBC
+                                                 connections.
+ -pkey,--password-key <password-key>             The key used to encrypt /
+                                                 decrypt the cluster jdbc
+                                                 passwords.  If not
+                                                 present, the passwords
+                                                 will be processed as is
+                                                 (clear text) from the
+                                                 config file.
+ -r,--retry                                      Retry last incomplete run
+                                                 for 'cfg'.  If none
+                                                 specified, will check for
+                                                 'default'
+ -ro,--read-only                                 For SCHEMA_ONLY, COMMON,
+                                                 and LINKED data
+                                                 strategies set RIGHT
+                                                 table to NOT purge on
+                                                 DROP
+ -s,--sync                                       For SCHEMA_ONLY, COMMON,
+                                                 and LINKED data
+                                                 strategies.  Drop and
+                                                 Recreate Schema's when
+                                                 different.  Best to use
+                                                 with RO to ensure
+                                                 table/partition drops
+                                                 don't delete data.
+ -sql,--sql-output                               Output the SQL to the
+                                                 report
+ -t,--translate-config <translate-config-file>   Translator Configuration
+                                                 File (Experimental)
+ -tf,--table-filter <regex>                      Filter tables with name
+                                                 matching RegEx
 ```
 
 #### Features
 
 Features are a way to inject special considerations into the replay of a schema between clusters.  Using the `-f` option you can specify the 'features' you want to use on the schemas.  Features should only be used when you know a particular scenario exists.  Don't use them automatically.
 
-`BAD_ORC_DEF` is a feature that corrects pooring executed schema definitions in legacy Hive 1/2 that don't translate into a functioning table in Hive 3.  In this case, the legacy definition was defined with:
+##### BAD_ORC_DEF
+
+`BAD_ORC_DEF` is a feature that corrects poorly executed schema definitions in legacy Hive 1/2 that don't translate into a functioning table in Hive 3.  In this case, the legacy definition was defined with:
 ```
 ROW FORMAT DELIMITED
   FIELDS TERMINATED BY '\t'
@@ -475,10 +488,51 @@ when it should have been created with:
 STORED AS ORC
 ```
 
-the result, when not modified and replayed in Hive 3 is a table that isn't functional.  The `BAD_ORC_DEF` feature will replace the above definition with:
+the result, when not modified and replayed in Hive 3 is a table that isn't functional.  The `BAD_ORC_DEF` feature will replace:
 
 ```
+ROW FORMAT DELIMITED
+  FIELDS TERMINATED BY '\t'
+  LINES TERMINATED BY '\n'
+```
 
+with:
+
+```
+ROW FORMAT SERDE
+  'org.apache.hadoop.hive.ql.io.orc.OrcSerde'
+```
+
+##### BAD_RC_DEF
+
+`BAD_RC_DEF` is a feature that corrects poorly executed schema definitions in legacy Hive 1/2 that don't translate into a functioning table in Hive 3.  In this case, the legacy definition was defined with:
+```
+ROW FORMAT DELIMITED,
+    FIELDS TERMINATED BY '|'
+ STORED AS INPUTFORMAT 
+  'org.apache.hadoop.hive.ql.io.RCFileInputFormat'
+ OUTPUTFORMAT 
+  'org.apache.hadoop.hive.ql.io.RCFileOutputFormat'
+```
+
+when it should have been created with:
+
+```
+STORED AS RCFILE
+```
+
+the result, when not modified and replayed in Hive 3 is a table that isn't functional.  The `BAD_RC_DEF` feature will replace:
+
+```
+ROW FORMAT DELIMITED,                              
+    FIELDS TERMINATED BY '|'                       
+ STORED AS INPUTFORMAT                             
+```
+
+with:
+
+```
+STORED AS RCFILE
 ```
 
 ### Connections
@@ -543,6 +597,26 @@ Check the location and references to the JDBC jar files.  General rules for Kerb
 
 ## Output
 
+### distcp Workbook (Tech Preview)
+
+We're working through some strategies to help build `distcp` jobs that can be run to migrate data from one environment to the other, based on what you've asked `hms-mirror` to do.  A sample report may look like the table below.
+
+Using [`distcp`](https://hadoop.apache.org/docs/r3.1.4/hadoop-distcp/DistCp.html) with the details below, create a `distcp` job for each 'database/target' value.  Take the contents of the 'sources' and paste them into a text file.  Copy that text file to 'hdfs' and reference it with the `-f` option in `distcp`.
+
+`hadoop distcp -f /user/dstreev/tpcds_distcp_sources.txt hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db`
+
+This job will use the source list, copy the contents between the clusters.  Appending the 'last' directory in the 'source' line to the 'target'.
+
+NOTE: Depending on the volume of the underlying datasets, you may need to make adjustments to the `distcp` job to increase it's memory footprint.  See the [`distcp` docs](https://hadoop.apache.org/docs/r3.1.4/hadoop-distcp/DistCp.html) for details if you have issues with jobs failures.
+
+Also note that we are NOT considering sourcing the jobs from a SNAPSHOT.  We do recommend that for datasets that are changing while the 'distcp' job runs.
+
+| Database | Target | Sources |
+|:---|:---|:---|
+| tpcds_bin_partitioned_orc_10 | | |
+| | hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db | hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/call_center<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/catalog_page<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/catalog_returns<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/catalog_sales<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/customer<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/customer_address<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/customer_demographics<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/date_dim<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/household_demographics<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/income_band<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/inventory<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/item<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/promotion<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/reason<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/ship_mode<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/store<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/store_returns<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/store_sales<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/time_dim<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/warehouse<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_page<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_returns<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales<br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_site<br> | 
+
+
 ### Application Report
 
 When the process has completed a markdown report is generated with all the work that was done.  The report location will be at the bottom of the output window.  You will need a *markdown* renderer to read the report.  Markdown is a textfile, so if you don't have a renderer you can still look at the report, it will just be harder to read.
@@ -565,11 +639,24 @@ There is a running log of the process in `$HOME/.hms-mirror/logs/hms-mirror.log`
 
 ## Strategies
 
-### Schema Only
+### Schema Only and DUMP
 
 Transfer the schema only, replace the location with the RIGHT clusters location namespace and maintain the relative path.
 
 The data is transferred by an external process, like 'distcp'.
+
+The DUMP strategy is like SCHEMA_ONLY, it just doesn't require the RIGHT cluster to be connected.  Although, it does require the following settings for the RIGHT cluster to make the right adjustments:
+```
+legacyHive
+hcfsNamespace
+hiveServer2 -> partitionDiscovery 
+```
+
+With the DUMP strategy, you'll have a 'translated' (for legacy hive) table DDL that can be run on the new cluster independently.
+
+[Sample Reports - SCHEMA_ONLY](./sample_reports/schema_only)
+
+[Sample Reports - DUMP](./sample_reports/dump)
 
 ![schema_only](./images/schema_only.png)
 
@@ -580,6 +667,8 @@ The data is transferred by an external process, like 'distcp'.
 Assumes the clusters are LINKED.  We'll transfer the schema and leave the location as is on the new cluster.
 
 This provides a means to test Hive on the RIGHT cluster using the LEFT clusters storage.
+
+[Sample Reports - LINKED](./sample_reports/linked)
 
 ![linked](./images/linked.png)
 
@@ -602,6 +691,8 @@ EXPORT to a location on the LEFT cluster where the RIGHT cluster can pick it up 
 Hybrid is a strategy that select either SQL or EXPORT_IMPORT for the
 tables data strategy depending on the criteria of the table.
 
+[Sample Reports - HYBRID](./sample_reports/hybrid)
+
 ![hybrid](./images/sql_exp-imp.png)
 
 ### Intermediate
@@ -617,6 +708,8 @@ The process will EXPORT data on the LEFT cluster to the intermediate location wi
 The data storage is shared between the two clusters and no data migration is required.
 
 Schema's are transferred using the same location.
+
+[Sample Reports - COMMON](./sample_reports/common)
 
 ![common](./images/common.png)
 

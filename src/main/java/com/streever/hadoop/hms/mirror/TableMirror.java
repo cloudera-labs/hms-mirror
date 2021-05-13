@@ -174,8 +174,10 @@ public class TableMirror {
     }
 
     public void addIssue(String issue) {
-        String scrubbedIssue = issue.replace("\n", "<br/>");
-        getIssues().add(scrubbedIssue);
+        if (issue != null) {
+            String scrubbedIssue = issue.replace("\n", "<br/>");
+            getIssues().add(scrubbedIssue);
+        }
     }
 
     public void addSql(String sqlOutput) {
@@ -225,96 +227,101 @@ public class TableMirror {
         // Copy lower table definition to upper table def.
         upperTD.addAll(lowerTD);
 
-        // Rules
-        // 1. Strip db from create state.  It's broken anyway with the way
-        //      the quotes are.  And we're setting the target db in the context anyways.
-        TableUtils.stripDatabase(this.getName(), upperTD);
+        if (TableUtils.isHiveNative(this.getName(), upperTD)) {
+            // Rules
+            // 1. Strip db from create state.  It's broken anyway with the way
+            //      the quotes are.  And we're setting the target db in the context anyways.
+            TableUtils.stripDatabase(this.getName(), upperTD);
 
-        // 1. If Managed, convert to EXTERNAL
-        // When coming from legacy and going to non-legacy (Hive 3).
-        Boolean converted = Boolean.FALSE;
-        if (config.getCluster(Environment.LEFT).getLegacyHive() && !config.getCluster(Environment.RIGHT).getLegacyHive()) {
-            converted = TableUtils.makeExternal(this.getName(), upperTD);
-        }
+            // 1. If Managed, convert to EXTERNAL
+            // When coming from legacy and going to non-legacy (Hive 3).
+            Boolean converted = Boolean.FALSE;
+            if (config.getCluster(Environment.LEFT).getLegacyHive() && !config.getCluster(Environment.RIGHT).getLegacyHive()) {
+                converted = TableUtils.makeExternal(this.getName(), upperTD);
+            }
 
-        // 2. Set mirror stage one flag
-        addProp(MirrorConf.HMS_MIRROR_METADATA_FLAG, df.format(new Date()));
+            // 2. Set mirror stage one flag
+            addProp(MirrorConf.HMS_MIRROR_METADATA_FLAG, df.format(new Date()));
 
-        // 3. setting legacy flag - At a later date, we'll convert this to
-        //     'external.table.purge'='true'
-        if (converted) {
-            // If we want the new schema to take over the responsibility of the data. (purging)
-            if (!takeOwnership) {
-                TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString(), upperTD);
-                addProp(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
-                addIssue("Schema was Legacy Managed or can be purged. The new schema does NOT have the " +
-                        "external.table.purge' flag set.  This must be done manually.");
-                // Provide detail to detach LEFT cluster table from data.
-                if (TableUtils.isLegacyManaged(config.getCluster(Environment.LEFT), getName(),
-                        getTableDefinition(Environment.LEFT))) {
-                    String extConversionSql = MessageFormat.format(MirrorConf.ADD_TBL_PROP, getDbName(),
-                            getName(), "EXTERNAL", "true");
-                    this.addTableAction(Environment.LEFT, extConversionSql);
-                    String extConversionSql2 = MessageFormat.format(MirrorConf.ADD_TBL_PROP,
-                            config.getResolvedDB(getDbName()), getName(), MirrorConf.EXTERNAL_TABLE_PURGE, "true");
-                    this.addTableAction(Environment.RIGHT, extConversionSql2);
+            // 3. setting legacy flag - At a later date, we'll convert this to
+            //     'external.table.purge'='true'
+            if (converted) {
+                // If we want the new schema to take over the responsibility of the data. (purging)
+                if (!takeOwnership) {
+                    TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString(), upperTD);
+                    addProp(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
+                    addIssue("Schema was Legacy Managed or can be purged. The new schema does NOT have the " +
+                            "external.table.purge' flag set.  This must be done manually.");
+                    // Provide detail to detach LEFT cluster table from data.
+                    if (TableUtils.isLegacyManaged(config.getCluster(Environment.LEFT), getName(),
+                            getTableDefinition(Environment.LEFT))) {
+                        String extConversionSql = MessageFormat.format(MirrorConf.ADD_TBL_PROP, getDbName(),
+                                getName(), "EXTERNAL", "true");
+                        this.addTableAction(Environment.LEFT, extConversionSql);
+                        String extConversionSql2 = MessageFormat.format(MirrorConf.ADD_TBL_PROP,
+                                config.getResolvedDB(getDbName()), getName(), MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+                        this.addTableAction(Environment.RIGHT, extConversionSql2);
 
-                } else if (TableUtils.isExternalPurge(getName(), getTableDefinition(Environment.LEFT))) {
-                    String extConversionSql = MessageFormat.format(MirrorConf.REMOVE_TBL_PROP, getDbName(),
-                            getName(), MirrorConf.EXTERNAL_TABLE_PURGE);
-                    this.addTableAction(Environment.LEFT, extConversionSql);
-                }
-            } else {
+                    } else if (TableUtils.isExternalPurge(getName(), getTableDefinition(Environment.LEFT))) {
+                        String extConversionSql = MessageFormat.format(MirrorConf.REMOVE_TBL_PROP, getDbName(),
+                                getName(), MirrorConf.EXTERNAL_TABLE_PURGE);
+                        this.addTableAction(Environment.LEFT, extConversionSql);
+                    }
+                } else {
 //                TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString(), upperTD);
-                addProp(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString());
-                // We need to add actions to the LEFT cluster to disable legacy managed behavior
-                // When there is a shared dataset
-                if (config.getDataStrategy() == DataStrategy.COMMON || config.getDataStrategy() == DataStrategy.LINKED) {
-                    this.addTableAction(Environment.LEFT, "You Need to detach table ownership from filesystem in order to prevent accidental deletion of data that is now controlled by the RIGHT cluster.");
-                    String extConversionSql = MessageFormat.format(MirrorConf.ADD_TBL_PROP, getDbName(), getName(), "EXTERNAL", "true");
-                    this.addTableAction(Environment.LEFT, "SQL: " + extConversionSql);
+                    addProp(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString());
+                    // We need to add actions to the LEFT cluster to disable legacy managed behavior
+                    // When there is a shared dataset
+                    if (config.getDataStrategy() == DataStrategy.COMMON || config.getDataStrategy() == DataStrategy.LINKED) {
+                        this.addTableAction(Environment.LEFT, "You Need to detach table ownership from filesystem in order to prevent accidental deletion of data that is now controlled by the RIGHT cluster.");
+                        String extConversionSql = MessageFormat.format(MirrorConf.ADD_TBL_PROP, getDbName(), getName(), "EXTERNAL", "true");
+                        this.addTableAction(Environment.LEFT, "SQL: " + extConversionSql);
+                    }
                 }
             }
-        }
 
 
-        // 4. identify this table as being converted by hms-mirror
+            // 4. identify this table as being converted by hms-mirror
 //        TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, Boolean.TRUE.toString(), upperTD);
-        addProp(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, converted.toString());
+            addProp(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, converted.toString());
 
-        // 5. Strip stat properties
-        TableUtils.removeTblProperty("COLUMN_STATS_ACCURATE", upperTD);
-        TableUtils.removeTblProperty("numFiles", upperTD);
-        TableUtils.removeTblProperty("numRows", upperTD);
-        TableUtils.removeTblProperty("rawDataSize", upperTD);
-        TableUtils.removeTblProperty("totalSize", upperTD);
-        TableUtils.removeTblProperty("discover.partitions", upperTD);
+            // 5. Strip stat properties
+            TableUtils.removeTblProperty("COLUMN_STATS_ACCURATE", upperTD);
+            TableUtils.removeTblProperty("numFiles", upperTD);
+            TableUtils.removeTblProperty("numRows", upperTD);
+            TableUtils.removeTblProperty("rawDataSize", upperTD);
+            TableUtils.removeTblProperty("totalSize", upperTD);
+            TableUtils.removeTblProperty("discover.partitions", upperTD);
 
-        // 6. Set 'discover.partitions' if config and non-acid
-        if (!config.getCluster(Environment.RIGHT).getLegacyHive() &&
-                !TableUtils.isACID(getName(), upperTD) &&
-                config.getCluster(Environment.RIGHT).getPartitionDiscovery().getAuto()) {
-            addProp(MirrorConf.DISCOVER_PARTITIONS, converted.toString());
-        }
-
-
-        // 5. Location Adjustments
-        //    Since we are looking at the same data as the original, we're not changing this now.
-        //    Any changes to data location are a part of stage-2 (STORAGE).
-
-        // 6. Go through the features, if any.
-        if (config.getFeatureList() != null) {
-            for (Feature feature : config.getFeatureList()) {
-                upperTD = feature.fixSchema(upperTD);
+            // 6. Set 'discover.partitions' if config and non-acid
+            if (!config.getCluster(Environment.RIGHT).getLegacyHive() &&
+                    !TableUtils.isACID(getName(), upperTD) &&
+                    config.getCluster(Environment.RIGHT).getPartitionDiscovery().getAuto()) {
+                addProp(MirrorConf.DISCOVER_PARTITIONS, converted.toString());
             }
-        }
 
-        // Add props to definition.
-        if (whereTherePropsAdded()) {
-            Set<String> keys = getPropAdd().keySet();
-            for (String key : keys) {
-                TableUtils.upsertTblProperty(key, getPropAdd().get(key), upperTD);
+
+            // 5. Location Adjustments
+            //    Since we are looking at the same data as the original, we're not changing this now.
+            //    Any changes to data location are a part of stage-2 (STORAGE).
+
+            // 6. Go through the features, if any.
+            if (config.getFeatureList() != null) {
+                for (Feature feature : config.getFeatureList()) {
+                    upperTD = feature.fixSchema(upperTD);
+                }
             }
+
+            // Add props to definition.
+            if (whereTherePropsAdded()) {
+                Set<String> keys = getPropAdd().keySet();
+                for (String key : keys) {
+                    TableUtils.upsertTblProperty(key, getPropAdd().get(key), upperTD);
+                }
+            }
+        } else {
+            // This is a connector table.  IE: HBase, Kafka, JDBC, etc.  We just past it through.
+            this.addIssue("This is not a NATIVE Hive table.  It will be translated 'AS-IS'.  If the libraries or dependencies required for this table definition are not available on the target cluster, the 'create' statement may fail.");
         }
 
         this.setTableDefinition(Environment.RIGHT, upperTD);

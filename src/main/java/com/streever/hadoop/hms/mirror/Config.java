@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
@@ -207,7 +208,7 @@ public class Config {
 
     public void setFeatures(Features[] featuresSet) {
         this.features = featuresSet;
-        for (Features featuresEnum: features) {
+        for (Features featuresEnum : features) {
             featureList.add(featuresEnum.getFeature());
         }
     }
@@ -301,7 +302,7 @@ public class Config {
             rtn = Boolean.FALSE;
         }
         if (sync && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.LINKED ||
-                 dataStrategy == DataStrategy.LINKED)) {
+                dataStrategy == DataStrategy.LINKED)) {
             String issue = "'sync' only valid for SCHEMA_ONLY, LINKED, and COMMON data strategies";
             issues.add(issue);
             System.err.println(issue);
@@ -328,7 +329,7 @@ public class Config {
         System.out.println(".... Default Config not found.  Setup default config.");
         System.out.println("----------------------------------------------------------------");
         Boolean kerb = Boolean.FALSE;
-        for (Environment env: Environment.values()) {
+        for (Environment env : Environment.values()) {
             System.out.println("");
             System.out.println("Setup " + env.toString() + " cluster....");
             System.out.println("");
@@ -437,42 +438,44 @@ public class Config {
             Connection conn = null;
             try {
                 conn = cluster.getConnection();
-
-                Statement stmt = null;
-                ResultSet resultSet = null;
-                try {
-                    LOG.debug(env + ":" + ": Checking Hive Connection");
-                    stmt = conn.createStatement();
-                    resultSet = stmt.executeQuery("SHOW DATABASES");
-                    LOG.debug(env + ":" + ": Hive Connection Successful");
-                } catch (SQLException sql) {
-                    // DB Doesn't Exists.
-                    LOG.error(env + ": Hive Connection check failed.", sql);
-                    rtn = Boolean.FALSE;
-                } finally {
-                    if (resultSet != null) {
-                        try {
-                            resultSet.close();
-                        } catch (SQLException sqlException) {
-                            // ignore
+                // May not be set for DUMP strategy (RIGHT cluster)
+                if (conn != null) {
+                    Statement stmt = null;
+                    ResultSet resultSet = null;
+                    try {
+                        LOG.debug(env + ":" + ": Checking Hive Connection");
+                        stmt = conn.createStatement();
+                        resultSet = stmt.executeQuery("SHOW DATABASES");
+                        LOG.debug(env + ":" + ": Hive Connection Successful");
+                    } catch (SQLException sql) {
+                        // DB Doesn't Exists.
+                        LOG.error(env + ": Hive Connection check failed.", sql);
+                        rtn = Boolean.FALSE;
+                    } finally {
+                        if (resultSet != null) {
+                            try {
+                                resultSet.close();
+                            } catch (SQLException sqlException) {
+                                // ignore
+                            }
                         }
-                    }
-                    if (stmt != null) {
-                        try {
-                            stmt.close();
-                        } catch (SQLException sqlException) {
-                            // ignore
+                        if (stmt != null) {
+                            try {
+                                stmt.close();
+                            } catch (SQLException sqlException) {
+                                // ignore
+                            }
                         }
                     }
                 }
-
             } catch (SQLException se) {
                 rtn = Boolean.FALSE;
                 LOG.error(env + ": Hive Connection check failed.", se);
                 se.printStackTrace();
             } finally {
                 try {
-                    conn.close();
+                    if (conn != null)
+                        conn.close();
                 } catch (Throwable throwables) {
                     //
                 }

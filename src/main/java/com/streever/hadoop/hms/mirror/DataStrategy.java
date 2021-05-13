@@ -2,6 +2,14 @@ package com.streever.hadoop.hms.mirror;
 
 public enum DataStrategy {
     /*
+    The DUMP strategy will run against the LEFT cluster (attaching to it) and build scripts
+    that can be applied to the RIGHT cluster, without having to connect to the RIGHT cluster.
+
+    All other attributes of the RIGHT cluster will be considered in the conversion, we just won't
+    connect.  Check the output sql for the scripts to run.
+     */
+    DUMP,
+    /*
     This will transfer the schema only, replace the location with the RIGHT
     clusters location namespace and maintain the relative path.
     The data is transferred by an external process, like 'distcp'.

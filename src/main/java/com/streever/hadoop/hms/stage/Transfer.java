@@ -1,13 +1,11 @@
 package com.streever.hadoop.hms.stage;
 
-import com.streever.hadoop.HadoopSession;
 import com.streever.hadoop.hms.mirror.*;
 import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.util.Date;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 
 public class Transfer implements Callable<ReturnStatus> {
@@ -50,7 +48,7 @@ public class Transfer implements Callable<ReturnStatus> {
                 if (config.getDataStrategy() == DataStrategy.EXPORT_IMPORT || config.getDataStrategy() == DataStrategy.HYBRID) {
                     if (config.getCluster(Environment.LEFT).getLegacyHive() || !config.getCluster(Environment.RIGHT).getLegacyHive()) {
                         successful = Boolean.FALSE;
-                        dbMirror.addIssue("Table: " + tblMirror.getName() + " is an ACIDv1 table. ACIDv1 to ACIDv2 is not supported with "+
+                        dbMirror.addIssue("Table: " + tblMirror.getName() + " is an ACIDv1 table. ACIDv1 to ACIDv2 is not supported with " +
                                 "Hive's EXPORT_IMPORT processes. Recommend converting table to a NON-ACID table and try again.");
                         tblMirror.addIssue("ACIDv1 to ACIDv2 is not supported with Hive's EXPORT_IMPORT processes.");
                         tblMirror.addIssue("Recommend converting table to a NON-ACID table and try again.");
@@ -80,6 +78,11 @@ public class Transfer implements Callable<ReturnStatus> {
                 }
             } else {
                 switch (config.getDataStrategy()) {
+                    case DUMP:
+                        successful = (tblMirror.getTableDefinition(Environment.LEFT) != null &&
+                                !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) &&
+                                doDump());
+                        break;
                     case SCHEMA_ONLY:
                         if (tblMirror.getTableDefinition(Environment.LEFT) == null &&
                                 !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT))) {
@@ -251,6 +254,24 @@ public class Transfer implements Callable<ReturnStatus> {
                 rtn = config.getCluster(Environment.RIGHT).partitionMaintenance(config, dbMirror, tblMirror);
             }
         }
+        return rtn;
+    }
+
+    /*
+This set assumes the data has been migrated with DISTCP via some other process.  It will extract the schemas and
+recreate them on the target cluster, using the same 'relative' location for storage.
+ */
+    protected Boolean doDump() {
+        Boolean rtn = Boolean.FALSE;
+
+        // Check for sync.
+        // When right is there but left is NOT.
+//            Boolean seq = tblMirror.schemasEqual(Environment.LEFT, Environment.RIGHT);
+        rtn = config.getCluster(Environment.RIGHT).createUpperSchema(config, dbMirror, tblMirror);
+//        if (rtn || (config.getReplicationStrategy() == ReplicationStrategy.SYNCHRONIZE && !rtn)) {
+//            if (rtn && !seq) {
+        rtn = config.getCluster(Environment.RIGHT).partitionMaintenance(config, dbMirror, tblMirror);
+//            }
         return rtn;
     }
 
