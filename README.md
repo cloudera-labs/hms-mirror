@@ -2,13 +2,19 @@
 
 "hms-mirror" is a utility used to bridge the gap between two clusters and migrate `hive` _metadata_ **AND** _data_.  HMS-Mirror is distributed under the [AGPLv3](./license.md) license.
 
-Get [pdf version](./README.pdf) of this README.
+The application will migration hive metastore data (metadata) between two clusters.  With [SQL](#sql) and [EXPORT_IMPORT](#export_import) data strategies, we can move data between the two clusters.  While this process functions on smaller datasets, it isn't too efficient for larger datasets.
+
+For the default strategy [SCHEMA_ONLY](#schema-only-and-dump), we can migrate the schemas and sync metastore databases, but the DATA movement is NOT a function of this application.  The application does provide a workbook of SOURCE and TARGET locations that can be used to build a `distcp` plan for the databases you ran it against.
+
+## Table of Contents
 
 <!-- toc -->
 
 - [Setup](#setup)
   * [Binary Package](#binary-package)
   * [HMS-Mirror Setup from Binary Distribution](#hms-mirror-setup-from-binary-distribution)
+  * [Quick Start](#quick-start)
+  * [General Guidance](#general-guidance)
 - [Optimizations](#optimizations)
   * [Make Backups before running `hms-mirror`](#make-backups-before-running-hms-mirror)
   * [Isolate Migration Activities](#isolate-migration-activities)
@@ -71,6 +77,24 @@ On the edgenode:
 - Expand the tarball `tar zxvf hms-mirror-dist.tar.gz`.
   > This produces a child `hms-mirror` directory.
 - As the root user (or `sudo`), run `hms-mirror/setup.sh`.
+
+### Quick Start
+
+`hms-mirror` requires a configuration file describing the LEFT (source) and RIGHT (target) cluster connections.  There are two ways to create the config:
+
+- `hms-mirror -su`
+- Use the [default config template](configs/default.template.yaml) as a starting point.  Edit and place a copy here `$HOME/.hms-mirror/cfg/default.yaml`.
+
+If either or both clusters are Kerberized, please review the detailed configuration guidance [here](#running-against-a-legacy-non-cdp-kerberized-hiveserver2) and [here](#kerberized-connections).
+
+### General Guidance
+
+- Run `hms-mirror` from the RIGHT cluster on an Edge Node.
+> `hms-mirror` is built (default setting) with CDP libraries and will connect natively using those libraries.  The edge node should have the hdfs client installed and configured for that cluster.  The application will use this connections for some migration strategies.
+- Connecting to HS2 through KNOX (in both clusters, if possible) reduces complexities of the connection by removing Kerberos from the picture.  
+- The libraries will only support a kerberos connection to a 'single' version of hadoop at a time.  This is relevant for 'Kerberized' connections to Hive Server 2.  The default libraries will support a kerberized connection to a CDP clusters HS2 and HDFS.  If the LEFT (source) cluster is Kerberized, including HS2, you will need to make some adjustments.
+  - The LEFT clusters HS2 needs to support any auth mechanism BUT Kerberos.
+  - Use an Ambari Group to setup an independent HS2 instance for this exercise or use KNOX.
 
 ## Optimizations
 

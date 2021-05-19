@@ -54,8 +54,8 @@
         <commons-io.version>2.4</commons-io.version>
         <junit.version>4.13.1</junit.version>
 
-        <hadoop.version>3.1.1</hadoop.version>
-        <cdp.version>7.1.5.0-257</cdp.version>
+<!--        <hadoop.version>3.1.1</hadoop.version>-->
+<!--        <cdp.version>7.1.5.0-257</cdp.version>-->
 
         <zookeeper.version>3.5.5</zookeeper.version>
 
@@ -63,7 +63,7 @@
         <!--        <hadoop.major>3.1</hadoop.major>-->
         <!--        <hive.version>3.1.1</hive.version>-->
 
-        <hadoop-cli.version>2.3.1.2-SNAPSHOT</hadoop-cli.version>
+        <hadoop-cli.version>2.3.1.4-SNAPSHOT</hadoop-cli.version>
 
     </properties>
 
