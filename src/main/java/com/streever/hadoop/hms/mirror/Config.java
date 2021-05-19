@@ -1,6 +1,7 @@
 package com.streever.hadoop.hms.mirror;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -29,6 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
 
+@JsonIgnoreProperties({"featureList"})
 public class Config {
 
     private static Logger LOG = LogManager.getLogger(Config.class);
@@ -102,9 +104,6 @@ public class Config {
 
     private String[] databases = null;
     private Features[] features = null;
-
-    @JsonIgnore
-    private List<Feature> featureList = new ArrayList<Feature>();
 
     public HadoopSessionPool getCliPool() {
         if (cliPool == null) {
@@ -208,17 +207,17 @@ public class Config {
 
     public void setFeatures(Features[] featuresSet) {
         this.features = featuresSet;
-        for (Features featuresEnum : features) {
-            featureList.add(featuresEnum.getFeature());
-        }
     }
 
     public List<Feature> getFeatureList() {
-        return featureList;
-    }
-
-    public void setFeatureList(List<Feature> featureList) {
-        this.featureList = featureList;
+        List<Feature> fList = null;
+        if (this.features != null) {
+            fList = new ArrayList<Feature>();
+            for (Features featuresEnum : features) {
+                fList.add(featuresEnum.getFeature());
+            }
+        }
+        return fList;
     }
 
     public String getDbPrefix() {
@@ -361,6 +360,8 @@ public class Config {
                 // appears the connection is kerberized.
                 System.out.println("----------------------------------------------------------------------------------------");
                 System.out.println("The connection appears to be Kerberized.\n\t\tPlace the 'hive standalone' driver in '$HOME/.hms-mirror/aux_libs'");
+                System.out.println("\tSPECIAL RUN INSTRUCTIONS for Legacy Kerberos Connections.");
+                System.out.println("\thttps://github.com/dstreev/hms-mirror#running-against-a-legacy-non-cdp-kerberized-hiveserver2");
                 System.out.println("----------------------------------------------------------------------------------------");
                 kerb = Boolean.TRUE;
             } else if (response.contains("principal")) {
@@ -370,6 +371,11 @@ public class Config {
                 response = scanner.next();
                 if (!response.equalsIgnoreCase("y")) {
                     throw new RuntimeException("Both JDBC connection must trust your kerberos ticket.");
+                }
+                System.out.println(" >> Are both clusters running the same version of Hadoop/Hive? (Y/N)");
+                response = scanner.next();
+                if (!response.equalsIgnoreCase("y")) {
+                    throw new RuntimeException("Both JDBC connections must be running the same version.");
                 }
             } else {
                 //    get jarFile location.

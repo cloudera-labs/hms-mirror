@@ -28,6 +28,16 @@ public class MirrorTest {
     }
 
     @Test
+    public void test_so_ro_tf() {
+        String outputDir = homedir + System.getProperty("file.separator") + "hms-mirror-reports/so_ro_tf";
+        String[] args = new String[]{"-db", "tpcds_bin_partitioned_orc_10", "-tf", "call_center|store_sales", "-ro", "-sql",  "-o", outputDir};
+
+        Mirror mirror = new Mirror();
+        mirror.init(args);
+        mirror.doit();
+    }
+
+    @Test
     public void test_so_ro_sync() {
         String outputDir = homedir + System.getProperty("file.separator") + "hms-mirror-reports/so_ro_sync";
         String[] args = new String[]{"-db", "tpcds_bin_partitioned_orc_10", "-ro", "-sync", "-sql", "-o", outputDir};

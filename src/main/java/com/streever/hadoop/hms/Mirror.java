@@ -139,6 +139,22 @@ public class Mirror {
             formatter.printHelp(cmdline, options);
             System.exit(0);
         }
+        if (cmd.hasOption("su")) {
+            configFile = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/cfg/default.yaml";
+            File defaultCfg = new File(configFile);
+            if (defaultCfg.exists()) {
+                Scanner scanner = new Scanner(System.in);
+                System.out.print("Default Config exists.  Proceed with overwrite:(Y/N) ");
+                String response = scanner.next();
+                if (response.equalsIgnoreCase("y")) {
+                    Config.setup(configFile);
+                    System.exit(0);
+                }
+            } else {
+                Config.setup(configFile);
+                System.exit(0);
+            }
+        }
 
         if (cmd.hasOption("p")) {
             // Used to generate encrypted password.
@@ -171,6 +187,7 @@ public class Mirror {
             File defaultCfg = new File(configFile);
             if (!defaultCfg.exists()) {
                 Config.setup(configFile);
+                System.exit(0);
             }
         }
 
@@ -442,7 +459,7 @@ public class Mirror {
                 // Don't load the datasource for the right with DUMP strategy.
                 break;
             default:
-               connPools.addHiveServer2(Environment.RIGHT, config.getCluster(Environment.RIGHT).getHiveServer2());
+                connPools.addHiveServer2(Environment.RIGHT, config.getCluster(Environment.RIGHT).getHiveServer2());
         }
         try {
             connPools.init();
@@ -617,7 +634,7 @@ public class Mirror {
                     StringBuilder line = new StringBuilder();
                     line.append("| | ").append(dbMap.getKey()).append(" | ");
 
-                    for (String source: dbMap.getValue()) {
+                    for (String source : dbMap.getValue()) {
                         line.append(source).append("<br>");
                     }
                     line.append(" | ").append("\n");
@@ -721,7 +738,7 @@ public class Mirror {
                 "Specify how the data will follow the schema. " + Arrays.deepToString(DataStrategy.values()));
         metadataStage.setOptionalArg(Boolean.TRUE);
         metadataStage.setArgName("strategy");
-        metadataStage.setRequired(false);
+        metadataStage.setRequired(Boolean.FALSE);
         options.addOption(metadataStage);
 
         Option intermediateStorageOption = new Option("is", "intermediate-storage", true,
@@ -733,27 +750,27 @@ public class Mirror {
 
         Option maOption = new Option("ma", "migrate-acid", false,
                 "For EXPORT_IMPORT and HYBRID data strategies.  Include ACID tables in migration.");
-        maOption.setRequired(false);
+        maOption.setRequired(Boolean.FALSE);
         options.addOption(maOption);
 
         Option syncOption = new Option("s", "sync", false,
                 "For SCHEMA_ONLY, COMMON, and LINKED data strategies.  Drop and Recreate Schema's when different.  Best to use with RO to ensure table/partition drops don't delete data.");
-        syncOption.setRequired(false);
+        syncOption.setRequired(Boolean.FALSE);
         options.addOption(syncOption);
 
         Option roOption = new Option("ro", "read-only", false,
                 "For SCHEMA_ONLY, COMMON, and LINKED data strategies set RIGHT table to NOT purge on DROP");
-        roOption.setRequired(false);
+        roOption.setRequired(Boolean.FALSE);
         options.addOption(roOption);
 
         Option acceptOption = new Option("accept", "accept", false,
                 "Accept ALL confirmations and silence prompts");
-        acceptOption.setRequired(false);
+        acceptOption.setRequired(Boolean.FALSE);
         options.addOption(acceptOption);
 
         Option translateConfigOption = new Option("t", "translate-config", true,
                 "Translator Configuration File (Experimental)");
-        translateConfigOption.setRequired(false);
+        translateConfigOption.setRequired(Boolean.FALSE);
         translateConfigOption.setArgName("translate-config-file");
         options.addOption(translateConfigOption);
 
@@ -765,23 +782,23 @@ public class Mirror {
         featureOption.setValueSeparator(',');
         featureOption.setArgName("features");
         featureOption.setArgs(20);
-        featureOption.setRequired(false);
+        featureOption.setRequired(Boolean.FALSE);
         options.addOption(featureOption);
 
         Option outputOption = new Option("o", "output-dir", true,
                 "Output Directory (default: $HOME/.hms-mirror/reports/<yyyy-MM-dd_HH-mm-ss>");
-        outputOption.setRequired(false);
+        outputOption.setRequired(Boolean.FALSE);
         outputOption.setArgName("outputdir");
         options.addOption(outputOption);
 
         Option executeOption = new Option("e", "execute", false,
                 "Execute actions request, without this flag the process is a dry-run.");
-        executeOption.setRequired(false);
+        executeOption.setRequired(Boolean.FALSE);
         options.addOption(executeOption);
 
         Option dbPrefixOption = new Option("dbp", "db-prefix", true,
                 "Optional: A prefix to add to the RIGHT cluster DB Name. Usually used for testing.");
-        dbPrefixOption.setRequired(false);
+        dbPrefixOption.setRequired(Boolean.FALSE);
         dbPrefixOption.setArgName("prefix");
         options.addOption(dbPrefixOption);
 
@@ -793,20 +810,25 @@ public class Mirror {
 
         Option helpOption = new Option("h", "help", false,
                 "Help");
-        helpOption.setRequired(false);
+        helpOption.setRequired(Boolean.FALSE);
 //        options.addOption(helpOption);
 
         Option pwOption = new Option("p", "password", true,
                 "Used this in conjunction with '-pkey' to generate the encrypted password that you'll add to the configs for the JDBC connections.");
-        pwOption.setRequired(false);
+        pwOption.setRequired(Boolean.FALSE);
         pwOption.setArgName("password");
-//        options.addOption(pwOption);
+        options.addOption(pwOption);
+
+        Option setupOption = new Option("su", "setup", false,
+                "Setup a default configuration file through a series of questions");
+        setupOption.setRequired(Boolean.FALSE);
+//        options.addOption(setupOption);
 
         OptionGroup dbGroup = new OptionGroup();
         dbGroup.addOption(dbOption);
         dbGroup.addOption(helpOption);
-        dbGroup.addOption(pwOption);
-        dbGroup.setRequired(true);
+        dbGroup.addOption(setupOption);
+        dbGroup.setRequired(Boolean.TRUE);
         options.addOptionGroup(dbGroup);
 
         Option sqlOutputOption = new Option("sql", "sql-output", false,
@@ -814,8 +836,8 @@ public class Mirror {
         sqlOutputOption.setRequired(Boolean.FALSE);
         options.addOption(sqlOutputOption);
 
-        Option tableFilterOption = new Option("tf", "table-filter", true, "Filter tables with name matching RegEx");
-        tableFilterOption.setRequired(false);
+        Option tableFilterOption = new Option("tf", "table-filter", true, "Filter tables with name matching RegEx. Comparison done with 'show tables' results.  Check case, that's important.  Hive tables are generally stored in LOWERCASE.");
+        tableFilterOption.setRequired(Boolean.FALSE);
         tableFilterOption.setArgName("regex");
         options.addOption(tableFilterOption);
 

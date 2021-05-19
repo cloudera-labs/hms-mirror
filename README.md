@@ -31,6 +31,7 @@ Get [pdf version](./README.pdf) of this README.
 - [Running HMS Mirror](#running-hms-mirror)
   * [Assumptions](#assumptions)
   * [Options (Help)](#options-help)
+  * [Running Against a LEGACY (Non-CDP) Kerberized HiveServer2](#running-against-a-legacy-non-cdp-kerberized-hiveserver2)
   * [Connections](#connections)
   * [Troubleshooting](#troubleshooting)
 - [Output](#output)
@@ -464,6 +465,11 @@ usage: hms-mirror
  -tf,--table-filter <regex>                      Filter tables with name
                                                  matching RegEx
 ```
+### Running Against a LEGACY (Non-CDP) Kerberized HiveServer2
+
+`hms-mirror` is pre-built with CDP libraries and they WILL NOT be compatible with LEGACY kerberos environments. A Kerberos connection can only be made to ONE cluster when the clusters are NOT running the same 'major' version of Hadoop.
+
+To attach to a LEGACY HS2, run `hms-mirror` with the `--hadoop-classpath` commandline option.  This will strip the CDP libraries from `hms-mirror` and use the hosts Hadoop libraries by calling `hadoop classpath` to locate the binaries needed to do this.
 
 #### Features
 
