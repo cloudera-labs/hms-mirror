@@ -91,6 +91,7 @@ If either or both clusters are Kerberized, please review the detailed configurat
 
 - Run `hms-mirror` from the RIGHT cluster on an Edge Node.
 > `hms-mirror` is built (default setting) with CDP libraries and will connect natively using those libraries.  The edge node should have the hdfs client installed and configured for that cluster.  The application will use this connections for some migration strategies.
+- If running from the LEFT cluster, note that the `-ro/--read-only` feature examines HDFS on the RIGHT cluster.  The HDFS client on the LEFT cluster may not support this access.
 - Connecting to HS2 through KNOX (in both clusters, if possible) reduces complexities of the connection by removing Kerberos from the picture.  
 - The libraries will only support a kerberos connection to a 'single' version of hadoop at a time.  This is relevant for 'Kerberized' connections to Hive Server 2.  The default libraries will support a kerberized connection to a CDP clusters HS2 and HDFS.  If the LEFT (source) cluster is Kerberized, including HS2, you will need to make some adjustments.
   - The LEFT clusters HS2 needs to support any auth mechanism BUT Kerberos.
@@ -99,6 +100,8 @@ If either or both clusters are Kerberized, please review the detailed configurat
 ## Optimizations
 
 Moving metadata and data between two clusters is a pretty straight forward process, but depends entirely on the proper configurations in each cluster.  Listed here are a few tips on some important configurations.
+
+NOTE: HMS-Mirror only moves data with the [SQL](#sql) and [EXPORT_IMPORT](#export-import) data strategies.  All other strategies either use the data as is ([LINKED](#linked) or [COMMON](#common)) or depend on the data being moved by something like `distcp`. 
 
 ### Make Backups before running `hms-mirror`
 
@@ -402,7 +405,7 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 
 ### Assumptions
 
-1. This process will only 'migrate' EXTERNAL and MANAGED (non-ACID/Transactional) tables.
+1. This process will only 'migrate' EXTERNAL and MANAGED (non-ACID/Transactional) table METADATA (not data, except with [SQL](#sql) and [EXPORT_IMPORT](#export-import) ).
 2. MANAGED tables replicated to the **RIGHT** cluster will be converted to "EXTERNAL" tables for the 'metadata' stage.  They will be tagged as 'legacy managed' in the **RIGHT** cluster and will NOT be assigned the `external.table.purge=true` flag, yet.  Once the table's data has been migrated, the table will be adjusted to be purgeable via `external.table.purge=true` to match the classic `MANAGED` table behavior.
 1. The **RIGHT** cluster has 'line of sight' to the **LEFT** cluster.
 2. The **RIGHT** cluster has been configured to access the **LEFT** cluster storage. See [link clusters](#linking-clusters-storage-layers).  This is the same configuration that would be required to support `distcp` from the **RIGHT** cluster to the **LEFT** cluster.
@@ -413,6 +416,12 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 7. The **LEFT* cluster does NOT have access to the **RIGHT** cluster.
 8. The credentials use by 'hive' (doas=false) in the **RIGHT** cluster must have access to the required storage (hdfs) locations on the lower cluster.
    - If the **RIGHT** cluster is running impersonation (doas=true), that user must have access to the required storage (hdfs) locations on the lower cluster.
+
+#### Transfer DATA, beyond the METADATA
+
+HMS-Mirror does NOT migrate data between clusters unless you're using the [SQL](#sql) and [EXPORT_IMPORT](#export-import) data strategies.  In some cases where data is co-located, you don't need to move it.  IE: Cloud to Cloud.  As long as the new cluster environment has access to the original location.  This is the intended target for strategies [COMMON](#common) and to some extend [LINKED](#linked).
+
+When you do need to move data, `hms-mirror` create a workbook of 'source' and 'target' locations in an output file called `distcp_workbook.md`.  [Sample](sample_reports/schema_only/distcp_workbook.md).  Use this to help build a transfer job in `distcp` using the `-f` option to specify multiple sources.  This construct is still a work in progress, so feedback is welcome [Email - David Streever](mailto:dstreever@cloudera.com).
 
 ### Options (Help)
 ```
@@ -484,10 +493,20 @@ usage: hms-mirror
                                                  don't delete data.
  -sql,--sql-output                               Output the SQL to the
                                                  report
+ -su,--setup                                     Setup a default
+                                                 configuration file
+                                                 through a series of
+                                                 questions
  -t,--translate-config <translate-config-file>   Translator Configuration
                                                  File (Experimental)
  -tf,--table-filter <regex>                      Filter tables with name
-                                                 matching RegEx
+                                                 matching RegEx.
+                                                 Comparison done with
+                                                 'show tables' results.
+                                                 Check case, that's
+                                                 important.  Hive tables
+                                                 are generally stored in
+                                                 LOWERCASE.
 ```
 ### Running Against a LEGACY (Non-CDP) Kerberized HiveServer2
 
@@ -624,6 +643,10 @@ The argument `--hadoop-classpath` allows us to replace the embedded Hadoop Libs 
 Check the location and references to the JDBC jar files.  General rules for Kerberos Connections:
 - The jdbc jar file should be in the `$HOME/.hms-mirror/aux_libs`.  For kerberos connections, we've seen issues attempting to load this jar in a sandbox, so this makes it available to the global classpath/loader.
 - Get a kerberos ticket for the running user before launching `hms-mirror`.
+
+#### "Unrecognized Hadoop major version number: 3.1.1.7.1...0-257"
+
+This happens when you're trying to connect to an HS2 instance 
 
 ## Output
 
