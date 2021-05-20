@@ -1,6 +1,6 @@
 # HMS-Mirror
 
-"hms-mirror" is a utility used to bridge the gap between two clusters and migrate `hive` _metadata_ **AND** _data_.  HMS-Mirror is distributed under the [AGPLv3](./license.md) license.
+"hms-mirror" is a utility used to bridge the gap between two clusters and migrate `hive` _metadata_.  HMS-Mirror is distributed under the [AGPLv3](./license.md) license.
 
 The application will migration hive metastore data (metadata) between two clusters.  With [SQL](#sql) and [EXPORT_IMPORT](#export_import) data strategies, we can move data between the two clusters.  While this process functions on smaller datasets, it isn't too efficient for larger datasets.
 
