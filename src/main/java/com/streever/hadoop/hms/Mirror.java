@@ -776,11 +776,11 @@ public class Mirror {
 
 
         Option featureOption = new Option("f", "feature", true,
-                "Added Feature Checks: " + Arrays.deepToString(Features.values()));
+                "Added Feature(s) Checks: " + Arrays.deepToString(Features.values()));
         // Let's not advertise the TRANSLATE feature yet.
 //                "Added Feature Checks[BAD_ORC_DEF,TRANSLATE(WIP)]");
         featureOption.setValueSeparator(',');
-        featureOption.setArgName("features");
+        featureOption.setArgName("features (comma-separated)");
         featureOption.setArgs(20);
         featureOption.setRequired(Boolean.FALSE);
         options.addOption(featureOption);

@@ -81,7 +81,7 @@ public class Config {
     /*
     Output SQL to report
      */
-    private boolean sqlOutput = Boolean.FALSE;
+    private boolean sqlOutput = Boolean.TRUE;
 
     private Acceptance acceptance = new Acceptance();
 
