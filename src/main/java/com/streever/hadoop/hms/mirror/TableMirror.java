@@ -3,6 +3,7 @@ package com.streever.hadoop.hms.mirror;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streever.hadoop.hms.mirror.feature.Feature;
 import com.streever.hadoop.hms.util.TableUtils;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;
@@ -220,11 +221,29 @@ public class TableMirror {
         this.tablePartitions = tablePartitions;
     }
 
+    /*
+    A custom list copy to address escape characters that are dropped with
+    the lists native addAll method.
+    
+    Removed method.  Fixed targeted issue but broke much more.
+     */
+    protected List<String> listCopy(List<String> orig) {
+        List<String> rtn = new ArrayList<String>();
+        for (String line: orig) {
+            String cLine = StringEscapeUtils.escapeJava(line);
+            rtn.add(cLine);
+        }
+        return rtn;
+    }
+
     public boolean buildUpperSchema(Config config, Boolean takeOwnership) {
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         List<String> lowerTD = tableDefinitions.get(Environment.LEFT);
+//        List<String> upperTD = null; //new ArrayList<String>();
+//        // Copy lower table definition to upper table def.
+//        upperTD = listCopy(lowerTD);
         List<String> upperTD = new ArrayList<String>();
-        // Copy lower table definition to upper table def.
+//        // Copy lower table definition to upper table def.
         upperTD.addAll(lowerTD);
 
         if (TableUtils.isHiveNative(this.getName(), upperTD)) {
