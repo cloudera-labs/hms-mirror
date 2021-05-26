@@ -424,9 +424,10 @@ HMS-Mirror does NOT migrate data between clusters unless you're using the [SQL](
 When you do need to move data, `hms-mirror` create a workbook of 'source' and 'target' locations in an output file called `distcp_workbook.md`.  [Sample](sample_reports/schema_only/distcp_workbook.md).  Use this to help build a transfer job in `distcp` using the `-f` option to specify multiple sources.  This construct is still a work in progress, so feedback is welcome [Email - David Streever](mailto:dstreever@cloudera.com).
 
 ### Options (Help)
+
 ```
 usage: hms-mirror
-                  version: ....
+                  version:1.2.8.6-SNAPSHOT
  -accept,--accept                                Accept ALL confirmations
                                                  and silence prompts
  -cfg,--config <filename>                        Config with details for
@@ -447,7 +448,7 @@ usage: hms-mirror
  -e,--execute                                    Execute actions request,
                                                  without this flag the
                                                  process is a dry-run.
- -f,--feature <features>                         Added Feature Checks:
+ -f,--feature <features (comma-separated)>       Added Feature(s) Checks:
                                                  [BAD_ORC_DEF, BAD_RC_DEF]
  -h,--help                                       Help
  -is,--intermediate-storage <storage-path>       Intermediate Storage used
@@ -508,6 +509,7 @@ usage: hms-mirror
                                                  are generally stored in
                                                  LOWERCASE.
 ```
+
 ### Running Against a LEGACY (Non-CDP) Kerberized HiveServer2
 
 `hms-mirror` is pre-built with CDP libraries and they WILL NOT be compatible with LEGACY kerberos environments. A Kerberos connection can only be made to ONE cluster when the clusters are NOT running the same 'major' version of Hadoop.
