@@ -1,8 +1,17 @@
 package com.streever.hadoop.hms.mirror;
 
 public class HybridConfig {
-    private int sqlPartitionLimit = 100;
+    private int exportImportPartitionLimit = 100;
+    private int sqlPartitionLimit = 500;
     private long sqlSizeLimit = (1024 * 1024 * 1024); // 1Gb
+
+    public int getExportImportPartitionLimit() {
+        return exportImportPartitionLimit;
+    }
+
+    public void setExportImportPartitionLimit(int exportImportPartitionLimit) {
+        this.exportImportPartitionLimit = exportImportPartitionLimit;
+    }
 
     public int getSqlPartitionLimit() {
         return sqlPartitionLimit;

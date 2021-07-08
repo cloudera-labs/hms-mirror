@@ -1,15 +1,25 @@
 package com.streever.hadoop.hms.stage;
 
+import com.streever.hadoop.HadoopSession;
 import com.streever.hadoop.hms.mirror.*;
 import com.streever.hadoop.hms.util.TableUtils;
+import com.streever.hadoop.shell.command.CommandReturn;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Transfer implements Callable<ReturnStatus> {
     private static Logger LOG = LogManager.getLogger(Transfer.class);
+    public static Pattern protocolNSPattern = Pattern.compile("(^.*://)([a-zA-Z0-9](?:(?:[a-zA-Z0-9-]*|(?<!-)\\.(?![-.]))*[a-zA-Z0-9]+)?)(:\\d{4})?");
+    // Pattern to find the value of the last directory in a url.
+    public static Pattern lastDirPattern = Pattern.compile(".*/([^/?]+).*");
 
     private Config config = null;
     private DBMirror dbMirror = null;
@@ -35,107 +45,35 @@ public class Transfer implements Callable<ReturnStatus> {
             Date start = new Date();
             LOG.info("Migrating " + dbMirror.getName() + "." + tblMirror.getName());
 
+            EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
+
             // Set Database to Transfer DB.
             tblMirror.setPhaseState(PhaseState.STARTED);
 
             tblMirror.setStrategy(config.getDataStrategy());
 
             tblMirror.incPhase();
-            tblMirror.addAction("TRANSFER", config.getDataStrategy().toString());
+            tblMirror.addStep("TRANSFER", config.getDataStrategy().toString());
 
-            // Checking for null LEFT.  Happens with SCHEMA_ONLY and SYNC when RIGHT exists but LEFT doesn't.
-            if (tblMirror.getTableDefinition(Environment.LEFT) != null && TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT))) {
-                if (config.getDataStrategy() == DataStrategy.EXPORT_IMPORT || config.getDataStrategy() == DataStrategy.HYBRID) {
-                    if (config.getCluster(Environment.LEFT).getLegacyHive() || !config.getCluster(Environment.RIGHT).getLegacyHive()) {
-                        successful = Boolean.FALSE;
-                        dbMirror.addIssue("Table: " + tblMirror.getName() + " is an ACIDv1 table. ACIDv1 to ACIDv2 is not supported with " +
-                                "Hive's EXPORT_IMPORT processes. Recommend converting table to a NON-ACID table and try again.");
-                        tblMirror.addIssue("ACIDv1 to ACIDv2 is not supported with Hive's EXPORT_IMPORT processes.");
-                        tblMirror.addIssue("Recommend converting table to a NON-ACID table and try again.");
-                    } else {
-                        switch (config.getDataStrategy()) {
-                            case EXPORT_IMPORT:
-                                successful = doExportImport();
-                                break;
-                            case HYBRID:
-                                if (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) ||
-                                        (TableUtils.isPartitioned(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) &&
-                                                tblMirror.getPartitionDefinition(Environment.LEFT).size() >
-                                                        config.getHybrid().getSqlPartitionLimit())) {
-                                    successful = doExportImport();
-                                } else {
-                                    successful = doSQL();
-                                }
-                                break;
-                            default:
-                                // Shouldn't end up here.
-                                throw new RuntimeException("BAD flow.  Check ACID / data strategy logic.");
-                        }
-                    }
-                } else {
-                    successful = Boolean.FALSE;
-                    tblMirror.addIssue("ACID tables only supported with EXPORT_IMPORT or HYBRID data strategies.");
-                }
-            } else {
-                switch (config.getDataStrategy()) {
-                    case DUMP:
-                        successful = (tblMirror.getTableDefinition(Environment.LEFT) != null &&
-                                !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) &&
-                                doDump());
-                        break;
-                    case SCHEMA_ONLY:
-                        if (tblMirror.getTableDefinition(Environment.LEFT) == null &&
-                                !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT))) {
-                            successful = doSchemaOnly();
-                        } else {
-                            successful = (tblMirror.getTableDefinition(Environment.LEFT) != null &&
-                                    !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) &&
-                                    doSchemaOnly());
-                        }
-                        break;
-                    case LINKED:
-                        if (tblMirror.getTableDefinition(Environment.LEFT) == null &&
-                                !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT))) {
-                            successful = doLinked();
-                        } else {
-                            successful = (tblMirror.getTableDefinition(Environment.LEFT) != null &&
-                                    !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) &&
-                                    doLinked());
-                        }
-                        break;
-                    case EXPORT_IMPORT:
-                        successful = doExportImport();
-                        break;
-                    case INTERMEDIATE:
-                        successful = (!TableUtils.isACID(tblMirror.getName(),
-                                tblMirror.getTableDefinition(Environment.LEFT)) && doIntermediate());
-                        break;
-                    case COMMON:
-                        if (tblMirror.getTableDefinition(Environment.LEFT) == null &&
-                                !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.RIGHT))) {
-                            successful = doCommon();
-                        } else {
-                            successful = (tblMirror.getTableDefinition(Environment.LEFT) != null &&
-                                    !TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) &&
-                                    doCommon());
-                        }
-                        break;
-                    case SQL:
-                        successful = doSQL();
-                        break;
-                    case HYBRID:
-                        if (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) ||
-                                (TableUtils.isPartitioned(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) &&
-                                        tblMirror.getPartitionDefinition(Environment.LEFT).size() >
-                                                config.getHybrid().getSqlPartitionLimit())) {
-                            successful = doExportImport();
-                        } else {
-                            successful = doSQL();
-                        }
-                        break;
-                }
+            switch (config.getDataStrategy()) {
+                case DUMP:
+                case SCHEMA_ONLY:
+                case LINKED:
+                case COMMON:
+                case EXPORT_IMPORT:
+                    successful = doBasic();
+                    break;
+                case INTERMEDIATE:
+                    successful = doIntermediate();
+                    break;
+                case SQL:
+                    successful = doSQL();
+
+                    break;
+                case HYBRID:
+                    successful = doHybrid();
+                    break;
             }
-
             if (successful)
                 tblMirror.setPhaseState(PhaseState.SUCCESS);
             else
@@ -159,119 +97,318 @@ public class Transfer implements Callable<ReturnStatus> {
         return false;
     }
 
-    protected Boolean doCommon() {
-        return doLinked();
-    }
-
     protected Boolean doSQL() {
         Boolean rtn = Boolean.FALSE;
 
-        // Create table in new cluster.
-        // Associate data to original cluster data.
-        rtn = config.getCluster(Environment.RIGHT).createUpperSchema(config, dbMirror, tblMirror);
+        rtn = tblMirror.buildoutDefinitions(config, dbMirror);
 
-        // Build the Transfer table (with prefix)
-        // NOTE: This will change the RIGHT tabledef, so run this AFTER the buildUpperSchemaUsingLowerData
-        // process
-        if (rtn) {
-            rtn = config.getCluster(Environment.RIGHT).createUpperTransferTable(config, dbMirror, tblMirror, config.getTransfer().getTransferPrefix());
-        }
+        if (rtn)
+            rtn = AVROCheck();
 
-        // Force the MSCK to enable the SQL transfer
-        if (rtn) {
-            rtn = config.getCluster(Environment.RIGHT).partitionMaintenance(config, dbMirror, tblMirror, Boolean.TRUE);
-        }
-        // sql to move data.
-        if (rtn) {
-            rtn = config.getCluster(Environment.RIGHT).doSqlDataTransfer(config, dbMirror, tblMirror, config.getTransfer().getTransferPrefix());
-        }
+        if (rtn)
+            rtn = tblMirror.buildoutSql(config, dbMirror);
 
-        // rename move table to target table.
-        // TODO: Swap tables.
-        if (rtn) {
-            rtn = config.getCluster(Environment.RIGHT).completeSqlTransfer(config, dbMirror, tblMirror);
-        }
+        EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
+        EnvironmentTable set = tblMirror.getEnvironmentTable(Environment.SHADOW);
 
+        // Construct Transfer SQL
+        String copySql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, set.getName(), ret.getName());
+        ret.getSql().add(new Pair(TableUtils.LOAD_FROM_SHADOW_DESC, copySql));
+
+        // Clean up shadow table.
+        String dropShadowSql = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
+        ret.getSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropShadowSql));
+
+        // Execute the RIGHT sql if config.execute.
+        if (rtn && config.isExecute()) {
+            config.getCluster(Environment.RIGHT).runSql(tblMirror);
+        }
         return rtn;
     }
 
-    protected Boolean doExportImport() {
+    protected Boolean doAcidTransfer() {
         Boolean rtn = Boolean.FALSE;
 
-        // Convert NON-ACID tables.
-        // Convert ACID tables WHEN 'migrateACID' is set.
-        if (!TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) ||
-                (TableUtils.isACID(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT)) &&
-                        config.getMigrateACID())) {
+        rtn = tblMirror.buildoutDefinitions(config, dbMirror);
+        if (rtn)
+            rtn = tblMirror.buildoutSql(config, dbMirror);
 
-            // TODO: Need to adjust this to first create the target table using the LEFT clusters
-            //       data.  THEN, work on the IMPORT into the 'transfer' table.  Once that's complete
-            //       do the swap of the tables.  Follow the SQL method in this regard.
+        if (rtn) {
+            EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
+            EnvironmentTable tet = tblMirror.getEnvironmentTable(Environment.TRANSFER);
+            EnvironmentTable set = tblMirror.getEnvironmentTable(Environment.SHADOW);
+            EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
 
-            rtn = config.getCluster(Environment.LEFT).exportSchema(config, dbMirror.getName(), dbMirror, tblMirror, config.getTransfer().getExportBaseDirPrefix());
-            if (rtn) {
-                rtn = config.getCluster(Environment.RIGHT).importSchemaWithData(config, dbMirror, tblMirror, config.getTransfer().getExportBaseDirPrefix());
+
+            // Construct Transfer SQL
+            // Need to see if the table has partitions.
+            if (let.getPartitioned()) {
+                // Check that the partition count doesn't exceed the configuration limit.
+                if (let.getPartitions().size() <= config.getMigrateACID().getPartitionLimit()) {
+                    // Build Partition Elements.
+                    String partElement = TableUtils.getPartitionElements(let);
+                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS,
+                            let.getName(), tet.getName(), partElement);
+                    String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, let.getPartitions().size());
+                    let.addSql(new Pair(transferDesc, transferSql));
+                } else {
+                    // The partition limit has been exceeded.  The process will need to be done manually.
+                    let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
+                            "limit: " + config.getMigrateACID().getPartitionLimit() + ". This value is used to abort migration " +
+                            "that have a high potential for failure.  The migration will need to be done manually OR try increasing " +
+                            "the limit.");
+                    return Boolean.FALSE;
+                }
+            } else {
+                // No Partitions
+                String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, let.getName(), tet.getName());
+                let.addSql(new Pair(TableUtils.STAGE_TRANSFER_DESC, transferSql));
+            }
+
+            // Construct the Shadow Transfer SQL
+            if (let.getPartitioned()) {
+                // Build Partition Elements.
+                String partElement = TableUtils.getPartitionElements(let);
+                String shadowTransferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS,
+                        set.getName(), ret.getName(), partElement);
+                String transferDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, let.getPartitions().size());
+                ret.addSql(new Pair(transferDesc, shadowTransferSql));
+            } else {
+                // No Partitions
+                String shadowTransferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, set.getName(), ret.getName());
+                ret.addSql(new Pair(TableUtils.LOAD_FROM_SHADOW_DESC, shadowTransferSql));
+            }
+            tblMirror.addStep("ACID Transfer/Shadow SQL", "Built");
+
+            // Execute the LEFT sql if config.execute.
+            if (rtn && config.isExecute()) {
+                rtn = config.getCluster(Environment.LEFT).runSql(tblMirror);
+            }
+
+            // Execute the RIGHT sql if config.execute.
+            if (rtn && config.isExecute()) {
+                rtn = config.getCluster(Environment.RIGHT).runSql(tblMirror);
+            }
+
+            // Cleanup, POST creation and TRANSFERS.
+            // LEFT TRANSFER table
+            List<Pair> leftCleanup = new ArrayList<Pair>();
+
+            String useLeftDb = MessageFormat.format(MirrorConf.USE, dbMirror.getName());
+            Pair leftUsePair = new Pair(TableUtils.USE_DESC, useLeftDb);
+            leftCleanup.add(leftUsePair);
+            let.addSql(leftUsePair);
+
+            String dropTransfer = MessageFormat.format(MirrorConf.DROP_TABLE, tet.getName());
+            Pair leftDropPair = new Pair(TableUtils.DROP_TRANSFER_TABLE, dropTransfer);
+            leftCleanup.add(leftDropPair);
+            let.addSql(leftDropPair);
+            tblMirror.addStep("LEFT ACID Transfer/Shadow SQL Cleanup", "Built");
+
+            if (rtn && config.isExecute()) {
+                // Run the Cleanup Scripts
+                config.getCluster(Environment.LEFT).runSql(leftCleanup, tblMirror, Environment.LEFT);
+            }
+
+            // RIGHT Shadow table
+            List<Pair> rightCleanup = new ArrayList<Pair>();
+
+            String useRightDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(dbMirror.getName()));
+            Pair rightUsePair = new Pair(TableUtils.USE_DESC, useRightDb);
+            rightCleanup.add(rightUsePair);
+            ret.addSql(rightUsePair);
+
+            String rightDropShadow = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
+
+            Pair rightDropPair = new Pair(TableUtils.DROP_SHADOW_TABLE, rightDropShadow);
+
+            rightCleanup.add(rightDropPair);
+            ret.addSql(rightDropPair);
+            tblMirror.addStep("RIGHT ACID Shadow SQL Cleanup", "Built");
+
+            if (rtn && config.isExecute()) {
+                // Run the Cleanup Scripts
+                config.getCluster(Environment.RIGHT).runSql(rightCleanup, tblMirror, Environment.RIGHT);
+            }
+        }
+        return rtn;
+    }
+
+    protected Boolean doHybrid() {
+        Boolean rtn = Boolean.FALSE;
+
+        // Need to look at table.  ACID tables go to doACID()
+        EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
+
+        if (TableUtils.isACID(let.getName(), let.getDefinition())) {
+            tblMirror.setStrategy(DataStrategy.ACID);
+            rtn = doAcidTransfer();
+        } else {
+            if (let.getPartitioned()) {
+                if (let.getPartitions().size() > config.getHybrid().getExportImportPartitionLimit()) {
+                    // SQL
+                    if (let.getPartitions().size() <= config.getHybrid().getSqlPartitionLimit()) {
+                        tblMirror.setStrategy(DataStrategy.SQL);
+                        rtn = doSQL();
+                    } else {
+                        tblMirror.addIssue(Environment.RIGHT, "The Partition count (" + let.getPartitions().size() + ")" +
+                                " exceed SQL Limit (" + config.getHybrid().getSqlPartitionLimit() + ")" +
+                                " The table DATA can't reliably be migrated with SQL.  The partition count will most likely " +
+                                " cause issues in the Application Master.  Use SCHEMA_ONLY to migrate schema and follow up by " +
+                                "using 'distcp' to migrate the data.");
+                    }
+                } else {
+                    // EXPORT
+                    tblMirror.setStrategy(DataStrategy.EXPORT_IMPORT);
+                    rtn = doBasic();
+                }
+            } else {
+                // EXPORT
+                tblMirror.setStrategy(DataStrategy.EXPORT_IMPORT);
+                rtn = doBasic();
+            }
+        }
+        return rtn;
+    }
+
+    protected Boolean doBasic() {
+        Boolean rtn = Boolean.FALSE;
+
+        EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
+
+        if (TableUtils.isACID(let.getName(), let.getDefinition()) &&
+                !(config.getDataStrategy() == DataStrategy.DUMP
+                || config.getDataStrategy() == DataStrategy.SCHEMA_ONLY)) {
+            if (config.getDataStrategy() != DataStrategy.COMMON) {
+                rtn = doHybrid();
+            } else {
+                rtn = Boolean.FALSE;
+                tblMirror.addIssue(Environment.RIGHT,
+                        "Can't transfer SCHEMA reference on COMMON storage for ACID tables.");
             }
         } else {
-            String issuemsg = "ACID table migration only support when migrateACID=true";
-            tblMirror.addIssue(issuemsg);
-        }
+            rtn = tblMirror.buildoutDefinitions(config, dbMirror);
 
-        return rtn;
-    }
+            if (rtn)
+                rtn = AVROCheck();
 
-    protected Boolean doLinked() {
-        Boolean rtn = Boolean.FALSE;
+            if (rtn)
+                rtn = tblMirror.buildoutSql(config, dbMirror);
 
-        rtn = config.getCluster(Environment.RIGHT).createUpperSchema(config, dbMirror, tblMirror);
+            // If EXPORT_IMPORT, need to run LEFT queries.
+            if (rtn && tblMirror.getStrategy() == DataStrategy.EXPORT_IMPORT && config.isExecute()) {
+                rtn = config.getCluster(Environment.LEFT).runSql(tblMirror);
+            }
 
-//        if (rtn || (config.getReplicationStrategy() == ReplicationStrategy.SYNCHRONIZE && !rtn)) {
-        if (rtn) {
-            rtn = config.getCluster(Environment.RIGHT).partitionMaintenance(config, dbMirror, tblMirror);
-        }
-        return rtn;
-    }
-
-    /*
-    This set assumes the data has been migrated with DISTCP via some other process.  It will extract the schemas and
-    recreate them on the target cluster, using the same 'relative' location for storage.
-     */
-    protected Boolean doSchemaOnly() {
-        Boolean rtn = Boolean.FALSE;
-
-        // Check for sync.
-        // When right is there but left is NOT.
-        if (config.isSync() && tblMirror.getTableDefinition(Environment.LEFT) ==
-                null && tblMirror.getTableDefinition(Environment.RIGHT) != null) {
-            // DROP table
-            tblMirror.addIssue("SYNC requested.  Orphaned table identified.  Dropping to match source cluster.");
-            rtn = config.getCluster(Environment.RIGHT).dropTable(config, dbMirror, tblMirror);
-        } else {
-            Boolean seq = tblMirror.schemasEqual(Environment.LEFT, Environment.RIGHT);
-            rtn = config.getCluster(Environment.RIGHT).createUpperSchema(config, dbMirror, tblMirror);
-//        if (rtn || (config.getReplicationStrategy() == ReplicationStrategy.SYNCHRONIZE && !rtn)) {
-            if (rtn && !seq) {
-                rtn = config.getCluster(Environment.RIGHT).partitionMaintenance(config, dbMirror, tblMirror);
+            // Execute the RIGHT sql if config.execute.
+            if (rtn && config.isExecute()) {
+                rtn = config.getCluster(Environment.RIGHT).runSql(tblMirror);
             }
         }
         return rtn;
     }
 
-    /*
-This set assumes the data has been migrated with DISTCP via some other process.  It will extract the schemas and
-recreate them on the target cluster, using the same 'relative' location for storage.
- */
-    protected Boolean doDump() {
-        Boolean rtn = Boolean.FALSE;
+    protected Boolean AVROCheck() {
+        Boolean rtn = Boolean.TRUE;
+        Boolean relative = Boolean.FALSE;
+        // Check for AVRO
+        EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
+        if (TableUtils.isAVROSchemaBased(let)) {
+            String leftPath = TableUtils.getAVROSchemaPath(let);
+            String rightPath = null;
+            LOG.debug("Original AVRO Schema path: " + leftPath);
+                /* Checks:
+                - Is Path prefixed with a protocol?
+                    - (Y) Does it match the LEFT's hcfsNamespace.
+                        - (Y) Replace prefix with RIGHT 'hcfsNamespace' prefix.
+                        - (N) Throw WARNING and set return to FALSE.  We don't recognize the prefix and
+                                 can't guarantee that we can retrieve the file.
+                    - (N) Leave it and copy the file to the same relative path on the RIGHT
+                 */
+            Matcher matcher = protocolNSPattern.matcher(leftPath);
+            // ProtocolNS Found.
+            String cpCmd = null;
+            if (matcher.find()) {
+                // Return the whole set of groups.
+                String lns = matcher.group(0);
 
-        // Check for sync.
-        // When right is there but left is NOT.
-//            Boolean seq = tblMirror.schemasEqual(Environment.LEFT, Environment.RIGHT);
-        rtn = config.getCluster(Environment.RIGHT).createUpperSchema(config, dbMirror, tblMirror);
-//        if (rtn || (config.getReplicationStrategy() == ReplicationStrategy.SYNCHRONIZE && !rtn)) {
-//            if (rtn && !seq) {
-        rtn = config.getCluster(Environment.RIGHT).partitionMaintenance(config, dbMirror, tblMirror);
-//            }
+                // Does it match the "LEFT" hcfsNamespace.
+                String leftNS = config.getCluster(Environment.LEFT).getHcfsNamespace();
+                if (leftNS.endsWith("/")) {
+                    leftNS = leftNS.substring(0, leftNS.length() - 1);
+                }
+                if (lns.startsWith(leftNS)) {
+                    // They match, so replace with RIGHT hcfs namespace.
+                    String newNS = config.getCluster(Environment.RIGHT).getHcfsNamespace();
+                    if (newNS.endsWith("/")) {
+                        newNS = newNS.substring(0, newNS.length() - 1);
+                    }
+                    rightPath = leftPath.replace(leftNS, newNS);
+                    TableUtils.updateAVROSchemaLocation(ret, rightPath);
+                } else {
+                    // Protocol found doesn't match configured hcfs namespace for LEFT.
+                    String warning = "AVRO Schema URL was NOT adjusted. Current (LEFT) path did NOT match the " +
+                            "LEFT hcfsnamespace. " + leftPath + " is NOT in the " + config.getCluster(Environment.LEFT).getHcfsNamespace() +
+                            ". Can't determine change, so we'll not do anything.";
+                    ret.addIssue(warning);
+                    ret.addIssue("Schema creation may fail if location isn't available to RIGHT cluster.");
+                    LOG.warn(warning);
+                }
+            } else {
+                // No Protocol defined.  So we're assuming that its a relative path to the
+                // defaultFS
+                String rpath = "AVRO Schema URL appears to be relative: " + leftPath + ". No table definition adjustments.";
+                ret.addIssue(rpath);
+                LOG.debug(rpath);
+                rightPath = leftPath;
+                relative = Boolean.TRUE;
+            }
+
+            if (leftPath != null && rightPath != null && config.isCopyAvroSchemaUrls() && config.isExecute()) {
+                // Copy over.
+                HadoopSession session = null;
+                try {
+                    session = config.getCliPool().borrow();
+                    CommandReturn cr = null;
+                    if (relative) {
+                        leftPath = config.getCluster(Environment.LEFT).getHcfsNamespace() + leftPath;
+                        rightPath = config.getCluster(Environment.RIGHT).getHcfsNamespace() + rightPath;
+                    }
+                    LOG.info("AVRO Schema COPY from: " + leftPath + " to " + rightPath);
+                    // Ensure the path for the right exists.
+                    matcher = lastDirPattern.matcher(rightPath);
+                    if (matcher.find()) {
+                        String pathEnd = matcher.group(1);
+                        String mkdir = rightPath.substring(0, rightPath.length() - pathEnd.length());
+                        cr = session.processInput("mkdir -p " + mkdir);
+                        if (cr.isError()) {
+                            ret.addIssue("Problem creating directory " + mkdir + ". " + cr.getError());
+                            rtn = Boolean.FALSE;
+                        } else {
+                            cr = session.processInput("cp -f " + leftPath + " " + rightPath);
+                            if (cr.isError()) {
+                                ret.addIssue("Problem copying AVRO schema file from " + leftPath + " to " +
+                                        mkdir + ".\n```" + cr.getError() + "```");
+                                rtn = Boolean.FALSE;
+                            }
+                        }
+                    }
+                } catch (Throwable t) {
+                    LOG.error(t);
+                    ret.addIssue(t.getMessage());
+                    rtn = Boolean.FALSE;
+                } finally {
+                    if (session != null)
+                        config.getCliPool().returnSession(session);
+                }
+            }
+            tblMirror.addStep("AVRO", "Checked");
+        } else {
+            // Not AVRO, so no action (passthrough)
+            rtn = Boolean.TRUE;
+        }
+
         return rtn;
     }
 

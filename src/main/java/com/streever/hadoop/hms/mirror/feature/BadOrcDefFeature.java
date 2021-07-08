@@ -1,5 +1,6 @@
 package com.streever.hadoop.hms.mirror.feature;
 
+import com.streever.hadoop.hms.mirror.EnvironmentTable;
 import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -15,6 +16,13 @@ public class BadOrcDefFeature implements Feature {
     private final String LAZY_SERDE = "'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'";
     private final String ORC_SERDE = "  'org.apache.hadoop.hive.ql.io.orc.OrcSerde'";
     private static Logger LOG = LogManager.getLogger(BadOrcDefFeature.class);
+
+    @Override
+    public EnvironmentTable fixSchema(EnvironmentTable envTable) {
+        List<String> fixed = fixSchema(envTable.getDefinition());
+        envTable.setDefinition(fixed);
+        return envTable;
+    }
 
     @Override
     /**
@@ -51,7 +59,6 @@ public class BadOrcDefFeature implements Feature {
                     }
                 }
             }
-//            }
         }
         return rtn;
     }

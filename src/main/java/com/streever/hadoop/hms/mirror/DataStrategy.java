@@ -48,5 +48,9 @@ public enum DataStrategy {
     migration is required.  Schema's are transferred using the same
     location.  Commit/ownership?
      */
-    COMMON
+    COMMON,
+    /*
+    ACID Transfer is a hidden strategy applied to the table.
+     */
+    ACID;
 }

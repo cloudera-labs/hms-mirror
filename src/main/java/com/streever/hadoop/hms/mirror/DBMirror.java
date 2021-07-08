@@ -1,6 +1,7 @@
 package com.streever.hadoop.hms.mirror;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.collect.Table;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -15,6 +16,10 @@ public class DBMirror {
     private String name;
     private Map<Environment, Map<String, String>> dbDefinitions = new TreeMap<Environment, Map<String, String>>();
     private List<String> issues = new ArrayList<String>();
+    /*
+    table - reason
+     */
+    private Map<String, String> filteredOut = new TreeMap<String, String>();
 
     private Map<String, TableMirror> tableMirrors = new TreeMap<String, TableMirror>();
 
@@ -47,6 +52,9 @@ public class DBMirror {
         return issues;
     }
 
+    public Map<String, String> getFilteredOut() {
+        return filteredOut;
+    }
 
     public Map<Environment, Map<String, String>> getDBDefinitions() {
         return dbDefinitions;
@@ -135,6 +143,33 @@ public class DBMirror {
 
     public TableMirror getTable(String table) {
         return tableMirrors.get(table);
+    }
+
+    public Boolean hasIssues() {
+        Boolean rtn = Boolean.FALSE;
+        for (Map.Entry<String, TableMirror> entry: tableMirrors.entrySet()) {
+            if (entry.getValue().hasIssues())
+                rtn = Boolean.TRUE;
+        }
+        return rtn;
+    }
+
+    public Boolean hasActions() {
+        Boolean rtn = Boolean.FALSE;
+        for (Map.Entry<String, TableMirror> entry: tableMirrors.entrySet()) {
+            if (entry.getValue().hasActions())
+                rtn = Boolean.TRUE;
+        }
+        return rtn;
+    }
+
+    public Boolean hasAddedProperties() {
+        Boolean rtn = Boolean.FALSE;
+        for (Map.Entry<String, TableMirror> entry: tableMirrors.entrySet()) {
+            if (entry.getValue().hasAddedProperties())
+                rtn = Boolean.TRUE;
+        }
+        return rtn;
     }
 
 }

@@ -4,26 +4,28 @@ public class MirrorConf {
     public static final String DESCRIBE_DB = "DESCRIBE DATABASE EXTENDED {0}";
 
     public static final String SHOW_TABLES = "SHOW TABLES";
-    public static final String SHOW_CREATE_TABLE = "SHOW CREATE TABLE {0}.{1}";
+    public static final String SHOW_VIEWS = "SHOW VIEWS";
+    public static final String SHOW_CREATE_TABLE = "SHOW CREATE TABLE {0}";
     public static final String SHOW_PARTITIONS = "SHOW PARTITIONS {0}.{1}";
-    public static final String MSCK_REPAIR_TABLE = "MSCK REPAIR TABLE {0}.{1}";
+    public static final String MSCK_REPAIR_TABLE = "MSCK REPAIR TABLE {0}";
     public static final String CREATE_DB =
             "CREATE DATABASE IF NOT EXISTS {0}";
     public static final String CREATE_LIKE =
-            "CREATE TABLE IF NOT EXISTS {0}.{1} LIKE {2}.{3}";
+            "CREATE TABLE IF NOT EXISTS {0} LIKE {1}";
     public static final String CREATE_EXTERNAL_LIKE =
-            "CREATE EXTERNAL TABLE IF NOT EXISTS {0}.{1} LIKE {2}.{3}";
+            "CREATE EXTERNAL TABLE IF NOT EXISTS {0} LIKE {1}";
     public static final String USE = "USE {0}";
-    public static final String DROP_TABLE = "DROP TABLE IF EXISTS {0}.{1}";
+    public static final String DROP_TABLE = "DROP TABLE IF EXISTS {0}";
+    public static final String DROP_VIEW = "DROP VIEW IF EXISTS {0}";
     public static final String RENAME_TABLE = " ALTER TABLE {0} RENAME TO {1}";
     public static final String EXPORT_TABLE =
-            "EXPORT TABLE {0}.{1} TO \"{2}\"";
+            "EXPORT TABLE {0} TO \"{1}\"";
     public static final String IMPORT_EXTERNAL_TABLE =
-            "IMPORT EXTERNAL TABLE {0}.{1} FROM \"{2}\"";
+            "IMPORT EXTERNAL TABLE {0} FROM \"{1}\"";
     public static final String IMPORT_TABLE =
-            "IMPORT TABLE {0}.{1} FROM \"{2}\"";
+            "IMPORT TABLE {0} FROM \"{1}\"";
     public static final String IMPORT_EXTERNAL_TABLE_LOCATION =
-            "IMPORT EXTERNAL TABLE {0}.{1} FROM \"{2}\" LOCATION \"{3}\"";
+            "IMPORT EXTERNAL TABLE {0} FROM \"{1}\" LOCATION \"{2}\"";
     public static final String ADD_TBL_PROP =
             "ALTER TABLE {0}.{1} SET TBLPROPERTIES (\"{2}\"=\"{3}\")";
     public static final String REMOVE_TBL_PROP =
@@ -33,7 +35,10 @@ public class MirrorConf {
     public static final String HMS_MIRROR_LEGACY_MANAGED_FLAG = "hmsMirror_LegacyManaged";
     public static final String DISCOVER_PARTITIONS = "discover.partitions";
     public static final String EXTERNAL_TABLE_PURGE = "external.table.purge";
+    public static final String TRANSACTIONAL = "transactional";
+    public static final String AVRO_SCHEMA_URL_KEY = "avro.schema.url";
     public static final String SQL_DATA_TRANSFER = "FROM {0} INSERT OVERWRITE TABLE {1} SELECT *";
+    public static final String SQL_DATA_TRANSFER_WITH_PARTITIONS = "FROM {0} INSERT OVERWRITE TABLE {1} PARTITION ({2}) SELECT *";
     /*
     METADATA Transfer Flag
      */

@@ -1,5 +1,6 @@
 package com.streever.hadoop.hms.util;
 
+import com.streever.hadoop.hms.mirror.MirrorConf;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -11,7 +12,7 @@ import static org.junit.Assert.*;
 
 public class TableUtilsTest {
 
-    private List<String> table_01 = null;
+    private List<String> table_01 = new ArrayList<String>();
     private List<String> table_02 = new ArrayList<String>();
     private List<String> table_03 = new ArrayList<String>();
     private List<String> table_04 = new ArrayList<String>();
@@ -68,7 +69,7 @@ public class TableUtilsTest {
                 , "  'last_modified_time'='1606919590', "
                 , "  'transient_lastDdlTime'='1606919590')"
         };
-        table_01 = Arrays.asList(strTable_01);
+        table_01.addAll(Arrays.asList(strTable_01));
         String[] strTable_02 = new String[]{
                 "CREATE TABLE `tpcds_bin_partitioned_orc_10.call_center`("
                 , "  `cc_call_center_sk` bigint, "
@@ -119,7 +120,7 @@ public class TableUtilsTest {
                 , "  'last_modified_time'='1606919590', "
                 , "  'transient_lastDdlTime'='1606919590')"
         };
-        table_02 = Arrays.asList(strTable_02);
+        table_02.addAll(Arrays.asList(strTable_02));
         String[] strTable_03 = new String[]{
                 "CREATE TABLE `tpcds_bin_partitioned_orc_10.call_center`("
                 , "  `cc_call_center_sk` bigint, "
@@ -171,7 +172,7 @@ public class TableUtilsTest {
                 , "  'last_modified_time'='1606919590', "
                 , "  'transient_lastDdlTime'='1606919590')"
         };
-        table_03 = Arrays.asList(strTable_03);
+        table_03.addAll(Arrays.asList(strTable_03));
         String[] strTable_04 = new String[]{
                 "CREATE EXTERNAL TABLE `tpcds_bin_partitioned_orc_10.call_center`("
                 , "  `cc_call_center_sk` bigint, "
@@ -224,7 +225,7 @@ public class TableUtilsTest {
                 , "  'last_modified_time'='1606919590', "
                 , "  'transient_lastDdlTime'='1606919590')"
         };
-        table_04 = Arrays.asList(strTable_04);
+        table_04.addAll(Arrays.asList(strTable_04));
 
     }
 
@@ -279,5 +280,13 @@ public class TableUtilsTest {
 
     @Test
     public void removeTblProperty() {
+    }
+
+    @Test
+    public void changeTableName() {
+        List<String> tblDef = TableUtils.changeTableName("call_center", "transfer_call_center", table_04);
+        tblDef = TableUtils.stripLocation("call_center", tblDef);
+        TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, tblDef);
+        System.out.println("Def: ");
     }
 }

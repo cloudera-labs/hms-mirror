@@ -1,5 +1,6 @@
 package com.streever.hadoop.hms.mirror;
 
+import com.streever.hadoop.hms.stage.Transfer;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonIgnore;
@@ -100,20 +101,6 @@ public class Translator {
                                     "'consolidateExternal': " + entry.getKey() + "." + tblEntry.getKey());
                             rtn = Boolean.FALSE;
                         }
-//                    if (ttbl.getRename() != null && tdb.getConsolidateExternal()) {
-//                        // distcp mappings use the level folder level when using multiple sources to a target
-//                        // so changing the target name mid-stream would break that implied translation we'd need
-//                        // to build a distcp job.  The rename would need to happen 'after' the distcp job.
-//                        LOG.error("Table 'rename' isn't supported while consolidating the DB. " + entry.getKey() +
-//                                "." + tblEntry.getKey());
-//                        rtn = Boolean.FALSE;
-//                    }
-//                    if (ttbl.getRename() != null && ttbl.getLocation() != null) {
-//                        // Can't change location and rename at the same time.
-//                        LOG.error("Table 'rename' and 'location' are exclusive and can't be done together.  " + entry.getKey() +
-//                                "." + tblEntry.getKey());
-//                        rtn = Boolean.FALSE;
-//                    }
                     }
                 }
             }
@@ -179,11 +166,8 @@ public class Translator {
         return location;
     }
 
-    // Pattern to find the value of the last directory in a url.
-    public static Pattern lastDirPattern = Pattern.compile(".*/([^/?]+).*");
-
     public static String removeLastDirFromUrl(final String url) {
-        Matcher matcher = lastDirPattern.matcher(url);
+        Matcher matcher = Transfer.lastDirPattern.matcher(url);
         if (matcher.find()) {
             String matchStr = matcher.group(1);
             // Remove last occurrence ONLY.

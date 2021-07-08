@@ -37,14 +37,21 @@ public class Setup {
         for (String database : config.getDatabases()) {
             DBMirror dbMirror = conversion.addDatabase(database);
             try {
-                config.getCluster(Environment.LEFT).getDatabase(config, dbMirror);
-                config.getCluster(Environment.RIGHT).getDatabase(config, dbMirror);
+                // Get the Database definitions for the LEFT and RIGHT clusters.
+                if (config.getCluster(Environment.LEFT).getDatabase(config, dbMirror)) {
+                    config.getCluster(Environment.RIGHT).getDatabase(config, dbMirror);
+                } else {
+                    // LEFT DB doesn't exists.
+                    dbMirror.addIssue("LEFT DB doesn't exist. Check permissions for user running process");
+                    return Boolean.FALSE;
+                }
             } catch (SQLException se) {
                 throw new RuntimeException(se);
             }
+
+            // Build out the table in a database.
             Callable<ReturnStatus> gt = new GetTables(config, dbMirror);
             gtf.add(config.getTransferThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
-//            gtf.add(config.getTransferThreadPool().submit(gt));
         }
 
         // Check and Build DB's First.
@@ -70,6 +77,7 @@ public class Setup {
         }
         gtf.clear(); // reset
 
+        // Create the databases we'll need on the LEFT and RIGHT
         Callable<ReturnStatus> createDatabases = new CreateDatabases(config, conversion);
         gtf.add(config.getTransferThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
 
@@ -96,6 +104,7 @@ public class Setup {
         }
         gtf.clear(); // reset
 
+        // Get the table METADATA for the tables collected in the databases.
         LOG.info(">>>>>>>>>>> Getting Table Metadata");
         Set<String> collectedDbs = conversion.getDatabases().keySet();
         for (String database : collectedDbs) {

@@ -36,15 +36,18 @@ public class CreateDatabases implements Callable<ReturnStatus> {
     public ReturnStatus call() {
         ReturnStatus rtn = new ReturnStatus();
         LOG.debug("Create Databases");
-//        Boolean successful =  Boolean.TRUE;
         try {
             for (String database : config.getDatabases()) {
                 DBMirror dbMirror = conversion.getDatabase(database);
                 String[] rightDBCreate = dbMirror.rightDBCreate(config);
+                LOG.info("Strategy: " + config.getDataStrategy());
                 switch (config.getDataStrategy()) {
                     case HYBRID:
                     case EXPORT_IMPORT:
-                        config.getCluster(Environment.LEFT).createDatabase(config, config.getTransfer().getTransferPrefix() + database);
+                        if (!(config.getMigrateACID().isOn() && config.getMigrateACID().isOnly())) {
+                            LOG.info("Creating Transfer DB to support EXPORT_IMPORT tables.");
+                            config.getCluster(Environment.LEFT).createDatabase(config, config.getTransfer().getTransferPrefix() + database);
+                        }
                         config.getCluster(Environment.RIGHT).createDatabase(config, database, rightDBCreate[0]);
                         break;
                     case SQL:

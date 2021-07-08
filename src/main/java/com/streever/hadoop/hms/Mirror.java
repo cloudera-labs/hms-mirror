@@ -34,7 +34,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class Mirror {
@@ -44,6 +43,7 @@ public class Mirror {
     private String configFile = null;
     private String reportOutputDir = null;
     private String reportOutputFile = null;
+    private String leftExecuteFile = null;
     private String rightExecuteFile = null;
     private String leftActionFile = null;
     private String rightActionFile = null;
@@ -94,9 +94,6 @@ public class Mirror {
                     }
                 }
             }
-            // disable s3a fs cache
-//                hadoopConfig.set("fs.s3a.impl.disable.cache", "true");
-//                hadoopConfig.set("fs.s3a.bucket.probe","0");
 
             // hadoop.security.authentication
             if (hadoopConfig.get("hadoop.security.authentication", "simple").equalsIgnoreCase("kerberos")) {
@@ -204,7 +201,13 @@ public class Mirror {
             String yamlCfgFile = FileUtils.readFileToString(cfgFile, Charset.forName("UTF-8"));
             config = mapper.readerFor(Config.class).readValue(yamlCfgFile);
         } catch (Throwable t) {
-            throw new RuntimeException(t);
+            // Look for yaml update errors.
+            if (t.toString().contains("MismatchedInputException")) {
+                throw new RuntimeException("The format of the 'config' yaml file MAY HAVE CHANGED from the last release.  Please make a copy and run " +
+                        "'-su|--setup' again to recreate in the new format", t);
+            } else {
+                throw new RuntimeException(t);
+            }
         }
 
         if (cmd.hasOption("t")) {
@@ -261,8 +264,29 @@ public class Mirror {
             config.setDbPrefix(cmd.getOptionValue("dbp"));
         }
 
+        if (cmd.hasOption("v")) {
+            config.getMigrateVIEW().setOn(Boolean.TRUE);
+        }
+
         if (cmd.hasOption("ma")) {
-            config.setMigrateACID(Boolean.TRUE);
+            config.getMigrateACID().setOn(Boolean.TRUE);
+            String bucketLimit = cmd.getOptionValue("ma");
+            if (bucketLimit != null) {
+                config.getMigrateACID().setArtificialBucketThreshold(Integer.valueOf(bucketLimit));
+            }
+        }
+
+        if (cmd.hasOption("mao")) {
+            config.getMigrateACID().setOnly(Boolean.TRUE);
+            String bucketLimit = cmd.getOptionValue("mao");
+            if (bucketLimit != null) {
+                config.getMigrateACID().setArtificialBucketThreshold(Integer.valueOf(bucketLimit));
+            }
+        }
+
+        // AVRO Schema Migration
+        if (cmd.hasOption("asm")) {
+            config.setCopyAvroSchemaUrls(Boolean.TRUE);
         }
 
         String dataStrategyStr = cmd.getOptionValue("d");
@@ -319,14 +343,13 @@ public class Mirror {
         }
 
         // Action Files
-//        int suffixIndex = reportOutputDir.lastIndexOf(".");
         reportOutputFile = reportOutputDir + System.getProperty("file.separator") + "<db>_hms-mirror.md|html";
-        rightExecuteFile = reportOutputDir + System.getProperty("file.separator") + "<db>_execute.sql";
+        leftExecuteFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_execute.sql";
+        rightExecuteFile = reportOutputDir + System.getProperty("file.separator") + "<db>_RIGHT_execute.sql";
         leftActionFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_action.sql";
         rightActionFile = reportOutputDir + System.getProperty("file.separator") + "<db>_RIGHT_action.sql";
 
         try {
-//            String reportPath = reportOutputDir.substring(0, reportOutputDir.lastIndexOf(System.getProperty("file.separator")));
             File reportPathDir = new File(reportOutputDir);
             if (!reportPathDir.exists()) {
                 reportPathDir.mkdirs();
@@ -360,7 +383,6 @@ public class Mirror {
         if (cmd.hasOption("f")) {
             String[] featuresStr = cmd.getOptionValues("f");
             List<Features> featuresList = new ArrayList<Features>();
-//            Feature[] features = new Feature[featuresStr.length];
             // convert feature string to feature enum.q
             for (String featureStr : featuresStr) {
                 try {
@@ -492,10 +514,13 @@ public class Mirror {
 
         if (!config.validate()) {
             List<String> issues = config.getIssues();
+            System.err.println("");
             for (String issue : issues) {
                 LOG.error(issue);
+                System.err.println(issue);
             }
-            throw new RuntimeException("Configuration issues, check log for details");
+            System.err.println("");
+            throw new RuntimeException("Configuration issues., check log (~/.hms-mirror/logs/hms-mirror.log) for details");
         }
 
     }
@@ -533,11 +558,9 @@ public class Mirror {
         Reporter reporter = new Reporter(conversion, 1000);
         reporter.setVariable("config.file", configFile);
         reporter.setVariable("config.strategy", config.getDataStrategy().toString());
-//        reporter.setVariable("stage", config.getStage().toString());
-        // ?
-        //        reporter.setVariable("log.file", log4j output file.);
         reporter.setVariable("report.file", reportOutputFile);
-        reporter.setVariable("execute.file", rightExecuteFile);
+        reporter.setVariable("left.execute.file", leftExecuteFile);
+        reporter.setVariable("right.execute.file", rightExecuteFile);
         reporter.setVariable("left.action.file", leftActionFile);
         reporter.setVariable("right.action.file", rightActionFile);
         reporter.setRetry(this.retry);
@@ -554,6 +577,7 @@ public class Mirror {
 
         // Skip Setup if working from 'retry'
         if (!retry) {
+            // This will collect all existing DB/Table Definitions in the clusters
             Setup setup = new Setup(config, conversion);
             // TODO: Failure here may not make it to saved state.
             if (setup.collect()) {
@@ -566,6 +590,21 @@ public class Mirror {
 
         stateMaintenance.start();
 
+        // State reason table/view was removed from processing list.
+        for (Map.Entry<String, DBMirror> dbEntry : conversion.getDatabases().entrySet()) {
+            for (TableMirror tm: dbEntry.getValue().getTableMirrors().values()) {
+                if (tm.isRemove()) {
+                    dbEntry.getValue().getFilteredOut().put(tm.getName(), tm.getRemoveReason());
+                }
+            }
+        }
+
+        // Remove all the tblMirrors that shouldn't be processed based on config.
+        for (Map.Entry<String, DBMirror> dbEntry : conversion.getDatabases().entrySet()) {
+            dbEntry.getValue().getTableMirrors().values().removeIf(value -> value.isRemove());
+        }
+
+        // GO TIME!!!
         conversion = runTransfer(conversion);
         stateMaintenance.saveState();
 
@@ -574,7 +613,8 @@ public class Mirror {
         for (String database : config.getDatabases()) {
 
             String dbReportOutputFile = reportOutputDir + System.getProperty("file.separator") + database + "_hms-mirror";
-            String dbRightExecuteFile = reportOutputDir + System.getProperty("file.separator") + database + "_execute.sql";
+            String dbLeftExecuteFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_execute.sql";
+            String dbRightExecuteFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_execute.sql";
             String dbLeftActionFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_action.sql";
             String dbRightActionFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_action.sql";
 
@@ -596,8 +636,13 @@ public class Mirror {
 
                 LOG.info("Status Report of 'hms-mirror' is here: " + dbReportOutputFile.toString() + ".md|html");
 
+                FileWriter leftExecOutput = new FileWriter(dbLeftExecuteFile);
+                leftExecOutput.write(conversion.executeSql(Environment.LEFT, database));
+                leftExecOutput.close();
+                LOG.info("LEFT Execution Script is here: " + dbLeftExecuteFile.toString());
+
                 FileWriter rightExecOutput = new FileWriter(dbRightExecuteFile);
-                rightExecOutput.write(conversion.executeSql(database));
+                rightExecOutput.write(conversion.executeSql(Environment.RIGHT, database));
                 rightExecOutput.close();
                 LOG.info("RIGHT Execution Script is here: " + dbRightExecuteFile.toString());
 
@@ -656,21 +701,15 @@ public class Mirror {
     public Conversion runTransfer(Conversion conversion) {
         Date startTime = new Date();
         LOG.info("Start Processing for databases: " + Arrays.toString((config.getDatabases())));
-//        Conversion conversion = new Conversion();
 
         LOG.info(">>>>>>>>>>> Building/Starting Transition.");
         List<Future<ReturnStatus>> mdf = new ArrayList<Future<ReturnStatus>>();
 
+        // Loop through databases
         Set<String> collectedDbs = conversion.getDatabases().keySet();
         for (String database : collectedDbs) {
             DBMirror dbMirror = conversion.getDatabase(database);
-//            try {
-//                config.getCluster(Environment.LEFT).getDatabase(config, dbMirror);
-//                config.getCluster(Environment.RIGHT).getDatabase(config, dbMirror);
-//            } catch (SQLException se) {
-//                throw new RuntimeException(se);
-//            }
-
+            // Loop through the tables in the database
             Set<String> tables = dbMirror.getTableMirrors().keySet();
             for (String table : tables) {
                 TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
@@ -678,17 +717,17 @@ public class Mirror {
                     case INIT:
                     case STARTED:
                     case ERROR:
+                        // Create a Transfer for the table.
                         Transfer md = new Transfer(config, dbMirror, tblMirror);
                         mdf.add(config.getTransferThreadPool().schedule(md, 1, TimeUnit.MILLISECONDS));
-//                        mdf.add(config.getTransferThreadPool().submit(md));
                         break;
                     case SUCCESS:
-                        LOG.debug("DB.tbl: " + tblMirror.getDbName() + "." + tblMirror.getName() + " was SUCCESSFUL in " +
+                        LOG.debug("DB.tbl: " + tblMirror.getDbName() + "." + tblMirror.getName(Environment.LEFT) + " was SUCCESSFUL in " +
                                 "previous run.   SKIPPING and adjusting status to RETRY_SKIPPED_PAST_SUCCESS");
                         tblMirror.setPhaseState(PhaseState.RETRY_SKIPPED_PAST_SUCCESS);
                         break;
                     case RETRY_SKIPPED_PAST_SUCCESS:
-                        LOG.debug("DB.tbl: " + tblMirror.getDbName() + "." + tblMirror.getName() + " was SUCCESSFUL in " +
+                        LOG.debug("DB.tbl: " + tblMirror.getDbName() + "." + tblMirror.getName(Environment.LEFT) + " was SUCCESSFUL in " +
                                 "previous run.  SKIPPING");
                 }
             }
@@ -748,10 +787,34 @@ public class Mirror {
         intermediateStorageOption.setRequired(Boolean.FALSE);
         options.addOption(intermediateStorageOption);
 
+        OptionGroup acidGroup = new OptionGroup();
+        acidGroup.setRequired(Boolean.FALSE);
+
         Option maOption = new Option("ma", "migrate-acid", false,
-                "For EXPORT_IMPORT and HYBRID data strategies.  Include ACID tables in migration.");
+                "Migrate ACID tables (if strategy allows). Optional: ArtificialBucketThreshold count that will remove " +
+                        "the bucket definition if it's below this.  Use this as a way to remove artificial bucket definitions that " +
+                        "were added 'artificially' in legacy Hive.");
+        maOption.setArgs(1);
+        maOption.setOptionalArg(Boolean.TRUE);
         maOption.setRequired(Boolean.FALSE);
-        options.addOption(maOption);
+        acidGroup.addOption(maOption);
+
+        Option maoOption = new Option("mao", "migrate-acid-only", false,
+                "Migrate ACID tables ONLY (if strategy allows). Optional: ArtificialBucketThreshold count that will remove " +
+                        "the bucket definition if it's below this.  Use this as a way to remove artificial bucket definitions that " +
+                        "were added 'artificially' in legacy Hive.");
+        maoOption.setArgs(1);
+        maoOption.setOptionalArg(Boolean.TRUE);
+        maoOption.setRequired(Boolean.FALSE);
+        acidGroup.addOption(maoOption);
+
+
+        Option viewOption = new Option("v", "views-only", false,
+                "Process VIEWs ONLY");
+        viewOption.setRequired(false);
+        acidGroup.addOption(viewOption);
+
+        options.addOptionGroup(acidGroup);
 
         Option syncOption = new Option("s", "sync", false,
                 "For SCHEMA_ONLY, COMMON, and LINKED data strategies.  Drop and Recreate Schema's when different.  Best to use with RO to ensure table/partition drops don't delete data.");
@@ -778,7 +841,6 @@ public class Mirror {
         Option featureOption = new Option("f", "feature", true,
                 "Added Feature(s) Checks: " + Arrays.deepToString(Features.values()));
         // Let's not advertise the TRANSLATE feature yet.
-//                "Added Feature Checks[BAD_ORC_DEF,TRANSLATE(WIP)]");
         featureOption.setValueSeparator(',');
         featureOption.setArgName("features (comma-separated)");
         featureOption.setArgs(20);
@@ -796,6 +858,14 @@ public class Mirror {
         executeOption.setRequired(Boolean.FALSE);
         options.addOption(executeOption);
 
+        Option asmOption = new Option("asm", "avro-schema-migration", false,
+                "Migrate AVRO Schema Files referenced in TBLPROPERTIES by 'avro.schema.url'.  Without migration " +
+                        "it is expected that the file will exist on the other cluster and match the 'url' defined in the " +
+                        "schema DDL.\nIf it's not present, schema creation will FAIL.\nSpecifying this option REQUIRES the " +
+                        "LEFT and RIGHT cluster to be LINKED.\nSee docs: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
+        asmOption.setRequired(Boolean.FALSE);
+        options.addOption(asmOption);
+
         Option dbPrefixOption = new Option("dbp", "db-prefix", true,
                 "Optional: A prefix to add to the RIGHT cluster DB Name. Usually used for testing.");
         dbPrefixOption.setRequired(Boolean.FALSE);
@@ -811,7 +881,6 @@ public class Mirror {
         Option helpOption = new Option("h", "help", false,
                 "Help");
         helpOption.setRequired(Boolean.FALSE);
-//        options.addOption(helpOption);
 
         Option pwOption = new Option("p", "password", true,
                 "Used this in conjunction with '-pkey' to generate the encrypted password that you'll add to the configs for the JDBC connections.");
@@ -822,7 +891,6 @@ public class Mirror {
         Option setupOption = new Option("su", "setup", false,
                 "Setup a default configuration file through a series of questions");
         setupOption.setRequired(Boolean.FALSE);
-//        options.addOption(setupOption);
 
         OptionGroup dbGroup = new OptionGroup();
         dbGroup.addOption(dbOption);

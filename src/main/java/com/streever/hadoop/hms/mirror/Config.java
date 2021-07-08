@@ -9,9 +9,9 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.streever.hadoop.HadoopSession;
 import com.streever.hadoop.HadoopSessionFactory;
 import com.streever.hadoop.HadoopSessionPool;
-import com.streever.hadoop.hms.Mirror;
 import com.streever.hadoop.hms.mirror.feature.Feature;
 import com.streever.hadoop.hms.mirror.feature.Features;
+import com.streever.hadoop.shell.command.CommandReturn;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.log4j.LogManager;
@@ -25,7 +25,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
@@ -47,12 +46,19 @@ public class Config {
 
     private DataStrategy dataStrategy = DataStrategy.SCHEMA_ONLY;
     private HybridConfig hybrid = new HybridConfig();
-    private Boolean migrateACID = Boolean.FALSE;
+    private MigrateACID migrateACID = new MigrateACID();
+    private MigrateVIEW migrateVIEW = new MigrateVIEW();
+
+//    private Boolean migrateACID = Boolean.FALSE;
 
     @JsonIgnore
     private List<String> issues = new ArrayList<String>();
 
     private boolean execute = Boolean.FALSE;
+//    private boolean viewsOnly = Boolean.FALSE;
+
+    private boolean copyAvroSchemaUrls = Boolean.FALSE;
+
     /*
     Used when a schema is transferred and has 'purge' properties for the table.
     When this is 'true', we'll remove the 'purge' option.
@@ -122,6 +128,14 @@ public class Config {
 
     private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
 
+    public boolean convertManaged() {
+        if (getCluster(Environment.LEFT).getLegacyHive() && !getCluster(Environment.RIGHT).getLegacyHive()) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
+    }
+
     public Translator getTranslator() {
         return translator;
     }
@@ -138,12 +152,20 @@ public class Config {
         this.issues = issues;
     }
 
-    public Boolean getMigrateACID() {
+    public MigrateACID getMigrateACID() {
         return migrateACID;
     }
 
-    public void setMigrateACID(Boolean migrateACID) {
+    public void setMigrateACID(MigrateACID migrateACID) {
         this.migrateACID = migrateACID;
+    }
+
+    public MigrateVIEW getMigrateVIEW() {
+        return migrateVIEW;
+    }
+
+    public void setMigrateVIEW(MigrateVIEW migrateVIEW) {
+        this.migrateVIEW = migrateVIEW;
     }
 
     public DataStrategy getDataStrategy() {
@@ -152,6 +174,10 @@ public class Config {
 
     public void setDataStrategy(DataStrategy dataStrategy) {
         this.dataStrategy = dataStrategy;
+        if (this.dataStrategy == DataStrategy.DUMP) {
+            this.getMigrateACID().setOn(Boolean.TRUE);
+            this.getMigrateVIEW().setOn(Boolean.TRUE);
+        }
     }
 
     public HybridConfig getHybrid() {
@@ -167,6 +193,14 @@ public class Config {
             LOG.debug("Dry-run: ON");
         }
         return execute;
+    }
+
+    public boolean isCopyAvroSchemaUrls() {
+        return copyAvroSchemaUrls;
+    }
+
+    public void setCopyAvroSchemaUrls(boolean copyAvroSchemaUrls) {
+        this.copyAvroSchemaUrls = copyAvroSchemaUrls;
     }
 
     public boolean isReadOnly() {
@@ -307,12 +341,82 @@ public class Config {
             System.err.println(issue);
             rtn = Boolean.FALSE;
         }
-        if (migrateACID && !(dataStrategy == DataStrategy.EXPORT_IMPORT || dataStrategy == DataStrategy.HYBRID)) {
-            String issue = "Migrating ACID tables only valid for EXPORT_IMPORT and HYBRID data strategies";
+        if (migrateACID.isOn() && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.DUMP ||
+                dataStrategy == DataStrategy.EXPORT_IMPORT || dataStrategy == DataStrategy.HYBRID)) {
+            String issue = "Migrating ACID tables only valid for SCHEMA_ONLY, DUMP, EXPORT_IMPORT and HYBRID data strategies";
             issues.add(issue);
             System.err.println(issue);
             rtn = Boolean.FALSE;
         }
+        // DUMP does require Execute.
+        if (isExecute() && dataStrategy == DataStrategy.DUMP) {
+            setExecute(Boolean.FALSE);
+        }
+
+        if (dataStrategy == DataStrategy.ACID) {
+            issues.add("The `ACID` strategy is not a valid `hms-mirror` top level strategy.  Use 'HYBRID' to " +
+             " along with the `-ma|-mao` option to address ACID tables.");
+            return Boolean.FALSE;
+        }
+
+        // Test to ensure the clusters are LINKED to support underlying functions.
+        switch (dataStrategy) {
+            case LINKED:
+            case HYBRID:
+            case EXPORT_IMPORT:
+            case SQL:
+                rtn = linkTest();
+                break;
+            case SCHEMA_ONLY:
+                if (this.isCopyAvroSchemaUrls()) {
+                    LOG.info("CopyAVROSchemaUrls is TRUE, so the cluster must be linked to do this.  Testing...");
+                    rtn = linkTest();
+                }
+                break;
+            case DUMP:
+            case COMMON:
+                break;
+            case INTERMEDIATE:
+                issues.add("INTERMEDIATE data strategy not yet implemented.");
+                rtn = Boolean.FALSE;
+                break;
+        }
+        return rtn;
+    }
+
+    protected Boolean linkTest() {
+        Boolean rtn = Boolean.FALSE;
+        HadoopSession session = null;
+        try {
+            session = getCliPool().borrow();
+            LOG.info("Performing Cluster Link Test to validate cluster 'hcfsNamespace' availability.");
+            // TODO: develop a test to copy data between clusters.
+            String leftHCFSNamespace = this.getCluster(Environment.LEFT).getHcfsNamespace();
+            String rightHCFSNamespace = this.getCluster(Environment.RIGHT).getHcfsNamespace();
+
+            // List User Directories on LEFT
+            String leftlsTestLine = "ls " + leftHCFSNamespace + "/user";
+            String rightlsTestLine = "ls " + rightHCFSNamespace + "/user";
+
+            CommandReturn lcr = session.processInput(leftlsTestLine);
+            if (lcr.isError()) {
+                throw new RuntimeException("Link to RIGHT cluster FAILED.\n " + lcr.getError() +
+                        "\nCheck configuration and hcfsNamespace value.  " +
+                        "Check the documentation about Linking clusters: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
+            }
+            CommandReturn rcr = session.processInput(rightlsTestLine);
+            if (rcr.isError()) {
+                throw new RuntimeException("Link to LEFT cluster FAILED.\n " + rcr.getError() +
+                        "\nCheck configuration and hcfsNamespace value.  " +
+                        "Check the documentation about Linking clusters: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
+            }
+            rtn = Boolean.TRUE;
+        } finally {
+            if (session != null)
+                getCliPool().returnSession(session);
+        }
+
+
         return rtn;
     }
 
@@ -329,85 +433,87 @@ public class Config {
         System.out.println("----------------------------------------------------------------");
         Boolean kerb = Boolean.FALSE;
         for (Environment env : Environment.values()) {
-            System.out.println("");
-            System.out.println("Setup " + env.toString() + " cluster....");
-            System.out.println("");
+            if (env.isVisible()) {
+                System.out.println("");
+                System.out.println("Setup " + env.toString() + " cluster....");
+                System.out.println("");
 
 
-            // get their input as a String
-            // Legacy?
-            System.out.print("Is the " + env.toString() + " hive instance Hive 1 or Hive 2? (Y/N)");
-            String response = scanner.next();
-            if (response.equalsIgnoreCase("y")) {
-                config.getCluster(env).setLegacyHive(Boolean.TRUE);
-            } else {
-                config.getCluster(env).setLegacyHive(Boolean.FALSE);
-            }
-
-            // hcfsNamespace
-            System.out.print("What is the namespace for the " + env.toString() + " cluster? ");
-            response = scanner.next();
-            config.getCluster(env).setHcfsNamespace(response);
-
-            // HS2 URI
-            System.out.print("What is the JDBC URI for the " + env.toString() + " cluster? ");
-            response = scanner.next();
-            HiveServer2Config hs2Cfg = config.getCluster(env).getHiveServer2();
-            hs2Cfg.setUri(response);
-
-            // If Kerberized, notify to include hive jar in 'aux_libs'
-            if (!kerb && response.contains("principal")) {
-                // appears the connection is kerberized.
-                System.out.println("----------------------------------------------------------------------------------------");
-                System.out.println("The connection appears to be Kerberized.\n\t\tPlace the 'hive standalone' driver in '$HOME/.hms-mirror/aux_libs'");
-                System.out.println("\tSPECIAL RUN INSTRUCTIONS for Legacy Kerberos Connections.");
-                System.out.println("\thttps://github.com/dstreev/hms-mirror#running-against-a-legacy-non-cdp-kerberized-hiveserver2");
-                System.out.println("----------------------------------------------------------------------------------------");
-                kerb = Boolean.TRUE;
-            } else if (response.contains("principal")) {
-                System.out.println("----------------------------------------------------------------------------------------");
-                System.out.println("The connection ALSO appears to be Kerberized.\n");
-                System.out.println(" >> Will your Kerberos Ticket be TRUSTED for BOTH JDBC Kerberos Connections? (Y/N)");
-                response = scanner.next();
-                if (!response.equalsIgnoreCase("y")) {
-                    throw new RuntimeException("Both JDBC connection must trust your kerberos ticket.");
+                // get their input as a String
+                // Legacy?
+                System.out.print("Is the " + env.toString() + " hive instance Hive 1 or Hive 2? (Y/N)");
+                String response = scanner.next();
+                if (response.equalsIgnoreCase("y")) {
+                    config.getCluster(env).setLegacyHive(Boolean.TRUE);
+                } else {
+                    config.getCluster(env).setLegacyHive(Boolean.FALSE);
                 }
-                System.out.println(" >> Are both clusters running the same version of Hadoop/Hive? (Y/N)");
+
+                // hcfsNamespace
+                System.out.print("What is the namespace for the " + env.toString() + " cluster? ");
                 response = scanner.next();
-                if (!response.equalsIgnoreCase("y")) {
-                    throw new RuntimeException("Both JDBC connections must be running the same version.");
+                config.getCluster(env).setHcfsNamespace(response);
+
+                // HS2 URI
+                System.out.print("What is the JDBC URI for the " + env.toString() + " cluster? ");
+                response = scanner.next();
+                HiveServer2Config hs2Cfg = config.getCluster(env).getHiveServer2();
+                hs2Cfg.setUri(response);
+
+                // If Kerberized, notify to include hive jar in 'aux_libs'
+                if (!kerb && response.contains("principal")) {
+                    // appears the connection is kerberized.
+                    System.out.println("----------------------------------------------------------------------------------------");
+                    System.out.println("The connection appears to be Kerberized.\n\t\tPlace the 'hive standalone' driver in '$HOME/.hms-mirror/aux_libs'");
+                    System.out.println("\tSPECIAL RUN INSTRUCTIONS for Legacy Kerberos Connections.");
+                    System.out.println("\thttps://github.com/dstreev/hms-mirror#running-against-a-legacy-non-cdp-kerberized-hiveserver2");
+                    System.out.println("----------------------------------------------------------------------------------------");
+                    kerb = Boolean.TRUE;
+                } else if (response.contains("principal")) {
+                    System.out.println("----------------------------------------------------------------------------------------");
+                    System.out.println("The connection ALSO appears to be Kerberized.\n");
+                    System.out.println(" >> Will your Kerberos Ticket be TRUSTED for BOTH JDBC Kerberos Connections? (Y/N)");
+                    response = scanner.next();
+                    if (!response.equalsIgnoreCase("y")) {
+                        throw new RuntimeException("Both JDBC connection must trust your kerberos ticket.");
+                    }
+                    System.out.println(" >> Are both clusters running the same version of Hadoop/Hive? (Y/N)");
+                    response = scanner.next();
+                    if (!response.equalsIgnoreCase("y")) {
+                        throw new RuntimeException("Both JDBC connections must be running the same version.");
+                    }
+                } else {
+                    //    get jarFile location.
+                    //    get username
+                    //    get password
+                    System.out.println("----------------------------------------------------------------------------------------");
+                    System.out.println("What is the location (local) of the 'hive standalone' jar file?");
+                    response = scanner.next();
+                    hs2Cfg.setJarFile(response);
+                    System.out.println("Connection username?");
+                    response = scanner.next();
+                    hs2Cfg.getConnectionProperties().put("user", response);
+                    System.out.println("Connection password?");
+                    response = scanner.next();
+                    hs2Cfg.getConnectionProperties().put("password", response);
                 }
-            } else {
-                //    get jarFile location.
-                //    get username
-                //    get password
-                System.out.println("----------------------------------------------------------------------------------------");
-                System.out.println("What is the location (local) of the 'hive standalone' jar file?");
-                response = scanner.next();
-                hs2Cfg.setJarFile(response);
-                System.out.println("Connection username?");
-                response = scanner.next();
-                hs2Cfg.getConnectionProperties().put("user", response);
-                System.out.println("Connection password?");
-                response = scanner.next();
-                hs2Cfg.getConnectionProperties().put("password", response);
-            }
-            // Partition Discovery
-            // Only on the RIGHT cluster.
-            if (env == Environment.RIGHT) {
-                PartitionDiscovery pd = config.getCluster(env).getPartitionDiscovery();
-                if (!config.getCluster(env).getLegacyHive()) {
-                    // Can only auto-discover in Hive 3
-                    System.out.println("Set created tables to 'auto-discover' partitions?(Y/N)");
+                // Partition Discovery
+                // Only on the RIGHT cluster.
+                if (env == Environment.RIGHT) {
+                    PartitionDiscovery pd = config.getCluster(env).getPartitionDiscovery();
+                    if (!config.getCluster(env).getLegacyHive()) {
+                        // Can only auto-discover in Hive 3
+                        System.out.println("Set created tables to 'auto-discover' partitions?(Y/N)");
+                        response = scanner.next();
+                        if (response.equalsIgnoreCase("y")) {
+                            pd.setAuto(Boolean.TRUE);
+                        }
+                    }
+                    System.out.println("Run 'MSCK' after table creation?(Y/N)");
                     response = scanner.next();
                     if (response.equalsIgnoreCase("y")) {
-                        pd.setAuto(Boolean.TRUE);
+                        pd.setInitMSCK(Boolean.TRUE);
                     }
-                }
-                System.out.println("Run 'MSCK' after table creation?(Y/N)");
-                response = scanner.next();
-                if (response.equalsIgnoreCase("y")) {
-                    pd.setInitMSCK(Boolean.TRUE);
                 }
             }
         }

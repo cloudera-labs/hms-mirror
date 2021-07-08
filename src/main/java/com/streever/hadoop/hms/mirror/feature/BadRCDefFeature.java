@@ -1,5 +1,6 @@
 package com.streever.hadoop.hms.mirror.feature;
 
+import com.streever.hadoop.hms.mirror.EnvironmentTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -17,6 +18,13 @@ public class BadRCDefFeature implements Feature {
     private final String RC_INPUT_SERDE = "  'org.apache.hadoop.hive.ql.io.RCFileInputFormat'";
     private final String RC_OUTPUT_SERDE = "  'org.apache.hadoop.hive.ql.io.RCFileOutputFormat'";
     private static Logger LOG = LogManager.getLogger(BadRCDefFeature.class);
+
+    @Override
+    public EnvironmentTable fixSchema(EnvironmentTable envTable) {
+        List<String> fixed = fixSchema(envTable.getDefinition());
+        envTable.setDefinition(fixed);
+        return envTable;
+    }
 
     @Override
     /**
@@ -51,7 +59,6 @@ public class BadRCDefFeature implements Feature {
                     }
                 }
             }
-//            }
         }
         return rtn;
     }

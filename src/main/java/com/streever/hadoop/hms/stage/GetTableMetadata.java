@@ -42,15 +42,13 @@ public class GetTableMetadata implements Callable<ReturnStatus> {
         ReturnStatus rtn = new ReturnStatus();
         LOG.debug("Getting table definition for: " + dbMirror.getName() + "." + tblMirror.getName());
         try {
-            config.getCluster(Environment.LEFT).getTableDefinition(dbMirror.getName(), tblMirror);
+            config.getCluster(Environment.LEFT).getTableDefinition(config, dbMirror.getName(), tblMirror);
             switch (config.getDataStrategy()) {
                 case DUMP:
                     successful = Boolean.TRUE;
                     break;
                 default:
-                    if (config.isSync()) {
-                        config.getCluster(Environment.RIGHT).getTableDefinition(config.getResolvedDB(dbMirror.getName()), tblMirror);
-                    }
+                    config.getCluster(Environment.RIGHT).getTableDefinition(config, config.getResolvedDB(dbMirror.getName()), tblMirror);
             }
         } catch (SQLException throwables) {
             successful = Boolean.FALSE;

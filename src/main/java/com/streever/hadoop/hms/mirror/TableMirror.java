@@ -3,7 +3,6 @@ package com.streever.hadoop.hms.mirror;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streever.hadoop.hms.mirror.feature.Feature;
 import com.streever.hadoop.hms.util.TableUtils;
-import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;
@@ -17,9 +16,17 @@ public class TableMirror {
     private String dbName;
     private String name;
     private Date start = new Date();
+    /*
+    Use to indicate the tblMirror should be removed from processing, post setup.
+     */
+    @JsonIgnore
+    private boolean remove = Boolean.FALSE;
+    @JsonIgnore
+    private String removeReason = null;
+
     private DateFormat tdf = new SimpleDateFormat("HH:mm:ss.SSS");
     @JsonIgnore
-    private Map<String[], Object> actions = new LinkedHashMap<String[], Object>();
+    private List<Marker> steps = new ArrayList<Marker>();
 
     private DataStrategy strategy = null;
 
@@ -37,19 +44,17 @@ public class TableMirror {
     @JsonIgnore
     private Long stageDuration = 0l;
 
-    private List<String> issues = new ArrayList<String>();
-    private Map<String, String> propAdd = new TreeMap<String, String>();
-    private List<String> sql = new ArrayList<String>();
-
-    // There are two environments (RIGHT and LEFT)
-    private Map<Environment, List<String>> tableDefinitions = new TreeMap<Environment, List<String>>();
-    private Map<Environment, Boolean> tablePartitioned = new TreeMap<Environment, Boolean>();
-    private Map<Environment, List<String>> tablePartitions = new TreeMap<Environment, List<String>>();
-    private Map<Environment, List<String>> tableActions = new TreeMap<Environment, List<String>>();
+    private Map<Environment, EnvironmentTable> environments = new TreeMap<Environment, EnvironmentTable>();
 
     public String getName() {
         return name;
     }
+
+    public String getName(Environment environment) {
+        EnvironmentTable et = getEnvironmentTable(environment);
+        return et.getName();
+    }
+
 
     public String getDbName() {
         return dbName;
@@ -57,6 +62,22 @@ public class TableMirror {
 
     public void setDbName(String dbName) {
         this.dbName = dbName;
+    }
+
+    public boolean isRemove() {
+        return remove;
+    }
+
+    public void setRemove(boolean remove) {
+        this.remove = remove;
+    }
+
+    public String getRemoveReason() {
+        return removeReason;
+    }
+
+    public void setRemoveReason(String removeReason) {
+        this.removeReason = removeReason;
     }
 
     public PhaseState getPhaseState() {
@@ -75,13 +96,10 @@ public class TableMirror {
         this.stageDuration = stageDuration;
     }
 
-    public TableMirror() {
-    }
-
     public TableMirror(String dbName, String tablename) {
         this.dbName = dbName;
         this.name = tablename;
-        addAction("init", null);
+        addStep("init", null);
     }
 
     public DataStrategy getStrategy() {
@@ -97,6 +115,10 @@ public class TableMirror {
         if (currentPhase >= totalPhaseCount) {
             totalPhaseCount = currentPhase + 1;
         }
+    }
+
+    public Map<Environment, EnvironmentTable> getEnvironments() {
+        return environments;
     }
 
     public String getProgressIndicator(int width, int scale) {
@@ -130,248 +152,1136 @@ public class TableMirror {
         incPhase();
     }
 
-    public void addAction(String key, Object value) {
-//        String tKey = tdf.format(new Date()) + " " + key;
-        String[] keySet = new String[2];
+    public void addStep(String key, Object value) {
         Date now = new Date();
         Long elapsed = now.getTime() - start.getTime();
         start = now; // reset
         BigDecimal secs = new BigDecimal(elapsed).divide(new BigDecimal(1000));///1000
         DecimalFormat decf = new DecimalFormat("#,###.00");
         String secStr = decf.format(secs);
-        keySet[0] = secStr;
-        keySet[1] = key;
-//        String tKey = "[" + StringUtils.leftPad(secStr, 6, " ") +  "]" + key;
-        actions.put(keySet, value);
+        steps.add(new Marker(secStr, key, value));
     }
 
-    public Map<String[], Object> getActions() {
-        return actions;
+    public List<Marker> getSteps() {
+        return steps;
+    }
+
+    public EnvironmentTable getEnvironmentTable(Environment environment) {
+        EnvironmentTable et = environments.get(environment);
+        if (et == null) {
+            et = new EnvironmentTable();
+            environments.put(environment, et);
+        }
+        return et;
     }
 
     @JsonIgnore
-    public boolean isThereAnIssue() {
-        return issues.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
+    public boolean isThereAnIssue(Environment environment) {
+        EnvironmentTable et = getEnvironmentTable(environment);
+        return et.getIssues().size() > 0 ? Boolean.TRUE : Boolean.FALSE;
     }
 
-    public boolean isThereSql() {
-        return sql.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
+    public boolean isThereSql(Environment environment) {
+        EnvironmentTable et = getEnvironmentTable(environment);
+        return et.getSql().size() > 0 ? Boolean.TRUE : Boolean.FALSE;
     }
 
-    public boolean whereTherePropsAdded() {
-        return propAdd.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
+    public boolean whereTherePropsAdded(Environment environment) {
+        EnvironmentTable et = getEnvironmentTable(environment);
+        return et.getAddProperties().size() > 0 ? Boolean.TRUE : Boolean.FALSE;
     }
 
-    public List<String> getIssues() {
-        return issues;
+    public List<String> getIssues(Environment environment) {
+        return getEnvironmentTable(environment).getIssues();
     }
 
-    public Map<String, String> getPropAdd() {
-        return propAdd;
+    public Map<String, String> getPropAdd(Environment environment) {
+        EnvironmentTable et = getEnvironmentTable(environment);
+        return et.getAddProperties();
     }
 
-    public List<String> getSql() {
-        return sql;
+    public List<Pair> getSql(Environment environment) {
+        EnvironmentTable et = getEnvironmentTable(environment);
+        return et.getSql();
     }
 
-    public void addIssue(String issue) {
+    public void addIssue(Environment environment, String issue) {
         if (issue != null) {
             String scrubbedIssue = issue.replace("\n", "<br/>");
-            getIssues().add(scrubbedIssue);
+            getIssues(environment).add(scrubbedIssue);
         }
     }
 
-    public void addSql(String sqlOutput) {
-        getSql().add(sqlOutput);
+    public Boolean hasIssues() {
+        Boolean rtn = Boolean.FALSE;
+        for (Map.Entry<Environment, EnvironmentTable> entry : environments.entrySet()) {
+            if (entry.getValue().getIssues().size() > 0)
+                rtn = Boolean.TRUE;
+        }
+        return rtn;
     }
 
-    public void addProp(String prop, String value) {
-        getPropAdd().put(prop, value);
+    public Boolean hasActions() {
+        Boolean rtn = Boolean.FALSE;
+        for (Map.Entry<Environment, EnvironmentTable> entry : environments.entrySet()) {
+            if (entry.getValue().getActions().size() > 0)
+                rtn = Boolean.TRUE;
+        }
+        return rtn;
+    }
+
+    public Boolean hasAddedProperties() {
+        Boolean rtn = Boolean.FALSE;
+        for (Map.Entry<Environment, EnvironmentTable> entry : environments.entrySet()) {
+            if (entry.getValue().getAddProperties().size() > 0)
+                rtn = Boolean.TRUE;
+        }
+        return rtn;
     }
 
     public void setName(String name) {
         this.name = name;
     }
 
-    public void setPropAdd(Map<String, String> propAdd) {
-        this.propAdd = propAdd;
+    private Boolean buildoutDUMPDefinition(Config config, DBMirror dbMirror) {
+//        Boolean rtn = Boolean.FALSE;
+        EnvironmentTable let = null;
+        EnvironmentTable ret = null;
+        CopySpec copySpec = null;
+
+        let = getEnvironmentTable(Environment.LEFT);
+        // Standardize the LEFT def.
+        // Remove DB from CREATE
+        TableUtils.stripDatabase(let.getName(), let.getDefinition());
+
+        // If not legacy, remove location from ACID tables.
+        if (!config.getCluster(Environment.LEFT).getLegacyHive() &&
+                TableUtils.isACID(let.getName(), let.getDefinition())) {
+            TableUtils.stripLocation(let.getName(), let.getDefinition());
+        }
+        return Boolean.TRUE;
     }
 
-    public Map<Environment, List<String>> getTableDefinitions() {
-        return tableDefinitions;
-    }
+    private Boolean buildoutSCHEMA_ONLYDefinition(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+        EnvironmentTable let = null;
+        EnvironmentTable ret = null;
+        CopySpec copySpec = null;
 
-    public void setTableDefinitions(Map<Environment, List<String>> tableDefinitions) {
-        this.tableDefinitions = tableDefinitions;
-    }
+        let = getEnvironmentTable(Environment.LEFT);
+        ret = getEnvironmentTable(Environment.RIGHT);
 
-    public Map<Environment, Boolean> getTablePartitioned() {
-        return tablePartitioned;
-    }
+        copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
+        // Swap out the namespace of the LEFT with the RIGHT.
+        copySpec.setReplaceLocation(Boolean.TRUE);
+        if (config.convertManaged())
+            copySpec.setUpgrade(Boolean.TRUE);
+        if (!config.isReadOnly() || !config.isSync()) {
+            copySpec.setTakeOwnership(Boolean.TRUE);
+        } else if (copySpec.getUpgrade()) {
+            ret.addIssue("Ownership (PURGE Option) not set because of either: `sync` or `ro|read-only` was specified in the config.");
+        }
+        if (config.isReadOnly()) {
+            copySpec.setTakeOwnership(Boolean.FALSE);
+        }
 
-    public void setTablePartitioned(Map<Environment, Boolean> tablePartitioned) {
-        this.tablePartitioned = tablePartitioned;
-    }
+        if (config.isSync()) {
+            // We assume that the 'definitions' are only there is the
+            //     table exists.
+            if (!let.getExists() && ret.getExists()) {
+                // If left is empty and right is not, DROP RIGHT.
+                ret.addIssue("Schema doesn't exist in 'source'.  Will be DROPPED.");
+                ret.setCreateStrategy(CreateStrategy.DROP);
+            } else if (let.getExists() && !ret.getExists()) {
+                // If left is defined and right is not, CREATE RIGHT.
+                ret.addIssue("Schema missing, will be CREATED");
+                ret.setCreateStrategy(CreateStrategy.CREATE);
+            } else if (let.getExists() && ret.getExists()) {
+                // If left and right, check schema change and replace if necessary.
+                // Compare Schemas.
+                if (schemasEqual(Environment.LEFT, Environment.RIGHT)) {
+                    ret.addIssue("Schema exists AND matches.  No Actions Necessary.");
+                    ret.setCreateStrategy(CreateStrategy.LEAVE);
+                } else {
+                    if (TableUtils.isExternalPurge(ret)) {
+                        ret.addIssue("Schema exists AND DOESN'T match.  But the 'RIGHT' table is has a PURGE option set. " +
+                                "We can NOT safely replace the table without compromising the data. No action will be taken.");
+                        ret.setCreateStrategy(CreateStrategy.LEAVE);
+                        return Boolean.FALSE;
+                    } else {
+                        ret.addIssue("Schema exists AND DOESN'T match.  It will be REPLACED (DROPPED and RECREATED).");
+                        ret.setCreateStrategy(CreateStrategy.REPLACE);
+                    }
+                }
+            }
+            copySpec.setTakeOwnership(Boolean.FALSE);
+        } else {
+            if (ret.getExists()) {
+                if (TableUtils.isView(ret)) {
+                    ret.addIssue("View exists already.  Will REPLACE.");
+                    ret.setCreateStrategy(CreateStrategy.REPLACE);
+                } else {
+                    // Already exists, no action.
+                    ret.addIssue("Schema exists already, no action.  If you wish to rebuild the schema, " +
+                            "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
+                    ret.setCreateStrategy(CreateStrategy.LEAVE);
+                    return Boolean.FALSE;
+                }
+            } else {
+                ret.addIssue("Schema will be created");
+                ret.setCreateStrategy(CreateStrategy.CREATE);
+            }
+        }
 
-    public Map<Environment, List<String>> getTablePartitions() {
-        return tablePartitions;
-    }
+        // For ACID tables, we need to remove the location.
+        // Hive 3 doesn't allow this to be set via SQL Create.
+        if (TableUtils.isACID(let)) {
+            copySpec.setStripLocation(Boolean.TRUE);
+        }
 
-    public void setTablePartitions(Map<Environment, List<String>> tablePartitions) {
-        this.tablePartitions = tablePartitions;
-    }
+        // Rebuild Target from Source.
+        if (!TableUtils.isACID(let) || (TableUtils.isACID(let) && config.getMigrateACID().isOn())) {
+            rtn = buildTableSchema(copySpec);
+        } else {
+            let.addIssue(TableUtils.ACID_NOT_ON);
+            ret.setCreateStrategy(CreateStrategy.NOTHING);
+            rtn = Boolean.FALSE;
+        }
 
-    /*
-    A custom list copy to address escape characters that are dropped with
-    the lists native addAll method.
-    
-    Removed method.  Fixed targeted issue but broke much more.
-     */
-    protected List<String> listCopy(List<String> orig) {
-        List<String> rtn = new ArrayList<String>();
-        for (String line: orig) {
-            String cLine = StringEscapeUtils.escapeJava(line);
-            rtn.add(cLine);
+        // If not legacy, remove location from ACID tables.
+        if (rtn && !config.getCluster(Environment.LEFT).getLegacyHive() &&
+                TableUtils.isACID(let.getName(), let.getDefinition())) {
+            TableUtils.stripLocation(let.getName(), let.getDefinition());
         }
         return rtn;
     }
 
-    public boolean buildUpperSchema(Config config, Boolean takeOwnership) {
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        List<String> lowerTD = tableDefinitions.get(Environment.LEFT);
-//        List<String> upperTD = null; //new ArrayList<String>();
-//        // Copy lower table definition to upper table def.
-//        upperTD = listCopy(lowerTD);
-        List<String> upperTD = new ArrayList<String>();
-//        // Copy lower table definition to upper table def.
-        upperTD.addAll(lowerTD);
+    private Boolean buildoutLINKEDDefinition(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+        EnvironmentTable let = null;
+        EnvironmentTable ret = null;
+        CopySpec copySpec = null;
 
-        if (TableUtils.isHiveNative(this.getName(), upperTD)) {
-            // Rules
-            // 1. Strip db from create state.  It's broken anyway with the way
-            //      the quotes are.  And we're setting the target db in the context anyways.
-            TableUtils.stripDatabase(this.getName(), upperTD);
+        let = getEnvironmentTable(Environment.LEFT);
+        ret = getEnvironmentTable(Environment.RIGHT);
 
-            // 1. If Managed, convert to EXTERNAL
-            // When coming from legacy and going to non-legacy (Hive 3).
-            Boolean converted = Boolean.FALSE;
-            if (config.getCluster(Environment.LEFT).getLegacyHive() && !config.getCluster(Environment.RIGHT).getLegacyHive()) {
-                converted = TableUtils.makeExternal(this.getName(), upperTD);
-            }
+        copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
+        // Can't LINK ACID tables.
+        if (TableUtils.isHiveNative(let) && !TableUtils.isACID(let)) {
+            // Swap out the namespace of the LEFT with the RIGHT.
+            copySpec.setReplaceLocation(Boolean.FALSE);
+            if (config.convertManaged())
+                copySpec.setUpgrade(Boolean.TRUE);
+            // LINKED doesn't own the data.
+            copySpec.setTakeOwnership(Boolean.FALSE);
 
-            // 2. Set mirror stage one flag
-            addProp(MirrorConf.HMS_MIRROR_METADATA_FLAG, df.format(new Date()));
-
-            // 3. setting legacy flag - At a later date, we'll convert this to
-            //     'external.table.purge'='true'
-            if (converted) {
-                // If we want the new schema to take over the responsibility of the data. (purging)
-                if (!takeOwnership) {
-                    TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString(), upperTD);
-                    addProp(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
-                    addIssue("Schema was Legacy Managed or can be purged. The new schema does NOT have the " +
-                            "external.table.purge' flag set.  This must be done manually.");
-                    // Provide detail to detach LEFT cluster table from data.
-                    if (TableUtils.isLegacyManaged(config.getCluster(Environment.LEFT), getName(),
-                            getTableDefinition(Environment.LEFT))) {
-                        String extConversionSql = MessageFormat.format(MirrorConf.ADD_TBL_PROP, getDbName(),
-                                getName(), "EXTERNAL", "true");
-                        this.addTableAction(Environment.LEFT, extConversionSql);
-                        String extConversionSql2 = MessageFormat.format(MirrorConf.ADD_TBL_PROP,
-                                config.getResolvedDB(getDbName()), getName(), MirrorConf.EXTERNAL_TABLE_PURGE, "true");
-                        this.addTableAction(Environment.RIGHT, extConversionSql2);
-
-                    } else if (TableUtils.isExternalPurge(getName(), getTableDefinition(Environment.LEFT))) {
-                        String extConversionSql = MessageFormat.format(MirrorConf.REMOVE_TBL_PROP, getDbName(),
-                                getName(), MirrorConf.EXTERNAL_TABLE_PURGE);
-                        this.addTableAction(Environment.LEFT, extConversionSql);
+            if (config.isSync()) {
+                // We assume that the 'definitions' are only there is the
+                //     table exists.
+                if (!let.getExists() && ret.getExists()) {
+                    // If left is empty and right is not, DROP RIGHT.
+                    ret.addIssue("Schema doesn't exist in 'source'.  Will be DROPPED.");
+                    ret.setCreateStrategy(CreateStrategy.DROP);
+                } else if (let.getExists() && !ret.getExists()) {
+                    // If left is defined and right is not, CREATE RIGHT.
+                    ret.addIssue("Schema missing, will be CREATED");
+                    ret.setCreateStrategy(CreateStrategy.CREATE);
+                } else if (let.getExists() && ret.getExists()) {
+                    // If left and right, check schema change and replace if necessary.
+                    // Compare Schemas.
+                    if (schemasEqual(Environment.LEFT, Environment.RIGHT)) {
+                        ret.addIssue("Schema exists AND matches.  No Actions Necessary.");
+                        ret.setCreateStrategy(CreateStrategy.LEAVE);
+                    } else {
+                        if (TableUtils.isExternalPurge(ret)) {
+                            ret.addIssue("Schema exists AND DOESN'T match.  But the 'RIGHT' table is has a PURGE option set. " +
+                                    "We can NOT safely replace the table without compromising the data. No action will be taken.");
+                            ret.setCreateStrategy(CreateStrategy.LEAVE);
+                            return Boolean.FALSE;
+                        } else {
+                            ret.addIssue("Schema exists AND DOESN'T match.  It will be REPLACED (DROPPED and RECREATED).");
+                            ret.setCreateStrategy(CreateStrategy.REPLACE);
+                        }
                     }
+                }
+                copySpec.setTakeOwnership(Boolean.FALSE);
+            } else {
+                if (ret.getExists()) {
+                    // Already exists, no action.
+                    ret.addIssue("Schema exists already, no action. If you wish to rebuild the schema, " +
+                            "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
+                    ret.setCreateStrategy(CreateStrategy.LEAVE);
                 } else {
-//                TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString(), upperTD);
-                    addProp(MirrorConf.EXTERNAL_TABLE_PURGE, converted.toString());
-                    // We need to add actions to the LEFT cluster to disable legacy managed behavior
-                    // When there is a shared dataset
-                    if (config.getDataStrategy() == DataStrategy.COMMON || config.getDataStrategy() == DataStrategy.LINKED) {
-                        this.addTableAction(Environment.LEFT, "You Need to detach table ownership from filesystem in order to prevent accidental deletion of data that is now controlled by the RIGHT cluster.");
-                        String extConversionSql = MessageFormat.format(MirrorConf.ADD_TBL_PROP, getDbName(), getName(), "EXTERNAL", "true");
-                        this.addTableAction(Environment.LEFT, "SQL: " + extConversionSql);
+                    ret.addIssue("Schema will be created");
+                    ret.setCreateStrategy(CreateStrategy.CREATE);
+                }
+            }
+            // Rebuild Target from Source.
+            rtn = buildTableSchema(copySpec);
+        } else {
+            let.addIssue("Can't LINK ACID tables");
+            ret.setCreateStrategy(CreateStrategy.NOTHING);
+        }
+        return rtn;
+    }
+
+    private Boolean buildoutCOMMONDefinition(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+        EnvironmentTable let = null;
+        EnvironmentTable ret = null;
+        CopySpec copySpec = null;
+
+        let = getEnvironmentTable(Environment.LEFT);
+        ret = getEnvironmentTable(Environment.RIGHT);
+
+        copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
+        // Can't LINK ACID tables.
+        if (TableUtils.isHiveNative(let) && !TableUtils.isACID(let)) {
+            // Swap out the namespace of the LEFT with the RIGHT.
+            copySpec.setReplaceLocation(Boolean.FALSE);
+            if (config.convertManaged())
+                copySpec.setUpgrade(Boolean.TRUE);
+            // COMMON owns the data unless readonly specified.
+            if (!config.isReadOnly())
+                copySpec.setTakeOwnership(Boolean.TRUE);
+
+            if (config.isSync()) {
+                // We assume that the 'definitions' are only there is the
+                //     table exists.
+                if (!let.getExists() && ret.getExists()) {
+                    // If left is empty and right is not, DROP RIGHT.
+                    ret.addIssue("Schema doesn't exist in 'source'.  Will be DROPPED.");
+                    ret.setCreateStrategy(CreateStrategy.DROP);
+                } else if (let.getExists() && !ret.getExists()) {
+                    // If left is defined and right is not, CREATE RIGHT.
+                    ret.addIssue("Schema missing, will be CREATED");
+                    ret.setCreateStrategy(CreateStrategy.CREATE);
+                } else if (let.getExists() && ret.getExists()) {
+                    // If left and right, check schema change and replace if necessary.
+                    // Compare Schemas.
+                    if (schemasEqual(Environment.LEFT, Environment.RIGHT)) {
+                        ret.addIssue("Schema exists AND matches.  No Actions Necessary.");
+                        ret.setCreateStrategy(CreateStrategy.LEAVE);
+                    } else {
+                        if (TableUtils.isExternalPurge(ret)) {
+                            ret.addIssue("Schema exists AND DOESN'T match.  But the 'RIGHT' table is has a PURGE option set. " +
+                                    "We can NOT safely replace the table without compromising the data. No action will be taken.");
+                            ret.setCreateStrategy(CreateStrategy.LEAVE);
+                            return Boolean.FALSE;
+                        } else {
+                            ret.addIssue("Schema exists AND DOESN'T match.  It will be REPLACED (DROPPED and RECREATED).");
+                            ret.setCreateStrategy(CreateStrategy.REPLACE);
+                        }
                     }
                 }
-            }
-
-
-            // 4. identify this table as being converted by hms-mirror
-//        TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, Boolean.TRUE.toString(), upperTD);
-            addProp(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, converted.toString());
-
-            // 5. Strip stat properties
-            TableUtils.removeTblProperty("COLUMN_STATS_ACCURATE", upperTD);
-            TableUtils.removeTblProperty("numFiles", upperTD);
-            TableUtils.removeTblProperty("numRows", upperTD);
-            TableUtils.removeTblProperty("rawDataSize", upperTD);
-            TableUtils.removeTblProperty("totalSize", upperTD);
-            TableUtils.removeTblProperty("discover.partitions", upperTD);
-
-            // 6. Set 'discover.partitions' if config and non-acid
-            if (!config.getCluster(Environment.RIGHT).getLegacyHive() &&
-                    !TableUtils.isACID(getName(), upperTD) &&
-                    config.getCluster(Environment.RIGHT).getPartitionDiscovery().getAuto()) {
-                addProp(MirrorConf.DISCOVER_PARTITIONS, converted.toString());
-            }
-
-
-            // 5. Location Adjustments
-            //    Since we are looking at the same data as the original, we're not changing this now.
-            //    Any changes to data location are a part of stage-2 (STORAGE).
-
-            // 6. Go through the features, if any.
-            if (config.getFeatureList() != null) {
-                for (Feature feature : config.getFeatureList()) {
-                    upperTD = feature.fixSchema(upperTD);
+                // With sync, don't own data.
+                copySpec.setTakeOwnership(Boolean.FALSE);
+            } else {
+                if (ret.getExists()) {
+                    // Already exists, no action.
+                    ret.addIssue("Schema exists already, no action. If you wish to rebuild the schema, " +
+                            "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
+                    ret.setCreateStrategy(CreateStrategy.LEAVE);
+                } else {
+                    ret.addIssue("Schema will be created");
+                    ret.setCreateStrategy(CreateStrategy.CREATE);
                 }
             }
-
-            // Add props to definition.
-            if (whereTherePropsAdded()) {
-                Set<String> keys = getPropAdd().keySet();
-                for (String key : keys) {
-                    TableUtils.upsertTblProperty(key, getPropAdd().get(key), upperTD);
-                }
-            }
+            // Rebuild Target from Source.
+            rtn = buildTableSchema(copySpec);
         } else {
-            // This is a connector table.  IE: HBase, Kafka, JDBC, etc.  We just past it through.
-            this.addIssue("This is not a NATIVE Hive table.  It will be translated 'AS-IS'.  If the libraries or dependencies required for this table definition are not available on the target cluster, the 'create' statement may fail.");
+            let.addIssue("Can't use COMMON for ACID tables");
+            ret.setCreateStrategy(CreateStrategy.NOTHING);
+        }
+        return rtn;
+    }
+
+    /*
+    The SQL Strategy uses LINKED clusters and is only valid against Legacy Managed and EXTERNAL
+    tables.  NO ACID tables.
+
+    - We create the same schema in the 'target' cluster for the TARGET.
+    - We need the create and LINKED a shadow table to the LOWER clusters data.
+
+    TODO: buildoutSQLDefinition
+     */
+    private Boolean buildoutSQLDefinition(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+
+        EnvironmentTable let = null;
+        EnvironmentTable ret = null;
+        EnvironmentTable set = null;
+        CopySpec copySpec = null;
+
+        let = getEnvironmentTable(Environment.LEFT);
+        ret = getEnvironmentTable(Environment.RIGHT);
+        set = getEnvironmentTable(Environment.SHADOW);
+
+        if (TableUtils.isACID(let)) {
+            let.addIssue("ACID table migration NOT support in this scenario.");
+            return Boolean.FALSE;
         }
 
-        this.setTableDefinition(Environment.RIGHT, upperTD);
+        if (config.isSync()) {
+            let.addIssue("Sync NOT supported in the scenario.");
+            return Boolean.FALSE;
+        }
 
+        // Create a 'shadow' table definition on right cluster pointing to the left data.
+        copySpec = new CopySpec(config, Environment.LEFT, Environment.SHADOW);
+
+        if (config.convertManaged())
+            copySpec.setUpgrade(Boolean.TRUE);
+
+        // Don't claim data.  It will be in the LEFT cluster, so the LEFT owns it.
+        copySpec.setTakeOwnership(Boolean.FALSE);
+
+        // Create table with alter name in RIGHT cluster.
+        copySpec.setTableNamePrefix(config.getTransfer().getTransferPrefix());
+
+        if (ret.getExists()) {
+            // Already exists, no action.
+            ret.addIssue("Schema exists already, no action.  If you wish to rebuild the schema, " +
+                    "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
+            ret.setCreateStrategy(CreateStrategy.LEAVE);
+        } else {
+            ret.addIssue("Schema will be created");
+            ret.setCreateStrategy(CreateStrategy.CREATE);
+        }
+
+        // Build Shadow from Source.
+        rtn = buildTableSchema(copySpec);
+
+        // Create final table in right.
+        copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
+
+        // Swap out the namespace of the LEFT with the RIGHT.
+        copySpec.setReplaceLocation(Boolean.TRUE);
+        if (config.convertManaged())
+            copySpec.setUpgrade(Boolean.TRUE);
+        if (config.isReadOnly()) {
+            copySpec.setTakeOwnership(Boolean.FALSE);
+        } else {
+            copySpec.setTakeOwnership(Boolean.TRUE);
+        }
+
+        if (ret.getExists()) {
+            // Already exists, no action.
+            ret.addIssue("Schema exists already, no action.  If you wish to rebuild the schema, " +
+                    "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
+            ret.setCreateStrategy(CreateStrategy.LEAVE);
+        } else {
+            ret.addIssue("Schema will be created");
+            ret.setCreateStrategy(CreateStrategy.CREATE);
+        }
+
+        // Rebuild Target from Source.
+        rtn = buildTableSchema(copySpec);
+
+        return rtn;
+    }
+
+    /*
+     */
+    private Boolean buildoutEXPORT_IMPORTDefinition(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+        EnvironmentTable let = null;
+        EnvironmentTable ret = null;
+        CopySpec copySpec = null;
+
+        let = getEnvironmentTable(Environment.LEFT);
+        ret = getEnvironmentTable(Environment.RIGHT);
+
+        if (!TableUtils.isHiveNative(let) || TableUtils.isACID(let)) {
+            let.addIssue("Can't process ACID table, VIEWs, or Non Native Hive Tables.");
+            return Boolean.FALSE;
+        }
+
+        copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
+        // Swap out the namespace of the LEFT with the RIGHT.
+        copySpec.setReplaceLocation(Boolean.TRUE);
+        if (config.convertManaged())
+            copySpec.setUpgrade(Boolean.TRUE);
+        if (!config.isReadOnly() || !config.isSync()) {
+            copySpec.setTakeOwnership(Boolean.TRUE);
+        }
+        if (config.isReadOnly()) {
+            copySpec.setTakeOwnership(Boolean.FALSE);
+        }
+
+        if (ret.getExists()) {
+            // Already exists, no action.
+            ret.addIssue("Schema exists already, no action.  If you wish to rebuild the schema, " +
+                    "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
+            ret.setCreateStrategy(CreateStrategy.LEAVE);
+        } else {
+            ret.addIssue("Schema will be created");
+            ret.setCreateStrategy(CreateStrategy.CREATE);
+            rtn = Boolean.TRUE;
+        }
+
+        if (rtn)
+            // Build Target from Source.
+            rtn = buildTableSchema(copySpec);
+
+        return rtn;
+    }
+
+    /*
+     */
+    private Boolean buildoutACIDDefinition(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+        EnvironmentTable let = null;
+        EnvironmentTable ret = null;
+        CopySpec copySpec = null;
+
+        let = getEnvironmentTable(Environment.LEFT);
+        ret = getEnvironmentTable(Environment.RIGHT);
+
+        if (TableUtils.isACID(let)) {
+            if (config.getMigrateACID().isOn()) {
+                copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
+
+                if (ret.getExists()) {
+                    // Already exists, no action.
+                    ret.addIssue("Schema exists already.  Can't do ACID transfer if schema already exists. Drop it and " +
+                            "try again.");
+                    ret.setCreateStrategy(CreateStrategy.NOTHING);
+                    return Boolean.FALSE;
+                } else {
+                    ret.setCreateStrategy(CreateStrategy.CREATE);
+                }
+
+                // Build Target from Source.
+                rtn = buildTableSchema(copySpec);
+
+                // Build Transfer Spec.
+                copySpec = new CopySpec(config, Environment.LEFT, Environment.TRANSFER);
+                copySpec.setMakeNonTransactional(Boolean.TRUE);
+                copySpec.setTableNamePrefix(config.getTransfer().getTransferPrefix());
+
+                if (rtn)
+                    // Build transfer table.
+                    rtn = buildTableSchema(copySpec);
+
+                // Build Shadow Spec
+                copySpec = new CopySpec(config, Environment.LEFT, Environment.SHADOW);
+                copySpec.setMakeExternal(Boolean.TRUE);
+                copySpec.setTakeOwnership(Boolean.FALSE);
+                copySpec.setTableNamePrefix(config.getTransfer().getTransferPrefix());
+                if (rtn)
+                    rtn = buildTableSchema(copySpec);
+
+            } else {
+                let.addIssue(TableUtils.ACID_NOT_ON);
+                rtn = Boolean.FALSE;
+            }
+        } else {
+            let.addIssue("Not an ACID table.");
+        }
+
+        return rtn;
+    }
+
+
+    /*
+    TODO: buildoutHYBRIDDefinition
+     */
+    private Boolean buildoutHYBRIDDefinition(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+        EnvironmentTable let = null;
+
+        let = getEnvironmentTable(Environment.LEFT);
+
+        if (TableUtils.isACID(let.getName(), let.getDefinition())) {
+            rtn = buildoutACIDDefinition(config, dbMirror);
+        } else {
+            if (let.getPartitioned()) {
+                if (let.getPartitions().size() > config.getHybrid().getExportImportPartitionLimit()) {
+                    rtn = buildoutSQLDefinition(config, dbMirror);
+                } else {
+                    rtn = buildoutEXPORT_IMPORTDefinition(config, dbMirror);
+                }
+
+            }
+        }
+
+        return rtn;
+    }
+
+    /*
+    TODO: buildoutINTERMEDIATEDefinition
+     */
+    private Boolean buildoutINTERMEDIATEDefinition(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+        EnvironmentTable let = null;
+        EnvironmentTable ret = null;
+        CopySpec copySpec = null;
+
+        let = getEnvironmentTable(Environment.LEFT);
+        ret = getEnvironmentTable(Environment.RIGHT);
+
+        copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
+
+
+        return rtn;
+    }
+
+    public Boolean buildoutDefinitions(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+        switch (getStrategy()) {
+            case DUMP:
+                rtn = buildoutDUMPDefinition(config, dbMirror);
+                break;
+            case SCHEMA_ONLY:
+                rtn = buildoutSCHEMA_ONLYDefinition(config, dbMirror);
+                break;
+            case LINKED:
+                rtn = buildoutLINKEDDefinition(config, dbMirror);
+                break;
+            case SQL:
+                rtn = buildoutSQLDefinition(config, dbMirror);
+                break;
+            case EXPORT_IMPORT:
+                rtn = buildoutEXPORT_IMPORTDefinition(config, dbMirror);
+                break;
+            case HYBRID:
+                rtn = buildoutHYBRIDDefinition(config, dbMirror);
+                break;
+            case ACID:
+                rtn = buildoutACIDDefinition(config, dbMirror);
+                break;
+            case INTERMEDIATE:
+                rtn = buildoutINTERMEDIATEDefinition(config, dbMirror);
+                break;
+            case COMMON:
+                rtn = buildoutCOMMONDefinition(config, dbMirror);
+                break;
+        }
+        this.addStep("Definitions", "Built");
+        return rtn;
+    }
+
+    private Boolean buildoutDUMPSql(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+
+        String useDb = null;
+        String database = null;
+        String createTbl = null;
+
+        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
+
+        let.getSql().clear();
+        useDb = MessageFormat.format(MirrorConf.USE, dbMirror.getName());
+        let.addSql(TableUtils.USE_DESC, useDb);
+
+        createTbl = this.getCreateStatement(Environment.LEFT);
+        let.addSql(TableUtils.CREATE_DESC, createTbl);
+
+        // If partitioned, !ACID, repair
+        if (let.getPartitioned() && !TableUtils.isACID(let) &&
+                config.getCluster(Environment.LEFT).getPartitionDiscovery().getInitMSCK()) {
+            String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, dbMirror.getName(), let.getName());
+            let.addSql(TableUtils.REPAIR_DESC, msckStmt);
+        }
+
+        rtn = Boolean.TRUE;
+
+        return rtn;
+
+    }
+
+    private Boolean buildoutSCHEMA_ONLYSql(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+
+        String useDb = null;
+        String database = null;
+        String createTbl = null;
+
+        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
+
+        ret.getSql().clear();
+        database = config.getResolvedDB(dbMirror.getName());
+        useDb = MessageFormat.format(MirrorConf.USE, database);
+
+        switch (ret.getCreateStrategy()) {
+            case NOTHING:
+            case LEAVE:
+                // Do Nothing.
+                break;
+            case DROP:
+                ret.addSql(TableUtils.USE_DESC, useDb);
+                String dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                ret.addSql(TableUtils.DROP_DESC, dropStmt);
+                break;
+            case REPLACE:
+                ret.addSql(TableUtils.USE_DESC, useDb);
+                String dropStmt2 = null;
+                if (TableUtils.isView(ret)) {
+                    dropStmt2 = MessageFormat.format(MirrorConf.DROP_VIEW, ret.getName());
+                } else {
+                    dropStmt2 = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                }
+                ret.addSql(TableUtils.DROP_DESC, dropStmt2);
+                String createStmt = getCreateStatement(Environment.RIGHT);
+                ret.addSql(TableUtils.CREATE_DESC, createStmt);
+                break;
+            case CREATE:
+                ret.addSql(TableUtils.USE_DESC, useDb);
+                String createStmt2 = getCreateStatement(Environment.RIGHT);
+                ret.addSql(TableUtils.CREATE_DESC, createStmt2);
+                break;
+        }
+
+        // If partitioned, !ACID, repair
+        if (let.getPartitioned() && !TableUtils.isACID(let) &&
+                config.getCluster(Environment.RIGHT).getPartitionDiscovery().getInitMSCK() &&
+                (ret.getCreateStrategy() == CreateStrategy.REPLACE || ret.getCreateStrategy() == CreateStrategy.CREATE)) {
+            String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, ret.getName());
+            ret.addSql(TableUtils.REPAIR_DESC, msckStmt);
+        }
+
+        rtn = Boolean.TRUE;
+        return rtn;
+    }
+
+    /*
+    TODO: buildoutSQLSql
+     */
+    private Boolean buildoutSQLSql(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+
+        String useDb = null;
+        String database = null;
+        String createTbl = null;
+
+        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
+        EnvironmentTable set = getEnvironmentTable(Environment.SHADOW);
+
+        ret.getSql().clear();
+
+        // RIGHT SHADOW Table
+        database = config.getResolvedDB(dbMirror.getName());
+        useDb = MessageFormat.format(MirrorConf.USE, database);
+
+        ret.addSql(TableUtils.USE_DESC, useDb);
+        // Drop any previous SHADOW table, if it exists.
+        String dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
+        ret.addSql(TableUtils.DROP_DESC, dropStmt);
+
+        // Create Shadow Table
+        String shadowCreateStmt = getCreateStatement(Environment.SHADOW);
+        ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
+        // Repair Partitions
+        if (let.getPartitioned()) {
+            String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
+            ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
+        }
+
+        // RIGHT Final Table
+        switch (ret.getCreateStrategy()) {
+            case NOTHING:
+            case LEAVE:
+                // Do Nothing.
+                break;
+            case DROP:
+                dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                ret.addSql(TableUtils.DROP_DESC, dropStmt);
+                break;
+            case REPLACE:
+                dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                ret.addSql(TableUtils.DROP_DESC, dropStmt);
+                String createStmt = getCreateStatement(Environment.RIGHT);
+                ret.addSql(TableUtils.CREATE_DESC, createStmt);
+                break;
+            case CREATE:
+                String createStmt2 = getCreateStatement(Environment.RIGHT);
+                ret.addSql(TableUtils.CREATE_DESC, createStmt2);
+                break;
+        }
+
+        rtn = Boolean.TRUE;
+        return rtn;
+    }
+
+    private Boolean buildoutACIDSql(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+
+        String useDb = null;
+        String database = null;
+        String createTbl = null;
+
+        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable tet = getEnvironmentTable(Environment.TRANSFER);
+        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
+        EnvironmentTable set = getEnvironmentTable(Environment.SHADOW);
+
+        ret.getSql().clear();
+
+        // LEFT Transfer Table
+        database = dbMirror.getName();
+        useDb = MessageFormat.format(MirrorConf.USE, database);
+
+        let.addSql(TableUtils.USE_DESC, useDb);
+        // Drop any previous SHADOW table, if it exists.
+        String transferDropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, tet.getName());
+        let.addSql(TableUtils.DROP_DESC, transferDropStmt);
+
+        // Create Transfer Table
+        String transferCreateStmt = getCreateStatement(Environment.TRANSFER);
+        let.addSql(TableUtils.CREATE_TRANSFER_DESC, transferCreateStmt);
+
+
+        // RIGHT SHADOW Table
+        database = config.getResolvedDB(dbMirror.getName());
+        useDb = MessageFormat.format(MirrorConf.USE, database);
+
+        ret.addSql(TableUtils.USE_DESC, useDb);
+        // Drop any previous SHADOW table, if it exists.
+        String dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
+        ret.addSql(TableUtils.DROP_DESC, dropStmt);
+        // Create Shadow Table
+        String shadowCreateStmt = getCreateStatement(Environment.SHADOW);
+        ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
+        // Repair Partitions
+        if (let.getPartitioned()) {
+            String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
+            ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
+        }
+
+        // RIGHT Final Table
+        switch (ret.getCreateStrategy()) {
+            case NOTHING:
+            case LEAVE:
+                // Do Nothing.
+                break;
+            case DROP:
+                dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                ret.addSql(TableUtils.DROP_DESC, dropStmt);
+                break;
+            case REPLACE:
+                dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                ret.addSql(TableUtils.DROP_DESC, dropStmt);
+                String createStmt = getCreateStatement(Environment.RIGHT);
+                ret.addSql(TableUtils.CREATE_DESC, createStmt);
+                break;
+            case CREATE:
+                String createStmt2 = getCreateStatement(Environment.RIGHT);
+                ret.addSql(TableUtils.CREATE_DESC, createStmt2);
+                break;
+        }
+
+        rtn = Boolean.TRUE;
+        return rtn;
+    }
+
+    /*
+    TODO: buildoutEXPORT_IMPORTSql
+     */
+    private Boolean buildoutEXPORT_IMPORTSql(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+
+        String database = null;
+
+        database = config.getResolvedDB(dbMirror.getName());
+
+        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
+
+        // LEFT Export to directory
+        String useLeftDb = MessageFormat.format(MirrorConf.USE, dbMirror.getName());
+        let.addSql(TableUtils.USE_DESC, useLeftDb);
+        String exportLoc = config.getTransfer().getExportBaseDirPrefix() + dbMirror.getName() + "/" + let.getName();
+        String exportSql = MessageFormat.format(MirrorConf.EXPORT_TABLE, let.getName(), exportLoc);
+        let.addSql(TableUtils.EXPORT_TABLE, exportSql);
+
+        // RIGHT IMPORT from Directory
+        String useRightDb = MessageFormat.format(MirrorConf.USE, dbMirror.getName());
+        ret.addSql(TableUtils.USE_DESC, useRightDb);
+        String importLoc = config.getCluster(Environment.LEFT).getHcfsNamespace() + exportLoc;
+
+        String sourceLocation = TableUtils.getLocation(let.getName(), let.getDefinition());
+        String targetLocation = config.getTranslator().translateTableLocation(database, let.getName(), sourceLocation, config);
+
+        String importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, ret.getName(), importLoc, targetLocation);
+        ret.addSql(TableUtils.IMPORT_TABLE, importSql);
+
+        rtn = Boolean.TRUE;
+        return rtn;
+    }
+
+    /*
+    TODO: buildoutHYBRIDSql
+     */
+    private Boolean buildoutHYBRIDSql(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+
+        String useDb = null;
+        String database = null;
+        String createTbl = null;
+
+        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
+
+        if (TableUtils.isACID(let.getName(), let.getDefinition())) {
+            rtn = buildoutACIDSql(config, dbMirror);
+        } else {
+            if (let.getPartitioned()) {
+                if (let.getPartitions().size() > config.getHybrid().getExportImportPartitionLimit()) {
+                    rtn = buildoutSQLSql(config, dbMirror);
+                } else {
+                    rtn = buildoutEXPORT_IMPORTSql(config, dbMirror);
+                }
+
+            }
+        }
+
+        return rtn;
+    }
+
+    /*
+    TODO: buildoutINTERMEDIATESql
+     */
+    private Boolean buildoutINTERMEDIATESql(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+
+        String useDb = null;
+        String database = null;
+        String createTbl = null;
+
+        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
+
+        rtn = Boolean.TRUE;
+        return rtn;
+    }
+
+    /*
+    TODO: buildoutCOMMONSql
+     */
+    private Boolean buildoutCOMMONSql(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+
+        String useDb = null;
+        String database = null;
+        String createTbl = null;
+
+        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
+
+        rtn = Boolean.TRUE;
+        return rtn;
+    }
+
+    public Boolean buildoutSql(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+
+        String useDb = null;
+        String database = null;
+        String createTbl = null;
+
+        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
+        switch (getStrategy()) {
+            case DUMP:
+                rtn = buildoutDUMPSql(config, dbMirror);
+                break;
+            case COMMON:
+            case SCHEMA_ONLY:
+            case LINKED:
+                rtn = buildoutSCHEMA_ONLYSql(config, dbMirror);
+                break;
+            case SQL:
+                rtn = buildoutSQLSql(config, dbMirror);
+                break;
+            case EXPORT_IMPORT:
+                rtn = buildoutEXPORT_IMPORTSql(config, dbMirror);
+                break;
+            case HYBRID:
+                rtn = buildoutHYBRIDSql(config, dbMirror);
+                break;
+            case ACID:
+                rtn = buildoutACIDSql(config, dbMirror);
+                break;
+            case INTERMEDIATE:
+                rtn = buildoutINTERMEDIATESql(config, dbMirror);
+                break;
+//            case COMMON:
+//                rtn = buildoutCOMMONSql(config, dbMirror);
+//                break;
+        }
+        this.addStep("SQL", "Built");
+
+        return rtn;
+    }
+
+    /*
+
+     */
+    public Boolean buildTableSchema(CopySpec copySpec) {
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Config config = copySpec.getConfig();
+
+        EnvironmentTable source = getEnvironmentTable(copySpec.getSource());
+        EnvironmentTable target = getEnvironmentTable(copySpec.getTarget());
+
+        // Set Table Name
+        if (source.getExists()) {
+            target.setName(source.getName());
+
+            // Clear the target spec.
+            target.getDefinition().clear();
+            // Reset with Source
+            target.getDefinition().addAll(getTableDefinition(copySpec.getSource()));
+
+            if (TableUtils.isHiveNative(target)) {
+                // Rules
+                // 1. Strip db from create state.  It's broken anyway with the way
+                //      the quotes are.  And we're setting the target db in the context anyways.
+                TableUtils.stripDatabase(target);
+
+                // 1. If Managed, convert to EXTERNAL
+                // When coming from legacy and going to non-legacy (Hive 3).
+                Boolean converted = Boolean.FALSE;
+                if (copySpec.getUpgrade() && TableUtils.isManaged(target) && !TableUtils.isACID(target)) {
+                    converted = TableUtils.makeExternal(target);
+                    if (converted) {
+                        target.addIssue("Schema 'converted' from LEGACY managed to EXTERNAL");
+                        target.addProperty(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
+                        target.addProperty(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, converted.toString());
+                        if (copySpec.getTakeOwnership()) {
+                            target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+                        } else {
+                            target.addIssue("Ownership of the data not allowed in this scenario, PURGE flag NOT set.");
+                        }
+                    }
+                }
+
+                if (TableUtils.isACID(source)) {
+                    if (config.getMigrateACID().isOn()) {
+                        // If target isn't legacy.
+                        switch (copySpec.getTarget()) {
+                            case LEFT:
+                            case RIGHT:
+                                if (!config.getCluster(copySpec.getTarget()).getLegacyHive()) {
+                                    target.addIssue("Location Stripped from ACID definition.  Location element in 'CREATE' " +
+                                            "not allowed in Hive3+");
+                                    TableUtils.stripLocation(target);
+                                }
+                                break;
+                            case TRANSFER:
+                            case SHADOW:
+                                // Keep location (these tables should be either Legacy Managed or EXTERNAL
+                                // Change Location to a transition directory.
+                                String prefixedLocation = TableUtils.prefixTableNameLocation(source, config.getTransfer().getTransferPrefix());
+                                TableUtils.updateTableLocation(target, prefixedLocation);
+                                break;
+
+                        }
+
+                        if (TableUtils.removeBuckets(target, config.getMigrateACID().getArtificialBucketThreshold())) {
+                            target.addIssue("Bucket Definition removed (was " + TableUtils.numOfBuckets(source) + ") because it was EQUAL TO or BELOW " +
+                                    "the configured 'artificialBucketThreshold' of " +
+                                    config.getMigrateACID().getArtificialBucketThreshold());
+                        }
+                    }
+                }
+
+                if (TableUtils.isACID(source)) {
+                    if (copySpec.isMakeNonTransactional()) {
+                        switch (copySpec.getTarget()) {
+                            case LEFT:
+                            case TRANSFER:
+                                if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                                    TableUtils.makeExternal(target);
+                                }
+                                TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                                break;
+                            case SHADOW:
+                            case RIGHT:
+                                if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
+                                    TableUtils.makeExternal(target);
+                                }
+                                TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                        }
+
+                    } else if (copySpec.isMakeExternal()) {
+                        TableUtils.makeExternal(target);
+                        TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                    }
+                }
+
+                // 2. Set mirror stage one flag
+                if (copySpec.getTarget() == Environment.RIGHT) {
+                    target.addProperty(MirrorConf.HMS_MIRROR_METADATA_FLAG, df.format(new Date()));
+                }
+
+                // 3. Rename table
+                if (copySpec.renameTable()) {
+                    TableUtils.changeTableName(target, copySpec.getTableNamePrefix() + getName());
+                }
+
+                // 4. identify this table as being converted by hms-mirror
+//        TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, Boolean.TRUE.toString(), upperTD);
+
+                // 5. Strip stat properties
+                TableUtils.removeTblProperty("COLUMN_STATS_ACCURATE", target);
+                TableUtils.removeTblProperty("numFiles", target);
+                TableUtils.removeTblProperty("numRows", target);
+                TableUtils.removeTblProperty("rawDataSize", target);
+                TableUtils.removeTblProperty("totalSize", target);
+                TableUtils.removeTblProperty("discover.partitions", target);
+
+                // 6. Set 'discover.partitions' if config and non-acid
+                if (config.getCluster(copySpec.getTarget()).getPartitionDiscovery().getAuto()) {
+                    if (converted) {
+                        target.addProperty(MirrorConf.DISCOVER_PARTITIONS, Boolean.TRUE.toString());
+                    } else if (TableUtils.isExternal(target)) {
+                        target.addProperty(MirrorConf.DISCOVER_PARTITIONS, Boolean.TRUE.toString());
+                    }
+                }
+
+                // 5. Location Adjustments
+                //    Since we are looking at the same data as the original, we're not changing this now.
+                //    Any changes to data location are a part of stage-2 (STORAGE).
+                if (copySpec.getStripLocation()) {
+                    TableUtils.stripLocation(target);
+                }
+
+                if (copySpec.getReplaceLocation() && !TableUtils.isACID(source)) {
+                    String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
+                    String targetLocation = copySpec.getConfig().getTranslator().translateTableLocation(this.getDbName(), getName(), sourceLocation, copySpec.getConfig());
+                    TableUtils.updateTableLocation(target, targetLocation);
+                }
+
+                // 6. Go through the features, if any.
+                if (copySpec.getConfig().getFeatureList() != null) {
+                    for (Feature feature : copySpec.getConfig().getFeatureList()) {
+                        target = feature.fixSchema(target);
+                    }
+                }
+
+                // Add props to definition.
+                if (whereTherePropsAdded(copySpec.getTarget())) {
+                    Set<String> keys = target.getAddProperties().keySet();
+                    for (String key : keys) {
+                        TableUtils.upsertTblProperty(key, target.getAddProperties().get(key), target);
+                    }
+                }
+
+            } else if (TableUtils.isView(target)) {
+                source.addIssue("This is a VIEW.  It will be translated AS-IS.  View transitions will NOT honor " +
+                        "target db name changes For example: `-dbp`.  VIEW creation depends on the referenced tables existing FIRST. " +
+                        "VIEW creation failures may mean that all referenced tables don't exist yet.");
+            } else {
+                // This is a connector table.  IE: HBase, Kafka, JDBC, etc.  We just past it through.
+                source.addIssue("This is not a NATIVE Hive table.  It will be translated 'AS-IS'.  If the libraries or dependencies required for this table definition are not available on the target cluster, the 'create' statement may fail.");
+            }
+        }
         return Boolean.TRUE;
     }
-
-    public String getCreateStatement(Environment environment, String prefix) {
-        StringBuilder createStatement = new StringBuilder();
-        List<String> tblDef = this.getTableDefinition(environment);
-        if (tblDef != null) {
-
-            List<String> tblDefCopy = new ArrayList<String>();
-            tblDefCopy.addAll(tblDef);
-            TableUtils.prefixTableName(this.getName(), prefix, tblDefCopy);
-
-            Iterator<String> iter = tblDefCopy.iterator();
-            while (iter.hasNext()) {
-                String line = iter.next();
-                createStatement.append(line);
-                if (iter.hasNext()) {
-                    createStatement.append("\n");
-                }
-            }
-        } else {
-            throw new RuntimeException("Couldn't location definition for table: " + getName() +
-                    " in environment: " + environment.toString());
-        }
-        return createStatement.toString();
-    }
-
 
     public String getCreateStatement(Environment environment) {
         StringBuilder createStatement = new StringBuilder();
@@ -392,27 +1302,19 @@ public class TableMirror {
         return createStatement.toString();
     }
 
-    // TODO: Partitions
-    public void setPartitioned(Environment environment, Boolean partitioned) {
-        tablePartitioned.put(environment, partitioned);
-    }
-
     public Boolean isPartitioned(Environment environment) {
-        Boolean rtn = tablePartitioned.get(environment);
-        if (rtn != null) {
-            return rtn;
-        } else {
-            return Boolean.FALSE;
-        }
+        EnvironmentTable et = getEnvironmentTable(environment);
+        return et.getPartitioned();
     }
 
     public List<String> getTableDefinition(Environment environment) {
-        return tableDefinitions.get(environment);
+        EnvironmentTable et = getEnvironmentTable(environment);
+        return et.getDefinition();
     }
 
     public boolean schemasEqual(Environment one, Environment two) {
-        List<String> schemaOne = tableDefinitions.get(one);
-        List<String> schemaTwo = tableDefinitions.get(two);
+        List<String> schemaOne = getTableDefinition(one);
+        List<String> schemaTwo = getTableDefinition(two);
         if (schemaOne != null && schemaTwo != null) {
             String fpOne = TableUtils.tableFieldsFingerPrint(schemaOne);
             String fpTwo = TableUtils.tableFieldsFingerPrint(schemaTwo);
@@ -427,23 +1329,13 @@ public class TableMirror {
     }
 
     public void setTableDefinition(Environment environment, List<String> tableDefList) {
-        if (tableDefinitions.containsKey(environment)) {
-            tableDefinitions.replace(environment, tableDefList);
-        } else {
-            tableDefinitions.put(environment, tableDefList);
-        }
+        EnvironmentTable et = getEnvironmentTable(environment);
+        et.setDefinition(tableDefList);
     }
 
     public List<String> getPartitionDefinition(Environment environment) {
-        return tablePartitions.get(environment);
-    }
-
-    public void setPartitionDefinition(Environment environment, List<String> tablePartitionList) {
-        if (tablePartitions.containsKey(environment)) {
-            tablePartitions.replace(environment, tablePartitionList);
-        } else {
-            tablePartitions.put(environment, tablePartitionList);
-        }
+        EnvironmentTable et = getEnvironmentTable(environment);
+        return et.getPartitions();
     }
 
     public void addTableAction(Environment environment, String action) {
@@ -452,12 +1344,8 @@ public class TableMirror {
     }
 
     public List<String> getTableActions(Environment environment) {
-        List<String> actions = tableActions.get(environment);
-        if (actions == null) {
-            actions = new ArrayList<String>();
-            tableActions.put(environment, actions);
-        }
-        return actions;
+        EnvironmentTable et = getEnvironmentTable(environment);
+        return et.getActions();
     }
 
 }

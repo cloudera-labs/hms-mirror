@@ -55,7 +55,7 @@ public class Conversion {
         return databases.get(database);
     }
 
-    public String executeSql(String database) {
+    public String executeSql(Environment environment, String database) {
         StringBuilder sb = new StringBuilder();
         sb.append("-- EXECUTION script for ").append(Environment.RIGHT).append(" cluster\n\n");
         sb.append("-- ").append(new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date()));
@@ -64,10 +64,11 @@ public class Conversion {
         Set<String> tables = dbMirror.getTableMirrors().keySet();
         for (String table : tables) {
             TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
-            sb.append("--    Table: ").append(table).append("\n");
-            if (tblMirror.isThereSql()) {
-                for (String sql : tblMirror.getSql()) {
-                    sb.append(sql).append(";\n");
+            sb.append("\n--    Table: ").append(table).append("\n");
+            if (tblMirror.isThereSql(environment)) {
+//                Map<String, String> sqlMap = tblMirror.getSql(environment);
+                for (Pair pair: tblMirror.getSql(environment)) {
+                    sb.append(pair.getAction()).append(";\n");
                 }
             } else {
                 sb.append("\n");
@@ -129,7 +130,11 @@ public class Conversion {
         DBMirror dbMirror = databases.get(database);
         sb.append("## DB Create Statement").append("\n\n");
         sb.append("```").append("\n");
-        sb.append(dbMirror.rightDBCreate(config)[0]);
+        try {
+            sb.append(dbMirror.rightDBCreate(config)[0]);
+        } catch (NullPointerException npe) {
+            sb.append("Issue constructing RIGHT DB SQL from LEFT.  Does the LEFT DB exists?");
+        }
         sb.append("```").append("\n");
 
         sb.append("\n");
@@ -144,61 +149,42 @@ public class Conversion {
             sb.append("none\n");
         }
 
-        sb.append("\n## Table Status").append("\n\n");
+        sb.append("\n## Table Status (").append(dbMirror.getTableMirrors().size()).append(")\n\n");
 
         sb.append("<table>").append("\n");
         sb.append("<tr>").append("\n");
         sb.append("<th style=\"test-align:left\">Table</th>").append("\n");
+        sb.append("<th style=\"test-align:left\">Strategy</th>").append("\n");
         sb.append("<th style=\"test-align:left\">Phase<br/>State</th>").append("\n");
         sb.append("<th style=\"test-align:right\">Duration</th>").append("\n");
         sb.append("<th style=\"test-align:right\">Partition<br/>Count</th>").append("\n");
-        sb.append("<th style=\"test-align:left\">Actions</th>").append("\n");
-        sb.append("<th style=\"test-align:left\">LEFT Table Actions</th>").append("\n");
-        sb.append("<th style=\"test-align:left\">RIGHT Table Actions</th>").append("\n");
-        sb.append("<th style=\"test-align:left\">Added<br/>Properties</th>").append("\n");
-        sb.append("<th style=\"test-align:left\">Issues</th>").append("\n");
+        sb.append("<th style=\"test-align:left\">Steps</th>").append("\n");
+        if (dbMirror.hasActions()) {
+            sb.append("<th style=\"test-align:left\">Actions</th>").append("\n");
+//            sb.append("<th style=\"test-align:left\">RIGHT Table Actions</th>").append("\n");
+        }
+        if (dbMirror.hasAddedProperties()) {
+            sb.append("<th style=\"test-align:left\">Added<br/>Properties</th>").append("\n");
+        }
+        if (dbMirror.hasIssues()) {
+            sb.append("<th style=\"test-align:left\">Issues</th>").append("\n");
+        }
         if (config.isSqlOutput()) {
             sb.append("<th style=\"test-align:left\">SQL</th>").append("\n");
         }
         sb.append("</tr>").append("\n");
 
 
-//        sb.append("|").append(" Table ").append("|")
-//                .append("Phase<br/>State").append("|")
-//                .append("Phase<br/>Duration").append("|")
-//                .append("Partition<br/>Count").append("|")
-//                .append("Actions").append("|")
-//                .append("LEFT Table Actions").append("|")
-//                .append("RIGHT Table Actions").append("|")
-//                .append("Added<br/>Properties").append("|")
-//                .append("Issues").append("|");
-//        if (config.isSqlOutput()) {
-//            sb.append("SQL").append("|");
-//        }
-//        sb.append("\n");
-
-//        sb.append("|").append(":---").append("|")
-//                .append(":---").append("|")
-//                .append("---:").append("|")
-//                .append("---:").append("|")
-//                .append(":---").append("|")
-//                .append(":---").append("|")
-//                .append(":---").append("|")
-//                .append(":---").append("|")
-//                .append(":---").append("|");
-//        if (config.isSqlOutput()) {
-//            sb.append(":---").append("|");
-//        }
-//        sb.append("\n");
-
         Set<String> tables = dbMirror.getTableMirrors().keySet();
         for (String table : tables) {
             sb.append("<tr>").append("\n");
             TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
+            // table
             sb.append("<td>").append(table).append("</td>").append("\n");
+            // Strategy
+            sb.append("<td>").append(tblMirror.getStrategy()).append("</td>").append("\n");
+            // phase state
             sb.append("<td>").append(tblMirror.getPhaseState().toString()).append("</td>").append("\n");
-//            sb.append("|").append(table).append("|")
-//                    .append(tblMirror.getPhaseState().toString()).append("|");
 
             // Stage Duration
             BigDecimal secs = new BigDecimal(tblMirror.getStageDuration()).divide(new BigDecimal(1000));///1000
@@ -206,109 +192,171 @@ public class Conversion {
             String secStr = decf.format(secs);
             sb.append("<td>").append(secStr).append("</td>").append("\n");
 
-//            sb.append(secStr).append(" secs |");
-
             // Partition Count
-            sb.append("<td>").append(tblMirror.getPartitionDefinition(Environment.LEFT) != null ?
-                    tblMirror.getPartitionDefinition(Environment.LEFT).size() : " ").append("</td>").append("\n");
-//            sb.append(tblMirror.getPartitionDefinition(Environment.LEFT) != null ?
-//                    tblMirror.getPartitionDefinition(Environment.LEFT).size() : " ").append("|");
+            EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
+            sb.append("<td>").append(let.getPartitioned() ?
+                    let.getPartitions().size() : " ").append("</td>").append("\n");
+
+            // Steps
+            sb.append("<td>\n");
+            sb.append("<table>\n");
+            for (Marker entry: tblMirror.getSteps()) {
+                sb.append("<tr>\n");
+                sb.append("<td>");
+                sb.append(entry.getMark());
+                sb.append("</td>");
+                sb.append("<td>");
+                sb.append(entry.getDescription());
+                sb.append("</td>");
+                sb.append("<td>");
+                if (entry.getAction() != null)
+                    sb.append(entry.getAction().toString());
+                sb.append("</td>");
+                sb.append("</tr>\n");
+            }
+            sb.append("</table>\n");
+            sb.append("</td>\n");
 
             // Actions
-            Iterator<Map.Entry<String[], Object>> aIter = tblMirror.getActions().entrySet().iterator();
-            sb.append("<td>").append("\n");
-            sb.append("<table>");
-            while (aIter.hasNext()) {
-                sb.append("<tr>");
-                Map.Entry<String[], Object> item = aIter.next();
-                String[] keySet = item.getKey();
-                sb.append("<td style=\"text-align:left\">").append(keySet[0]).append("</td>");
-                sb.append("<td>").append(keySet[1]).append("</td>");
-                if (item.getValue() != null)
-                    sb.append("<td>").append(item.getValue().toString()).append("</td>");
-                else
-                    sb.append("<td></td>");
-                sb.append("</tr>");
-            }
-            sb.append("</table>");
-            sb.append("</td>").append("\n");
-//            sb.append("|");
+            if (dbMirror.hasActions()) {
+//                Iterator<Map.Entry<String[], Object>> aIter = tblMirror.getTableActions().iterator();
+//                sb.append("<td>").append("\n");
+//                sb.append("<table>");
+//                while (aIter.hasNext()) {
+//                    sb.append("<tr>");
+//                    Map.Entry<String[], Object> item = aIter.next();
+//                    String[] keySet = item.getKey();
+//                    sb.append("<td style=\"text-align:left\">").append(keySet[0]).append("</td>");
+//                    sb.append("<td>").append(keySet[1]).append("</td>");
+//                    if (item.getValue() != null)
+//                        sb.append("<td>").append(item.getValue().toString()).append("</td>");
+//                    else
+//                        sb.append("<td></td>");
+//                    sb.append("</tr>");
+//                }
+//                sb.append("</table>");
+//                sb.append("</td>").append("\n");
 
-            // LEFT Table Actions
-            Iterator<String> a1Iter = tblMirror.getTableActions(Environment.LEFT).iterator();
-            sb.append("<td>").append("\n");
-            sb.append("<table>");
-            while (a1Iter.hasNext()) {
-                sb.append("<tr>");
-                String item = a1Iter.next();
-                sb.append("<td style=\"text-align:left\">").append(item).append(";</td>");
-                sb.append("</tr>");
-            }
-            sb.append("</table>");
-            sb.append("</td>").append("\n");
-//            sb.append("|");
-
-            // RIGHT Table Actions
-            Iterator<String> a2Iter = tblMirror.getTableActions(Environment.RIGHT).iterator();
-            sb.append("<td>").append("\n");
-            sb.append("<table>");
-            while (a2Iter.hasNext()) {
-                sb.append("<tr>");
-                String item = a2Iter.next();
-                sb.append("<td style=\"text-align:left\">").append(item).append(";</td>");
-                sb.append("</tr>");
-            }
-            sb.append("</table>");
-            sb.append("</td>").append("\n");
-//            sb.append("|");
-
-            // Properties
-            sb.append("<td>").append("\n");
-            if (tblMirror.whereTherePropsAdded()) {
-                Set<String> keys = tblMirror.getPropAdd().keySet();
-                for (String key: keys) {
-                    if (tblMirror.getPropAdd().get(key) != null) {
-                        sb.append("'").append(key).append("'='").append(tblMirror.getPropAdd().get(key)).append("'<br/>");
-                    } else {
-                        sb.append("'").append(key).append("'<br/>");
-                    }
-                }
-            } else {
-                sb.append(" ");
-            }
-            sb.append("</td>").append("\n");
-//            sb.append("|");
-            // Issues
-            sb.append("<td>").append("\n");
-            if (tblMirror.isThereAnIssue()) {
-                sb.append("<ul>");
-                for (String issue : tblMirror.getIssues()) {
-                    sb.append("<li>").append(issue).append("</li>");
-//                        sb.append(append(issue).append("<br/>");
-                }
-                sb.append("</ul>");
-            } else {
-                sb.append(" ");
-            }
-            sb.append("</td>").append("\n");
-//            sb.append("|");
-            if (config.isSqlOutput()) {
+                // LEFT Table Actions
+                Iterator<String> a1Iter = tblMirror.getTableActions(Environment.LEFT).iterator();
                 sb.append("<td>").append("\n");
-                // Issues
-                if (tblMirror.isThereSql()) {
-                    for (String sql : tblMirror.getSql()) {
-                        String scrubbedSql = sql.replace("\n", "<br/>");
-                        sb.append(scrubbedSql).append(";<br/><br/>");
-                    }
-                } else {
-                    sb.append(" ");
+                sb.append("<table>");
+                while (a1Iter.hasNext()) {
+                    sb.append("<tr>");
+                    String item = a1Iter.next();
+                    sb.append("<td style=\"text-align:left\">").append(item).append(";</td>");
+                    sb.append("</tr>");
                 }
+                sb.append("</table>");
+                sb.append("</td>").append("\n");
+
+                // RIGHT Table Actions
+                Iterator<String> a2Iter = tblMirror.getTableActions(Environment.RIGHT).iterator();
+                sb.append("<td>").append("\n");
+                sb.append("<table>");
+                while (a2Iter.hasNext()) {
+                    sb.append("<tr>");
+                    String item = a2Iter.next();
+                    sb.append("<td style=\"text-align:left\">").append(item).append(";</td>");
+                    sb.append("</tr>");
+                }
+                sb.append("</table>");
                 sb.append("</td>").append("\n");
             }
+
+            // Properties
+            if (dbMirror.hasAddedProperties()) {
+                sb.append("<td>").append("\n");
+                sb.append("<table>");
+                for (Map.Entry<Environment, EnvironmentTable> entry : tblMirror.getEnvironments().entrySet()) {
+                    if (entry.getValue().getAddProperties().size() > 0) {
+                        sb.append("<tr>\n");
+                        sb.append("<th colspan=\"2\">");
+                        sb.append(entry.getKey());
+                        sb.append("</th>\n");
+                        sb.append("</tr>").append("\n");
+
+                        for (Map.Entry<String, String> prop : entry.getValue().getAddProperties().entrySet()) {
+                            sb.append("<tr>\n");
+                            sb.append("<td>");
+                            sb.append(prop.getKey());
+                            sb.append("</td>\n");
+                            sb.append("<td>");
+                            sb.append(prop.getValue());
+                            sb.append("</td>\n");
+                            sb.append("</tr>\n");
+                        }
+                    }
+                }
+                sb.append("</table>");
+                sb.append("</td>").append("\n");
+            }
+            // Issues Reporting
+            if (dbMirror.hasIssues()) {
+                sb.append("<td>").append("\n");
+                sb.append("<table>");
+                for (Map.Entry<Environment, EnvironmentTable> entry: tblMirror.getEnvironments().entrySet()) {
+                    if (entry.getValue().getIssues().size() > 0) {
+                        sb.append("<tr>\n");
+                        sb.append("<th>");
+                        sb.append(entry.getKey());
+                        sb.append("</th>\n");
+                        sb.append("</tr>").append("\n");
+
+                        for (String issue: entry.getValue().getIssues()) {
+                            sb.append("<tr>\n");
+                            sb.append("<td>");
+                            sb.append(issue);
+                            sb.append("</td>\n");
+                            sb.append("</tr>\n");
+                        }
+                    }
+                }
+                sb.append("</table>");
+                sb.append("</td>").append("\n");
+            }
+
+            // SQL Output
+            if (config.isSqlOutput()) {
+                sb.append("<td>\n");
+                sb.append("<table>");
+                for (Map.Entry<Environment, EnvironmentTable> entry: tblMirror.getEnvironments().entrySet()) {
+                    if (entry.getValue().getSql().size() > 0) {
+                        sb.append("<tr>\n");
+                        sb.append("<th colspan=\"2\">");
+                        sb.append(entry.getKey());
+                        sb.append("</th>\n");
+                        sb.append("</tr>").append("\n");
+
+                        for (Pair pair : entry.getValue().getSql()) {
+                            sb.append("<tr>\n");
+                            sb.append("<td>");
+                            sb.append(pair.getDescription());
+                            sb.append("</td>\n");
+                            sb.append("<td>");
+                            sb.append(pair.getAction());
+                            sb.append("</td>\n");
+                            sb.append("</tr>\n");
+                        }
+                    }
+                }
+                sb.append("</table>");
+                sb.append("</td>").append("\n");
+
+            }
             sb.append("</tr>").append("\n");
-//            sb.append("|\n");
         }
         sb.append("</table>").append("\n");
+
+        if (dbMirror.getFilteredOut().size() > 0) {
+            sb.append("\n## Skipped Tables/Views\n\n");
+
+            sb.append("| Table / View | Reason |\n");
+            sb.append("|:---|:---|\n");
+            for (Map.Entry<String, String> entry: dbMirror.getFilteredOut().entrySet()) {
+                sb.append("| ").append(entry.getKey()).append(" | ").append(entry.getValue()).append(" |\n");
+            }
+        }
         return sb.toString();
     }
 
