@@ -139,7 +139,6 @@ public class Transfer implements Callable<ReturnStatus> {
             EnvironmentTable set = tblMirror.getEnvironmentTable(Environment.SHADOW);
             EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
 
-
             // Construct Transfer SQL
             // Need to see if the table has partitions.
             if (let.getPartitioned()) {
@@ -147,6 +146,10 @@ public class Transfer implements Callable<ReturnStatus> {
                 if (let.getPartitions().size() <= config.getMigrateACID().getPartitionLimit()) {
                     // Build Partition Elements.
                     String partElement = TableUtils.getPartitionElements(let);
+                    if (config.getCluster(Environment.LEFT).getLegacyHive()) {
+                        // We need to ensure that 'tez' is the execution engine.
+                        let.addSql(new Pair(MirrorConf.TEZ_EXECUTION_DESC, MirrorConf.SET_TEZ_AS_EXECUTION_ENGINE));
+                    }
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS,
                             let.getName(), tet.getName(), partElement);
                     String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, let.getPartitions().size());

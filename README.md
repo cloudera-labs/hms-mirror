@@ -1039,6 +1039,31 @@ If you have problems accessing HDFS from `spark-shell` or `spark-submit` try add
 --conf spark.yarn.access.hadoopFileSystems=hdfs://<NEW_NAMESPACE>,hdfs://<OLD_NAMESPACE>
 ```
 
+### Permission Issues
+
+`HiveAccessControlException Permission denied user: [xxxx] does not have [ALL] privileges on ['location'] [state=42000,code=40000]`
+
+and possibly
+
+In HS2 Logs: `Unauthorized connection for super-user`
+
+#### Solution
+
+Caused by the following:
+- The 'user' doesn't have access to the location as indicated in the message.  Verify through 'hdfs' that this is true or not. If the user does NOT have access, grant them access and try again.
+- The 'hive' service account running HS2 does NOT have access to the location.  The message will mask this and present it as a 'user' issue, when it is in fact an issue with the 'hive' service account.  Grant the account the appropriate access.
+- The 'hive' service does NOT have proxy permissions to the storage layer.
+  - Check the `hadoop.proxyuser.hive.hosts|groups` setting in `core-site.xml`.  If you are running into this `super-user` error on the RIGHT cluster, while trying to access a storage location on the *LEFT* cluster, ensure the proxy settings include the rights values in the RIGHT clusters `core-site.xml`, since that is were HS2 will pick it up from.
+
+### Must use HiveInputFormat to read ACID tables
+
+We've seen this while attempting to migrate ACID tables from older clusters (HDP 2.6).  The error occurs when we attempt to extract the ACID table data to a 'transfer' external table on the LEFT cluster, which is 'legacy'.
+
+#### Solution
+
+HDP 2.6.5, the lowest supported cluster version intended for this process, should be using the 'tez' execution engine  `set hive.execution.engine=tez`.  If the cluster has been upgraded from an older HDP version OR they've simply decided NOT to use the `tez` execution engine' you may get this error.
+
+In `hms-mirror` releases 1.3.0.5 and above, we will explicitly run `set hive.execution.engine=tez` on the LEFT cluster when it's identified as a 'legacy' cluster.  For version 1.3.0.4 (the first version to support ACID transfers), you'll need to set the hive environment for the HS2 instance you're connecting to use `tez` as the execution engine.
 
 
 

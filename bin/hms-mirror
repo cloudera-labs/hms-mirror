@@ -1,7 +1,18 @@
 #!/usr/bin/env sh
 
-APP_DIR=`dirname $0`
-CURR_DIR=`pwd`
+# Resolve Symlinks of exe
+RESOLVED_EXE_PATH=`readlink -f $0`
+# Find Dir of resolved script
+APP_DIR=$(dirname $RESOLVED_EXE_PATH)
+CURR_DIR=$(pwd)
+
+echo "APP_DIR: $APP_DIR"
+
+if [[ "${APP_DIR}" == "${HOME}/.hms-mirror/bin" ]]; then
+  echo "Running from User Local Instance"
+else
+  echo "Running Host instance"
+fi
 
 if [[ ! -d ${HOME}/.hms-mirror/aux_libs ]]; then
   mkdir -p ${HOME}/.hms-mirror/aux_libs
@@ -11,14 +22,6 @@ if [ ! -z ${JAVA_HOME} ]; then
   JAVA="${JAVA_HOME}/bin/java"
 else
   JAVA=java
-fi
-
-if [[ -f ./hms-mirror && "${APP_DIR}" != "${CURR_DIR}" && "${APP_DIR}" != "." ]]; then
-  echo "Appears you are referencing a previously installed 'hms-mirror' while "
-  echo "  in the installation directory of 'hms-mirror'."
-  echo "Change directories and run 'hms-mirror' to run installed version OR "
-  echo "Run current directories 'hms-mirror' via './hms-mirror'"
-  exit -1
 fi
 
 PRG_ARGS=
@@ -37,103 +40,82 @@ HADOOP_CLASSPATH=
 APP_JAVA_OPTS=${JAVA_OPTS:-}
 
 if [[ ! -d ${AUX_LIBS_DIR} ]]; then
-    mkdir -p ${AUX_LIBS_DIR}
+  mkdir -p ${AUX_LIBS_DIR}
 fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -D*)
-      APP_JAVA_OPTS="${APP_JAVA_OPTS} ${1}"
-      shift
-      ;;
-    -CP)
-      shift
-      CMD_CP=${CMD_CP}:$1
-      shift
-      ;;
-    --hadoop-classpath)
-      shift
-      HADOOP_CLASSPATH="true"
-      ;;
-    --aux-libs)
-      shift
-      export AUX_LIBS_DIR=$1
-      shift
-      ;;
-    --show-cp)
-      shift
-      SHOW_CP="true"
-      ;;
-    *)
-      PRG_ARGS="${PRG_ARGS} \"$1\""
-      shift
+  -D*)
+    APP_JAVA_OPTS="${APP_JAVA_OPTS} ${1}"
+    shift
+    ;;
+  -CP)
+    shift
+    CMD_CP=${CMD_CP}:$1
+    shift
+    ;;
+  --hadoop-classpath)
+    shift
+    HADOOP_CLASSPATH="true"
+    ;;
+  --aux-libs)
+    shift
+    export AUX_LIBS_DIR=$1
+    shift
+    ;;
+  --show-cp)
+    shift
+    SHOW_CP="true"
+    ;;
+  *)
+    PRG_ARGS="${PRG_ARGS} \"$1\""
+    shift
+    ;;
   esac
 done
 
 #echo "Program Args: ${PRG_ARGS}"
 
 if [[ ! -d ${AUX_LIBS_DIR} ]]; then
-    mkdir -p ${AUX_LIBS_DIR}
+  mkdir -p ${AUX_LIBS_DIR}
 fi
 
-for jarFile in `ls -d ${AUX_LIBS_DIR}/*.jar 2> /dev/null`; do
-    CMD_CP=${CMD_CP}:$jarFile
+for jarFile in $(ls -d ${AUX_LIBS_DIR}/*.jar 2>/dev/null); do
+  CMD_CP=${CMD_CP}:$jarFile
 done
 
+SHADED=
 # Choose to use embedded libs (Hadoop 3+) or get Hadoop Classpath locally
 if [[ "${HADOOP_CLASSPATH}x" != "x" ]]; then
-    if [[ -f ./hms-mirror-shaded-no-hadoop.jar ]]; then
-        # Look in Current Directory
-        CMD_CP=$APP_DIR/hms-mirror-shaded-no-hadoop.jar:${CMD_CP}
-        #echo "Using bin from same directory"
-    elif [[ -f $APP_DIR/../target/hms-mirror-shaded-no-hadoop.jar ]]; then
-        # Look in ../target
-        CMD_CP=$APP_DIR/../target/hms-mirror-shaded-no-hadoop.jar:${CMD_CP}
-        #echo "Using bin from build directory"
-    else
-        # Look in /usr/local/hadoop-cli/lib
-        if [[ -f /usr/local/hms-mirror/lib/hms-mirror-shaded-no-hadoop.jar ]]; then
-            CMD_CP=/usr/local/hms-mirror/lib/hms-mirror-shaded-no-hadoop.jar:${CMD_CP}
-            #echo "Using bin from installation directory"
-        else
-            #echo "Couldn't locate Hadoop Cli Library"
-            exit 1
-        fi
-    fi
-    CMD_CP=${CMD_CP}:`hadoop classpath`
+  echo "Picking up local Hadoop Classpath Libs."
+  SHADED=shaded-no-hadoop
+  CMD_CP=${CMD_CP}:$(hadoop classpath)
 else
-  if [[ -f ./hms-mirror-shaded.jar ]]; then
-      # Look in Current Directory
-      CMD_CP=$APP_DIR/hms-mirror-shaded.jar:${CMD_CP}
-      #echo "Using bin from same directory"
-  elif [[ -f $APP_DIR/../target/hms-mirror-shaded.jar ]]; then
-      # Look in ../target
-      CMD_CP=$APP_DIR/../target/hms-mirror-shaded.jar:${CMD_CP}
-      #echo "Using bin from build directory"
-  else
-      # Look in /usr/local/hms-mirror/lib
-      if [[ -f /usr/local/hms-mirror/lib/hms-mirror-shaded.jar ]]; then
-          CMD_CP=/usr/local/hms-mirror/lib/hms-mirror-shaded.jar:${CMD_CP}
-          #echo "Using bin from installation directory"
-      else
-          #echo "Couldn't locate hms-mirror Library"
-          exit 1
-      fi
-  fi
+  SHADED=shaded
+fi
+
+# Choose to use embedded libs (Hadoop 3+) or get Hadoop Classpath locally
+if [[ -f $APP_DIR/../lib/hms-mirror-$SHADED.jar ]]; then
+  # Look in /usr/local/hadoop-cli/lib
+  CMD_CP=$APP_DIR/../lib/hms-mirror-$SHADED.jar:${CMD_CP}
+  #echo "Using bin from installation directory"
+else
+  echo "Couldn't locate hms-mirror Library: ${APP_DIR}/../lib/hms-mirror-${SHADED}.jar"
+  exit 1
 fi
 
 CLI_CMD=""
 
 if [[ "${SHOW_CP}x" != "x" ]]; then
-    echo "Classpath: ${CMD_CP}"
+  echo "Classpath: ${CMD_CP}"
 fi
 
 if [[ "${APP_JAVA_OPTS}x" != "x" ]]; then
-    echo "Application JAVA_OPTS=${APP_JAVA_OPTS}" 1>&2
+  echo "Application JAVA_OPTS=${APP_JAVA_OPTS}" 1>&2
 fi
 
 if [[ "${PRG_ARGS}x" != "x" ]]; then
-    echo "PRG_ARGS=${PRG_ARGS}" 1>&2
+  echo "PRG_ARGS=${PRG_ARGS}" 1>&2
 fi
 
 $(${JAVA} -version)
