@@ -2,11 +2,11 @@
 
 "hms-mirror" is a utility used to bridge the gap between two clusters and migrate `hive` _metadata_.  HMS-Mirror is distributed under the [AGPLv3](./license.md) license.
 
-The application will migration hive metastore data (metadata) between two clusters.  With [SQL](#sql) and [EXPORT_IMPORT](#export_import) data strategies, we can move data between the two clusters.  While this process functions on smaller datasets, it isn't too efficient for larger datasets.
+The application will migrate hive metastore data (metadata) between two clusters.  With [SQL](#sql) and [EXPORT_IMPORT](#export_import) data strategies, we can move data between the two clusters.  While this process functions on smaller datasets, it isn't too efficient for larger datasets.
 
-For the default strategy [SCHEMA_ONLY](#schema-only-and-dump), we can migrate the schemas and sync metastore databases, but the DATA movement is NOT a function of this application.  The application does provide a workbook of SOURCE and TARGET locations that can be used to build a `distcp` plan for the databases you ran it against.
+For the default strategy [SCHEMA_ONLY](#schema-only-and-dump), we can migrate the schemas and sync metastore databases, but the DATA movement is NOT a function of this application.  The application does provide a workbook for each database with SOURCE and TARGET locations.
 
-The output reports are written in [Markdown](https://www.markdownguide.org/).  If you have a client Markdown Renderer like [Marked2](https://marked2app.com/) for the Mac or [Typora](https://typora.io/) which is cross platform, you'll find a LOT of details in the output reports about what happened.  If you can't install a render, then try some web versions [Stackedit.io](https://stackedit.io/app#).  Copy/paste the contents to the report 'md' files.
+The output reports are written in [Markdown](https://www.markdownguide.org/).  If you have a client Markdown Renderer like [Marked2](https://marked2app.com/) for the Mac or [Typora](https://typora.io/) which is cross-platform, you'll find a LOT of details in the output reports about what happened.  If you can't install a render, try some web versions [Stackedit.io](https://stackedit.io/app#).  Copy/paste the contents to the report *md* files.
 
 ## Table of Contents
 
@@ -21,6 +21,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [ACID Tables](#acid-tables)
   * [AVRO Tables](#avro-tables)
   * [Table Translations](#table-translations)
+  * [`distcp` Planning Workbook](#distcp-planning-workbook)
 - [Setup](#setup)
   * [Binary Package](#binary-package)
   * [HMS-Mirror Setup from Binary Distribution](#hms-mirror-setup-from-binary-distribution)
@@ -49,6 +50,8 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Assumptions](#assumptions)
   * [Options (Help)](#options-help)
   * [Running Against a LEGACY (Non-CDP) Kerberized HiveServer2](#running-against-a-legacy-non-cdp-kerberized-hiveserver2)
+  * [On-Prem to Cloud Migrations](#on-prem-to-cloud-migrations)
+  * [SCHEMA_ONLY](#schema_only)
   * [Connections](#connections)
   * [Troubleshooting](#troubleshooting)
 - [Output](#output)
@@ -73,6 +76,8 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Hive SQL Exception / HDFS Permissions Issues](#hive-sql-exception--hdfs-permissions-issues)
   * [YARN Submission stuck in ACCEPTED phase](#yarn-submission-stuck-in-accepted-phase)
   * [Spark DFS Access](#spark-dfs-access)
+  * [Permission Issues](#permission-issues)
+  * [Must use HiveInputFormat to read ACID tables](#must-use-hiveinputformat-to-read-acid-tables)
 
 <!-- tocstop -->
 
@@ -80,15 +85,15 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
 
 ### Building METADATA
 
-Rebuilding METADATA can be an expensive scenario.  Especially when you are trying to rebuild the entire metastore in a short period of time.  Consider this in your planning.  Know the number of partitions and buckets you will be moving and account for this.  Test on smaller datasets (volume and metadata elements).  Progress to testing higher volumes / partition counts to find limits and make adjustments to your strategy.
+Rebuilding METADATA can be an expensive scenario.  Especially when you are trying to reconstruct the entire metastore in a short time period, consider this in your planning.  Know the number of partitions and buckets you will be moving and account for this.  Test on smaller datasets (volume and metadata elements).  Progress to testing higher volumes/partition counts to find limits and make adjustments to your strategy.
 
-Using the SQL and EXPORT_IMPORT strategies will move metadata AND data, but the effort to rebuild the metastore elements can be quite expensive.  So consider migrating the metadata separately from the data (distcp) and use MSCK on the RIGHT cluster to discover the data.  This will be considerably more efficient.
+Using the SQL and EXPORT_IMPORT strategies will move metadata AND data, but rebuilding the metastore elements can be pretty expensive.  So consider migrating the metadata separately from the data (distcp) and use MSCK on the RIGHT cluster to discover the data.  This will be considerably more efficient.
 
-If you will be doing a lot of metadata work on the RIGHT cluster and that cluster is also serving a current user base, consider setting up a separate HS2 pods for the migration to minimize the impact to the current user community. [Isolate Migration Activities](#isolate-migration-activities)
+If you will be doing a lot of metadata work on the RIGHT cluster. That cluster also serves a current user base; consider setting up separate HS2 pods for the migration to minimize the impact on the current user community. [Isolate Migration Activities](#isolate-migration-activities)
 
 ### Partition Handling for Data Transfers
 
-There are three settings in the configuration to control 'how' and 'to what extent' we'll attempt to migrate *DATA* for tables with partitions.
+There are three settings in the configuration to control how and to what extent we'll attempt to migrate *DATA* for tables with partitions.
 
 For non-ACID/transactional tables the setting in:
 
@@ -98,22 +103,22 @@ hybrid:
   sqlPartitionLimit: 500
 ```
 
-control both the `HYBRID` strategy for selecting either `EXPORT_IMPORT` or `SQL` and the `SQL` *LIMIT* for how many partitions we'll attempt.  When the `SQL` limit is exceeded you will need to use `SCHEMA_ONLY` to migrate the schema followed by `distcp` to move the data.
+Control both the `HYBRID` strategy for selecting either `EXPORT_IMPORT` or `SQL` and the `SQL` *LIMIT* for how many partitions we'll attempt.  When the `SQL` limit is exceeded, you will need to use `SCHEMA_ONLY` to migrate the schema followed by `distcp` to move the data.
 
-For ACID/transactional tables the setting in:
+For ACID/transactional tables, the setting in:
 
 ```yaml
 migrateACID:
   partitionLimit: 500
 ```
 
-effectively draws the same limit as above.
+Effectively draws the same limit as above.
 
-Why do we have these limits?  Mass migration of datasets via SQL and EXPORT_IMPORT with a LOT of partitions is very expensive and NOT very efficient.  It's best that when these limits are reached that you separate the METADATA and DATA migration to DDL and distcp.
+Why do we have these limits?  Mass migration of datasets via SQL and EXPORT_IMPORT with many partitions is costly and NOT very efficient.  It's best that when these limits are reached that you separate the METADATA and DATA migration to DDL and distcp.
 
 ### Permissions
 
-We use a cross cluster technique to back metadata in the RIGHT cluster with datasets in the LEFT cluster for data strategies: LINKED, HYBRID, EXPORT_IMPORT, SQL, and SCHEMA_ONLY (with `-ams` AVRO Migrate Schema).
+We use a cross-cluster technique to back metadata in the RIGHT cluster with datasets in the LEFT cluster for data strategies: LINKED, HYBRID, EXPORT_IMPORT, SQL, and SCHEMA_ONLY (with `-ams` AVRO Migrate Schema).
 
 See [Linking Clusters Storage Layers](#linking-clusters-storage-layers) for details on configuring this state.
 
@@ -125,9 +130,9 @@ Under certain conditions, `hms-mirror` will 'move' data too.  Using the data str
 
 ### VIEWS
 
-`hms-mirror` now support the migration of VIEWs between two environments.  Use the `-v|--views-only` option to execute this path.  VIEW creation requires dependent tables to exist.  
+`hms-mirror` now supports the migration of VIEWs between two environments.  Use the `-v|--views-only` option to execute this path.  VIEW creation requires dependent tables to exist.
 
-Run `hms-mirror` to create all the target tables before running it with the `-v` option.  
+Run `hms-mirror` to create all the target tables before running it with the `-v` option.
 
 This flag is an `OR` for processing VIEW's `OR` TABLE's.  They are NOT processed together.
 
@@ -138,19 +143,19 @@ This flag is an `OR` for processing VIEW's `OR` TABLE's.  They are NOT processed
 
 ### ACID Tables
 
-`hms-mirror` support the migration of ACID tables using the `-d HYBRID` data strategy in combination with the `-ma|--migrate-acid` or `-mao|--migrate-acid-only` flag.   You can also simply 'replay' the schema definition (without data) using `-d SCHEMA_ONLY -ma|-mao`.  The `-ma|-mao` flag takes an *optional* integer value that sets an 'Artificial Bucket Threshold'.  When no parameter is specified, the default is `2`.
+`hms-mirror` supports the migration of ACID tables using the `-d HYBRID` data strategy in combination with the `-ma|--migrate-acid` or `-mao|--migrate-acid-only` flag.   You can also simply 'replay' the schema definition (without data) using `-d SCHEMA_ONLY -ma|-mao`.  The `-ma|-mao` flag takes an *optional* integer value that sets an 'Artificial Bucket Threshold'.  When no parameter is specified, the default is `2`.
 
-Use this value to set a bucket limit where we'll *remove* the bucket definition during the translation.  This is helpful for legacy ACID tables which *required* a bucket definition but wasn't a part of the intended design.  The migration provides an opportunity to correct this artificial design element.
+Use this value to set a bucket limit where we'll *remove* the bucket definition during the translation.  This is helpful for legacy ACID tables which *required* a bucket definition but weren't a part of the intended design.  The migration provides an opportunity to correct this artificial design element.
 
-With the default value `2`, we will *remove* CLUSTERING from any ACID table definitions that have `2` or less buckets defined.  If you wish to keep ALL CLUSTERED definitions, regardless of size, set this value to `0`.
+With the default value `2`, we will *remove* CLUSTERING from any ACID table definitions with `2` or fewer buckets defined.  If you wish to keep ALL CLUSTERED definitions, regardless of size, set this value to `0`.
 
 #### The ACID Migration Process
 
-The ACID migration builds a 'transfer' table on the LEFT cluster that is a 'legacy' managed table (when the LEFT is a legacy cluster) or an 'EXTERNAL/PURGE' table.  Data is copied to this transfer table from the original ACID table via SQL.
+The ACID migration builds a 'transfer' table on the LEFT cluster, a 'legacy' managed table (when the LEFT is a legacy cluster), or an 'EXTERNAL/PURGE' table.  Data is copied to this transfer table from the original ACID table via SQL.
 
 Since the clusters are [linked](#linking-clusters-storage-layers), we build a 'shadow' table that is 'EXTERNAL' on the 'RIGHT' cluster that uses the data in the 'LEFT' cluster.  Similar to the LINKED data strategy.  If the data is partitioned, we run `MSCK` on this 'shadow' table in the 'RIGHT' cluster to discover all the partitions.
 
-The final ACID table is created in the 'RIGHT' cluster and SQL is used to copy data from the 'LEFT' cluster via the 'shadow' table.
+The final ACID table is created in the 'RIGHT' cluster, and SQL is used to copy data from the 'LEFT' cluster via the 'shadow' table.
 
 #### Requirements
 
@@ -164,38 +169,52 @@ The final ACID table is created in the 'RIGHT' cluster and SQL is used to copy d
   - doas will have a lot to do with the permissions requirements.
   - The 'hive' service account on the RIGHT cluster will need elevated privileges to the LEFT storage LAYER (HDFS).  For example: If the hive service accounts on each cluster DO NOT share the same identity, like `hive`, then the RIGHT hive identity MUST also have privileged access to the LEFT clusters HDFS layer.
 - Partitioned tables must have data that is 'discoverable' via `MSCK`.
-- The number of partitions in the source ACID tables must be below the `partitionLimit` (default 500).  When the partition count is above this, this strategy may not be successful and we won't even attempt the conversion.  NOTE: The METADATA activity and REDUCER restrictions to the number of BUCKETs can dramatically effect this.  Check YARN for progress of jobs with a large number of partitions / buckets.  Progress many appear stalled from 'hms-mirror'.
+  NOTE: The METADATA activity and REDUCER restrictions to the number of BUCKETs can dramatically affect this.- The number of partitions in the source ACID tables must be below the `partitionLimit` (default 500).  This strategy may not be successful when the partition count is above this, and we won't even attempt the conversion. Check YARN for the progress of jobs with a large number of partitions/buckets.  Progress many appear stalled from 'hms-mirror'.
 - ACID table migration to Hive 1/2 is NOT supported due to the lack of support for "INSERT OVERWRITE" on transactional tables.  Hive 1/2 to Hive 3 IS support and the target of this implementation.  Hive 3 to Hive 3 is also supported.
 
 ### AVRO Tables
 
-AVRO tables can be design with a 'reference' to a schema file in `TBLPROPERTIES` with `avro.schema.url`.  The referenced file needs to be 'copied' to the *RIGHT* cluster BEFORE the `CREATE` statement for the AVRO table will succeed.
+AVRO tables can be designed with a 'reference' to a schema file in `TBLPROPERTIES` with `avro.schema.url`.  The referenced file needs to be 'copied' to the *RIGHT* cluster BEFORE the `CREATE` statement for the AVRO table will succeed.
 
 Add the `-asm|--avro-schema-move` option at the command line to *copy* the file from the LEFT cluster to the RIGHT cluster.
 
-As long as the clusters are [linked](#linking-clusters-storage-layers) and the cluster `hcfsNamespace` values are accurate, the credentials of the user running `hms-mirror` will attempt to copy the schema file to the *RIGHT* cluster BEFORE executing the `CREATE` statement.
+As long as the clusters are [linked](#linking-clusters-storage-layers) and the cluster `hcfsNamespace` values are accurate, the user's credentials running `hms-mirror` will attempt to copy the schema file to the *RIGHT* cluster BEFORE executing the `CREATE` statement.
 
 #### Requirements
 
 - [Link Clusters](#linking-clusters-storage-layers) for Data Strategies: `SCHEMA_ONLY`, `SQL`, `EXPORT_IMPORT`, and `HYBRID`
 - Running user must have 'namespace' access to the directories identified in the `TBLPROPERTIES` key `avro.schema.url`.
 - The user running `hms-mirror` will need enough storage level permissions to copy the file.
-- When hive is running with `doas=false`, `hive` will need to have access to this file.
+- When hive is running with `doas=false`, `hive` will need access to this file.
 
 #### Warnings
 
-- With the `EXPORT_IMPORT` strategy, the `avro.schema.url` location will NOT be converted and may lead to issue reading the table is the location includes a prefix of the clusters namespace OR the file doesn't exist in the new cluster.
+- With the `EXPORT_IMPORT` strategy, the `avro.schema.url` location will NOT be converted. It may lead to an issue reading the table if the location includes a prefix of the cluster's namespace OR the file doesn't exist in the new cluster.
 
 ### Table Translations
 
 #### Legacy Managed Tables
 `hms-mirror` will convert 'legacy' managed tables in Hive 1 or 2 to EXTERNAL tables in Hive 3.  It relies on the `legacyHive` setting in the cluster configurations to accurately make this conversion.  So make sure you've set this correctly.
 
+### `distcp` Planning Workbook and Scripts
+
+`hms-mirror` will create source files and a shell script that can be used as the basis for the 'distcp' job(s) used to support the databases and tables requested in `-db`.  `hms-mirror` will NOT run these jobs.  It will provide the basic job constructs that match what it did for the schemas.  Use these constructs to build your execution plan and run these separately.
+
+The constructs created are intended as a *one-time* transfer.  If you are using *SNAPSHOTS* or `--update` flags in `distcp` to support incremental updates, you will have to make additional modifications to the scripts/process.  Note: For these scenarios, `hms-mirror` supports options like `-ro|--read-only` and `-sync`.
+
+Each time `hms-mirror` is run, *source* files for each database are created.  These source files need to be copied to the distributed filesystem and reference with an `-f` option in `distcp`.  We also create a *basic* shell script that can be used as a template to run the actual `distcp` jobs.
+
+Depending on the job size and operational expectations, you may want to use *SNAPSHOTS* to ensure an immutable source or use a `diff` strategy for more complex migrations.  Regardless, you'll need to make modifications to these scripts to suit your purposes.
+
+If your process requires the data to exist BEFORE you migrate the schemas, run `hms-mirror` in the `dry-run` mode (default) and use the distcp planning workbook and scripts to transfer the datasets.  Then run `hms-mirror` with the `-e|--execute` option to migrate the schemas.
+
+These workbooks will NOT include elements for ACID/Transactional tables.  Simply copying the dataset for transactional tables will NOT work.  Use the `HYBRID` data strategy migration transactional table schemas and datasets.
+
 ## Setup
 
 ### Binary Package
 
-#### Don't Build, Download the LATEST binary here!!!
+#### Don't Build. Download the LATEST binary here!!!
 [![Download the LATEST Binary](./images/download.png)](https://github.com/dstreev/hms-mirror/releases)
 
 ### HMS-Mirror Setup from Binary Distribution
@@ -214,38 +233,40 @@ On the edgenode:
 
 If either or both clusters are Kerberized, please review the detailed configuration guidance [here](#running-against-a-legacy-non-cdp-kerberized-hiveserver2) and [here](#kerberized-connections).
 
-`hms-mirror` is designed to RUN from the *RIGHT* cluster.  The *RIGHT* cluster is usually the newer cluster version.  Regardless, under certain scenario's, `hms-mirror` will use an HDFS client to check directories and move small amounts of data (AVRO schema files).  `hms-mirror` will depend on the configuration of the node it's running on to locate the 'hcfs filesystem'.  This means that the `/etc/hadoop/conf` directory should contain all the environments settings to successfully connect to `hcfs`. 
+`hms-mirror` is designed to RUN from the *RIGHT* cluster.  The *RIGHT* cluster is usually the newer cluster version.  Regardless, under specific scenario's, `hms-mirror` will use an HDFS client to check directories and move small amounts of data (AVRO schema files).  `hms-mirror` will depend on the configuration the node it's running on to locate the 'hcfs filesystem'.  This means that the `/etc/hadoop/conf` directory should contain all the environments settings to successfully connect to `hcfs`.
+
+Under certain conditions, you may need to run `hms-mirror` from the *LEFT* cluster when visibility is directional LEFT->RIGHT, as is usually the case when the LEFT cluster is *on-prem* and the RIGHT cluster is hosted (AWS, Azure, Google).'
 
 ### General Guidance
 
 - Run `hms-mirror` from the RIGHT cluster on an Edge Node.
-> `hms-mirror` is built (default setting) with CDP libraries and will connect natively using those libraries.  The edge node should have the hdfs client installed and configured for that cluster.  The application will use this connections for some migration strategies.
+> `hms-mirror` is built (default setting) with CDP libraries and will connect natively using those libraries.  The edge node should have the hdfs client installed and configured for that cluster.  The application will use this connection for some migration strategies.
 - If running from the LEFT cluster, note that the `-ro/--read-only` feature examines HDFS on the RIGHT cluster.  The HDFS client on the LEFT cluster may not support this access.
-- Connecting to HS2 through KNOX (in both clusters, if possible) reduces complexities of the connection by removing Kerberos from the picture.  
-- The libraries will only support a kerberos connection to a 'single' version of hadoop at a time.  This is relevant for 'Kerberized' connections to Hive Server 2.  The default libraries will support a kerberized connection to a CDP clusters HS2 and HDFS.  If the LEFT (source) cluster is Kerberized, including HS2, you will need to make some adjustments.
+- Connecting to HS2 through KNOX (in both clusters, if possible) reduces the complexities of the connection by removing Kerberos from the picture.
+- The libraries will only support a Kerberos connection to a 'single' version of Hadoop at a time.  This is relevant for 'Kerberized' connections to Hive Server 2.  The default libraries will support a kerberized connection to a CDP clusters HS2 and HDFS.  If the LEFT (source) cluster is Kerberized, including HS2, you will need to make some adjustments.
   - The LEFT clusters HS2 needs to support any auth mechanism BUT Kerberos.
   - Use an Ambari Group to setup an independent HS2 instance for this exercise or use KNOX.
 
 ## Optimizations
 
-Moving metadata and data between two clusters is a pretty straight forward process, but depends entirely on the proper configurations in each cluster.  Listed here are a few tips on some important configurations.
+Moving metadata and data between two clusters is a pretty straightforward process but depends entirely on the proper configurations in each cluster.  Listed here are a few tips on some crucial configurations.
 
-NOTE: HMS-Mirror only moves data with the [SQL](#sql) and [EXPORT_IMPORT](#export-import) data strategies.  All other strategies either use the data as is ([LINKED](#linked) or [COMMON](#common)) or depend on the data being moved by something like `distcp`. 
+NOTE: HMS-Mirror only moves data with the [SQL](#sql) and [EXPORT_IMPORT](#export-import) data strategies.  All other strategies either use the data as-is ([LINKED](#linked) or [COMMON](#common)) or depend on the data being moved by something like `distcp`.
 
 ### Make Backups before running `hms-mirror`
 
 Take snapshots of areas you'll touch:
 - The HMS database on the LEFT and RIGHT clusters
-- A snapshot of the HDFS directories on BOTH the LEFT and RIGHT clusters that will be used/touched.
+- A snapshot of the HDFS directories on BOTH the LEFT and RIGHT clusters will be used/touched.
   > NOTE: If you are testing and "DROPPING" dbs, Snapshots of those data directories could protect you from accidental deletions if you don't manage purge options correctly.  Don't skip this...
   > A snapshot of the db directory on HDFS will prevent `DROP DATABASE x CASCADE` from removing the DB directory (observed in CDP 7.1.4+ as tested, check your version) and all sub-directories even though tables were NOT configured with `purge` options.
 
 
 ### Isolate Migration Activities
 
-The migration of schemas can put a heavy load on HS2 and the HMS server it's using.  That impact can manifest itself as 'pauses' for other clients trying to run queries.  Long schema/discovery operations have a 'blocking' tendency in HS2.
+The migration of schemas can put a heavy load on HS2 and the HMS server it's using.  That impact can manifest itself as 'pauses' for other clients trying to run queries. Extended schema/discovery operations have a 'blocking' tendency in HS2.
 
-To prevent normal user operational impact, I suggest establishing an isolated HMS and HS2 environment for the migration process.
+To prevent average user operational impact, I suggest establishing an isolated HMS and HS2 environment for the migration process.
 ![Isolate Migration Service Endpoints](./images/isolation.png)
 
 ### Speed up CREATE/ALTER Table Statements - with existing data
@@ -254,16 +275,16 @@ Set `ranger.plugin.hive.urlauth.filesystem.schemes=file` in the Hive Server 2(hi
 
 ![Safety Value](./images/hs2_ranger_schemas.png)
 
-Add this to the HS2 instance on the RIGHT cluster, when Ranger is used for Auth.
-This skips the check done against every directory at the table location (for CREATE or ALTER LOCATION).  Allowing the process of CREATE/ALTER to run much faster.
+Add this to the HS2 instance on the RIGHT cluster when Ranger is used for Auth.
+This skips the check done against every directory at the table location (for CREATE or ALTER LOCATION). It is allowing the process of CREATE/ALTER to run much faster.
 
-The default (true) behavior works well for interactive use case, but bulk operations like this can take a really long time if this validation needs to happen for every new partition during creation or discovery.
+The default (true) behavior works well for the interactive use case. Still, bulk operations like this can take a long time if this validation needs to happen for every new partition during creation or discovery.
 
 I recommend turning this back after the migration is complete.  This setting exposes permissions issues at the time of CREATE/ALTER.  So by skipping this, future access issues may arise if the permissions aren't aligned, which isn't a Ranger/Hive issue, it's a permissions issue.
 
 ### Turn ON HMS partition discovery
 
-In CDP 7.1.4 and below, the house keeping threads in HMS used to discover partitions is NOT running.  Add `metastore.housekeeping.threads.on=true` to the HMS Safety Value to activate the partition discovery thread.  Once this has been set, the following parameters can be used to modify the default behavior.
+In CDP 7.1.4 and below, the housekeeping threads in HMS used to discover partitions are NOT running.  Add `metastore.housekeeping.threads.on=true` to the HMS Safety Value to activate the partition discovery thread.  Once this has been set, the following parameters can be used to modify the default behavior.
 
 ```
 hive.metastore.partition.management.task.frequency
@@ -277,8 +298,8 @@ hive.metastore.fshandler.threads
 ```
     METASTORE_HOUSEKEEPING_LEADER_HOSTNAME("metastore.housekeeping.leader.hostname",
             "hive.metastore.housekeeping.leader.hostname", "",
-"If there are multiple Thrift metastore services running, the hostname of Thrift metastore " +
-        "service to run housekeeping tasks at. By default this values is empty, which " +
+"If multiple Thrift metastore services are running, the hostname of Thrift metastore " +
+        "service to run housekeeping tasks at. By default, this value is empty, which " +
         "means that the current metastore will run the housekeeping tasks. If configuration" +
         "metastore.thrift.bind.host is set on the intended leader metastore, this value should " +
         "match that configuration. Otherwise it should be same as the hostname returned by " +
@@ -300,11 +321,11 @@ The default batch size for partition discovery via `msck` is 3000.  Adjustments 
 
 DO NOT SKIP THIS!!!
 
-The `hms-mirror` process DOES 'DROP' tables when asked to.  If those tables *manage* data like a *legacy* managed, *ACID*, or *external.table.purge=true* scenario, we do our best to NOT DROP those and ERROR out.  But, protect yourself and make backups of the areas you'll be working in.
+The `hms-mirror` process DOES 'DROP' tables when asked.  If those tables *manage* data like a *legacy* managed, *ACID*, or *external.table.purge=true* scenario, we do our best NOT to DROP those and ERROR out.  But, protect yourself and make backups of the areas you'll be working in.
 
 #### HDFS Snapshots
 
-Use HDFS Snapshots to make a quick backup of directories you'll be working on.  Do this especially in the *LEFT* cluster.  We only drop tables, so a snapshot of the database directory is good.  BUT, if you are manually doing any `DROP DATABASE <x> CASCADE` operations, that will delete the snapshotted directory (and the snapshot).  In this case, create the _snapshot_ one level above the database directory.
+Use HDFS Snapshots to make a quick backup of directories you'll be working on.  Do this, especially in the *LEFT* cluster.  We only drop tables, so a snapshot of the database directory is good.  BUT, if you are manually doing any `DROP DATABASE <x> CASCADE` operations, that will delete the snapshotted directory (and the snapshot).  In this case, create the _snapshot_ one level above the database directory.
 
 #### Metastore Backups
 
@@ -312,19 +333,19 @@ Take a DB backup of your metastore and keep it in a safe place before starting.
 
 ### Shared Authentication
 
-The clusters must share a common authentication model to support cross cluster HDFS access, when HDFS is the underlying storage layer for the datasets.  This means that a **kerberos** ticket used in the RIGHT cluster must be valid for the LEFT cluster.
+The clusters must share a common authentication model to support cross-cluster HDFS access when HDFS is the underlying storage layer for the datasets.  This means that a **kerberos** ticket used in the RIGHT cluster must be valid for the LEFT cluster.
 
 For cloud storage, the two clusters must have rights to the target storage bucket.
 
-It you are able to [`distcp` between the clusters](#linking-clusters-storage-layers), then you have the basic connectivity required to start working with `hms-mirror`.
+If you can [`distcp` between the clusters](#linking-clusters-storage-layers), you have the basic connectivity required to start working with `hms-mirror`.
 
 ## Linking Clusters Storage Layers
 
-For the `hms-mirror` process to work, it relies on the RIGHT clusters ability to _SEE_ and _ACCESS_ data in the LEFT clusters HDFS namespace.  This is the same access/configuration required to support DISTCP for an HA environment and account for failovers.
+For the `hms-mirror` process to work, it relies on the RIGHT clusters' ability to _SEE_ and _ACCESS_ data in the LEFT clusters HDFS namespace.  This is the same access/configuration required to support DISTCP for an HA environment and accounts for failovers.
 
 We suggest that `distcp` operations be run from the RIGHT cluster, which usually has the greater 'hdfs' version in a migration scenario.
 
-Access is required by the RIGHT cluster HCFS namespace to the LEFT clusters HCFS namespace.  RIGHT clusters with a greater HDFS version support **LIMITED** functionality for data access in the LEFT cluster.
+The RIGHT cluster HCFS namespace requires access to the LEFT clusters HCFS namespace.  RIGHT clusters with a greater HDFS version support **LIMITED** functionality for data access in the LEFT cluster.
 
 NOTE: This isn't designed to be a permanent solution and should only be used for testing and migration purposes.
 
@@ -332,7 +353,7 @@ NOTE: This isn't designed to be a permanent solution and should only be used for
 
 What does it take to support HDFS visibility between these two clusters?
 
-Can that integration be used to support the Higher Clusters use of the Lower Clusters HDFS Layer for distcp AND Hive External Table support?
+Can that integration be used to support the Higher Clusters' use of the Lower Clusters HDFS Layer for distcp AND Hive External Table support?
 
 ### Scenario #1
 
@@ -425,13 +446,13 @@ _Custom core-site.xml in Lower Cluster_
 hadoop.proxyuser.hive.hosts=*
 ```
 
-Credentials from the 'upper' cluster will be projected down to the 'lower' cluster.  This means the `hive` user in the upper cluster, when running with 'non-impersonation' will require access to the datasets in the lower cluster HDFS.
+Credentials from the 'upper' cluster will be projected down to the 'lower' cluster.  The `hive` user in the upper cluster, when running with 'non-impersonation' will require access to the datasets in the lower cluster HDFS.
 
 For table creation in the 'upper' clusters Metastore, a permissions check will be done on the lower environments directory for the submitting user.  So, both the service user AND `hive` will require access to the directory location specified in the lower cluster.
 
-When the two clusters _share_ accounts and the same accounts are used between environment for users and service accounts, then access should be simple.
+When the two clusters _share_ accounts, and the same accounts are used between environments for users and service accounts, then access should be simple.
 
-When a different set of accounts are used, the 'principal' from the upper clusters service account for 'hive' and the 'user' principal will be used in the lower cluster.  Which means additional HDFS policies in the lower cluster may be required to support this cross environment work.
+When a different set of accounts are used, the 'principal' from the upper clusters service account for 'hive' and the 'user' principal will be used in the lower cluster.  This means additional HDFS policies in the lower cluster may be required to support this cross-environment work.
 
 ## Permissions
 
@@ -439,9 +460,9 @@ In both the METADATA and STORAGE phases of `hms-mirror` the RIGHT cluster will r
 
 `hms-mirror` access each cluster via JDBC and use the RIGHT cluster for *storage* layer access.
 
-When the RIGHT cluster is using 'non-impersonation' (hive `doas=false`), the *hive* service account on the **RIGHT** cluster (usually `hive`) needs access to the storage layer on the **LEFT** cluster in order to use this data to support sidecar testing, where we use the data of the LEFT cluster but *mirror* the metadata.
+When the RIGHT cluster is using 'non-impersonation' (hive `doas=false`), the *hive* service account on the **RIGHT** cluster (usually `hive`) needs access to the storage layer on the **LEFT** cluster to use this data to support sidecar testing, where we use the data of the LEFT cluster but *mirror* the metadata.
 
-> Having Ranger on both clusters helps considerably because you can create additional ACL's to provide the access required.
+> Having Ranger on both clusters helps because you can create additional ACLs to provide the access required.
 
 **OR**
 
@@ -464,15 +485,15 @@ There are two ways to get started:
   - The hcfs (Hadoop Compatible FileSystem) protocol and prefix used for the hive table locations in EACH cluster.
 - Use the [template yaml](./configs/default.template.yaml) for reference and create a `default.yaml` in the running users `$HOME/.hms-mirror/cfg` directory.
 
-You'll need jdbc driver jar files that are **specific* to the clusters you'll integrate with.  If the **LEFT** cluster isn't the same version as the **RIGHT** cluster, don't use the same jdbc jar file especially when integrating Hive 1 and Hive 3 services.  The Hive 3 driver is NOT backwardly compatible with Hive 1.
+You'll need JDBC driver jar files that are **specific* to the clusters you'll integrate.  If the **LEFT** cluster isn't the same version as the **RIGHT** cluster, don't use the same JDBC jar file, especially when integrating Hive 1 and Hive 3 services.  The Hive 3 driver is NOT backwardly compatible with Hive 1.
 
 See the [running](#running-hms-mirror) section for examples on running `hms-mirror` for various environment types and connections.
 
 ### Secure Passwords in Configuration
 
-There are two passwords stored in the configuration file mentioned above.  One for each 'jdbc' connection, if those rely on a password for connect.  By default, the passwords are in clear text in the configuration file.  Which usually isn't an issue since the file can be protected at the unix level from peering eyes.  But if you do need to protect those passwords, `hms-mirror` supports storing an encrypted version of the password in the configuration.
+There are two passwords stored in the configuration file mentioned above.  One for each 'JDBC connection, if those rely on a password for connect.  By default, the passwords are in clear text in the configuration file.  This usually isn't an issue since the file can be protected at the UNIX level from peering eyes.  But if you need to protect those passwords, `hms-mirror` supports storing an encrypted version of the password in the configuration.
 
-The `password` element for each JDBC connection can be replace with an **encrypted** version of the password and read by `hms-mirror` during execution, so the clear text version of the password isn't persisted anywhere.
+The `password` element for each JDBC connection can be replaced with an **encrypted** version of the password and read by `hms-mirror` during execution, so the clear text version of the password isn't persisted anywhere.
 
 When you're using this feature, you need to have a `password-key`.  This is a key used to encrypt and decrypt the password in the configuration.  The same `password-key` must be used for each password in the configuration file.
 
@@ -488,7 +509,7 @@ Will generate:
 Encrypted password: HD1eNF8NMFahA2smLM9c4g==
 ```
 
-Copy this encrypted password and place it in your configuration file for the jdbc connection.  Repeat for the other password, if it's different and paste it in the configuration as well.
+Copy this encrypted password and place it in your configuration file for the JDBC connection.  Repeat for the other passwords, if it's different, and paste it in the configuration as well.
 
 #### Running `hms-mirror` with Encrypted Passwords
 
@@ -502,20 +523,17 @@ When the `-pkey` option is specified **WITHOUT** the `-p` option (used previousl
 
 ### Run in `screen` or `tmux`
 
-This process can be a long running process.  It depends on how much you've asked it to do.  Having the application terminated because the `ssh` session to the edgenode timed out and you're computer went to sleep will be very disruptive.
+This process can be a long-running process.  It depends on how much you've asked it to do.  Having the application terminated because the `ssh` session to the edgenode timed out and your computer went to sleep will be very disruptive.
 
 Using either of these session state tools (or another of your choice) while running it on an edgenode will allow you to sign-off without disrupting the process AND reattach to see the interactive progress at a later point.
 
 ### Use `dryrun` FIRST
 
-Before you go and run a process the will make changes, try running `hms-mirror` with the `dryrun` option first.  The report generated at the end of the job will provide insight into what issues (if any) you'll run across.
-
-For example: When running the either the METADATA or STORAGE phase and setting `overwriteTable: "true"` in the configuration, the process will `ERROR` if the table exists in the RIGHT cluster AND it manages the data there.  `hms-mirror` will not `DROP` tables that manage data, you'll need to do that manually.  But the processes leading upto this check can be time consuming and a failure late in the process is annoying.
-
+Before you run a process that will make changes, try running `hms-mirror` with the `dry-run` option first.  The report generated at the end of the job will provide insight into what issues (if any) you'll run across.
 
 ### Start Small
 
-Use `-db`(database) AND `-tf`(table filter) options to limit the scope of what your processing.  Start with a test database that contains various table types you'd like to migrate.
+Use `-db`(database) AND `-tf`(table filter) options to limit the scope of what you're processing.  Start with a test database that contains various table types you'd like to migrate.
 
 Review the output report for details/problems you encountered in processing.
 
@@ -523,9 +541,9 @@ Since the process expects the user to have adequate permissions in both clusters
 
 ### RETRY (WIP-NOT FULLY IMPLEMENTED YET)
 
-When you run `hms-mirror` we write a `retry` file out to the `$HOME/.hms-mirror/retry` directory with the same filename prefix as the config used to run the job.  If you didn't specify a config then its using the `$HOME/.hms-mirror/cfg/default.yaml` file as a default.  This results in a `$HOME/.hms-mirror/retry/default.retry` file.
+When you run `hms-mirror` we write a `retry` file out to the `$HOME/.hms-mirror/retry` directory with the same filename prefix as the config used to run the job.  If you didn't specify a config, it uses the `$HOME/.hms-mirror/cfg/default.yaml` file as a default.  This results in a `$HOME/.hms-mirror/retry/default.retry` file.
 
-If the job fails part way through you can rerun the process with the `--retry` option and it will load the _retry_ file and retry any process that wasn't previously successful.
+If the job fails partway through you can rerun the process with the `--retry` option and it will load the _retry_ file and retry any operation that wasn't previously successful.  'Retry' is a tech-preview function and not thoroughly tested.
 
 
 ## Running HMS Mirror
@@ -537,14 +555,14 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 1. This process will only 'migrate' EXTERNAL and MANAGED (non-ACID/Transactional) table METADATA (not data, except with [SQL](#sql) and [EXPORT_IMPORT](#export-import) ).
 2. MANAGED tables replicated to the **RIGHT** cluster will be converted to "EXTERNAL" tables for the 'metadata' stage.  They will be tagged as 'legacy managed' in the **RIGHT** cluster and will NOT be assigned the `external.table.purge=true` flag, yet.  Once the table's data has been migrated, the table will be adjusted to be purgeable via `external.table.purge=true` to match the classic `MANAGED` table behavior.
 1. The **RIGHT** cluster has 'line of sight' to the **LEFT** cluster.
-2. The **RIGHT** cluster has been configured to access the **LEFT** cluster storage. See [link clusters](#linking-clusters-storage-layers).  This is the same configuration that would be required to support `distcp` from the **RIGHT** cluster to the **LEFT** cluster.
+2. The **RIGHT** cluster has been configured to access the **LEFT** cluster storage. See [link clusters](#linking-clusters-storage-layers).  This is the same configuration required to support `distcp` from the **RIGHT** cluster to the **LEFT** cluster.
 3. The movement of metadata/data is from the **LEFT** cluster to the **RIGHT** cluster.
 4. With Kerberos, each cluster must share the same trust mechanism.
-   - The **RIGHT** cluster must be Kerberized IF the **LEFT** cluster is.
-   - The **LEFT** cluster does NOT need to be kerberized if the **RIGHT** cluster is kerberized.
+  - The **RIGHT** cluster must be Kerberized IF the **LEFT** cluster is.
+  - The **LEFT** cluster does NOT need to be kerberized if the **RIGHT** cluster is kerberized.
 7. The **LEFT* cluster does NOT have access to the **RIGHT** cluster.
 8. The credentials use by 'hive' (doas=false) in the **RIGHT** cluster must have access to the required storage (hdfs) locations on the lower cluster.
-   - If the **RIGHT** cluster is running impersonation (doas=true), that user must have access to the required storage (hdfs) locations on the lower cluster.
+  - If the **RIGHT** cluster is running impersonation (doas=true), that user must have access to the required storage (hdfs) locations on the lower cluster.
 
 #### Transfer DATA, beyond the METADATA
 
@@ -685,11 +703,11 @@ usage: hms-mirror
 
 `hms-mirror` is pre-built with CDP libraries and they WILL NOT be compatible with LEGACY kerberos environments. A Kerberos connection can only be made to ONE cluster when the clusters are NOT running the same 'major' version of Hadoop.
 
-To attach to a LEGACY HS2, run `hms-mirror` with the `--hadoop-classpath` commandline option.  This will strip the CDP libraries from `hms-mirror` and use the hosts Hadoop libraries by calling `hadoop classpath` to locate the binaries needed to do this.
+To attach to a LEGACY HS2, run `hms-mirror` with the `--hadoop-classpath` command-line option.  This will strip the CDP libraries from `hms-mirror` and use the hosts Hadoop libraries by calling `hadoop classpath` to locate the binaries needed to do this.
 
 #### Features
 
-Features are a way to inject special considerations into the replay of a schema between clusters.  Using the `-f` option you can specify the 'features' you want to use on the schemas.  Features should only be used when you know a particular scenario exists.  Don't use them automatically.
+Features are a way to inject special considerations into the replay of a schema between clusters.  Using the `-f` option, you can specify the 'features' you want to use on the schemas.  Features should only be used when you know a particular scenario exists.  Don't use them automatically.
 
 ##### BAD_ORC_DEF
 
@@ -710,7 +728,7 @@ when it should have been created with:
 STORED AS ORC
 ```
 
-the result, when not modified and replayed in Hive 3 is a table that isn't functional.  The `BAD_ORC_DEF` feature will replace:
+The result, when not modified and replayed in Hive 3 is a table that isn't functional.  The `BAD_ORC_DEF` feature will replace:
 
 ```
 ROW FORMAT DELIMITED
@@ -727,7 +745,7 @@ ROW FORMAT SERDE
 
 ##### BAD_RC_DEF
 
-`BAD_RC_DEF` is a feature that corrects poorly executed schema definitions in legacy Hive 1/2 that don't translate into a functioning table in Hive 3.  In this case, the legacy definition was defined with:
+`BAD_RC_DEF` is a feature that corrects poorly executed schema definitions in legacy Hive 1/2 that doesn't translate into a functioning table in Hive 3.  In this case, the legacy definition was defined with:
 ```
 ROW FORMAT DELIMITED,
     FIELDS TERMINATED BY '|'
@@ -743,7 +761,7 @@ when it should have been created with:
 STORED AS RCFILE
 ```
 
-the result, when not modified and replayed in Hive 3 is a table that isn't functional.  The `BAD_RC_DEF` feature will replace:
+The result, when not modified and replayed in Hive 3 is a table that isn't functional.  The `BAD_RC_DEF` feature will replace:
 
 ```
 ROW FORMAT DELIMITED,                              
@@ -756,12 +774,31 @@ with:
 ```
 STORED AS RCFILE
 ```
+### On-Prem to Cloud Migrations
+
+On-Prem to Cloud Migrations should run `hms-mirror` from the LEFT cluster since visibility in this scenario is usually restricted to LEFT->RIGHT.
+
+If the cluster is an older version of Hadoop (HDP 2, CDH 5), your connection to the LEFT HS2 should NOT be kerberized.  Use LDAP or NO_AUTH.
+
+The clusters LEFT hcfsNamespace (clusters:LEFT:hcfsNamespace) should be the LEFT clusters HDFS service endpoint.  The RIGHT hcfsNamespace (clusters:RIGHT:hcfsNamespace) should be the *target* root cloud storage location.  The LEFT clusters configuration (/etc/hadoop/conf) should have all the necessary credentials to access this location.  Ensure that the cloud storage connectors are available in the LEFT environment.
+
+There are different strategies available for migrations between on-prem and cloud environments.
+
+#### SCHEMA_ONLY
+
+This is a schema-only transfer, where the `hcfsNamespace` in the metadata definitions is 'replaced' with the `hcfsNamespace` value defined on the RIGHT.  NOTE: The 'relative' directory location is maintained in the migration.
+
+No data will be migrated in this case.
+
+There will be a [`distcp` Planning Workbook](#distcp-planning-workbook) generated with a plan that can be used to build the data migration process with `distcp`.
+
+#### INTERMEDIATE
 
 ### Connections
 
-`hms-mirror` connects to 3 endpoints.  The hive jdbc endpoints for each cluster (2) and the `hdfs` environment configured on the running host.  Which means you'll need:
-- jdbc drivers to match the jdbc endpoints
-- For **non** CDP 7.x environments and Kerberos connections, an edge node with the current hadoop libraries.
+`hms-mirror` connects to 3 endpoints.  The hive jdbc endpoints for each cluster (2) and the `hdfs` environment configured on the running host.  This means you'll need:
+- JDBC drivers to match the JDBC endpoints
+- For **non** CDP 7.x environments and Kerberos connections, an edge node with the current Hadoop libraries.
 
 See the [config](#configuration) section to setup the config file for `hms-mirror`.
 
@@ -769,7 +806,7 @@ See the [config](#configuration) section to setup the config file for `hms-mirro
 
 ##### Non-Kerberos Connections
 
-The easiest connections are 'non-kerberos' jdbc connections, either to HS2 with AUTH models that aren't **Kerberos** or through a **Knox** proxy.  Under these conditions, only the __standalone__ jdbc drivers are required.  Each of the cluster configurations contains an element `jarFile` to identify those standalone libraries.
+The most effortless connections are 'non-kerberos' JDBC connections either to HS2 with AUTH models that aren't **Kerberos** or through a **Knox** proxy.  Under these conditions, only the __standalone__ JDBC drivers are required.  Each of the cluster configurations contains an element `jarFile` to identify those standalone libraries.
 
 ```yaml
     hiveServer2:
@@ -780,7 +817,7 @@ The easiest connections are 'non-kerberos' jdbc connections, either to HS2 with 
       jarFile: "<environment-specific-jdbc-standalone-driver>"
 ```
 
-When dealing with clusters supporting different version of Hive (Hive 1 vs. Hive 3), the jdbc drivers aren't forward OR backward compatible between these versions.  Hence, each jdbc jar file is loaded in a sandbox that allows us to use the same driver class, but isolate it between the two jdbc jars.
+When dealing with clusters supporting different Hive (Hive 1 vs. Hive 3) versions, the JDBC drivers aren't forward OR backward compatible between these versions.  Hence, each JDBC jar file is loaded in a sandbox that allows us to use the same driver class, but isolates it between the two JDBC jars.
 
 Place the two jdbc jar files in any directory **EXCEPT** `$HOME/.hms-mirror/aux_libs` and reference the full path in the `jarFile` property for that `hiveServer2` configuration.
 
@@ -790,7 +827,7 @@ _SAMPLE Commandline_
 
 ##### Kerberized Connections
 
-`hms-mirror` relies on the Hadoop libraries to connect via 'kerberos'.  If the clusters are running different versions of Hadoop/Hive, we can only support connecting to one of the clusters via kerberos.  `hms-mirror` is built with the dependencies for Hadoop 3.1 (CDP 7.1.x).  Kerberos connections are NOT supported in the 'sandbox' configuration we discussed above.
+`hms-mirror` relies on the Hadoop libraries to connect via 'kerberos'.  Suppose the clusters are running different versions of Hadoop/Hive. In that case, we can only support connecting to one of the clusters via Kerberos.  `hms-mirror` is built with the dependencies for Hadoop 3.1 (CDP 7.1.x).  Kerberos connections are NOT supported in the 'sandbox' configuration we discussed above.
 
 There are three scenarios for kerberized connections.
 
@@ -801,25 +838,25 @@ There are three scenarios for kerberized connections.
 | 3 | YES<br/>HDP2 or Hive 1 | NO <br/> HDP 3 or CDP 7 | Not Supported when `hms-mirror` run from the RIGHT cluster. | `hms-mirror -db tpcds_bin_partitioned_orc_10` |
 | 4 | YES<br/>HDP2 or Hive 1 | YES <br/> HDP2 or Hive 1 | <ol><li>The Kerberos credentials must be TRUSTED to both clusters</li><li>Add `--hadoop-classpath` as a commandline option to `hms-mirror`.  This replaces the prebuilt Hadoop 3 libraries with the current environments Hadoop Libs.</li><li>Add the jdbc standalone jar file to `$HOME/.hms-mirror/aux_libs`</li><li>Comment out/remove the `jarFile` references for BOTH clusters in the configuration file.</li></ol> | `hms-mirror -db tpcds_bin_partitioned_orc_10 --hadoop-classpath` |
 
-For kerberos jdbc connections, ensure you are using an appropriate Kerberized Hive URL.
+For Kerberos JDBC connections, ensure you are using an appropriate Kerberized Hive URL.
 
 `jdbc:hive2://s03.streever.local:10000/;principal=hive/_HOST@STREEVER.LOCAL`
 
 ### Troubleshooting
 
-If each JDBC endpoint is Kerberized and the connection to the LEFT or RIGHT is succesful, both NOT both and the program seems to just hang with no exception...  it's most likely that the Kerberos ticket isn't TRUSTED across the two environments.  You will only be able to support a kerberos connection to the cluster where the ticket is trusted.  The other cluster connection will need to be anything BUT kerberos.
+If each JDBC endpoint is Kerberized and the connection to the LEFT or RIGHT is successful, both NOT both, and the program seems to hang with no exception...  it's most likely that the Kerberos ticket isn't TRUSTED across the two environments.  You will only be able to support a Kerberos connection to the cluster where the ticket is trusted.  The other cluster connection will need to be anything BUT Kerberos.
 
-Add `--show-cp` to the `hms-mirror` commandline to see the classpath used to run.
+Add `--show-cp` to the `hms-mirror` command line to see the classpath used to run.
 
 The argument `--hadoop-classpath` allows us to replace the embedded Hadoop Libs (v3.1) with the libs of the current platform via a call to `hadoop classpath`.  This is necessary to connect to kerberized Hadoop v2/Hive v1 environments.
 
 Check the location and references to the JDBC jar files.  General rules for Kerberos Connections:
-- The jdbc jar file should be in the `$HOME/.hms-mirror/aux_libs`.  For kerberos connections, we've seen issues attempting to load this jar in a sandbox, so this makes it available to the global classpath/loader.
-- Get a kerberos ticket for the running user before launching `hms-mirror`.
+- The JDBC jar file should be in the `$HOME/.hms-mirror/aux_libs`.  For Kerberos connections, we've seen issues attempting to load this jar in a sandbox, so this makes it available to the global classpath/loader.
+- Get a Kerberos ticket for the running user before launching `hms-mirror`.
 
 #### "Unrecognized Hadoop major version number: 3.1.1.7.1...0-257"
 
-This happens when you're trying to connect to an HS2 instance 
+This happens when you're trying to connect to an HS2 instance.
 
 ## Output
 
@@ -831,11 +868,11 @@ Using [`distcp`](https://hadoop.apache.org/docs/r3.1.4/hadoop-distcp/DistCp.html
 
 `hadoop distcp -f /user/dstreev/tpcds_distcp_sources.txt hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db`
 
-This job will use the source list, copy the contents between the clusters.  Appending the 'last' directory in the 'source' line to the 'target'.
+This job will use the source list, copy the contents between the clusters appending the 'last' directory in the 'source' line to the 'target.'
 
-NOTE: Depending on the volume of the underlying datasets, you may need to make adjustments to the `distcp` job to increase it's memory footprint.  See the [`distcp` docs](https://hadoop.apache.org/docs/r3.1.4/hadoop-distcp/DistCp.html) for details if you have issues with jobs failures.
+Note: Depending on the volume of the underlying datasets, you may need to adjust the `distcp` job to increase its memory footprint.  See the [`distcp` docs](https://hadoop.apache.org/docs/r3.1.4/hadoop-distcp/DistCp.html) details if you have issues with jobs failures.
 
-Also note that we are NOT considering sourcing the jobs from a SNAPSHOT.  We do recommend that for datasets that are changing while the 'distcp' job runs.
+Also, note that we are NOT considering sourcing the jobs from a SNAPSHOT.  We do recommend that for datasets that are changing while the 'distcp' job runs.
 
 | Database | Target | Sources |
 |:---|:---|:---|
@@ -845,15 +882,15 @@ Also note that we are NOT considering sourcing the jobs from a SNAPSHOT.  We do 
 
 ### Application Report
 
-When the process has completed a markdown report is generated with all the work that was done.  The report location will be at the bottom of the output window.  You will need a *markdown* renderer to read the report.  Markdown is a textfile, so if you don't have a renderer you can still look at the report, it will just be harder to read.
+The process is complete with a markdown report location at the bottom of the output window.  You will need a *markdown* renderer to read the information.  Markdown is a text file, so if you don't have a renderer, you can still look at the report. It will just be harder to read.
 
-The report location is displayed at the bottom on the application window when it's complete.
+The report location is displayed at the bottom of the application window when it's complete.
 
 ### Action Report for LEFT and RIGHT Clusters
 
-Under certain conditions, additional actions may be required to achieve the desired 'mirror' state.  An output script for each cluster is created with these actions.  These actions are NOT run by `hms-mirror`.  They should be reviewed and understood by the owner of the dataset being `mirrored` and run when appropriate.
+Under certain conditions, additional actions may be required to achieve the desired 'mirror' state.  An output script for each cluster is created with these actions.  These actions are NOT run by `hms-mirror.`  They should be reviewed and understood by the owner of the dataset being `mirrored` and run when appropriate.
 
-The locations are displayed at the bottom on the application window when it's complete.
+The locations are displayed at the bottom of the application window when it's complete.
 
 ### SQL Execution Output
 
@@ -861,24 +898,24 @@ A SQL script of all the actions taken will be written to the local output direct
 
 ### Logs
 
-There is a running log of the process in `$HOME/.hms-mirror/logs/hms-mirror.log`.  Review this for details or issues of the running process.
+There is a running log of the process in `$HOME/.hms-mirror/logs/hms-mirror.log.`  Review this for details or issues of the running process.
 
 ## Strategies
 
 ### Schema Only and DUMP
 
-Transfer the schema only, replace the location with the RIGHT clusters location namespace and maintain the relative path.
+Transfer the schema only, replace the location with the RIGHT clusters location namespace, and maintain the relative path.
 
-The data is transferred by an external process, like 'distcp'.
+The data is transferred by an external process, like 'distcp.'
 
-The DUMP strategy is like SCHEMA_ONLY, it just doesn't require the RIGHT cluster to be connected.  Although, it does require the following settings for the RIGHT cluster to make the right adjustments:
+The DUMP strategy is like SCHEMA_ONLY; it just doesn't require the RIGHT cluster to be connected.  Although, it does need the following settings for the RIGHT cluster to make the proper adjustments:
 ```
 legacyHive
 hcfsNamespace
 hiveServer2 -> partitionDiscovery 
 ```
 
-When the option `-ma` (migrate acid) is specified, the ACID schema's will be migrated/dumped as well.  It is VERY important to know that the data for ACID tables can NOT be simply copied from one clusters hive instance to another.  The data needs to be extracted to a none ACID table then use an external table definition to read and INSERT the data into the new ACID table on the RIGHT cluster.  For those that insist on trying to simply copy the data.... you've been warned ;).
+When the option `-ma` (migrate acid) is specified, the ACID schema's will be migrated/dumped.  It is essential to know that the data for ACID tables can NOT simply be copied from one clusters hive instance to another.  The data needs to be extracted to a none ACID table, then use an external table definition to read and INSERT the data into the new ACID table on the RIGHT cluster.  For those that insist on trying to simply copy the data.... you've been warned ;).
 
 With the DUMP strategy, you'll have a 'translated' (for legacy hive) table DDL that can be run on the new cluster independently.
 
@@ -894,7 +931,7 @@ With the DUMP strategy, you'll have a 'translated' (for legacy hive) table DDL t
 
 Assumes the clusters are LINKED.  We'll transfer the schema and leave the location as is on the new cluster.
 
-This provides a means to test Hive on the RIGHT cluster using the LEFT clusters storage.
+This provides a means to test hive on the RIGHT cluster using the LEFT cluster's storage.
 
 The `-ma` (migrate acid) tables option is NOT valid in this scenario and will result in an error if specified.
 
@@ -914,7 +951,7 @@ Assumes the clusters are LINKED.  We'll use EXPORT_IMPORT to get the data to the
 
 EXPORT to a location on the LEFT cluster where the RIGHT cluster can pick it up with IMPORT.
 
-When `-ma` (migrate acid) tables is specified, and the LEFT and RIGHT cluster DON'T share the same 'legacy' setting, we will NOT be able to use the EXPORT_IMPORT process due to incompatibilities between the Hive versions.  We will still attempt to migrate the table definition and data by copying the data to an EXTERNAL table on the lower cluster and expose this as the source for an INSERT INTO the ACID table on the RIGHT cluster.
+When `-ma` (migrate acid) tables are specified, and the LEFT and RIGHT cluster DON'T share the same 'legacy' setting, we will NOT be able to use the EXPORT_IMPORT process due to incompatibilities between the Hive versions.  We will still attempt to migrate the table definition and data by copying the data to an EXTERNAL table on the lower cluster and expose this as the source for an INSERT INTO the ACID table on the RIGHT cluster.
 
 ![export_import](./images/sql_exp-imp.png)
 
@@ -925,7 +962,7 @@ tables data strategy depending on the criteria of the table.
 
 The `-ma|-mao` option is valid here and will use an internal `ACID` strategy for *transactional* tables to convert them between environments, along with their data.
 
-NOTE: There are limits to the number of partitions `hms-mirror` will attempt.  See: [Partition Handling for Data Transfers](#partition-handling-for-data-transfers)
+Note: There are limits to the number of partitions `hms-mirror` will attempt.  See: [Partition Handling for Data Transfers](#partition-handling-for-data-transfers)
 
 [Sample Reports - HYBRID](./sample_reports/hybrid)
 
@@ -941,9 +978,9 @@ The process will EXPORT data on the LEFT cluster to the intermediate location wi
 
 ### Common
 
-The data storage is shared between the two clusters and no data migration is required.
+The data storage is shared between the two clusters, and no data migration is required.
 
-Schema's are transferred using the same location.
+Schemas are transferred using the same location.
 
 [Sample Reports - COMMON](./sample_reports/common)
 
@@ -961,15 +998,15 @@ Error while compiling statement: FAILED: Execution Error, return code 40000 from
 
 Validate that the 'schema' file has been copied over to the new cluster.  If that has been done, check the permissions.  In a non-impersonation environment (doas=false), the `hive` user must have access to the file.
 
-### Table processing completed with `ERROR`
+### Table processing completed with `ERROR.`
 
-We make various checks as we perform the migrations and when those check don't pass, the result is an error.
+We make various checks as we perform the migrations, and when those checks don't pass, the result is an error.
 
 #### Solution
 
-In [tips](#tips-for-running-hms-miror) we suggest running with `--dryrun` first.  This will catch the potential issues first, without taking a whole lot of time.  Use this to remediate issues before executing.
+In [tips](#tips-for-running-hms-miror) we suggest running with `dry-run` first (default).  This will catch the potential issues first, without taking a whole lot of time.  Use this to remediate issues before executing.
 
-If the scenario that cause the `ERROR` is known, a remediation summary will be in the output report under **Issues** for that table.  Follow those instructions than rerun the process with `--retry`.
+If the scenario that causes the `ERROR` is known, a remediation summary will be in the output report under **Issues** for that table.  Follow those instructions, then rerun the process with `--retry.` NOTE: `--retry` is currently tech preview and not thoroughly tested.
 
 ### Connecting to HS2 via Kerberos
 
@@ -978,21 +1015,21 @@ Connecting to an HDP cluster running 2.6.5 with Binary protocol and Kerberos tri
 
 #### Solution
 
-The application is built with CDP libraries (excluding the Hive Standalone Driver).  When `kerberos` is the `auth` protocol to connect to **Hive 1**, it will get the application libs which will NOT be compatible with the older cluster.
+The application is built with CDP libraries (excluding the Hive Standalone Driver).  When `Kerberos is the `auth` protocol to connect to **Hive 1**, it will get the application libs which will NOT be compatible with the older cluster.
 
 Kerberos connections are only supported to the CDP cluster.
 
-When connecting via `kerberos`, you will need to include the `--hadoop-classpath` when launching `hms-mirror`.
+When connecting via `Kerberos, you will need to include the `--hadoop-classpath` when launching `hms-mirror`.
 
 ### Auto Partition Discovery not working
 
-I've set the `partitionDiscovery:auto` to `true` but the partitions aren't getting discovered.
+I've set the `partitionDiscovery:auto` to `true,` but the partitions aren't getting discovered.
 
 #### Solution
 
-In CDP Base/PVC versions < 7.1.6 have not set the house keeping thread that runs to activate this feature.
+In CDP Base/PVC versions < 7.1.6 have not set the housekeeping thread that runs to activate this feature.
 
-In the Hive metastore configuration in Cloudera Manager set `metastore.housekeeping.threads.on=true` in the _Hive Service Advanced Configuration Snippet (Safety Valve) for hive-site.xml_
+In the Hive metastore configuration in Cloudera Manager, set `metastore.housekeeping.threads.on=true` in the _Hive Service Advanced Configuration Snippet (Safety Valve) for hive-site.xml_
 
 ![pic](./images/hms_housekeeping_thread.png)
 
@@ -1002,11 +1039,11 @@ In the Hive metastore configuration in Cloudera Manager set `metastore.housekeep
 Caused by: java.lang.RuntimeException: org.apache.hadoop.hive.ql.security.authorization.plugin.HiveAccessControlException:Permission denied: user [dstreev] does not have [ALL] privilege on [hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_site]
 ```
 
-This error is a permission error to HDFS.  For strategies HYBRID, EXPORT_IMPORT, SQL, and SCHEMA_ONLY (with `-ams` enabled), this could be an issue with cross cluster HDFS access.
+This error is a permission error to HDFS.  For HYBRID, EXPORT_IMPORT, SQL, and SCHEMA_ONLY (with `-ams` enabled), this could be an issue with cross-cluster HDFS access.
 
-Review the output report for details where this error occurred (LEFT or RIGHT cluster).
+Review the output report for details of where this error occurred (LEFT or RIGHT cluster).
 
-When dealing with CREATE DDL statements submitted through HS2 with a `LOCATION` element in them, the submitting *user* **AND** the HS2 *service account* must have permissions to the directory.  Remember, with cross cluster access the user identity will originate on the RIGHT cluster and will be **EVALUATED** on the LEFT clusters storage layer.
+When dealing with CREATE DDL statements submitted through HS2 with a `LOCATION` element in them, the submitting *user* **AND** the HS2 *service account* must have permissions to the directory.  Remember, with cross-cluster access, the user identity will originate on the RIGHT cluster and will be **EVALUATED** on the LEFT clusters storage layer.
 
 For migrations, the `hms-mirror` running user (JDBC) and keytab user (HDFS) should be privileged users.
 
@@ -1014,14 +1051,14 @@ For migrations, the `hms-mirror` running user (JDBC) and keytab user (HDFS) shou
 
 After checking permissions of 'dstreev': Found that the 'dstreev' user was NOT the owner of the files in these directories on the LEFT cluster. The user running the process needs to be in 'dfs.permissions.superusergroup' for the lower clusters 'hdfs' service.  Ambari 2.6 has issues setting this property: https://jira.cloudera.com/browse/EAR-7805
 
-Follow workaround above or add user to the 'hdfs' group. Or use Ranger to allow all access. On my cluster, with no Ranger, I had to use '/var/lib/ambari-server/resources/scripts/configs.py' to set it manually for Ambari.
+Follow the workaround above or add the user to the 'hdfs' group. Or use Ranger to allow all access. On my cluster, with no Ranger, I had to use '/var/lib/ambari-server/resources/scripts/configs.py' to set it manually for Ambari.
 
 `sudo ./configs.py --host=k01.streever.local --port=8080 -u admin -p admin -n hdp50 -c hdfs-site -a set -k dfs.permissions.superusergroup -v hdfs_admin`
 
 
 ### YARN Submission stuck in ACCEPTED phase
 
-The process uses a connection pool to Hive.  If concurrency value for the cluster is too high, you may have reached the maximum ratio of AM (Application Masters) for the YARN queue.
+The process uses a connection pool to hive.  If the concurrency value for the cluster is too high, you may have reached the maximum ratio of AM (Application Masters) for the YARN queue.
 
 Review the ACCEPTED jobs and review the jobs *Diagnostics* status for details on _why_ the jobs is stuck.
 
@@ -1053,17 +1090,17 @@ Caused by the following:
 - The 'user' doesn't have access to the location as indicated in the message.  Verify through 'hdfs' that this is true or not. If the user does NOT have access, grant them access and try again.
 - The 'hive' service account running HS2 does NOT have access to the location.  The message will mask this and present it as a 'user' issue, when it is in fact an issue with the 'hive' service account.  Grant the account the appropriate access.
 - The 'hive' service does NOT have proxy permissions to the storage layer.
-  - Check the `hadoop.proxyuser.hive.hosts|groups` setting in `core-site.xml`.  If you are running into this `super-user` error on the RIGHT cluster, while trying to access a storage location on the *LEFT* cluster, ensure the proxy settings include the rights values in the RIGHT clusters `core-site.xml`, since that is were HS2 will pick it up from.
+  - Check the `hadoop.proxyuser.hive.hosts|groups` setting in `core-site.xml`.  If you are running into this `super-user` error on the RIGHT cluster, while trying to access a storage location on the *LEFT* cluster, ensure the proxy settings include the rights values in the RIGHT clusters `core-site.xml`, since that is where HS2 will pick it up from.
 
 ### Must use HiveInputFormat to read ACID tables
 
-We've seen this while attempting to migrate ACID tables from older clusters (HDP 2.6).  The error occurs when we attempt to extract the ACID table data to a 'transfer' external table on the LEFT cluster, which is 'legacy'.
+We've seen this while attempting to migrate ACID tables from older clusters (HDP 2.6).  The error occurs when we try to extract the ACID table data to a 'transfer' external table on the LEFT cluster, which is 'legacy'.
 
 #### Solution
 
-HDP 2.6.5, the lowest supported cluster version intended for this process, should be using the 'tez' execution engine  `set hive.execution.engine=tez`.  If the cluster has been upgraded from an older HDP version OR they've simply decided NOT to use the `tez` execution engine' you may get this error.
+HDP 2.6.5, the lowest supported cluster version intended for this process, should be using the 'tez' execution engine  `set hive.execution.engine=tez`.  If the cluster has been upgraded from an older HDP version OR they've simply decided NOT to use the `tez` execution engine', you may get this error.
 
-In `hms-mirror` releases 1.3.0.5 and above, we will explicitly run `set hive.execution.engine=tez` on the LEFT cluster when it's identified as a 'legacy' cluster.  For version 1.3.0.4 (the first version to support ACID transfers), you'll need to set the hive environment for the HS2 instance you're connecting to use `tez` as the execution engine.
+In `hms-mirror` releases 1.3.0.5 and above, we will explicitly run `set hive.execution.engine=tez` on the LEFT cluster when identified as a 'legacy' cluster.  For version 1.3.0.4 (the first version to support ACID transfers), you'll need to set the hive environment for the HS2 instance you're connecting to use `tez` as the execution engine.
 
 
 

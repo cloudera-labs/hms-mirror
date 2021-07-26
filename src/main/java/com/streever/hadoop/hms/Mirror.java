@@ -125,15 +125,19 @@ public class Mirror {
         } catch (ParseException pe) {
             System.out.println("Missing Arguments: " + pe.getMessage());
             HelpFormatter formatter = new HelpFormatter();
-            String cmdline = ReportingConf.substituteVariablesFromManifest("hms-mirror \nversion:${Implementation-Version}");
-            formatter.printHelp(cmdline, options);
+            String cmdline = ReportingConf.substituteVariablesFromManifest("hms-mirror <options> \nversion:${Implementation-Version}");
+            formatter.printHelp(100, cmdline, "Hive Metastore Migration Utility", options,
+                    "\nVisit https://github.com/dstreev/hms-mirror/blob/main/README.md for detailed docs.");
+//            formatter.printHelp(cmdline, options);
             throw new RuntimeException(pe);
         }
 
         if (cmd.hasOption("h")) {
             HelpFormatter formatter = new HelpFormatter();
-            String cmdline = ReportingConf.substituteVariablesFromManifest("hms-mirror \nversion:${Implementation-Version}");
-            formatter.printHelp(cmdline, options);
+            String cmdline = ReportingConf.substituteVariablesFromManifest("hms-mirror <options> \nversion:${Implementation-Version}");
+            formatter.printHelp(100, cmdline, "Hive Metastore Migration Utility", options,
+                    "\nVisit https://github.com/dstreev/hms-mirror/blob/main/README.md for detailed docs");
+//            formatter.printHelp(cmdline, options);
             System.exit(0);
         }
         if (cmd.hasOption("su")) {
@@ -529,7 +533,7 @@ public class Mirror {
         Conversion conversion = new Conversion(config);
 
         // Setup and Start the State Maintenance Routine
-        StateMaintenance stateMaintenance = new StateMaintenance(5000, configFile, getDateMarker());
+        StateMaintenance stateMaintenance = new StateMaintenance(10000, configFile, getDateMarker());
 
         if (retry) {
             File retryFile = stateMaintenance.getRetryFile();
@@ -662,31 +666,56 @@ public class Mirror {
         Date endTime = new Date();
         DecimalFormat decf = new DecimalFormat("#.###");
         decf.setRoundingMode(RoundingMode.CEILING);
+
         // Output directory maps
         try {
             String distcpWorkbookFile = reportOutputDir + System.getProperty("file.separator") + "distcp_workbook.md";
             FileWriter distcpWorkbookFW = new FileWriter(distcpWorkbookFile);
+            String distcpScriptFile = reportOutputDir + System.getProperty("file.separator") + "distcp_script.sh";
+            FileWriter distcpScriptFW = new FileWriter(distcpScriptFile);
+
+            distcpScriptFW.append("\n");
+            distcpScriptFW.append("# 1. Copy the source '*_distcp_source.txt' files to the distributed filesystem.").append("\n");
+            distcpScriptFW.append("# 2. Export an env var 'HCFS_BASE_DIR' that represents where these files where placed.").append("\n");
+            distcpScriptFW.append("#      NOTE: ${HCFS_BASE_DIR} must be available to the user running 'distcp'").append("\n");
+            distcpScriptFW.append("# 3. Export an env var 'DISTCP_OPTS' with any special settings needed to run the job.").append("\n");
+            distcpScriptFW.append("       For large jobs, you may need to adjust memory settings.").append("\n");
+            distcpScriptFW.append("# 4. Run the following in an order or framework that is appropriate for your environment.").append("\n");
+            distcpScriptFW.append("       These aren't necessarily expected to run in this shell script as is in production.").append("\n");
+            distcpScriptFW.append("\n");
+            distcpScriptFW.append("\n");
+
 
             distcpWorkbookFW.write("| Database | Target | Sources |\n");
             distcpWorkbookFW.write("|:---|:---|:---|\n");
 
-
+            FileWriter distcpSourceFW = null;
             for (Map.Entry<String, Map<String, Set<String>>> entry :
                     config.getTranslator().buildDistcpList(1).entrySet()) {
+
                 distcpWorkbookFW.write("| " + entry.getKey() + " | | |\n");
                 Map<String, Set<String>> value = entry.getValue();
+                int i = 1;
                 for (Map.Entry<String, Set<String>> dbMap : value.entrySet()) {
+                    String distcpSourceFile = entry.getKey() + "_" + i++ + "_distcp_source.txt";
+                    String distcpSourceFileFull = reportOutputDir + System.getProperty("file.separator") + distcpSourceFile;
+                    distcpSourceFW = new FileWriter(distcpSourceFileFull);
+
                     StringBuilder line = new StringBuilder();
                     line.append("| | ").append(dbMap.getKey()).append(" | ");
 
                     for (String source : dbMap.getValue()) {
                         line.append(source).append("<br>");
+                        distcpSourceFW.append(source).append("\n");
                     }
                     line.append(" | ").append("\n");
                     distcpWorkbookFW.write(line.toString());
+                    distcpScriptFW.append("hadoop distcp ${DISTCP_OPTS} -f ${HCFS_BASE_DIR}/" + distcpSourceFile + " " +
+                            dbMap.getKey() + "\n");
+                    distcpSourceFW.close();
                 }
             }
-
+            distcpScriptFW.close();
             distcpWorkbookFW.close();
         } catch (IOException ioe) {
             LOG.error("Issue writing distcp workbook", ioe);
@@ -773,8 +802,8 @@ public class Mirror {
         // create Options object
         Options options = new Options();
 
-        Option metadataStage = new Option("d", "data", true,
-                "Specify how the data will follow the schema. " + Arrays.deepToString(DataStrategy.values()));
+        Option metadataStage = new Option("d", "data-strategy", true,
+                "Specify how the data will follow the schema. " + Arrays.deepToString(DataStrategy.visibleValues()));
         metadataStage.setOptionalArg(Boolean.TRUE);
         metadataStage.setArgName("strategy");
         metadataStage.setRequired(Boolean.FALSE);
@@ -793,7 +822,7 @@ public class Mirror {
         Option maOption = new Option("ma", "migrate-acid", false,
                 "Migrate ACID tables (if strategy allows). Optional: ArtificialBucketThreshold count that will remove " +
                         "the bucket definition if it's below this.  Use this as a way to remove artificial bucket definitions that " +
-                        "were added 'artificially' in legacy Hive.");
+                        "were added 'artificially' in legacy Hive. (default: 2)");
         maOption.setArgs(1);
         maOption.setOptionalArg(Boolean.TRUE);
         maOption.setRequired(Boolean.FALSE);
@@ -802,7 +831,7 @@ public class Mirror {
         Option maoOption = new Option("mao", "migrate-acid-only", false,
                 "Migrate ACID tables ONLY (if strategy allows). Optional: ArtificialBucketThreshold count that will remove " +
                         "the bucket definition if it's below this.  Use this as a way to remove artificial bucket definitions that " +
-                        "were added 'artificially' in legacy Hive.");
+                        "were added 'artificially' in legacy Hive. (default: 2)");
         maoOption.setArgs(1);
         maoOption.setOptionalArg(Boolean.TRUE);
         maoOption.setRequired(Boolean.FALSE);

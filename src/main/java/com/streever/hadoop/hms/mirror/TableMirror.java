@@ -1252,7 +1252,8 @@ public class TableMirror {
 
                 if (copySpec.getReplaceLocation() && !TableUtils.isACID(source)) {
                     String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
-                    String targetLocation = copySpec.getConfig().getTranslator().translateTableLocation(this.getDbName(), getName(), sourceLocation, copySpec.getConfig());
+                    String targetLocation = copySpec.getConfig().getTranslator().
+                            translateTableLocation(this.getDbName(), getName(), sourceLocation, copySpec.getConfig());
                     TableUtils.updateTableLocation(target, targetLocation);
                 }
 
