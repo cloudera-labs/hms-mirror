@@ -329,10 +329,9 @@ public class Config {
         Boolean rtn = Boolean.TRUE;
         issues.clear();
         if (sync && tblRegEx != null) {
-            String issue = "'sync' can NOT be used with a 'table filter'";
+            String issue = "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '" +
+                    tblRegEx + "' ON BOTH SIDES!!!";
             issues.add(issue);
-            System.err.println(issue);
-            rtn = Boolean.FALSE;
         }
         if (sync && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.LINKED ||
                 dataStrategy == DataStrategy.LINKED)) {
