@@ -635,15 +635,23 @@ Hive Metastore Migration Utility
  -s,--sync                                       For SCHEMA_ONLY, COMMON, and LINKED data
                                                  strategies.  Drop and Recreate Schema's when
                                                  different.  Best to use with RO to ensure
-                                                 table/partition drops don't delete data.
+                                                 table/partition drops don't delete data. When used
+                                                 WITHOUT `-tf` it will compare all the tables in a
+                                                 database and sync (bi-directional).  Meaning it
+                                                 will DROP tables on the RIGHT that aren't in the
+                                                 LEFT and ADD tables to the RIGHT that are missing.
+                                                 When used with `-ro`, table schemas can be updated
+                                                 by dropping and recreating.  When used with `-tf`,
+                                                 only the tables that match the filter (on both
+                                                 sides) will be considered.
  -sql,--sql-output                               Output the SQL to the report
  -su,--setup                                     Setup a default configuration file through a series
                                                  of questions
  -t,--translate-config <translate-config-file>   Translator Configuration File (Experimental)
- -tf,--table-filter <regex>                      Filter tables with name matching RegEx. Comparison
-                                                 done with 'show tables' results.  Check case,
-                                                 that's important.  Hive tables are generally stored
-                                                 in LOWERCASE.
+ -tf,--table-filter <regex>                      Filter tables (inclusive) with name matching RegEx.
+                                                 Comparison done with 'show tables' results.  Check
+                                                 case, that's important.  Hive tables are generally
+                                                 stored in LOWERCASE.
  -v,--views-only                                 Process VIEWs ONLY
 ```
 
