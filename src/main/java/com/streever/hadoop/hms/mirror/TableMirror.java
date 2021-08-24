@@ -736,24 +736,6 @@ public class TableMirror {
         return rtn;
     }
 
-    /*
-    TODO: buildoutINTERMEDIATEDefinition
-     */
-//    private Boolean buildoutINTERMEDIATEDefinition(Config config, DBMirror dbMirror) {
-//        Boolean rtn = Boolean.FALSE;
-//        EnvironmentTable let = null;
-//        EnvironmentTable ret = null;
-//        CopySpec copySpec = null;
-//
-//        let = getEnvironmentTable(Environment.LEFT);
-//        ret = getEnvironmentTable(Environment.RIGHT);
-//
-//        copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
-//
-//
-//        return rtn;
-//    }
-
     public Boolean buildoutDefinitions(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         switch (getStrategy()) {
@@ -782,9 +764,6 @@ public class TableMirror {
 
                 }
                 break;
-//            case INTERMEDIATE:
-//                rtn = buildoutINTERMEDIATEDefinition(config, dbMirror);
-//                break;
             case COMMON:
                 rtn = buildoutCOMMONDefinition(config, dbMirror);
                 break;
@@ -1090,23 +1069,6 @@ public class TableMirror {
     }
 
     /*
-    TODO: buildoutINTERMEDIATESql
-     */
-//    private Boolean buildoutINTERMEDIATESql(Config config, DBMirror dbMirror) {
-//        Boolean rtn = Boolean.FALSE;
-//
-//        String useDb = null;
-//        String database = null;
-//        String createTbl = null;
-//
-//        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
-//        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
-//
-//        rtn = Boolean.TRUE;
-//        return rtn;
-//    }
-
-    /*
     TODO: buildoutCOMMONSql
      */
     private Boolean buildoutCOMMONSql(Config config, DBMirror dbMirror) {
@@ -1153,9 +1115,6 @@ public class TableMirror {
             case ACID:
                 rtn = buildoutIntermediateSql(config, dbMirror);
                 break;
-//            case INTERMEDIATE:
-//                rtn = buildoutINTERMEDIATESql(config, dbMirror);
-//                break;
 //            case COMMON:
 //                rtn = buildoutCOMMONSql(config, dbMirror);
 //                break;
@@ -1211,7 +1170,6 @@ public class TableMirror {
                         }
                     }
                 } else {
-//                if (TableUtils.isACID(source)) {
                     if (config.getMigrateACID().isOn()) {
                         // If target isn't legacy.
                         switch (copySpec.getTarget()) {

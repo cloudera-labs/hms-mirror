@@ -96,7 +96,6 @@ public class DBMirror {
             case SQL:
             case EXPORT_IMPORT:
             case HYBRID:
-//            case INTERMEDIATE:
                 if (location != null) {
                     location = location.replace(leftNamespace, rightNamespace);
                     rtn[1] = location;

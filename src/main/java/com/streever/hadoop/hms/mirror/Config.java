@@ -380,17 +380,12 @@ public class Config {
             case DUMP:
             case COMMON:
                 break;
-//            case INTERMEDIATE:
-//                issues.add("INTERMEDIATE data strategy not yet implemented.");
-//                rtn = Boolean.FALSE;
-//                break;
         }
         return rtn;
     }
 
     protected Boolean linkTest() {
         Boolean rtn = Boolean.FALSE;
-//        if (getTransfer().getIntermediateStorage() == null) {
         HadoopSession session = null;
         try {
             session = getCliPool().borrow();
