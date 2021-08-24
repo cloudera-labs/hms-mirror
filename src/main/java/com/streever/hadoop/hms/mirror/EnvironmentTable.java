@@ -6,7 +6,7 @@ public class EnvironmentTable {
 
     private String name = null;
     private Boolean exists = Boolean.FALSE;
-    private CreateStrategy createStrategy = null;
+    private CreateStrategy createStrategy = CreateStrategy.NOTHING;
     private List<String> definition = new ArrayList<String>();
     private Boolean partitioned = Boolean.FALSE;
     private List<String> partitions = new ArrayList<String>();

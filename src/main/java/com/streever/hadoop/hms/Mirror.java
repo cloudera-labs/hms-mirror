@@ -308,14 +308,15 @@ public class Mirror {
             }
         }
 
-        if (config.getDataStrategy() == DataStrategy.INTERMEDIATE) {
-            // Get intermediate Storage Location
-            if (cmd.hasOption("is")) {
-                config.getTransfer().setIntermediateStorage(cmd.getOptionValue("is"));
-            } else {
-                throw new RuntimeException("Need to specify '-is/--itermediate-storage' when using INTERMEDIATE data strategy.");
-            }
+//        if (config.getDataStrategy() == DataStrategy.INTERMEDIATE) {
+        // Get intermediate Storage Location
+        if (cmd.hasOption("is")) {
+            config.getTransfer().setIntermediateStorage(cmd.getOptionValue("is"));
         }
+//            else {
+//                throw new RuntimeException("Need to specify '-is/--itermediate-storage' when using INTERMEDIATE data strategy.");
+//            }
+//        }
 
         if (cmd.hasOption("ro")) {
             switch (config.getDataStrategy()) {
@@ -596,7 +597,7 @@ public class Mirror {
 
         // State reason table/view was removed from processing list.
         for (Map.Entry<String, DBMirror> dbEntry : conversion.getDatabases().entrySet()) {
-            for (TableMirror tm: dbEntry.getValue().getTableMirrors().values()) {
+            for (TableMirror tm : dbEntry.getValue().getTableMirrors().values()) {
                 if (tm.isRemove()) {
                     dbEntry.getValue().getFilteredOut().put(tm.getName(), tm.getRemoveReason());
                 }
@@ -810,7 +811,12 @@ public class Mirror {
         options.addOption(metadataStage);
 
         Option intermediateStorageOption = new Option("is", "intermediate-storage", true,
-                "Intermediate Storage used with Data Strategy INTERMEDIATE.");
+                "Intermediate Storage used with Data Strategy HYBRID, SQL, EXPORT_IMPORT.  This will change " +
+                        "the way these methods are implemented by using the specified storage location as an " +
+                        "intermediate transfer point between two clusters.  In this case, the cluster do NOT need to " +
+                        "be 'linked'.  Each cluster DOES need to have access to the location and authorization to " +
+                        "interact with the location.  This may mean additional configuration requirements for " +
+                        "'hdfs' to ensure this seamless access.");
         intermediateStorageOption.setOptionalArg(Boolean.TRUE);
         intermediateStorageOption.setArgName("storage-path");
         intermediateStorageOption.setRequired(Boolean.FALSE);

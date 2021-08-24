@@ -127,6 +127,14 @@ public class Conversion {
         sb.append(yamlStr).append("\n");
         sb.append("```\n\n");
 
+        if (config.getIssues().size() > 0) {
+            sb.append("### Config Issues/Notices:\n");
+            for (String issue: config.getIssues()) {
+                sb.append("- ").append(issue).append("\n");
+            }
+            sb.append("\n");
+        }
+
         DBMirror dbMirror = databases.get(database);
         sb.append("## DB Create Statement").append("\n\n");
         sb.append("```").append("\n");

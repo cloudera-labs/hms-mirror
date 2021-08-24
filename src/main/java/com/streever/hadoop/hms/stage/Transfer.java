@@ -63,12 +63,14 @@ public class Transfer implements Callable<ReturnStatus> {
                 case EXPORT_IMPORT:
                     successful = doBasic();
                     break;
-                case INTERMEDIATE:
-                    successful = doIntermediate();
-                    break;
+//                case INTERMEDIATE:
+//                    successful = doIntermediate();
+//                    break;
                 case SQL:
-                    successful = doSQL();
-
+                    if (config.getTransfer().getIntermediateStorage() == null)
+                        successful = doSQL();
+                    else
+                        successful = doIntermediateTransfer();
                     break;
                 case HYBRID:
                     successful = doHybrid();
@@ -93,10 +95,6 @@ public class Transfer implements Callable<ReturnStatus> {
         return rtn;
     }
 
-    protected Boolean doIntermediate() {
-        return false;
-    }
-
     protected Boolean doSQL() {
         Boolean rtn = Boolean.FALSE;
 
@@ -108,12 +106,33 @@ public class Transfer implements Callable<ReturnStatus> {
         if (rtn)
             rtn = tblMirror.buildoutSql(config, dbMirror);
 
+        EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
         EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
         EnvironmentTable set = tblMirror.getEnvironmentTable(Environment.SHADOW);
 
         // Construct Transfer SQL
-        String copySql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, set.getName(), ret.getName());
-        ret.getSql().add(new Pair(TableUtils.LOAD_FROM_SHADOW_DESC, copySql));
+        if (let.getPartitioned()) {
+            // Check that the partition count doesn't exceed the configuration limit.
+            // Build Partition Elements.
+            String partElement = TableUtils.getPartitionElements(let);
+            String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS,
+                    set.getName(), ret.getName(), partElement);
+            String transferDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, let.getPartitions().size());
+            ret.addSql(new Pair(transferDesc, transferSql));
+            if (let.getPartitions().size() > config.getHybrid().getSqlPartitionLimit()) {
+                // The partition limit has been exceeded.  The process will need to be done manually.
+                let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
+                        "limit (hybrid->sqlPartitionLimit) of " + config.getHybrid().getSqlPartitionLimit() +
+                        ".  This value is used to abort migrations that have a high potential for failure.  " +
+                        "The migration will need to be done manually OR try increasing the limit.");
+                rtn = Boolean.FALSE;
+            }
+        } else {
+            // No Partitions
+            String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, set.getName(), ret.getName());
+            ret.addSql(new Pair(TableUtils.LOAD_FROM_SHADOW_DESC, transferSql));
+        }
+
 
         // Clean up shadow table.
         String dropShadowSql = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
@@ -126,7 +145,7 @@ public class Transfer implements Callable<ReturnStatus> {
         return rtn;
     }
 
-    protected Boolean doAcidTransfer() {
+    protected Boolean doIntermediateTransfer() {
         Boolean rtn = Boolean.FALSE;
 
         rtn = tblMirror.buildoutDefinitions(config, dbMirror);
@@ -147,20 +166,30 @@ public class Transfer implements Callable<ReturnStatus> {
             // Need to see if the table has partitions.
             if (let.getPartitioned()) {
                 // Check that the partition count doesn't exceed the configuration limit.
-                if (let.getPartitions().size() <= config.getMigrateACID().getPartitionLimit()) {
-                    // Build Partition Elements.
-                    String partElement = TableUtils.getPartitionElements(let);
-                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS,
-                            let.getName(), tet.getName(), partElement);
-                    String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, let.getPartitions().size());
-                    let.addSql(new Pair(transferDesc, transferSql));
+                // Build Partition Elements.
+                String partElement = TableUtils.getPartitionElements(let);
+                String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS,
+                        let.getName(), tet.getName(), partElement);
+                String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, let.getPartitions().size());
+                let.addSql(new Pair(transferDesc, transferSql));
+                if (TableUtils.isACID(let)) {
+                    if (let.getPartitions().size() > config.getMigrateACID().getPartitionLimit()) {
+                        // The partition limit has been exceeded.  The process will need to be done manually.
+                        let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
+                                "limit (migrateACID->partitionLimit) of " + config.getMigrateACID().getPartitionLimit() +
+                                ".  This value is used to abort migrations that have a high potential for failure.  " +
+                                "The migration will need to be done manually OR try increasing the limit.");
+                        rtn = Boolean.FALSE;
+                    }
                 } else {
-                    // The partition limit has been exceeded.  The process will need to be done manually.
-                    let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
-                            "limit: " + config.getMigrateACID().getPartitionLimit() + ". This value is used to abort migration " +
-                            "that have a high potential for failure.  The migration will need to be done manually OR try increasing " +
-                            "the limit.");
-                    return Boolean.FALSE;
+                    if (let.getPartitions().size() > config.getHybrid().getSqlPartitionLimit()) {
+                        // The partition limit has been exceeded.  The process will need to be done manually.
+                        let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
+                                "limit (hybrid->sqlPartitionLimit) of " + config.getHybrid().getSqlPartitionLimit() +
+                                ".  This value is used to abort migrations that have a high potential for failure.  " +
+                                "The migration will need to be done manually OR try increasing the limit.");
+                        rtn = Boolean.FALSE;
+                    }
                 }
             } else {
                 // No Partitions
@@ -181,7 +210,7 @@ public class Transfer implements Callable<ReturnStatus> {
                 String shadowTransferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, set.getName(), ret.getName());
                 ret.addSql(new Pair(TableUtils.LOAD_FROM_SHADOW_DESC, shadowTransferSql));
             }
-            tblMirror.addStep("ACID Transfer/Shadow SQL", "Built");
+            tblMirror.addStep("Transfer/Shadow SQL", "Built");
 
             // Execute the LEFT sql if config.execute.
             if (rtn && config.isExecute()) {
@@ -245,20 +274,25 @@ public class Transfer implements Callable<ReturnStatus> {
 
         if (TableUtils.isACID(let.getName(), let.getDefinition())) {
             tblMirror.setStrategy(DataStrategy.ACID);
-            rtn = doAcidTransfer();
+            if (config.getMigrateACID().isOn()) {
+                rtn = doIntermediateTransfer();
+            } else {
+                let.addIssue(TableUtils.ACID_NOT_ON);
+                rtn = Boolean.FALSE;
+            }
         } else {
             if (let.getPartitioned()) {
                 if (let.getPartitions().size() > config.getHybrid().getExportImportPartitionLimit()) {
                     // SQL
-                    if (let.getPartitions().size() <= config.getHybrid().getSqlPartitionLimit()) {
-                        tblMirror.setStrategy(DataStrategy.SQL);
+                    let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the EXPORT_IMPORT " +
+                            "partition limit (hybrid->exportImportPartitionLimit) of " + config.getHybrid().getExportImportPartitionLimit() +
+                            ".  Hence, the SQL method has been selected for the migration.");
+
+                    tblMirror.setStrategy(DataStrategy.SQL);
+                    if (config.getTransfer().getIntermediateStorage() == null) {
                         rtn = doSQL();
                     } else {
-                        tblMirror.addIssue(Environment.RIGHT, "The Partition count (" + let.getPartitions().size() + ")" +
-                                " exceed SQL Limit (" + config.getHybrid().getSqlPartitionLimit() + ")" +
-                                " The table DATA can't reliably be migrated with SQL.  The partition count will most likely " +
-                                " cause issues in the Application Master.  Use SCHEMA_ONLY to migrate schema and follow up by " +
-                                "using 'distcp' to migrate the data.");
+                        rtn = doIntermediateTransfer();
                     }
                 } else {
                     // EXPORT
@@ -281,7 +315,7 @@ public class Transfer implements Callable<ReturnStatus> {
 
         if (TableUtils.isACID(let.getName(), let.getDefinition()) &&
                 !(config.getDataStrategy() == DataStrategy.DUMP
-                || config.getDataStrategy() == DataStrategy.SCHEMA_ONLY)) {
+                        || config.getDataStrategy() == DataStrategy.SCHEMA_ONLY)) {
             if (config.getDataStrategy() != DataStrategy.COMMON) {
                 rtn = doHybrid();
             } else {

@@ -221,8 +221,8 @@ public class Translator {
                     break;
                 case COMMON:
                 case LINKED:
-                case INTERMEDIATE:
-                    // We don't need to make adjustments since these strategies share storage
+//                case INTERMEDIATE:
+//                    // We don't need to make adjustments since these strategies share storage
                     dirBuilder.append(leftNS);
                     break;
             }
@@ -289,7 +289,7 @@ public class Translator {
 
             switch (config.getDataStrategy()) {
                 case EXPORT_IMPORT:
-                case INTERMEDIATE:
+//                case INTERMEDIATE:
                 case HYBRID:
                 case SQL:
                 case SCHEMA_ONLY:

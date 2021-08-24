@@ -365,7 +365,11 @@ public class Config {
             case HYBRID:
             case EXPORT_IMPORT:
             case SQL:
-                rtn = linkTest();
+                // Only do link test when NOT using intermediate storage.
+                if (this.getTransfer().getIntermediateStorage() == null)
+                    rtn = linkTest();
+                else
+                    issues.add("Link TEST skipped because you've specified an 'Intermediate Storage' option");
                 break;
             case SCHEMA_ONLY:
                 if (this.isCopyAvroSchemaUrls()) {
@@ -376,16 +380,17 @@ public class Config {
             case DUMP:
             case COMMON:
                 break;
-            case INTERMEDIATE:
-                issues.add("INTERMEDIATE data strategy not yet implemented.");
-                rtn = Boolean.FALSE;
-                break;
+//            case INTERMEDIATE:
+//                issues.add("INTERMEDIATE data strategy not yet implemented.");
+//                rtn = Boolean.FALSE;
+//                break;
         }
         return rtn;
     }
 
     protected Boolean linkTest() {
         Boolean rtn = Boolean.FALSE;
+//        if (getTransfer().getIntermediateStorage() == null) {
         HadoopSession session = null;
         try {
             session = getCliPool().borrow();

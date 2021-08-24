@@ -57,7 +57,7 @@ public class CreateDatabases implements Callable<ReturnStatus> {
                     case DUMP:
                     case COMMON:
                     case LINKED:
-                    case INTERMEDIATE:
+//                    case INTERMEDIATE:
                         // If sync'ing and ro, don't create db if the directory doesn't exist.  This will corrupt the
                         // RO properties of the FileSystem.
                         if (config.isReadOnly()) {

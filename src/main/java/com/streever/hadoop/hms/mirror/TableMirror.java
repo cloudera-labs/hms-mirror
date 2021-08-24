@@ -23,6 +23,8 @@ public class TableMirror {
     private boolean remove = Boolean.FALSE;
     @JsonIgnore
     private String removeReason = null;
+    @JsonIgnore
+    private UUID unique = UUID.randomUUID();
 
     private DateFormat tdf = new SimpleDateFormat("HH:mm:ss.SSS");
     @JsonIgnore
@@ -55,6 +57,9 @@ public class TableMirror {
         return et.getName();
     }
 
+    public UUID getUnique() {
+        return unique;
+    }
 
     public String getDbName() {
         return dbName;
@@ -508,6 +513,11 @@ public class TableMirror {
     private Boolean buildoutSQLDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
 
+        // Different transfer technique.  Staging location.
+        if (config.getTransfer().getIntermediateStorage() != null) {
+            return buildoutIntermediateDefinition(config, dbMirror);
+        }
+
         EnvironmentTable let = null;
         EnvironmentTable ret = null;
         EnvironmentTable set = null;
@@ -629,7 +639,7 @@ public class TableMirror {
 
     /*
      */
-    private Boolean buildoutACIDDefinition(Config config, DBMirror dbMirror) {
+    private Boolean buildoutIntermediateDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         EnvironmentTable let = null;
         EnvironmentTable ret = null;
@@ -638,47 +648,60 @@ public class TableMirror {
         let = getEnvironmentTable(Environment.LEFT);
         ret = getEnvironmentTable(Environment.RIGHT);
 
-        if (TableUtils.isACID(let)) {
-            if (config.getMigrateACID().isOn()) {
-                copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
+        copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
 
-                if (ret.getExists()) {
-                    // Already exists, no action.
-                    ret.addIssue("Schema exists already.  Can't do ACID transfer if schema already exists. Drop it and " +
-                            "try again.");
-                    ret.setCreateStrategy(CreateStrategy.NOTHING);
-                    return Boolean.FALSE;
-                } else {
-                    ret.setCreateStrategy(CreateStrategy.CREATE);
-                }
-
-                // Build Target from Source.
-                rtn = buildTableSchema(copySpec);
-
-                // Build Transfer Spec.
-                copySpec = new CopySpec(config, Environment.LEFT, Environment.TRANSFER);
-                copySpec.setMakeNonTransactional(Boolean.TRUE);
-                copySpec.setTableNamePrefix(config.getTransfer().getTransferPrefix());
-
-                if (rtn)
-                    // Build transfer table.
-                    rtn = buildTableSchema(copySpec);
-
-                // Build Shadow Spec
-                copySpec = new CopySpec(config, Environment.LEFT, Environment.SHADOW);
-                copySpec.setMakeExternal(Boolean.TRUE);
-                copySpec.setTakeOwnership(Boolean.FALSE);
-                copySpec.setTableNamePrefix(config.getTransfer().getTransferPrefix());
-                if (rtn)
-                    rtn = buildTableSchema(copySpec);
-
-            } else {
-                let.addIssue(TableUtils.ACID_NOT_ON);
-                rtn = Boolean.FALSE;
-            }
+        if (ret.getExists()) {
+            // Already exists, no action.
+            ret.addIssue("Schema exists already.  Can't do ACID transfer if schema already exists. Drop it and " +
+                    "try again.");
+            ret.setCreateStrategy(CreateStrategy.NOTHING);
+            return Boolean.FALSE;
         } else {
-            let.addIssue("Not an ACID table.");
+            ret.setCreateStrategy(CreateStrategy.CREATE);
         }
+
+        if (!TableUtils.isACID(let)) {
+            // Managed to EXTERNAL
+            copySpec.setUpgrade(Boolean.TRUE);
+        }
+
+        // Build Target from Source.
+        rtn = buildTableSchema(copySpec);
+
+        // Build Transfer Spec.
+        copySpec = new CopySpec(config, Environment.LEFT, Environment.TRANSFER);
+        copySpec.setMakeNonTransactional(Boolean.TRUE);
+        copySpec.setTableNamePrefix(config.getTransfer().getTransferPrefix());
+        if (!TableUtils.isACID(let)) {
+            // Managed to EXTERNAL
+            copySpec.setUpgrade(Boolean.TRUE);
+        }
+
+        String transferLoc = null;
+        if (config.getTransfer().getIntermediateStorage() != null) {
+            String isLoc = config.getTransfer().getIntermediateStorage();
+            // Deal with extra '/'
+            isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
+            transferLoc = isLoc + "/" +
+                    config.getTransfer().getTransferPrefix() + this.getUnique() + "_" + this.getName();
+        }
+
+        if (transferLoc != null)
+            copySpec.setLocation(transferLoc);
+
+        if (rtn)
+            // Build transfer table.
+            rtn = buildTableSchema(copySpec);
+
+        // Build Shadow Spec
+        copySpec = new CopySpec(config, Environment.LEFT, Environment.SHADOW);
+        copySpec.setUpgrade(Boolean.TRUE);
+        copySpec.setTakeOwnership(Boolean.FALSE);
+        copySpec.setTableNamePrefix(config.getTransfer().getTransferPrefix());
+        if (transferLoc != null)
+            copySpec.setLocation(transferLoc);
+        if (rtn)
+            rtn = buildTableSchema(copySpec);
 
         return rtn;
     }
@@ -694,7 +717,11 @@ public class TableMirror {
         let = getEnvironmentTable(Environment.LEFT);
 
         if (TableUtils.isACID(let.getName(), let.getDefinition())) {
-            rtn = buildoutACIDDefinition(config, dbMirror);
+            if (config.getMigrateACID().isOn()) {
+                rtn = buildoutIntermediateDefinition(config, dbMirror);
+            } else {
+                let.addIssue(TableUtils.ACID_NOT_ON);
+            }
         } else {
             if (let.getPartitioned()) {
                 if (let.getPartitions().size() > config.getHybrid().getExportImportPartitionLimit()) {
@@ -712,20 +739,20 @@ public class TableMirror {
     /*
     TODO: buildoutINTERMEDIATEDefinition
      */
-    private Boolean buildoutINTERMEDIATEDefinition(Config config, DBMirror dbMirror) {
-        Boolean rtn = Boolean.FALSE;
-        EnvironmentTable let = null;
-        EnvironmentTable ret = null;
-        CopySpec copySpec = null;
-
-        let = getEnvironmentTable(Environment.LEFT);
-        ret = getEnvironmentTable(Environment.RIGHT);
-
-        copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
-
-
-        return rtn;
-    }
+//    private Boolean buildoutINTERMEDIATEDefinition(Config config, DBMirror dbMirror) {
+//        Boolean rtn = Boolean.FALSE;
+//        EnvironmentTable let = null;
+//        EnvironmentTable ret = null;
+//        CopySpec copySpec = null;
+//
+//        let = getEnvironmentTable(Environment.LEFT);
+//        ret = getEnvironmentTable(Environment.RIGHT);
+//
+//        copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
+//
+//
+//        return rtn;
+//    }
 
     public Boolean buildoutDefinitions(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
@@ -749,11 +776,15 @@ public class TableMirror {
                 rtn = buildoutHYBRIDDefinition(config, dbMirror);
                 break;
             case ACID:
-                rtn = buildoutACIDDefinition(config, dbMirror);
+                if (config.getMigrateACID().isOn()) {
+                    rtn = buildoutIntermediateDefinition(config, dbMirror);
+                } else {
+
+                }
                 break;
-            case INTERMEDIATE:
-                rtn = buildoutINTERMEDIATEDefinition(config, dbMirror);
-                break;
+//            case INTERMEDIATE:
+//                rtn = buildoutINTERMEDIATEDefinition(config, dbMirror);
+//                break;
             case COMMON:
                 rtn = buildoutCOMMONDefinition(config, dbMirror);
                 break;
@@ -853,6 +884,10 @@ public class TableMirror {
     private Boolean buildoutSQLSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
 
+        if (config.getTransfer().getIntermediateStorage() != null) {
+            return buildoutIntermediateSql(config, dbMirror);
+        }
+
         String useDb = null;
         String database = null;
         String createTbl = null;
@@ -907,7 +942,7 @@ public class TableMirror {
         return rtn;
     }
 
-    private Boolean buildoutACIDSql(Config config, DBMirror dbMirror) {
+    private Boolean buildoutIntermediateSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
 
         String useDb = null;
@@ -994,15 +1029,28 @@ public class TableMirror {
         // LEFT Export to directory
         String useLeftDb = MessageFormat.format(MirrorConf.USE, dbMirror.getName());
         let.addSql(TableUtils.USE_DESC, useLeftDb);
-        String exportLoc = config.getTransfer().getExportBaseDirPrefix() + dbMirror.getName() + "/" + let.getName();
+        String exportLoc = null;
+        if (config.getTransfer().getIntermediateStorage() == null) {
+            exportLoc = config.getTransfer().getExportBaseDirPrefix() + dbMirror.getName() + "/" + let.getName();
+        } else {
+            String isLoc = config.getTransfer().getIntermediateStorage();
+            // Deal with extra '/'
+            isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
+            exportLoc = isLoc + "/" +
+                    config.getTransfer().getTransferPrefix() + this.getUnique() + "_" + this.getName();
+        }
         String exportSql = MessageFormat.format(MirrorConf.EXPORT_TABLE, let.getName(), exportLoc);
         let.addSql(TableUtils.EXPORT_TABLE, exportSql);
 
         // RIGHT IMPORT from Directory
         String useRightDb = MessageFormat.format(MirrorConf.USE, dbMirror.getName());
         ret.addSql(TableUtils.USE_DESC, useRightDb);
-        String importLoc = config.getCluster(Environment.LEFT).getHcfsNamespace() + exportLoc;
-
+        String importLoc = null;
+        if (config.getTransfer().getIntermediateStorage() == null) {
+            importLoc = config.getCluster(Environment.LEFT).getHcfsNamespace() + exportLoc;
+        } else {
+            importLoc = exportLoc;
+        }
         String sourceLocation = TableUtils.getLocation(let.getName(), let.getDefinition());
         String targetLocation = config.getTranslator().translateTableLocation(database, let.getName(), sourceLocation, config);
 
@@ -1026,7 +1074,7 @@ public class TableMirror {
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
 
         if (TableUtils.isACID(let.getName(), let.getDefinition())) {
-            rtn = buildoutACIDSql(config, dbMirror);
+            rtn = buildoutIntermediateSql(config, dbMirror);
         } else {
             if (let.getPartitioned()) {
                 if (let.getPartitions().size() > config.getHybrid().getExportImportPartitionLimit()) {
@@ -1044,19 +1092,19 @@ public class TableMirror {
     /*
     TODO: buildoutINTERMEDIATESql
      */
-    private Boolean buildoutINTERMEDIATESql(Config config, DBMirror dbMirror) {
-        Boolean rtn = Boolean.FALSE;
-
-        String useDb = null;
-        String database = null;
-        String createTbl = null;
-
-        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
-        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
-
-        rtn = Boolean.TRUE;
-        return rtn;
-    }
+//    private Boolean buildoutINTERMEDIATESql(Config config, DBMirror dbMirror) {
+//        Boolean rtn = Boolean.FALSE;
+//
+//        String useDb = null;
+//        String database = null;
+//        String createTbl = null;
+//
+//        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
+//        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
+//
+//        rtn = Boolean.TRUE;
+//        return rtn;
+//    }
 
     /*
     TODO: buildoutCOMMONSql
@@ -1103,11 +1151,11 @@ public class TableMirror {
                 rtn = buildoutHYBRIDSql(config, dbMirror);
                 break;
             case ACID:
-                rtn = buildoutACIDSql(config, dbMirror);
+                rtn = buildoutIntermediateSql(config, dbMirror);
                 break;
-            case INTERMEDIATE:
-                rtn = buildoutINTERMEDIATESql(config, dbMirror);
-                break;
+//            case INTERMEDIATE:
+//                rtn = buildoutINTERMEDIATESql(config, dbMirror);
+//                break;
 //            case COMMON:
 //                rtn = buildoutCOMMONSql(config, dbMirror);
 //                break;
@@ -1136,34 +1184,41 @@ public class TableMirror {
             // Reset with Source
             target.getDefinition().addAll(getTableDefinition(copySpec.getSource()));
 
-            if (TableUtils.isHiveNative(target)) {
+            if (TableUtils.isHiveNative(source)) {
                 // Rules
                 // 1. Strip db from create state.  It's broken anyway with the way
                 //      the quotes are.  And we're setting the target db in the context anyways.
                 TableUtils.stripDatabase(target);
 
+                if (copySpec.getLocation() != null)
+                    TableUtils.updateTableLocation(target, copySpec.getLocation());
+
                 // 1. If Managed, convert to EXTERNAL
                 // When coming from legacy and going to non-legacy (Hive 3).
                 Boolean converted = Boolean.FALSE;
-                if (copySpec.getUpgrade() && TableUtils.isManaged(target) && !TableUtils.isACID(target)) {
-                    converted = TableUtils.makeExternal(target);
-                    if (converted) {
-                        target.addIssue("Schema 'converted' from LEGACY managed to EXTERNAL");
-                        target.addProperty(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
-                        target.addProperty(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, converted.toString());
-                        if (copySpec.getTakeOwnership()) {
-                            target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true");
-                        } else {
-                            target.addIssue("Ownership of the data not allowed in this scenario, PURGE flag NOT set.");
+                if (!TableUtils.isACID(source)) {
+                    if (copySpec.getUpgrade() && TableUtils.isManaged(source)) {
+                        converted = TableUtils.makeExternal(target);
+                        if (converted) {
+                            target.addIssue("Schema 'converted' from LEGACY managed to EXTERNAL");
+                            target.addProperty(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
+                            target.addProperty(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, converted.toString());
+                            if (copySpec.getTakeOwnership()) {
+                                target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+                            } else {
+                                target.addIssue("Ownership of the data not allowed in this scenario, PURGE flag NOT set.");
+                            }
                         }
                     }
-                }
-
-                if (TableUtils.isACID(source)) {
+                } else {
+//                if (TableUtils.isACID(source)) {
                     if (config.getMigrateACID().isOn()) {
                         // If target isn't legacy.
                         switch (copySpec.getTarget()) {
+                            case SHADOW:
+                            case TRANSFER:
                             case LEFT:
+                                break;
                             case RIGHT:
                                 if (!config.getCluster(copySpec.getTarget()).getLegacyHive()) {
                                     target.addIssue("Location Stripped from ACID definition.  Location element in 'CREATE' " +
@@ -1171,14 +1226,6 @@ public class TableMirror {
                                     TableUtils.stripLocation(target);
                                 }
                                 break;
-                            case TRANSFER:
-                            case SHADOW:
-                                // Keep location (these tables should be either Legacy Managed or EXTERNAL
-                                // Change Location to a transition directory.
-                                String prefixedLocation = TableUtils.prefixTableNameLocation(source, config.getTransfer().getTransferPrefix());
-                                TableUtils.updateTableLocation(target, prefixedLocation);
-                                break;
-
                         }
 
                         if (TableUtils.removeBuckets(target, config.getMigrateACID().getArtificialBucketThreshold())) {
@@ -1186,30 +1233,31 @@ public class TableMirror {
                                     "the configured 'artificialBucketThreshold' of " +
                                     config.getMigrateACID().getArtificialBucketThreshold());
                         }
-                    }
-                }
 
-                if (TableUtils.isACID(source)) {
-                    if (copySpec.isMakeNonTransactional()) {
-                        switch (copySpec.getTarget()) {
-                            case LEFT:
-                            case TRANSFER:
-                                if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
-                                    TableUtils.makeExternal(target);
-                                }
-                                TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
-                                break;
-                            case SHADOW:
-                            case RIGHT:
-                                if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
-                                    TableUtils.makeExternal(target);
-                                }
-                                TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                        if (copySpec.isMakeNonTransactional()) {
+                            switch (copySpec.getTarget()) {
+                                case LEFT:
+                                case TRANSFER:
+                                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                                        TableUtils.makeExternal(target);
+                                    }
+                                    TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                                    break;
+                                case SHADOW:
+                                case RIGHT:
+                                    if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
+                                        TableUtils.makeExternal(target);
+                                    }
+                                    TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                            }
+
+                        } else if (copySpec.isMakeExternal()) {
+                            TableUtils.makeExternal(target);
+                            TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
                         }
 
-                    } else if (copySpec.isMakeExternal()) {
-                        TableUtils.makeExternal(target);
-                        TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                    } else {
+                        //source.addIssue();
                     }
                 }
 
@@ -1246,15 +1294,42 @@ public class TableMirror {
                 // 5. Location Adjustments
                 //    Since we are looking at the same data as the original, we're not changing this now.
                 //    Any changes to data location are a part of stage-2 (STORAGE).
-                if (copySpec.getStripLocation()) {
-                    TableUtils.stripLocation(target);
-                }
+                switch (copySpec.getTarget()) {
+                    case LEFT:
+                    case RIGHT:
+                        if (copySpec.getStripLocation()) {
+                            TableUtils.stripLocation(target);
+                        }
 
-                if (copySpec.getReplaceLocation() && !TableUtils.isACID(source)) {
-                    String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
-                    String targetLocation = copySpec.getConfig().getTranslator().
-                            translateTableLocation(this.getDbName(), getName(), sourceLocation, copySpec.getConfig());
-                    TableUtils.updateTableLocation(target, targetLocation);
+                        if (copySpec.getReplaceLocation() && !TableUtils.isACID(source)) {
+                            String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
+                            String targetLocation = copySpec.getConfig().getTranslator().
+                                    translateTableLocation(this.getDbName(), getName(), sourceLocation, copySpec.getConfig());
+                            TableUtils.updateTableLocation(target, targetLocation);
+                        }
+                        break;
+                    case SHADOW:
+                    case TRANSFER:
+                        if (copySpec.getLocation() != null) {
+                            String isLoc = config.getTransfer().getIntermediateStorage();
+                            // Deal with extra '/'
+                            isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
+                            isLoc = isLoc + "/" +
+                                    config.getTransfer().getTransferPrefix() + this.getUnique() + "_" + this.getName();
+                            TableUtils.updateTableLocation(target, isLoc);
+                        } else {
+                            if (copySpec.getStripLocation()) {
+                                TableUtils.stripLocation(target);
+                            }
+
+                            if (copySpec.getReplaceLocation() && !TableUtils.isACID(source)) {
+                                String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
+                                String targetLocation = copySpec.getConfig().getTranslator().
+                                        translateTableLocation(this.getDbName(), getName(), sourceLocation, copySpec.getConfig());
+                                TableUtils.updateTableLocation(target, targetLocation);
+                            }
+                        }
+                        break;
                 }
 
                 // 6. Go through the features, if any.

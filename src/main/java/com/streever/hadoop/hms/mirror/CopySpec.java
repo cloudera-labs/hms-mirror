@@ -17,6 +17,7 @@ public class CopySpec {
     private Boolean replaceLocation = Boolean.FALSE;
     private Boolean takeOwnership = Boolean.FALSE;
     private String tableNamePrefix = null;
+    private String location = null;
 
     public CopySpec(Config config, Environment source, Environment target) {
         this.config = config;
@@ -78,6 +79,14 @@ public class CopySpec {
 
     public void setReplaceLocation(Boolean replaceLocation) {
         this.replaceLocation = replaceLocation;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     public boolean renameTable() {

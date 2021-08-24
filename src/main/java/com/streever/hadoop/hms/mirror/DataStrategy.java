@@ -46,7 +46,7 @@ public enum DataStrategy {
     storage location.  The process will EXPORT data on the LEFT cluster
     to the intermediate location with IMPORT from the RIGHT cluster.
      */
-    INTERMEDIATE(Boolean.FALSE),
+//    INTERMEDIATE(Boolean.FALSE),
     /*
     The data storage is shared between the two clusters and no data
     migration is required.  Schema's are transferred using the same

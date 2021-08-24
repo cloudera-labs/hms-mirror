@@ -66,7 +66,10 @@ public class ConnectionPools {
 
             poolableConnectionFactory.setPool(connectionPool);
 
-            dataSources.put(environment, new PoolingDataSource<>(connectionPool));
+            PoolingDataSource poolingDatasource = new PoolingDataSource<>(connectionPool);
+//            poolingDatasource.setLoginTimeout(10);
+
+            dataSources.put(environment, poolingDatasource);
         }
     }
 
