@@ -342,8 +342,8 @@ public class Config {
             rtn = Boolean.FALSE;
         }
         if (migrateACID.isOn() && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.DUMP ||
-                dataStrategy == DataStrategy.EXPORT_IMPORT || dataStrategy == DataStrategy.HYBRID)) {
-            String issue = "Migrating ACID tables only valid for SCHEMA_ONLY, DUMP, EXPORT_IMPORT and HYBRID data strategies";
+                dataStrategy == DataStrategy.EXPORT_IMPORT || dataStrategy == DataStrategy.HYBRID || dataStrategy == DataStrategy.SQL)) {
+            String issue = "Migrating ACID tables only valid for SCHEMA_ONLY, DUMP, SQL, EXPORT_IMPORT and HYBRID data strategies";
             issues.add(issue);
             System.err.println(issue);
             rtn = Boolean.FALSE;

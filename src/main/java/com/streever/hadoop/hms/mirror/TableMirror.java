@@ -643,12 +643,12 @@ public class TableMirror {
         Boolean rtn = Boolean.FALSE;
         EnvironmentTable let = null;
         EnvironmentTable ret = null;
-        CopySpec copySpec = null;
+//        CopySpec copySpec = null;
 
         let = getEnvironmentTable(Environment.LEFT);
         ret = getEnvironmentTable(Environment.RIGHT);
 
-        copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
+        CopySpec rightSpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
 
         if (ret.getExists()) {
             // Already exists, no action.
@@ -662,20 +662,20 @@ public class TableMirror {
 
         if (!TableUtils.isACID(let)) {
             // Managed to EXTERNAL
-            copySpec.setUpgrade(Boolean.TRUE);
+            rightSpec.setUpgrade(Boolean.TRUE);
         }
 
         // Build Target from Source.
-        rtn = buildTableSchema(copySpec);
+        rtn = buildTableSchema(rightSpec);
 
         // Build Transfer Spec.
-        copySpec = new CopySpec(config, Environment.LEFT, Environment.TRANSFER);
-        copySpec.setMakeNonTransactional(Boolean.TRUE);
-        copySpec.setTableNamePrefix(config.getTransfer().getTransferPrefix());
-        if (!TableUtils.isACID(let)) {
-            // Managed to EXTERNAL
-            copySpec.setUpgrade(Boolean.TRUE);
-        }
+        CopySpec transferSpec = new CopySpec(config, Environment.LEFT, Environment.TRANSFER);
+        transferSpec.setMakeNonTransactional(Boolean.TRUE);
+        transferSpec.setTableNamePrefix(config.getTransfer().getTransferPrefix());
+//        if (!TableUtils.isACID(let)) {
+        // Managed to EXTERNAL
+        transferSpec.setUpgrade(Boolean.TRUE);
+//        }
 
         String transferLoc = null;
         if (config.getTransfer().getIntermediateStorage() != null) {
@@ -687,21 +687,21 @@ public class TableMirror {
         }
 
         if (transferLoc != null)
-            copySpec.setLocation(transferLoc);
+            transferSpec.setLocation(transferLoc);
 
         if (rtn)
             // Build transfer table.
-            rtn = buildTableSchema(copySpec);
+            rtn = buildTableSchema(transferSpec);
 
         // Build Shadow Spec
-        copySpec = new CopySpec(config, Environment.LEFT, Environment.SHADOW);
-        copySpec.setUpgrade(Boolean.TRUE);
-        copySpec.setTakeOwnership(Boolean.FALSE);
-        copySpec.setTableNamePrefix(config.getTransfer().getTransferPrefix());
+        CopySpec shadowSpec = new CopySpec(config, Environment.LEFT, Environment.SHADOW);
+        shadowSpec.setUpgrade(Boolean.TRUE);
+        shadowSpec.setTakeOwnership(Boolean.FALSE);
+        shadowSpec.setTableNamePrefix(config.getTransfer().getTransferPrefix());
         if (transferLoc != null)
-            copySpec.setLocation(transferLoc);
+            shadowSpec.setLocation(transferLoc);
         if (rtn)
-            rtn = buildTableSchema(copySpec);
+            rtn = buildTableSchema(shadowSpec);
 
         return rtn;
     }
@@ -1170,53 +1170,61 @@ public class TableMirror {
                         }
                     }
                 } else {
-                    if (config.getMigrateACID().isOn()) {
-                        // If target isn't legacy.
-                        switch (copySpec.getTarget()) {
-                            case SHADOW:
-                            case TRANSFER:
-                            case LEFT:
-                                break;
-                            case RIGHT:
-                                if (!config.getCluster(copySpec.getTarget()).getLegacyHive()) {
-                                    target.addIssue("Location Stripped from ACID definition.  Location element in 'CREATE' " +
-                                            "not allowed in Hive3+");
-                                    TableUtils.stripLocation(target);
-                                }
-                                break;
-                        }
-
-                        if (TableUtils.removeBuckets(target, config.getMigrateACID().getArtificialBucketThreshold())) {
-                            target.addIssue("Bucket Definition removed (was " + TableUtils.numOfBuckets(source) + ") because it was EQUAL TO or BELOW " +
-                                    "the configured 'artificialBucketThreshold' of " +
-                                    config.getMigrateACID().getArtificialBucketThreshold());
-                        }
-
-                        if (copySpec.isMakeNonTransactional()) {
-                            switch (copySpec.getTarget()) {
-                                case LEFT:
-                                case TRANSFER:
-                                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
-                                        TableUtils.makeExternal(target);
-                                    }
-                                    TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
-                                    break;
-                                case SHADOW:
-                                case RIGHT:
-                                    if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
-                                        TableUtils.makeExternal(target);
-                                    }
-                                    TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
-                            }
-
-                        } else if (copySpec.isMakeExternal()) {
-                            TableUtils.makeExternal(target);
+                    // If target isn't legacy.
+                    switch (copySpec.getTarget()) {
+                        case SHADOW:
+                            target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "false");
                             TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                            converted = TableUtils.makeExternal(target);
+                            break;
+                        case TRANSFER:
+                            if (config.getCluster(Environment.LEFT).getLegacyHive()) {
+                                TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                            } else {
+                                target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+                                TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                                converted = TableUtils.makeExternal(target);
+                            }
+                            break;
+                        case LEFT:
+                            break;
+                        case RIGHT:
+                            if (!config.getCluster(copySpec.getTarget()).getLegacyHive()) {
+                                target.addIssue("Location Stripped from ACID definition.  Location element in 'CREATE' " +
+                                        "not allowed in Hive3+");
+                                TableUtils.stripLocation(target);
+                            }
+                            break;
+                    }
+
+                    if (TableUtils.removeBuckets(target, config.getMigrateACID().getArtificialBucketThreshold())) {
+                        target.addIssue("Bucket Definition removed (was " + TableUtils.numOfBuckets(source) + ") because it was EQUAL TO or BELOW " +
+                                "the configured 'artificialBucketThreshold' of " +
+                                config.getMigrateACID().getArtificialBucketThreshold());
+                    }
+
+                    if (copySpec.isMakeNonTransactional()) {
+                        switch (copySpec.getTarget()) {
+                            case LEFT:
+                            case TRANSFER:
+                                if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                                    TableUtils.makeExternal(target);
+                                }
+                                TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                                break;
+                            case SHADOW:
+                            case RIGHT:
+                                if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
+                                    TableUtils.makeExternal(target);
+                                }
+                                TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
                         }
 
-                    } else {
-                        //source.addIssue();
+                    } else if (copySpec.isMakeExternal()) {
+                        TableUtils.makeExternal(target);
+                        TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
                     }
+
                 }
 
                 // 2. Set mirror stage one flag
