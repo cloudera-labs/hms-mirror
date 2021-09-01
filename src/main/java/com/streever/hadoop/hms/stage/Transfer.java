@@ -54,33 +54,34 @@ public class Transfer implements Callable<ReturnStatus> {
 
             tblMirror.incPhase();
             tblMirror.addStep("TRANSFER", config.getDataStrategy().toString());
-
-            switch (config.getDataStrategy()) {
-                case DUMP:
-                case SCHEMA_ONLY:
-                case LINKED:
-                case COMMON:
-                case EXPORT_IMPORT:
-                    successful = doBasic();
-                    break;
-//                case INTERMEDIATE:
-//                    successful = doIntermediate();
-//                    break;
-                case SQL:
-                    if (config.getTransfer().getIntermediateStorage() == null)
-                        successful = doSQL();
-                    else
-                        successful = doIntermediateTransfer();
-                    break;
-                case HYBRID:
-                    successful = doHybrid();
-                    break;
+            try {
+                switch (config.getDataStrategy()) {
+                    case DUMP:
+                    case SCHEMA_ONLY:
+                    case LINKED:
+                    case COMMON:
+                    case EXPORT_IMPORT:
+                        successful = doBasic();
+                        break;
+                    case SQL:
+                        if (config.getTransfer().getIntermediateStorage() == null)
+                            successful = doSQL();
+                        else
+                            successful = doIntermediateTransfer();
+                        break;
+                    case HYBRID:
+                        successful = doHybrid();
+                        break;
+                }
+                if (successful)
+                    tblMirror.setPhaseState(PhaseState.SUCCESS);
+                else
+                    tblMirror.setPhaseState(PhaseState.ERROR);
+            } catch (RuntimeException rte) {
+                tblMirror.addIssue(Environment.LEFT, "FAILURE (check logs):" + rte.getMessage());
+                LOG.error("Transfer Error", rte);
+                rte.printStackTrace();
             }
-            if (successful)
-                tblMirror.setPhaseState(PhaseState.SUCCESS);
-            else
-                tblMirror.setPhaseState(PhaseState.ERROR);
-
 
             Date end = new Date();
             Long diff = end.getTime() - start.getTime();

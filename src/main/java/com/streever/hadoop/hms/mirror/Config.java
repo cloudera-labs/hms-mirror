@@ -380,6 +380,10 @@ public class Config {
             case COMMON:
                 break;
         }
+
+        // Check the connections.
+        // If the environments are mix of legacy and non-legacy, check the connections for kerberos or zk.
+        
         return rtn;
     }
 

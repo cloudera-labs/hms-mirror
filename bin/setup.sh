@@ -15,6 +15,9 @@ fi
 mkdir -p $BASE_DIR/bin
 mkdir -p $BASE_DIR/lib
 
+mkdir -p $HOME/.hms-mirror/cfg
+mkdir -p $HOME/.hms-mirror/aux_libs
+
 # Cleanup previous installation
 rm -f $BASE_DIR/lib/*.jar
 rm -f $BASE_DIR/bin/*

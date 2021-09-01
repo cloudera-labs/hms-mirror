@@ -17,6 +17,9 @@ clusters:
     #    cloud storage prefix. IE: s3a://my_bucket
     hcfsNamespace: "<hdfs://namespace>"
     hiveServer2:
+      # URI is the Hive JDBC URL in the form of:
+      # jdbc:hive2://<server>:<port>
+      # See docs for restrictions
       uri: "<LEFT-cluster-jdbc-url>"
       connectionProperties:
         user: "*****"
@@ -36,6 +39,9 @@ clusters:
     # hcfs base location as the LEFT cluster.
     hcfsNamespace: "<hdfs://namespace>"
     hiveServer2:
+      # URI is the Hive JDBC URL in the form of:
+      # jdbc:hive2://<server>:<port>
+      # See docs for restrictions
       uri: "<RIGHT-cluster-jdbc-url>"
       connectionProperties:
         user: "*****"

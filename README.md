@@ -760,6 +760,15 @@ See the [config](#configuration) section to setup the config file for `hms-mirro
 
 #### Configuring the Libraries
 
+##### JDBC Connection Strings for HS2
+
+See the [Apache docs](https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=30758725#HiveServer2Clients-JDBC) regarding these details if you are using the environment 'Standalone' JDBC drivers.  Other drivers may have different connect string requirements.
+
+The drivers for the various environments are located:
+
+HDP - `/usr/hdp/current/hive-server2/jdbc/hive-jdbc-<version>-standalone.jar`
+CDH/CDP - `/opt/cloudera/parcels/CDH/jars/hive-jdbc-<version>-standalone.jar`
+
 ##### Non-Kerberos Connections
 
 The most effortless connections are 'non-kerberos' JDBC connections either to HS2 with AUTH models that aren't **Kerberos** or through a **Knox** proxy.  Under these conditions, only the __standalone__ JDBC drivers are required.  Each of the cluster configurations contains an element `jarFile` to identify those standalone libraries.
@@ -797,6 +806,21 @@ There are three scenarios for kerberized connections.
 For Kerberos JDBC connections, ensure you are using an appropriate Kerberized Hive URL.
 
 `jdbc:hive2://s03.streever.local:10000/;principal=hive/_HOST@STREEVER.LOCAL`
+
+##### ZooKeeper Discovery Connections
+
+You may run into issues connecting to an older cluster using ZK Discovery.  This mode brings in a LOT of the Hadoop ecosystem classes and may conflict across environments.  We recommend using ZooKeeper discovery on only the RIGHT cluster.  Adjust the LEFT cluster to access HS2 directly.
+
+##### TLS/SSL Connections
+
+If your HS2 connection requires TLS, you will need to include that detail in the jdbc 'uri' you provide.  In addition, if the SSL certificate is 'self-signed' you will need to include details about the certificate to the java environment.  You have 2 options:
+
+- Set the JAVA_OPTS environment with the details about the certificate.
+  - `export JAVA_OPTS=-Djavax.net.ssl.trustStore=/home/dstreev/certs/gateway-client-trust.jks -Djavax.net.ssl.trustStorePassword=changeit`
+- Add `-D` options to the `hms-mirror` commandline to inject those details.
+  - `hms-mirror -db test_db -Djavax.net.ssl.trustStore=/home/dstreev/certs/gateway-client-trust.jks -Djavax.net.ssl.trustStorePassword=changeit`
+
+
 
 ### Troubleshooting
 
