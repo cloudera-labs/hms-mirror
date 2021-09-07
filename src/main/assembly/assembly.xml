@@ -36,7 +36,7 @@
                 <include>*.md</include>
                 <include>pom.xml</include>
             </includes>
-            <outputDirectory>sources</outputDirectory>
+            <outputDirectory>hms-mirror-install/sources</outputDirectory>
             <useDefaultExcludes>true</useDefaultExcludes>
         </fileSet>
         <fileSet>
@@ -45,7 +45,7 @@
                 <include>hms-mirror</include>
                 <include>setup.sh</include>
             </includes>
-            <outputDirectory>hms-mirror</outputDirectory>
+            <outputDirectory>hms-mirror-install</outputDirectory>
             <useDefaultExcludes>true</useDefaultExcludes>
         </fileSet>
         <fileSet>
@@ -53,7 +53,7 @@
             <includes>
                 <include>default.template.yaml</include>
             </includes>
-            <outputDirectory>hms-mirror</outputDirectory>
+            <outputDirectory>hms-mirror-install</outputDirectory>
             <useDefaultExcludes>true</useDefaultExcludes>
         </fileSet>
         <fileSet>
@@ -61,7 +61,7 @@
             <includes>
                 <include>hms-mirror-shaded*.jar</include>
             </includes>
-            <outputDirectory>hms-mirror</outputDirectory>
+            <outputDirectory>hms-mirror-install</outputDirectory>
             <useDefaultExcludes>true</useDefaultExcludes>
         </fileSet>
     </fileSets>

@@ -479,6 +479,17 @@ public class Mirror {
             config.setExecute(Boolean.FALSE);
         }
 
+        if (!config.validate()) {
+            List<String> issues = config.getIssues();
+            System.err.println("");
+            for (String issue : issues) {
+                LOG.error(issue);
+                System.err.println(issue);
+            }
+            System.err.println("");
+            throw new RuntimeException("Configuration issues., check log (~/.hms-mirror/logs/hms-mirror.log) for details");
+        }
+
         ConnectionPools connPools = new ConnectionPools();
         connPools.addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
         switch (config.getDataStrategy()) {
@@ -516,18 +527,6 @@ public class Mirror {
             }
             throw new RuntimeException("Check Hive Connections Failed.  Check Logs.");
         }
-
-        if (!config.validate()) {
-            List<String> issues = config.getIssues();
-            System.err.println("");
-            for (String issue : issues) {
-                LOG.error(issue);
-                System.err.println(issue);
-            }
-            System.err.println("");
-            throw new RuntimeException("Configuration issues., check log (~/.hms-mirror/logs/hms-mirror.log) for details");
-        }
-
     }
 
     public void doit() {
@@ -724,7 +723,7 @@ public class Mirror {
 
         LOG.info("HMS-Mirror: Completed in " +
                 decf.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
-        reporter.refresh();
+        reporter.refresh(Boolean.TRUE);
         reporter.stop();
     }
 

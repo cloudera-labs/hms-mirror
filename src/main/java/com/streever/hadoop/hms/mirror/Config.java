@@ -381,9 +381,50 @@ public class Config {
                 break;
         }
 
-        // Check the connections.
+        // TODO: Check the connections.
         // If the environments are mix of legacy and non-legacy, check the connections for kerberos or zk.
-        
+
+
+        // Set maxConnections to Concurrency.
+        HiveServer2Config leftHS2 = this.getCluster(Environment.LEFT).getHiveServer2();
+        if (!leftHS2.isValidUri()) {
+            rtn = Boolean.FALSE;
+            issues.add("LEFT HiveServer2 URI config is NOT valid");
+        }
+        leftHS2.getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
+        leftHS2.getConnectionProperties().setProperty("initialSize", Integer.toString(getTransfer().getConcurrency()));
+        leftHS2.getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency()/2));
+        leftHS2.getConnectionProperties().setProperty("validationQuery", "SELECT 1");
+        leftHS2.getConnectionProperties().setProperty("validationQueryTimeout", "5");
+        leftHS2.getConnectionProperties().setProperty("testOnCreate", "true");
+
+        HiveServer2Config rightHS2 = this.getCluster(Environment.RIGHT).getHiveServer2();
+        if (!rightHS2.isValidUri()) {
+            rtn = Boolean.FALSE;
+            issues.add("RIGHT HiveServer2 URI config is NOT valid");
+        }
+        rightHS2.getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
+        rightHS2.getConnectionProperties().setProperty("initialSize", Integer.toString(getTransfer().getConcurrency()));
+        rightHS2.getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency()/2));
+        rightHS2.getConnectionProperties().setProperty("validationQuery", "SELECT 1");
+        rightHS2.getConnectionProperties().setProperty("validationQueryTimeout", "5");
+        rightHS2.getConnectionProperties().setProperty("testOnCreate", "true");
+
+        if (leftHS2.isKerberosConnection() && leftHS2.getJarFile() != null) {
+            rtn = Boolean.FALSE;
+            issues.add("LEFT: For Kerberized connections, place the Hive JDBC jar file in $HOME/.hms-mirror/aux_libs and remove the 'jarFile' entry in the config.");
+        }
+        if (rightHS2.isKerberosConnection() && rightHS2.getJarFile() != null) {
+            rtn = Boolean.FALSE;
+            issues.add("RIGHT: For Kerberized connections, place the Hive JDBC jar file in $HOME/.hms-mirror/aux_libs and remove the 'jarFile' entry in the config.");
+        }
+
+        if (leftHS2.isKerberosConnection() && rightHS2.isKerberosConnection() &&
+                (this.getCluster(Environment.LEFT).getLegacyHive() != this.getCluster(Environment.RIGHT).getLegacyHive())) {
+            rtn = Boolean.FALSE;
+            issues.add("Kerberos connections can only be supported to a single version of the platform.  LEFT and RIGHT " +
+                    "'legacy' definitions are not the same, so we are assuming the cluster versions aren't the same.");
+        }
         return rtn;
     }
 

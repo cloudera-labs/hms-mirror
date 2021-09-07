@@ -17,6 +17,7 @@ public class Reporter implements Runnable {
     private List<String> reportTemplateHeader = new ArrayList<String>();
     private List<String> reportTemplateTableDetail = new ArrayList<String>();
     private List<String> reportTemplateFooter = new ArrayList<String>();
+    private List<String> reportTemplateOutput = new ArrayList<String>();
     private Map<String, String> varMap = new TreeMap<String, String>();
 
     private List<TableMirror> startedTables = new ArrayList<TableMirror>();
@@ -62,6 +63,12 @@ public class Reporter implements Runnable {
         while ((fline = fbr.readLine()) != null) {
             reportTemplateFooter.add(fline);
         }
+        InputStream fisop = this.getClass().getResourceAsStream("/report_output.txt");
+        BufferedReader fbrop = new BufferedReader(new InputStreamReader(fisop));
+        String flineop = null;
+        while ((flineop = fbrop.readLine()) != null) {
+            reportTemplateOutput.add(flineop);
+        }
         InputStream tis = this.getClass().getResourceAsStream("/table_display.txt");
         BufferedReader tbr = new BufferedReader(new InputStreamReader(tis));
         String tline = null;
@@ -77,7 +84,7 @@ public class Reporter implements Runnable {
             fetchReportTemplates();
             running.set(true);
             while (running.get()) {
-                refresh();
+                refresh(Boolean.FALSE);
                 try {
                     Thread.sleep(sleepInterval);
                 } catch (InterruptedException e) {
@@ -90,9 +97,9 @@ public class Reporter implements Runnable {
         }
     }
 
-    public void refresh() {
+    public void refresh(Boolean showAll) {
         populateVarMap();
-        displayReport();
+        displayReport(showAll);
     }
 
     private boolean tiktok = false;
@@ -107,7 +114,7 @@ public class Reporter implements Runnable {
             varMap.put("retry", "       ");
         else
             varMap.put("retry", "(RETRY)");
-        varMap.put("tik.tok", tiktok?"*":"");
+        varMap.put("tik.tok", tiktok ? "*" : "");
         varMap.put("total.dbs", Integer.toString(conversion.getDatabases().size()));
         // Count
         int tblCount = 0;
@@ -123,7 +130,7 @@ public class Reporter implements Runnable {
         int skipped = 0;
         for (String database : conversion.getDatabases().keySet()) {
             DBMirror dbMirror = conversion.getDatabase(database);
-            for (String tbl: dbMirror.getTableMirrors().keySet()) {
+            for (String tbl : dbMirror.getTableMirrors().keySet()) {
                 switch (dbMirror.getTable(tbl).getPhaseState()) {
                     case INIT:
                         break;
@@ -149,24 +156,24 @@ public class Reporter implements Runnable {
         Date current = new Date();
         long elapsedMS = current.getTime() - start.getTime();
         if (tiktok)
-            varMap.put("elapsed.time", "\u001B[34m" + Long.toString(elapsedMS/1000) + "[0m");
+            varMap.put("elapsed.time", "\u001B[34m" + Long.toString(elapsedMS / 1000) + "[0m");
         else
-            varMap.put("elapsed.time", "\u001B[33m" + Long.toString(elapsedMS/1000) + "[0m");
+            varMap.put("elapsed.time", "\u001B[33m" + Long.toString(elapsedMS / 1000) + "[0m");
     }
 
 
-    protected void displayReport() {
+    protected void displayReport(Boolean showAll) {
         System.out.print(ReportingConf.CLEAR_CONSOLE);
         StringBuilder report = new StringBuilder();
         // Header
         report.append(ReportingConf.substituteAllVariables(reportTemplateHeader, varMap));
 
         // Table Processing
-        for (TableMirror tblMirror: startedTables) {
-            Map<String,String> tblVars = new TreeMap<String, String>();
+        for (TableMirror tblMirror : startedTables) {
+            Map<String, String> tblVars = new TreeMap<String, String>();
             tblVars.put("db.name", tblMirror.getDbName());
             tblVars.put("tbl.name", tblMirror.getName());
-            tblVars.put("tbl.progress", tblMirror.getProgressIndicator(80,10));
+            tblVars.put("tbl.progress", tblMirror.getProgressIndicator(80, 10));
             tblVars.put("tbl.msg", tblMirror.getMigrationStageMessage());
             tblVars.put("tbl.strategy", tblMirror.getStrategy().toString());
             report.append(ReportingConf.substituteAllVariables(reportTemplateTableDetail, tblVars));
@@ -174,6 +181,10 @@ public class Reporter implements Runnable {
 
         // Footer
         report.append(ReportingConf.substituteAllVariables(reportTemplateFooter, varMap));
+
+        // Output
+        if (showAll)
+            report.append(ReportingConf.substituteAllVariables(reportTemplateOutput, varMap));
 
         System.out.println(report.toString());
 

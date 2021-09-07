@@ -40,4 +40,28 @@ public class HiveServer2Config {
     public void setJarFile(String jarFile) {
         this.jarFile = jarFile;
     }
+
+    public Boolean isValidUri() {
+        Boolean rtn = Boolean.TRUE;
+        if (getUri() == null || !getUri().startsWith("jdbc:hive2://")) {
+            rtn = Boolean.FALSE;
+        }
+        return rtn;
+    }
+
+    public Boolean isKerberosConnection() {
+        if (getUri().contains("principal")) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
+    }
+
+    public Boolean isZooKeeperConnection() {
+        if (getUri().contains("serviceDiscoveryMode=zooKeeper")) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
+    }
 }

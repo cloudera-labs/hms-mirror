@@ -219,8 +219,14 @@ These workbooks will NOT include elements for ACID/Transactional tables.  Simply
 
 On the edgenode:
 - Expand the tarball `tar zxvf hms-mirror-dist.tar.gz`.
-  > This produces a child `hms-mirror` directory.
-- As the root user (or `sudo`), run `hms-mirror/setup.sh`.
+  > This produces a child `hms-mirror-install` directory.
+- Two options for installation:
+  - As the root user (or `sudo`), run `hms-mirror-install/setup.sh`. This will install the `hms-mirror` packages in `/usr/local/hms-mirror` and create symlinks for the executables in `/usr/local/bin`.  At this point, `hms-mirror` should be available to all user and in the default path.
+  - As the local user, run `hms-mirror-install/setup.sh`.  This will install the `hms-mirror` packages in `$HOME/.hms-mirror` and create symlink in `$HOME/bin`.  Ensure `$HOME/bin` is in the users path and run `hms-mirror`.
+
+*DO NOT RUN `hms-mirror` from the installation directory.*
+
+If you install both options, your environment PATH will determine which one is run.  Make note of this because an upgrade may not be reachable.
 
 ### Quick Start
 
