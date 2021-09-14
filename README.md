@@ -218,6 +218,7 @@ These workbooks will NOT include elements for ACID/Transactional tables.  Simply
 ### HMS-Mirror Setup from Binary Distribution
 
 On the edgenode:
+- Remove previous install directory `rm -rf hms-mirror-install`
 - Expand the tarball `tar zxvf hms-mirror-dist.tar.gz`.
   > This produces a child `hms-mirror-install` directory.
 - Two options for installation:
