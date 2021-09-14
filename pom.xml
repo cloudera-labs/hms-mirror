@@ -63,7 +63,7 @@
         <!--        <hadoop.major>3.1</hadoop.major>-->
         <!--        <hive.version>3.1.1</hive.version>-->
 
-        <hadoop-cli.version>2.3.1.4-SNAPSHOT</hadoop-cli.version>
+        <hadoop-cli.version>2.3.2.1-SNAPSHOT</hadoop-cli.version>
 
     </properties>
 

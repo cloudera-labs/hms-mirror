@@ -16,10 +16,10 @@ mkdir -p $BASE_DIR/lib
 mkdir -p $HOME/.hms-mirror/cfg
 mkdir -p $HOME/.hms-mirror/aux_libs
 
-if [ ! -f $HOME/.hms-mirror/cfg/default.yaml ]; then
-  cp default.yaml.template $HOME/.hms-mirror/cfg/default.yaml
-  echo "A default.yaml template has been copied to $HOME/.hms-mirror/cfg. Modify this for your environment."
-fi
+#if [ ! -f $HOME/.hms-mirror/cfg/default.yaml ]; then
+#  cp default.template.yaml $HOME/.hms-mirror/cfg/default.yaml
+#  echo "A default.yaml template has been copied to $HOME/.hms-mirror/cfg. Modify this for your environment."
+#fi
 
 # Cleanup previous installation
 rm -f $BASE_DIR/lib/*.jar

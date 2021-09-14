@@ -772,8 +772,8 @@ See the [Apache docs](https://cwiki.apache.org/confluence/pages/viewpage.action?
 
 The drivers for the various environments are located:
 
-HDP - `/usr/hdp/current/hive-server2/jdbc/hive-jdbc-<version>-standalone.jar`
-CDH/CDP - `/opt/cloudera/parcels/CDH/jars/hive-jdbc-<version>-standalone.jar`
+- HDP - `/usr/hdp/current/hive-server2/jdbc/hive-jdbc-<version>-standalone.jar` (NOTE: Use the hive-1 standalone jar file for HDP 2.6.5, not the hive-2 jar)
+- CDH/CDP - `/opt/cloudera/parcels/CDH/jars/hive-jdbc-<version>-standalone.jar`
 
 ##### Non-Kerberos Connections
 

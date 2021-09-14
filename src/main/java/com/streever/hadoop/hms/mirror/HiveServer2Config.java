@@ -1,5 +1,7 @@
 package com.streever.hadoop.hms.mirror;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.Properties;
 
 public class HiveServer2Config {
@@ -41,6 +43,7 @@ public class HiveServer2Config {
         this.jarFile = jarFile;
     }
 
+    @JsonIgnore
     public Boolean isValidUri() {
         Boolean rtn = Boolean.TRUE;
         if (getUri() == null || !getUri().startsWith("jdbc:hive2://")) {
@@ -49,6 +52,7 @@ public class HiveServer2Config {
         return rtn;
     }
 
+    @JsonIgnore
     public Boolean isKerberosConnection() {
         if (getUri().contains("principal")) {
             return Boolean.TRUE;
@@ -57,6 +61,7 @@ public class HiveServer2Config {
         }
     }
 
+    @JsonIgnore
     public Boolean isZooKeeperConnection() {
         if (getUri().contains("serviceDiscoveryMode=zooKeeper")) {
             return Boolean.TRUE;
