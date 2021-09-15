@@ -2,8 +2,11 @@ package com.streever.hadoop.hms.mirror;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streever.hadoop.hms.mirror.feature.Feature;
+import com.streever.hadoop.hms.mirror.feature.Features;
 import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import java.math.BigDecimal;
 import java.text.DateFormat;
@@ -13,6 +16,8 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class TableMirror {
+    private static Logger LOG = LogManager.getLogger(TableMirror.class);
+
     private String dbName;
     private String name;
     private Date start = new Date();
@@ -250,6 +255,7 @@ public class TableMirror {
 
     private Boolean buildoutDUMPDefinition(Config config, DBMirror dbMirror) {
 //        Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout DUMP Definition");
         EnvironmentTable let = null;
         EnvironmentTable ret = null;
         CopySpec copySpec = null;
@@ -269,6 +275,7 @@ public class TableMirror {
 
     private Boolean buildoutSCHEMA_ONLYDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout SCHEMA_ONLY Definition");
         EnvironmentTable let = null;
         EnvironmentTable ret = null;
         CopySpec copySpec = null;
@@ -363,6 +370,7 @@ public class TableMirror {
 
     private Boolean buildoutLINKEDDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout LINKED Definition");
         EnvironmentTable let = null;
         EnvironmentTable ret = null;
         CopySpec copySpec = null;
@@ -432,6 +440,7 @@ public class TableMirror {
 
     private Boolean buildoutCOMMONDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout COMMON Definition");
         EnvironmentTable let = null;
         EnvironmentTable ret = null;
         CopySpec copySpec = null;
@@ -512,6 +521,7 @@ public class TableMirror {
      */
     private Boolean buildoutSQLDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout SQL Definition");
 
         // Different transfer technique.  Staging location.
         if (config.getTransfer().getIntermediateStorage() != null) {
@@ -595,6 +605,7 @@ public class TableMirror {
      */
     private Boolean buildoutEXPORT_IMPORTDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout EXPORT_IMPORT Definition");
         EnvironmentTable let = null;
         EnvironmentTable ret = null;
         CopySpec copySpec = null;
@@ -641,6 +652,7 @@ public class TableMirror {
      */
     private Boolean buildoutIntermediateDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout Intermediate Definition");
         EnvironmentTable let = null;
         EnvironmentTable ret = null;
 //        CopySpec copySpec = null;
@@ -712,6 +724,7 @@ public class TableMirror {
      */
     private Boolean buildoutHYBRIDDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout HYBRID Definition");
         EnvironmentTable let = null;
 
         let = getEnvironmentTable(Environment.LEFT);
@@ -774,6 +787,7 @@ public class TableMirror {
 
     private Boolean buildoutDUMPSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout DUMP SQL");
 
         String useDb = null;
         String database = null;
@@ -804,6 +818,7 @@ public class TableMirror {
 
     private Boolean buildoutSCHEMA_ONLYSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout SCHEMA_ONLY SQL");
 
         String useDb = null;
         String database = null;
@@ -862,6 +877,7 @@ public class TableMirror {
      */
     private Boolean buildoutSQLSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout SQL SQL");
 
         if (config.getTransfer().getIntermediateStorage() != null) {
             return buildoutIntermediateSql(config, dbMirror);
@@ -923,6 +939,7 @@ public class TableMirror {
 
     private Boolean buildoutIntermediateSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout Intermediate SQL");
 
         String useDb = null;
         String database = null;
@@ -997,6 +1014,7 @@ public class TableMirror {
      */
     private Boolean buildoutEXPORT_IMPORTSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout EXPORT_IMPORT SQL");
 
         String database = null;
 
@@ -1045,6 +1063,7 @@ public class TableMirror {
      */
     private Boolean buildoutHYBRIDSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout HYBRID SQL");
 
         String useDb = null;
         String database = null;
@@ -1073,6 +1092,7 @@ public class TableMirror {
      */
     private Boolean buildoutCOMMONSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
+        LOG.debug("Table: " + dbMirror.getName() + " buildout COMMON SQL");
 
         String useDb = null;
         String database = null;
@@ -1299,10 +1319,20 @@ public class TableMirror {
                 }
 
                 // 6. Go through the features, if any.
-                if (copySpec.getConfig().getFeatureList() != null) {
-                    for (Feature feature : copySpec.getConfig().getFeatureList()) {
-                        target = feature.fixSchema(target);
+                if (!config.getSkipFeatures()) {
+                    for (Features features : Features.values()) {
+                        Feature feature = features.getFeature();
+                        LOG.debug("Table: " + getName() + " - Checking Feature: " + features.toString());
+                        if (feature.applicable(target)) {
+                            LOG.debug("Table: " + getName() + " - Feature Applicable: " + features.toString());
+                            target.addIssue("Feature (" + features.toString() + ") was found applicable and adjustments applied");
+                            target = feature.fixSchema(target);
+                        } else {
+                            LOG.debug("Table: " + getName() + " - Feature NOT Applicable: " + features.toString());
+                        }
                     }
+                } else {
+                    LOG.debug("Table: " + getName() + " - Skipping Features Check...");
                 }
 
                 // Add props to definition.

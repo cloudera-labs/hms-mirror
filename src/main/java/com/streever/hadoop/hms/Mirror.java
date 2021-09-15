@@ -214,6 +214,11 @@ public class Mirror {
             }
         }
 
+        if (cmd.hasOption("sf")) {
+            // Skip Features.
+            config.setSkipFeatures(Boolean.TRUE);
+        }
+
         if (cmd.hasOption("t")) {
             Translator translator = null;
             File tCfgFile = new File(cmd.getOptionValue("t"));
@@ -308,15 +313,10 @@ public class Mirror {
             }
         }
 
-//        if (config.getDataStrategy() == DataStrategy.INTERMEDIATE) {
         // Get intermediate Storage Location
         if (cmd.hasOption("is")) {
             config.getTransfer().setIntermediateStorage(cmd.getOptionValue("is"));
         }
-//            else {
-//                throw new RuntimeException("Need to specify '-is/--itermediate-storage' when using INTERMEDIATE data strategy.");
-//            }
-//        }
 
         if (cmd.hasOption("ro")) {
             switch (config.getDataStrategy()) {
@@ -383,29 +383,6 @@ public class Mirror {
             String[] databases = cmd.getOptionValues("db");
             if (databases != null)
                 config.setDatabases(databases);
-        }
-
-        if (cmd.hasOption("f")) {
-            String[] featuresStr = cmd.getOptionValues("f");
-            List<Features> featuresList = new ArrayList<Features>();
-            // convert feature string to feature enum.q
-            for (String featureStr : featuresStr) {
-                try {
-                    Features feature = Features.valueOf(featureStr);
-                    featuresList.add(feature);
-                } catch (IllegalArgumentException iae) {
-                    if (featureStr.equalsIgnoreCase("TRANSLATE")) {
-                        config.getTranslator().setOn(Boolean.TRUE);
-                    } else {
-                        throw new RuntimeException(featureStr + " is NOT a valid 'feature'. One or more of: " + Arrays.deepToString(Features.values()) + ",TRANSLATE");
-                    }
-                }
-
-            }
-            if (featuresList.size() > 0) {
-                Features[] features = featuresList.toArray(new Features[0]);
-                config.setFeatures(features);
-            }
         }
 
         if (cmd.hasOption("sync") && config.getDataStrategy() != DataStrategy.DUMP) {
@@ -876,21 +853,16 @@ public class Mirror {
         translateConfigOption.setArgName("translate-config-file");
         options.addOption(translateConfigOption);
 
-
-        Option featureOption = new Option("f", "feature", true,
-                "Added Feature(s) Checks: " + Arrays.deepToString(Features.values()));
-        // Let's not advertise the TRANSLATE feature yet.
-        featureOption.setValueSeparator(',');
-        featureOption.setArgName("features (comma-separated)");
-        featureOption.setArgs(20);
-        featureOption.setRequired(Boolean.FALSE);
-        options.addOption(featureOption);
-
         Option outputOption = new Option("o", "output-dir", true,
                 "Output Directory (default: $HOME/.hms-mirror/reports/<yyyy-MM-dd_HH-mm-ss>");
         outputOption.setRequired(Boolean.FALSE);
         outputOption.setArgName("outputdir");
         options.addOption(outputOption);
+
+        Option skipFeaturesOption = new Option("sf", "skip-features", false,
+                "Skip Features evaluation.");
+        skipFeaturesOption.setRequired(Boolean.FALSE);
+        options.addOption(skipFeaturesOption);
 
         Option executeOption = new Option("e", "execute", false,
                 "Execute actions request, without this flag the process is a dry-run.");

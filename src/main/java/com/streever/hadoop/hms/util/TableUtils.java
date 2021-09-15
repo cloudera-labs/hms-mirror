@@ -23,6 +23,8 @@ public class TableUtils {
     public static final String STORED_AS_INPUTFORMAT = "STORED AS INPUTFORMAT";
     public static final String OUTPUTFORMAT = "OUTPUTFORMAT";
     public static final String LOCATION = "LOCATION";
+    public static final String WITH_SERDEPROPERTIES = "WITH SERDEPROPERTIES (";
+    public static final String PATH = "'path'=";
     public static final String CLUSTERED_BY = "CLUSTERED BY (";
     public static final String INTO = "INTO";
     public static final String TBL_PROPERTIES = "TBLPROPERTIES (";
@@ -151,7 +153,23 @@ public class TableUtils {
                 rtn = Boolean.TRUE;
             }
         }
-
+        // Check for a 'path' element in SERDEPROPERTIES.  This is set by spark in some case and it matches the LOCATION
+        // path.
+        int wspIdx = tableDefinition.indexOf(WITH_SERDEPROPERTIES);
+        if (wspIdx > 0) {
+            for (int i = wspIdx+1;i<tableDefinition.size();i++) {
+                String sprop = tableDefinition.get(i);
+                if (sprop.trim().startsWith(PATH)) {
+                    String rprop = "'path'='" + newLocation.replaceAll("'", "") + "'";
+                    if (sprop.trim().endsWith(","))
+                        rprop = rprop + ",";
+                    if (sprop.trim().endsWith(")"))
+                        rprop = rprop + ")";
+                    tableDefinition.set(i, rprop);
+                    break;
+                }
+            }
+        }
         return rtn;
     }
 

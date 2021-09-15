@@ -2,7 +2,8 @@ package com.streever.hadoop.hms.mirror.feature;
 
 public enum Features {
     BAD_ORC_DEF(BadOrcDefFeature.class),
-    BAD_RC_DEF(BadRCDefFeature.class);
+    BAD_RC_DEF(BadRCDefFeature.class),
+    BAD_TEXTFILE_DEF(BadTextFileDefFeature.class);
 
     private Feature feature;
 

@@ -74,10 +74,17 @@ public class BadOrcDefFeatureTest {
 
     @Test
     public void test_001() {
-        List<String> schemaList = new ArrayList<String>();
-        schemaList.addAll(Arrays.asList(schema_01));
         Feature bof = new BadOrcDefFeature();
-        List<String> newSchemaList = bof.fixSchema(schemaList);
-        System.out.println("Hello");
+        List<String> newSchemaList = bof.fixSchema(Arrays.asList(schema_01));
+        newSchemaList.stream().forEach(System.out::println);
     }
+
+    @Test
+    public void test_002() {
+        Feature bof = new BadOrcDefFeature();
+        List<String> newSchemaList = bof.fixSchema(Arrays.asList(schema_02));
+        System.out.println(newSchemaList.toString());
+//        newSchemaList.stream().forEach(System.out::println);
+    }
+
 }

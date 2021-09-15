@@ -109,7 +109,7 @@ public class Config {
     private String dbPrefix = null;
 
     private String[] databases = null;
-    private Features[] features = null;
+    private Boolean skipFeatures = Boolean.FALSE;
 
     public HadoopSessionPool getCliPool() {
         if (cliPool == null) {
@@ -235,25 +235,6 @@ public class Config {
         this.acceptance = acceptance;
     }
 
-    public Features[] getFeatures() {
-        return features;
-    }
-
-    public void setFeatures(Features[] featuresSet) {
-        this.features = featuresSet;
-    }
-
-    public List<Feature> getFeatureList() {
-        List<Feature> fList = null;
-        if (this.features != null) {
-            fList = new ArrayList<Feature>();
-            for (Features featuresEnum : features) {
-                fList.add(featuresEnum.getFeature());
-            }
-        }
-        return fList;
-    }
-
     public String getDbPrefix() {
         return dbPrefix;
     }
@@ -302,6 +283,14 @@ public class Config {
             tblFilterPattern = Pattern.compile(tblRegEx);
         else
             tblFilterPattern = null;
+    }
+
+    public Boolean getSkipFeatures() {
+        return skipFeatures;
+    }
+
+    public void setSkipFeatures(Boolean skipFeatures) {
+        this.skipFeatures = skipFeatures;
     }
 
     public Pattern getTblFilterPattern() {

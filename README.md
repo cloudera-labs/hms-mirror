@@ -159,7 +159,7 @@ The final ACID table is created in the 'RIGHT' cluster, and SQL is used to copy 
 
 - Data Strategy: `HYBRID`
 - Activate Migrate ACID: `-ma|-mao`
-- [Link Clusters](#linking-clusters-storage-layers)
+- [Link Clusters](#linking-clusters-storage-layers), unless using the `-is|--intermediate-storage` option.
 - This is a 'ONE' time transfer.  It is not an incremental update process.
 - Adequate Storage on LEFT to make an 'EXTERNAL' copy of the ACID table.
 - Permissions:
@@ -603,7 +603,6 @@ Hive Metastore Migration Utility
                                                  Name. Usually used for testing.
  -e,--execute                                    Execute actions request, without this flag the
                                                  process is a dry-run.
- -f,--feature <features (comma-separated)>       Added Feature(s) Checks: [BAD_ORC_DEF, BAD_RC_DEF]
  -h,--help                                       Help
  -is,--intermediate-storage <storage-path>       Intermediate Storage used with Data Strategy
                                                  HYBRID, SQL, EXPORT_IMPORT.  This will change the
@@ -651,6 +650,7 @@ Hive Metastore Migration Utility
                                                  by dropping and recreating.  When used with `-tf`,
                                                  only the tables that match the filter (on both
                                                  sides) will be considered.
+ -sf,--skip-features                             Skip Features evaluation.
  -sql,--sql-output                               Output the SQL to the report
  -su,--setup                                     Setup a default configuration file through a series
                                                  of questions
@@ -670,7 +670,9 @@ To attach to a LEGACY HS2, run `hms-mirror` with the `--hadoop-classpath` comman
 
 #### Features
 
-Features are a way to inject special considerations into the replay of a schema between clusters.  Using the `-f` option, you can specify the 'features' you want to use on the schemas.  Features should only be used when you know a particular scenario exists.  Don't use them automatically.
+Features are a way to inject special considerations into the replay of a schema between clusters.  Each schema is automatically check is a particular 'feature' applies.  
+
+If you find that this features check is causing issues, add the flag `-sf` to the application parameters and the feature checks will be skipped.
 
 ##### BAD_ORC_DEF
 
@@ -737,6 +739,30 @@ with:
 ```
 STORED AS RCFILE
 ```
+
+##### BAD_TEXTFILE_DEF
+
+Older Textfile schemas somehow are corrupted through subsequent ALTER statements that get the table into a state where you can NOT re-run the contents of `SHOW CREATE TABLE`.  In this case, the issue is that there is a declaration for `WITH SERDEPROPERTIES` along with a `ROW FORMAT DELIMITED` clause.  These two can NOT exist together.  Here is an example of this:
+
+```
+ROW FORMAT DELIMITED
+     FIELDS TERMINATED BY '|'
+     LINES TERMINATED BY '\n'
+WITH SERDEPROPERTIES (
+     'escape.delim'='\\')
+STORED AS INPUTFORMAT
+     'org.apache.hadoop.mapred.TextInputFormat'
+OUTPUTFORMAT
+     'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+```
+
+In this case, we need to convert the `ROW FORMAT DELIMITED * TERMINATED BY *` values into the `SERDEPROPERTIES` and replace it with 
+
+```
+ROW FORMAT SERDE
+  'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
+```
+
 ### On-Prem to Cloud Migrations
 
 On-Prem to Cloud Migrations should run `hms-mirror` from the LEFT cluster since visibility in this scenario is usually restricted to LEFT->RIGHT.
