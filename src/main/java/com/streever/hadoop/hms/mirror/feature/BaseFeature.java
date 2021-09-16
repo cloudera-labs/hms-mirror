@@ -9,7 +9,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class BaseFeature {
+public abstract class BaseFeature {
 
     protected Boolean contains(String search, List<String> definition) {
         Boolean rtn = Boolean.FALSE;
@@ -25,8 +25,8 @@ public class BaseFeature {
     protected String getGroupFor(Pattern pattern, List<String> definition) {
         String rtn = null;
         for (String line : definition) {
-            String adjLine = StringEscapeUtils.escapeJava(line);
-            Matcher m = pattern.matcher(adjLine);
+//            String adjLine = StringEscapeUtils.escapeJava(line);
+            Matcher m = pattern.matcher(line);
             if (m.find()) {
                 rtn = m.group(1);
             }
@@ -61,12 +61,13 @@ public class BaseFeature {
     public List<String> addEscaped(List<String> definition) {
         List<String> escapedList = new ArrayList<String>();
         for (String line : definition) {
-            if (line.contains("escape.delim")) {
-                String escapedLine = StringEscapeUtils.escapeJava(line);
-                escapedList.add(escapedLine);
-            } else {
+            // Causing too many level of escapes.
+//            if (line.contains("escape.delim")) {
+//                String escapedLine = StringEscapeUtils.escapeJava(line);
+//                escapedList.add(escapedLine);
+//            } else {
                 escapedList.add(line);
-            }
+//            }
         }
         return escapedList;
     }

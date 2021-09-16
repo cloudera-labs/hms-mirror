@@ -210,7 +210,12 @@ public class Mirror {
                 throw new RuntimeException("The format of the 'config' yaml file MAY HAVE CHANGED from the last release.  Please make a copy and run " +
                         "'-su|--setup' again to recreate in the new format", t);
             } else {
-                throw new RuntimeException(t);
+                System.err.println("======");
+                System.err.println("A configuration element is no longer valid (progress!!!).  Please remove the element from the configuration 'yaml' and try again.");
+                System.err.println(t.getMessage());
+                System.err.println("======");
+                LOG.error(t);
+                throw new RuntimeException("Configuration invalid.  Review message and make adjustments.");
             }
         }
 

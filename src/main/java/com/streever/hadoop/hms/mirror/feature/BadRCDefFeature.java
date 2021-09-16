@@ -19,6 +19,12 @@ public class BadRCDefFeature extends BaseFeature implements Feature {
     private final String RC_OUTPUT_SERDE = "  'org.apache.hadoop.hive.ql.io.RCFileOutputFormat'";
     private static Logger LOG = LogManager.getLogger(BadRCDefFeature.class);
 
+    public String getDescription() {
+        return "Table schema definitions for RC files that include ROW FORMAT DELIMITED " +
+                "declarations are invalid.  This process will remove the invalid declarations " +
+                "and set STORED AS RC";
+    }
+
     @Override
     public Boolean applicable(EnvironmentTable envTable) {
         return applicable(envTable.getDefinition());

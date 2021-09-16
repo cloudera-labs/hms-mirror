@@ -10,4 +10,5 @@ public interface Feature {
     List<String> fixSchema(List<String> schema);
     EnvironmentTable fixSchema(EnvironmentTable envTable);
     List<String> addEscaped(List<String> definition);
+    String getDescription();
 }

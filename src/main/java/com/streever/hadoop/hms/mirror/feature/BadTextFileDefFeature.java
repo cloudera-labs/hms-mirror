@@ -18,6 +18,14 @@ public class BadTextFileDefFeature extends BaseFeature implements Feature {
 
     private static Logger LOG = LogManager.getLogger(BadTextFileDefFeature.class);
 
+    public String getDescription() {
+        return "Table schema definitions that include both ROW FORMAT DELIMITED BY and " +
+                "WITH SERDEPROPERTIES in the declaration aren't valid as a new schema when you " +
+                "attempt to replay the schema.  This happens when tables are ALTERED with SERDEPROPERTIES " +
+                "after initial creation.  This process will migrate the FIELDS TERMINATED BY and " +
+                "LINES TERMINATED BY values into the SERDEPROPERTIES so the schema can be successfully created.";
+    }
+
     @Override
     public Boolean applicable(EnvironmentTable envTable) {
         return applicable(envTable.getDefinition());
@@ -62,6 +70,10 @@ public class BadTextFileDefFeature extends BaseFeature implements Feature {
             // Bad Definition.
             // Get the value for FIELDS_TERMINATED_BY
             String ftb = getGroupFor(FIELDS_TERMINATED_BY, rtn);
+            if (ftb.equals("\f")) {
+                // Convert to O
+                ftb = "\014";
+            }
             // Get the value for LINES_TERMINATED_BY
             String ltb = getGroupFor(LINES_TERMINATED_BY, rtn);
             // Remove bad elements

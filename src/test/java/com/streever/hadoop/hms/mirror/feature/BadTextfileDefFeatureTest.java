@@ -5,7 +5,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
-public class OldTextfileDefFeatureTest {
+public class BadTextfileDefFeatureTest {
 
     private String[] schema_01 = new String[]{
             "CREATE EXTERNAL TABLE `thing_two`(",

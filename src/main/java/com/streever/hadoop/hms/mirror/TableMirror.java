@@ -1325,7 +1325,8 @@ public class TableMirror {
                         LOG.debug("Table: " + getName() + " - Checking Feature: " + features.toString());
                         if (feature.applicable(target)) {
                             LOG.debug("Table: " + getName() + " - Feature Applicable: " + features.toString());
-                            target.addIssue("Feature (" + features.toString() + ") was found applicable and adjustments applied");
+                            target.addIssue("Feature (" + features.toString() + ") was found applicable and adjustments applied. " +
+                                    feature.getDescription());
                             target = feature.fixSchema(target);
                         } else {
                             LOG.debug("Table: " + getName() + " - Feature NOT Applicable: " + features.toString());

@@ -18,6 +18,13 @@ public class BadOrcDefFeature extends BaseFeature implements Feature {
     private final String STORED_AS_ORC = "STORED AS ORC";
     private static Logger LOG = LogManager.getLogger(BadOrcDefFeature.class);
 
+    public String getDescription() {
+        return "Table schema definitions for ORC files that include ROW FORMAT DELIMITED " +
+                "declarations are invalid.  This process will remove the invalid declarations " +
+                "and set STORED AS ORC";
+    }
+
+
     @Override
     public Boolean applicable(EnvironmentTable envTable) {
         return applicable(envTable.getDefinition());
