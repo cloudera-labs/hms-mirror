@@ -48,6 +48,7 @@ public class Config {
     private HybridConfig hybrid = new HybridConfig();
     private MigrateACID migrateACID = new MigrateACID();
     private MigrateVIEW migrateVIEW = new MigrateVIEW();
+    private Boolean migratedNonNative = Boolean.FALSE;
 
 //    private Boolean migrateACID = Boolean.FALSE;
 
@@ -168,6 +169,14 @@ public class Config {
         this.migrateVIEW = migrateVIEW;
     }
 
+    public Boolean getMigratedNonNative() {
+        return migratedNonNative;
+    }
+
+    public void setMigratedNonNative(Boolean migratedNonNative) {
+        this.migratedNonNative = migratedNonNative;
+    }
+
     public DataStrategy getDataStrategy() {
         return dataStrategy;
     }
@@ -177,6 +186,7 @@ public class Config {
         if (this.dataStrategy == DataStrategy.DUMP) {
             this.getMigrateACID().setOn(Boolean.TRUE);
             this.getMigrateVIEW().setOn(Boolean.TRUE);
+            this.setMigratedNonNative(Boolean.TRUE);
         }
     }
 
@@ -303,7 +313,7 @@ public class Config {
         Set<Environment> envs = clusters.keySet();
         for (Environment env : envs) {
             Cluster cluster = clusters.get(env);
-            if (cluster.getHiveServer2().getUri().contains("principal")) {
+            if (cluster.getHiveServer2().isValidUri() && cluster.getHiveServer2().getUri().contains("principal")) {
                 rtn = Boolean.TRUE;
             }
         }
@@ -387,32 +397,39 @@ public class Config {
         leftHS2.getConnectionProperties().setProperty("validationQueryTimeout", "5");
         leftHS2.getConnectionProperties().setProperty("testOnCreate", "true");
 
-        HiveServer2Config rightHS2 = this.getCluster(Environment.RIGHT).getHiveServer2();
-        if (!rightHS2.isValidUri()) {
-            rtn = Boolean.FALSE;
-            issues.add("RIGHT HiveServer2 URI config is NOT valid");
-        }
-        rightHS2.getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
-        rightHS2.getConnectionProperties().setProperty("initialSize", Integer.toString(getTransfer().getConcurrency()));
-        rightHS2.getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency()/2));
-        rightHS2.getConnectionProperties().setProperty("validationQuery", "SELECT 1");
-        rightHS2.getConnectionProperties().setProperty("validationQueryTimeout", "5");
-        rightHS2.getConnectionProperties().setProperty("testOnCreate", "true");
-
         if (leftHS2.isKerberosConnection() && leftHS2.getJarFile() != null) {
             rtn = Boolean.FALSE;
             issues.add("LEFT: For Kerberized connections, place the Hive JDBC jar file in $HOME/.hms-mirror/aux_libs and remove the 'jarFile' entry in the config.");
         }
-        if (rightHS2.isKerberosConnection() && rightHS2.getJarFile() != null) {
-            rtn = Boolean.FALSE;
-            issues.add("RIGHT: For Kerberized connections, place the Hive JDBC jar file in $HOME/.hms-mirror/aux_libs and remove the 'jarFile' entry in the config.");
-        }
 
-        if (leftHS2.isKerberosConnection() && rightHS2.isKerberosConnection() &&
-                (this.getCluster(Environment.LEFT).getLegacyHive() != this.getCluster(Environment.RIGHT).getLegacyHive())) {
-            rtn = Boolean.FALSE;
-            issues.add("Kerberos connections can only be supported to a single version of the platform.  LEFT and RIGHT " +
-                    "'legacy' definitions are not the same, so we are assuming the cluster versions aren't the same.");
+        HiveServer2Config rightHS2 = this.getCluster(Environment.RIGHT).getHiveServer2();
+
+        if (!rightHS2.isValidUri()) {
+            if (!this.getDataStrategy().equals(DataStrategy.DUMP)) {
+                rtn = Boolean.FALSE;
+                issues.add("The RIGHT HiveServer2 URI is not defined OR invalid. You need to define the RIGHT cluster " +
+                        "with a valid URI for all Data Strategies, except DUMP");
+            }
+        } else {
+
+            rightHS2.getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
+            rightHS2.getConnectionProperties().setProperty("initialSize", Integer.toString(getTransfer().getConcurrency()));
+            rightHS2.getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency() / 2));
+            rightHS2.getConnectionProperties().setProperty("validationQuery", "SELECT 1");
+            rightHS2.getConnectionProperties().setProperty("validationQueryTimeout", "5");
+            rightHS2.getConnectionProperties().setProperty("testOnCreate", "true");
+
+            if (rightHS2.isKerberosConnection() && rightHS2.getJarFile() != null) {
+                rtn = Boolean.FALSE;
+                issues.add("RIGHT: For Kerberized connections, place the Hive JDBC jar file in $HOME/.hms-mirror/aux_libs and remove the 'jarFile' entry in the config.");
+            }
+
+            if (leftHS2.isKerberosConnection() && rightHS2.isKerberosConnection() &&
+                    (this.getCluster(Environment.LEFT).getLegacyHive() != this.getCluster(Environment.RIGHT).getLegacyHive())) {
+                rtn = Boolean.FALSE;
+                issues.add("Kerberos connections can only be supported to a single version of the platform.  LEFT and RIGHT " +
+                        "'legacy' definitions are not the same, so we are assuming the cluster versions aren't the same.");
+            }
         }
         return rtn;
     }
@@ -580,49 +597,51 @@ public class Config {
         Set<Environment> envs = clusters.keySet();
         for (Environment env : envs) {
             Cluster cluster = clusters.get(env);
-            Connection conn = null;
-            try {
-                conn = cluster.getConnection();
-                // May not be set for DUMP strategy (RIGHT cluster)
-                if (conn != null) {
-                    Statement stmt = null;
-                    ResultSet resultSet = null;
-                    try {
-                        LOG.debug(env + ":" + ": Checking Hive Connection");
-                        stmt = conn.createStatement();
-                        resultSet = stmt.executeQuery("SHOW DATABASES");
-                        LOG.debug(env + ":" + ": Hive Connection Successful");
-                    } catch (SQLException sql) {
-                        // DB Doesn't Exists.
-                        LOG.error(env + ": Hive Connection check failed.", sql);
-                        rtn = Boolean.FALSE;
-                    } finally {
-                        if (resultSet != null) {
-                            try {
-                                resultSet.close();
-                            } catch (SQLException sqlException) {
-                                // ignore
+            if (cluster.getHiveServer2().isValidUri()) {
+                Connection conn = null;
+                try {
+                    conn = cluster.getConnection();
+                    // May not be set for DUMP strategy (RIGHT cluster)
+                    if (conn != null) {
+                        Statement stmt = null;
+                        ResultSet resultSet = null;
+                        try {
+                            LOG.debug(env + ":" + ": Checking Hive Connection");
+                            stmt = conn.createStatement();
+                            resultSet = stmt.executeQuery("SHOW DATABASES");
+                            LOG.debug(env + ":" + ": Hive Connection Successful");
+                        } catch (SQLException sql) {
+                            // DB Doesn't Exists.
+                            LOG.error(env + ": Hive Connection check failed.", sql);
+                            rtn = Boolean.FALSE;
+                        } finally {
+                            if (resultSet != null) {
+                                try {
+                                    resultSet.close();
+                                } catch (SQLException sqlException) {
+                                    // ignore
+                                }
                             }
-                        }
-                        if (stmt != null) {
-                            try {
-                                stmt.close();
-                            } catch (SQLException sqlException) {
-                                // ignore
+                            if (stmt != null) {
+                                try {
+                                    stmt.close();
+                                } catch (SQLException sqlException) {
+                                    // ignore
+                                }
                             }
                         }
                     }
-                }
-            } catch (SQLException se) {
-                rtn = Boolean.FALSE;
-                LOG.error(env + ": Hive Connection check failed.", se);
-                se.printStackTrace();
-            } finally {
-                try {
-                    if (conn != null)
-                        conn.close();
-                } catch (Throwable throwables) {
-                    //
+                } catch (SQLException se) {
+                    rtn = Boolean.FALSE;
+                    LOG.error(env + ": Hive Connection check failed.", se);
+                    se.printStackTrace();
+                } finally {
+                    try {
+                        if (conn != null)
+                            conn.close();
+                    } catch (Throwable throwables) {
+                        //
+                    }
                 }
             }
         }

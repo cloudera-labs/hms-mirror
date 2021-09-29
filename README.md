@@ -170,6 +170,17 @@ The final ACID table is created in the 'RIGHT' cluster, and SQL is used to copy 
   NOTE: The METADATA activity and REDUCER restrictions to the number of BUCKETs can dramatically affect this.- The number of partitions in the source ACID tables must be below the `partitionLimit` (default 500).  This strategy may not be successful when the partition count is above this, and we won't even attempt the conversion. Check YARN for the progress of jobs with a large number of partitions/buckets.  Progress many appear stalled from 'hms-mirror'.
 - ACID table migration to Hive 1/2 is NOT supported due to the lack of support for "INSERT OVERWRITE" on transactional tables.  Hive 1/2 to Hive 3 IS support and the target of this implementation.  Hive 3 to Hive 3 is also supported.
 
+### Non-Native Hive Tables (Hbase, KAFKA, JDBC, Druid, etc..)
+
+Any table definition without a `LOCATION` element is typically a reference to an external system like: HBase, Kafka, Druid, and/or (but not limited to) JDBC.  
+
+#### Requirements
+
+These references require the environment to be:
+- Correctly configured to use these resources
+- Include the required libraries in the default hive environment.
+- The referenced resource must exist already BEFORE the 'hive' DDL will successfully run.
+
 ### AVRO Tables
 
 AVRO tables can be designed with a 'reference' to a schema file in `TBLPROPERTIES` with `avro.schema.url`.  The referenced file needs to be 'copied' to the *RIGHT* cluster BEFORE the `CREATE` statement for the AVRO table will succeed.

@@ -92,7 +92,6 @@ public class DBMirror {
 
         switch (config.getDataStrategy()) {
             case SCHEMA_ONLY:
-            case DUMP:
             case SQL:
             case EXPORT_IMPORT:
             case HYBRID:
@@ -105,6 +104,7 @@ public class DBMirror {
                     rtn[2] = managedLocation;
                 }
                 break;
+            case DUMP:
             case COMMON:
             case LINKED:
                 break;

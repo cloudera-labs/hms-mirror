@@ -166,32 +166,41 @@ public class Cluster implements Comparable<Cluster> {
                     LOG.debug(getEnvironment() + ":" + database + ": Setting Hive DB Session Context");
                     stmt.execute(MessageFormat.format(MirrorConf.USE, database));
                     LOG.debug(getEnvironment() + ":" + database + ": Getting Table List");
-                    if (config.getMigrateVIEW().isOn() && !this.getLegacyHive()) {
-                        // SHOW VIEWS only available in non legacy environments.
-                        resultSet = stmt.executeQuery(MirrorConf.SHOW_VIEWS);
+                    List<String> shows = new ArrayList<String>();
+                    if (!this.getLegacyHive()) {
+                        if (config.getMigrateVIEW().isOn()) {
+                            shows.add(MirrorConf.SHOW_VIEWS);
+                            if (config.getDataStrategy() == DataStrategy.DUMP) {
+                                shows.add(MirrorConf.SHOW_TABLES);
+                            }
+                        }
                     } else {
-                        resultSet = stmt.executeQuery(MirrorConf.SHOW_TABLES);
+                        shows.add(MirrorConf.SHOW_TABLES);
                     }
-                    while (resultSet.next()) {
-                        String tableName = resultSet.getString(1);
-                        if (tableName.startsWith(config.getTransfer().getTransferPrefix())) {
-                            LOG.info("Database: " + database + " Table: " + tableName + " was NOT added to list.  " +
-                                    "The name matches the transfer prefix and is most likely a remnant of a previous " +
-                                    "event. If this is a mistake, change the 'transferPrefix' to something more unique.");
-                        } else {
-                            if (config.getTblRegEx() == null) {
-                                TableMirror tableMirror = dbMirror.addTable(tableName);
-                                tableMirror.setMigrationStageMessage("Added to evaluation inventory");
+                    for (String show: shows) {
+                        resultSet = stmt.executeQuery(show);
+                        while (resultSet.next()) {
+                            String tableName = resultSet.getString(1);
+                            if (tableName.startsWith(config.getTransfer().getTransferPrefix())) {
+                                LOG.info("Database: " + database + " Table: " + tableName + " was NOT added to list.  " +
+                                        "The name matches the transfer prefix and is most likely a remnant of a previous " +
+                                        "event. If this is a mistake, change the 'transferPrefix' to something more unique.");
                             } else {
-                                // Filter Tables
-                                assert (config.getTblFilterPattern() != null);
-                                Matcher matcher = config.getTblFilterPattern().matcher(tableName);
-                                if (matcher.matches()) {
+                                if (config.getTblRegEx() == null) {
                                     TableMirror tableMirror = dbMirror.addTable(tableName);
                                     tableMirror.setMigrationStageMessage("Added to evaluation inventory");
+                                } else {
+                                    // Filter Tables
+                                    assert (config.getTblFilterPattern() != null);
+                                    Matcher matcher = config.getTblFilterPattern().matcher(tableName);
+                                    if (matcher.matches()) {
+                                        TableMirror tableMirror = dbMirror.addTable(tableName);
+                                        tableMirror.setMigrationStageMessage("Added to evaluation inventory");
+                                    }
                                 }
                             }
                         }
+
                     }
                 } catch (SQLException se) {
                     LOG.error(getEnvironment() + ":" + database + " ", se);
@@ -266,7 +275,7 @@ public class Cluster implements Comparable<Cluster> {
                                 tableMirror.setRemove(Boolean.TRUE);
                                 tableMirror.setRemoveReason("ACID table and ACID processing not selected (-ma|-mao).");
                             }
-                        } else {
+                        } else if (TableUtils.isHiveNative(et)) {
                             // Non ACID Tables should NOT be process if 'isOnly' is set.
                             if (config.getMigrateACID().isOnly()) {
                                 tableMirror.setRemove(Boolean.TRUE);
@@ -276,6 +285,13 @@ public class Cluster implements Comparable<Cluster> {
                             if (TableUtils.isView(et) && config.getDataStrategy() != DataStrategy.DUMP) {
                                 tableMirror.setRemove(Boolean.TRUE);
                                 tableMirror.setRemoveReason("This is a VIEW and VIEW processing wasn't selected.");
+                            }
+                        } else {
+                            // Non-Native Tables.
+                            if (!config.getMigratedNonNative()) {
+                                tableMirror.setRemove(Boolean.TRUE);
+                                tableMirror.setRemoveReason("This is a Non-Native hive table and non-native process wasn't " +
+                                        "selected.");
                             }
                         }
 

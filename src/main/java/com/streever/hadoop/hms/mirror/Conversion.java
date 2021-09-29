@@ -136,25 +136,27 @@ public class Conversion {
         }
 
         DBMirror dbMirror = databases.get(database);
-        sb.append("## DB Create Statement").append("\n\n");
-        sb.append("```").append("\n");
-        try {
-            sb.append(dbMirror.rightDBCreate(config)[0]);
-        } catch (NullPointerException npe) {
-            sb.append("Issue constructing RIGHT DB SQL from LEFT.  Does the LEFT DB exists?");
-        }
-        sb.append("```").append("\n");
-
-        sb.append("\n");
-
-        sb.append("## DB Issues").append("\n\n");
-        // Issues
-        if (dbMirror.isThereAnIssue()) {
-            for (String issue : dbMirror.getIssues()) {
-                sb.append("* ").append(issue).append("\n");
+        if (config.getDataStrategy() != DataStrategy.DUMP) {
+            sb.append("## DB Create Statement").append("\n\n");
+            sb.append("```").append("\n");
+            try {
+                sb.append(dbMirror.rightDBCreate(config)[0]);
+            } catch (NullPointerException npe) {
+                sb.append("Issue constructing RIGHT DB SQL from LEFT.  Does the LEFT DB exists?");
             }
-        } else {
-            sb.append("none\n");
+            sb.append("```").append("\n");
+
+            sb.append("\n");
+
+            sb.append("## DB Issues").append("\n\n");
+            // Issues
+            if (dbMirror.isThereAnIssue()) {
+                for (String issue : dbMirror.getIssues()) {
+                    sb.append("* ").append(issue).append("\n");
+                }
+            } else {
+                sb.append("none\n");
+            }
         }
 
         sb.append("\n## Table Status (").append(dbMirror.getTableMirrors().size()).append(")\n\n");

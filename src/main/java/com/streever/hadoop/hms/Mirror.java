@@ -298,6 +298,14 @@ public class Mirror {
             }
         }
 
+        if (cmd.hasOption("mnn")) {
+            config.setMigratedNonNative(Boolean.TRUE);
+        }
+
+        if (cmd.hasOption("mnno")) {
+            config.setMigratedNonNative(Boolean.TRUE);
+        }
+
         // AVRO Schema Migration
         if (cmd.hasOption("asm")) {
             config.setCopyAvroSchemaUrls(Boolean.TRUE);
@@ -803,17 +811,9 @@ public class Mirror {
         intermediateStorageOption.setRequired(Boolean.FALSE);
         options.addOption(intermediateStorageOption);
 
-        OptionGroup acidGroup = new OptionGroup();
-        acidGroup.setRequired(Boolean.FALSE);
-
-        Option maOption = new Option("ma", "migrate-acid", false,
-                "Migrate ACID tables (if strategy allows). Optional: ArtificialBucketThreshold count that will remove " +
-                        "the bucket definition if it's below this.  Use this as a way to remove artificial bucket definitions that " +
-                        "were added 'artificially' in legacy Hive. (default: 2)");
-        maOption.setArgs(1);
-        maOption.setOptionalArg(Boolean.TRUE);
-        maOption.setRequired(Boolean.FALSE);
-        acidGroup.addOption(maOption);
+        // Migration Options - Only one of these can be selected at a time, but isn't required.
+        OptionGroup migrationOptionsGroup = new OptionGroup();
+        migrationOptionsGroup.setRequired(Boolean.FALSE);
 
         Option maoOption = new Option("mao", "migrate-acid-only", false,
                 "Migrate ACID tables ONLY (if strategy allows). Optional: ArtificialBucketThreshold count that will remove " +
@@ -822,15 +822,41 @@ public class Mirror {
         maoOption.setArgs(1);
         maoOption.setOptionalArg(Boolean.TRUE);
         maoOption.setRequired(Boolean.FALSE);
-        acidGroup.addOption(maoOption);
+        migrationOptionsGroup.addOption(maoOption);
 
+        Option mnnoOption = new Option("mnno", "migrate-non-native-only", false,
+                "Migrate Non-Native tables (if strategy allows). These include table definitions that rely on " +
+                        "external connection to systems like: HBase, Kafka, JDBC");
+        mnnoOption.setArgs(1);
+        mnnoOption.setOptionalArg(Boolean.TRUE);
+        mnnoOption.setRequired(Boolean.FALSE);
+        migrationOptionsGroup.addOption(mnnoOption);
 
         Option viewOption = new Option("v", "views-only", false,
                 "Process VIEWs ONLY");
         viewOption.setRequired(false);
-        acidGroup.addOption(viewOption);
+        migrationOptionsGroup.addOption(viewOption);
 
-        options.addOptionGroup(acidGroup);
+        options.addOptionGroup(migrationOptionsGroup);
+
+        Option maOption = new Option("ma", "migrate-acid", false,
+                "Migrate ACID tables (if strategy allows). Optional: ArtificialBucketThreshold count that will remove " +
+                        "the bucket definition if it's below this.  Use this as a way to remove artificial bucket definitions that " +
+                        "were added 'artificially' in legacy Hive. (default: 2)");
+        maOption.setArgs(1);
+        maOption.setOptionalArg(Boolean.TRUE);
+        maOption.setRequired(Boolean.FALSE);
+        options.addOption(maOption);
+
+
+        // Non Native Migrations
+        Option mnnOption = new Option("mnn", "migrate-non-native", false,
+                "Migrate Non-Native tables (if strategy allows). These include table definitions that rely on " +
+                        "external connection to systems like: HBase, Kafka, JDBC");
+        mnnOption.setArgs(1);
+        mnnOption.setOptionalArg(Boolean.TRUE);
+        mnnOption.setRequired(Boolean.FALSE);
+        options.addOption(mnnOption);
 
         Option syncOption = new Option("s", "sync", false,
                 "For SCHEMA_ONLY, COMMON, and LINKED data strategies.  Drop and Recreate Schema's when different.  " +

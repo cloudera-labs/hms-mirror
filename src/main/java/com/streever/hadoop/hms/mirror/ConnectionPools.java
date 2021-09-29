@@ -75,16 +75,18 @@ public class ConnectionPools {
 
     public synchronized Connection getEnvironmentConnection(Environment environment) throws SQLException {
         Driver lclDriver = getEnvironmentDriver(environment);
-        DriverManager.registerDriver(lclDriver);
         Connection conn = null;
-        try {
-            conn = getEnvironmentDataSource(environment).getConnection();
-        } catch (Throwable se) {
-            se.printStackTrace();
-            LOG.error(se);
-            throw new RuntimeException(se);
-        } finally {
-            DriverManager.deregisterDriver(lclDriver);
+        if (lclDriver != null) {
+            DriverManager.registerDriver(lclDriver);
+            try {
+                conn = getEnvironmentDataSource(environment).getConnection();
+            } catch (Throwable se) {
+                se.printStackTrace();
+                LOG.error(se);
+                throw new RuntimeException(se);
+            } finally {
+                DriverManager.deregisterDriver(lclDriver);
+            }
         }
         return conn;
     }

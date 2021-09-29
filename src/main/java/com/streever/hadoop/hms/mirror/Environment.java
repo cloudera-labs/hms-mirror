@@ -14,7 +14,12 @@ public enum Environment {
     ACID table "data" to (EXTERNAL table) so we can attach to it via "SHADOW" table on RIGHT
     cluster and finish migration to final RIGHT table.
      */
-    TRANSFER(Boolean.FALSE);
+    TRANSFER(Boolean.FALSE),
+    /*
+    Abstractions from LEFT and RIGHT for use internally.
+     */
+    SOURCE(Boolean.FALSE),
+    TARGET(Boolean.FALSE);
 
     private Boolean visible;
 
