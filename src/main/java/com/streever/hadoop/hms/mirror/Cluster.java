@@ -111,7 +111,10 @@ public class Cluster implements Comparable<Cluster> {
                         for (int i = 0; i < column_count; i++) {
                             String cName = rsmd.getColumnName(i + 1).toUpperCase(Locale.ROOT);
                             String cValue = resultSet.getString(i + 1);
-                            dbDef.put(cName, cValue);
+                            // Don't add element if its empty.
+                            if (cValue != null && cValue.trim().length() > 0) {
+                                dbDef.put(cName, cValue);
+                            }
                         }
                     }
                     dbMirror.setDBDefinition(getEnvironment(), dbDef);

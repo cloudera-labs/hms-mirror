@@ -3,8 +3,8 @@ package com.streever.hadoop.hms;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.collect.Sets;
 import com.streever.hadoop.hms.mirror.*;
-import com.streever.hadoop.hms.mirror.feature.Features;
 import com.streever.hadoop.hms.stage.ReturnStatus;
 import com.streever.hadoop.hms.stage.Setup;
 import com.streever.hadoop.hms.stage.Transfer;
@@ -314,16 +314,33 @@ public class Mirror {
         String dataStrategyStr = cmd.getOptionValue("d");
         // default is SCHEMA_ONLY
         if (dataStrategyStr != null) {
-            try {
-                DataStrategy dataStrategy = DataStrategy.valueOf(dataStrategyStr.toUpperCase());
-                config.setDataStrategy(dataStrategy);
-                if (config.getDataStrategy() == DataStrategy.DUMP) {
-                    config.setExecute(Boolean.FALSE); // No Actions.
-                    config.setSync(Boolean.FALSE);
+            DataStrategy dataStrategy = DataStrategy.valueOf(dataStrategyStr.toUpperCase());
+            config.setDataStrategy(dataStrategy);
+            if (config.getDataStrategy() == DataStrategy.DUMP) {
+                config.setExecute(Boolean.FALSE); // No Actions.
+                config.setSync(Boolean.FALSE);
+                // If a source cluster is specified for the cluster to DUMP from, set it.
+                if (cmd.hasOption("ds")) {
+                    try {
+                        Environment source = Environment.valueOf(cmd.getOptionValue("ds").toUpperCase());
+                        config.setDumpSource(source);
+                    } catch (RuntimeException re) {
+                        LOG.error("The `-ds` option should be either: (LEFT|RIGHT). " + cmd.getOptionValue("ds") +
+                                " is NOT a valid option.");
+                        throw new RuntimeException("The `-ds` option should be either: (LEFT|RIGHT). " + cmd.getOptionValue("ds") +
+                                " is NOT a valid option.");
+                    }
+                } else {
+                    config.setDumpSource(Environment.LEFT);
                 }
-            } catch (Exception e) {
-                throw new RuntimeException("Can't translate " + dataStrategyStr + " to a known 'data strategy'.  Use one of " + Arrays.deepToString(DataStrategy.values()));
             }
+        }
+
+        // To keep the connections and remainder of the processing in place, set the env for the cluster
+        //   to the abstract name.
+        Set<Environment> environmentSet = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
+        for (Environment lenv : environmentSet) {
+            config.getCluster(lenv).setEnvironment(lenv);
         }
 
         // Get intermediate Storage Location
@@ -347,9 +364,9 @@ public class Mirror {
             config.setSqlOutput(Boolean.TRUE);
         }
 
-        if (cmd.hasOption("r")) {
-            retry = Boolean.TRUE;
-        }
+//        if (cmd.hasOption("r")) {
+//            retry = Boolean.TRUE;
+//        }
 
         if (cmd.hasOption("o")) {
             reportOutputDir = cmd.getOptionValue("o");
@@ -481,12 +498,21 @@ public class Mirror {
         }
 
         ConnectionPools connPools = new ConnectionPools();
-        connPools.addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
         switch (config.getDataStrategy()) {
             case DUMP:
                 // Don't load the datasource for the right with DUMP strategy.
+                if (config.getDumpSource() == Environment.RIGHT) {
+                    // switch LEFT and RIGHT
+                    config.getClusters().remove(Environment.LEFT);
+                    config.getClusters().put(Environment.LEFT, config.getCluster(Environment.RIGHT));
+                    config.getCluster(Environment.LEFT).setEnvironment(Environment.LEFT);
+                    config.getClusters().remove(Environment.RIGHT);
+                }
+                // Get Pool
+                connPools.addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
                 break;
             default:
+                connPools.addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
                 connPools.addHiveServer2(Environment.RIGHT, config.getCluster(Environment.RIGHT).getHiveServer2());
         }
         try {
@@ -575,14 +601,14 @@ public class Mirror {
             Setup setup = new Setup(config, conversion);
             // TODO: Failure here may not make it to saved state.
             if (setup.collect()) {
-                stateMaintenance.saveState();
+//                stateMaintenance.saveState();
             } else {
                 // Need to delete retry file.
-                stateMaintenance.deleteState();
+//                stateMaintenance.deleteState();
             }
         }
 
-        stateMaintenance.start();
+//        stateMaintenance.start();
 
         // State reason table/view was removed from processing list.
         for (Map.Entry<String, DBMirror> dbEntry : conversion.getDatabases().entrySet()) {
@@ -600,9 +626,13 @@ public class Mirror {
 
         // GO TIME!!!
         conversion = runTransfer(conversion);
-        stateMaintenance.saveState();
+//        stateMaintenance.saveState();
 
         // Actions
+
+        // Remove the abstract environments from config before reporting output.
+        config.getClusters().remove(Environment.TRANSFER);
+        config.getClusters().remove(Environment.SHADOW);
 
         for (String database : config.getDatabases()) {
 
@@ -799,6 +829,13 @@ public class Mirror {
         metadataStage.setRequired(Boolean.FALSE);
         options.addOption(metadataStage);
 
+        Option dumpSource = new Option("ds", "dump-source", true,
+                "Specify which 'cluster' is the source for the DUMP strategy (LEFT|RIGHT). ");
+        dumpSource.setOptionalArg(Boolean.TRUE);
+        dumpSource.setArgName("source");
+        dumpSource.setRequired(Boolean.FALSE);
+        options.addOption(dumpSource);
+
         Option intermediateStorageOption = new Option("is", "intermediate-storage", true,
                 "Intermediate Storage used with Data Strategy HYBRID, SQL, EXPORT_IMPORT.  This will change " +
                         "the way these methods are implemented by using the specified storage location as an " +
@@ -966,10 +1003,10 @@ public class Mirror {
         options.addOption(pKeyOption);
 
 
-        Option retryOption = new Option("r", "retry", false,
-                "Retry last incomplete run for 'cfg'.  If none specified, will check for 'default'");
-        retryOption.setRequired(false);
-        options.addOption(retryOption);
+//        Option retryOption = new Option("r", "retry", false,
+//                "Retry last incomplete run for 'cfg'.  If none specified, will check for 'default'");
+//        retryOption.setRequired(false);
+//        options.addOption(retryOption);
 
         return options;
     }
@@ -978,6 +1015,7 @@ public class Mirror {
         Mirror mirror = new Mirror();
         LOG.info("===================================================");
         LOG.info("Running: hms-mirror " + ReportingConf.substituteVariablesFromManifest("v.${Implementation-Version}"));
+        LOG.info(" with commandline parameters: " + String.join(",", args));
         LOG.info("===================================================");
         try {
             mirror.init(args);

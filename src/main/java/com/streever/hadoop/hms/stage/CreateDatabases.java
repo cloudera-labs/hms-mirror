@@ -39,7 +39,10 @@ public class CreateDatabases implements Callable<ReturnStatus> {
         try {
             for (String database : config.getDatabases()) {
                 DBMirror dbMirror = conversion.getDatabase(database);
-                String[] rightDBCreate = dbMirror.rightDBCreate(config);
+
+                String[] dbCreate = null;
+                dbCreate = dbMirror.dbCreate(config);
+
                 LOG.info("Strategy: " + config.getDataStrategy());
                 switch (config.getDataStrategy()) {
                     case HYBRID:
@@ -48,7 +51,7 @@ public class CreateDatabases implements Callable<ReturnStatus> {
                             LOG.info("Creating Transfer DB to support EXPORT_IMPORT tables.");
                             config.getCluster(Environment.LEFT).createDatabase(config, config.getTransfer().getTransferPrefix() + database);
                         }
-                        config.getCluster(Environment.RIGHT).createDatabase(config, database, rightDBCreate[0]);
+                        config.getCluster(Environment.RIGHT).createDatabase(config, database, dbCreate[0]);
                         break;
                     case SQL:
                         // Transfer DB
@@ -75,8 +78,8 @@ public class CreateDatabases implements Callable<ReturnStatus> {
                                 CommandReturn cr = main.processInput("connect");
                                 // Check that location exists.
                                 String dbLocation = null;
-                                if (rightDBCreate[1] != null) {
-                                    dbLocation = rightDBCreate[1];
+                                if (dbCreate[1] != null) {
+                                    dbLocation = dbCreate[1];
                                 } else {
                                     // Get location for DB. If it's not there than:
                                     //     SQL query to get default from Hive.
@@ -147,7 +150,7 @@ public class CreateDatabases implements Callable<ReturnStatus> {
                                         dbMirror.addIssue(message);
                                         throw new RuntimeException(message);
                                     } else {
-                                        config.getCluster(Environment.RIGHT).createDatabase(config, database, rightDBCreate[0]);
+                                        config.getCluster(Environment.RIGHT).createDatabase(config, database, dbCreate[0]);
                                     }
                                 } else {
                                     // Can't determine location.
@@ -161,7 +164,7 @@ public class CreateDatabases implements Callable<ReturnStatus> {
                                 config.getCliPool().returnSession(main);
                             }
                         } else {
-                            config.getCluster(Environment.RIGHT).createDatabase(config, database, rightDBCreate[0]);
+                            config.getCluster(Environment.RIGHT).createDatabase(config, database, dbCreate[0]);
                         }
                 }
 

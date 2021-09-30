@@ -1,8 +1,8 @@
 package com.streever.hadoop.hms.mirror;
 
 public enum Environment {
-    LEFT(Boolean.TRUE),
-    RIGHT(Boolean.TRUE),
+//    LEFT2(Boolean.TRUE),
+//    RIGHT2(Boolean.TRUE),
     /*
     Table lives on RIGHT cluster and usually points to LEFT data.  Used to migrate
     data from the LEFT to the RIGHT.  Temp table and should be deleted after action.
@@ -18,8 +18,8 @@ public enum Environment {
     /*
     Abstractions from LEFT and RIGHT for use internally.
      */
-    SOURCE(Boolean.FALSE),
-    TARGET(Boolean.FALSE);
+    LEFT(Boolean.FALSE),
+    RIGHT(Boolean.FALSE);
 
     private Boolean visible;
 

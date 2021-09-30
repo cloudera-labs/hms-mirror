@@ -67,7 +67,7 @@ public class Conversion {
             sb.append("\n--    Table: ").append(table).append("\n");
             if (tblMirror.isThereSql(environment)) {
 //                Map<String, String> sqlMap = tblMirror.getSql(environment);
-                for (Pair pair: tblMirror.getSql(environment)) {
+                for (Pair pair : tblMirror.getSql(environment)) {
                     sb.append(pair.getAction()).append(";\n");
                 }
             } else {
@@ -129,35 +129,35 @@ public class Conversion {
 
         if (config.getIssues().size() > 0) {
             sb.append("### Config Issues/Notices:\n");
-            for (String issue: config.getIssues()) {
+            for (String issue : config.getIssues()) {
                 sb.append("- ").append(issue).append("\n");
             }
             sb.append("\n");
         }
 
         DBMirror dbMirror = databases.get(database);
-        if (config.getDataStrategy() != DataStrategy.DUMP) {
-            sb.append("## DB Create Statement").append("\n\n");
-            sb.append("```").append("\n");
-            try {
-                sb.append(dbMirror.rightDBCreate(config)[0]);
-            } catch (NullPointerException npe) {
-                sb.append("Issue constructing RIGHT DB SQL from LEFT.  Does the LEFT DB exists?");
-            }
-            sb.append("```").append("\n");
-
-            sb.append("\n");
-
-            sb.append("## DB Issues").append("\n\n");
-            // Issues
-            if (dbMirror.isThereAnIssue()) {
-                for (String issue : dbMirror.getIssues()) {
-                    sb.append("* ").append(issue).append("\n");
-                }
-            } else {
-                sb.append("none\n");
-            }
+//        if (config.getDataStrategy() != DataStrategy.DUMP) {
+        sb.append("## DB Create Statement").append("\n\n");
+        sb.append("```").append("\n");
+        try {
+            sb.append(dbMirror.dbCreate(config)[0]);
+        } catch (NullPointerException npe) {
+            sb.append("Issue constructing RIGHT DB SQL from LEFT.  Does the LEFT DB exists?");
         }
+        sb.append("```").append("\n");
+
+        sb.append("\n");
+
+        sb.append("## DB Issues").append("\n\n");
+        // Issues
+        if (dbMirror.isThereAnIssue()) {
+            for (String issue : dbMirror.getIssues()) {
+                sb.append("* ").append(issue).append("\n");
+            }
+        } else {
+            sb.append("none\n");
+        }
+//        }
 
         sb.append("\n## Table Status (").append(dbMirror.getTableMirrors().size()).append(")\n\n");
 
@@ -212,7 +212,7 @@ public class Conversion {
             // Steps
             sb.append("<td>\n");
             sb.append("<table>\n");
-            for (Marker entry: tblMirror.getSteps()) {
+            for (Marker entry : tblMirror.getSteps()) {
                 sb.append("<tr>\n");
                 sb.append("<td>");
                 sb.append(entry.getMark());
@@ -307,7 +307,7 @@ public class Conversion {
             if (dbMirror.hasIssues()) {
                 sb.append("<td>").append("\n");
                 sb.append("<table>");
-                for (Map.Entry<Environment, EnvironmentTable> entry: tblMirror.getEnvironments().entrySet()) {
+                for (Map.Entry<Environment, EnvironmentTable> entry : tblMirror.getEnvironments().entrySet()) {
                     if (entry.getValue().getIssues().size() > 0) {
                         sb.append("<tr>\n");
                         sb.append("<th>");
@@ -315,7 +315,7 @@ public class Conversion {
                         sb.append("</th>\n");
                         sb.append("</tr>").append("\n");
 
-                        for (String issue: entry.getValue().getIssues()) {
+                        for (String issue : entry.getValue().getIssues()) {
                             sb.append("<tr>\n");
                             sb.append("<td>");
                             sb.append(issue);
@@ -332,7 +332,7 @@ public class Conversion {
             if (config.isSqlOutput()) {
                 sb.append("<td>\n");
                 sb.append("<table>");
-                for (Map.Entry<Environment, EnvironmentTable> entry: tblMirror.getEnvironments().entrySet()) {
+                for (Map.Entry<Environment, EnvironmentTable> entry : tblMirror.getEnvironments().entrySet()) {
                     if (entry.getValue().getSql().size() > 0) {
                         sb.append("<tr>\n");
                         sb.append("<th colspan=\"2\">");
@@ -365,7 +365,7 @@ public class Conversion {
 
             sb.append("| Table / View | Reason |\n");
             sb.append("|:---|:---|\n");
-            for (Map.Entry<String, String> entry: dbMirror.getFilteredOut().entrySet()) {
+            for (Map.Entry<String, String> entry : dbMirror.getFilteredOut().entrySet()) {
                 sb.append("| ").append(entry.getKey()).append(" | ").append(entry.getValue()).append(" |\n");
             }
         }

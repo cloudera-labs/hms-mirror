@@ -1,7 +1,6 @@
 package com.streever.hadoop.hms.mirror;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.google.common.collect.Table;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -75,7 +74,7 @@ public class DBMirror {
     /*
     Return String[3] for Hive.  0-Create Sql, 1-Location, 2-Mngd Location.
      */
-    public String[] rightDBCreate(Config config) {
+    public String[] dbCreate(Config config) {
         String[] rtn = new String[3];
         StringBuilder sb = new StringBuilder();
         // Start with the LEFT definition.
@@ -87,8 +86,10 @@ public class DBMirror {
             // Check for Managed Location.
             managedLocation = dbDef.get(MirrorConf.DB_MANAGED_LOCATION);
         }
-        String leftNamespace = config.getCluster(Environment.LEFT).getHcfsNamespace();
-        String rightNamespace = config.getCluster(Environment.RIGHT).getHcfsNamespace();
+//        if (config.getDataStrategy() != DataStrategy.DUMP) {
+            String leftNamespace = config.getCluster(Environment.LEFT).getHcfsNamespace();
+            String rightNamespace = config.getCluster(Environment.RIGHT).getHcfsNamespace();
+//        }
 
         switch (config.getDataStrategy()) {
             case SCHEMA_ONLY:

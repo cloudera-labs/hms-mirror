@@ -614,7 +614,7 @@ public class TableMirror {
         ret = getEnvironmentTable(Environment.RIGHT);
 
         if (!TableUtils.isHiveNative(let) || TableUtils.isACID(let)) {
-            let.addIssue("Can't process ACID table, VIEWs, or Non Native Hive Tables.");
+            let.addIssue("Can't process ACID tables, VIEWs, or Non Native Hive Tables with this strategy.");
             return Boolean.FALSE;
         }
 

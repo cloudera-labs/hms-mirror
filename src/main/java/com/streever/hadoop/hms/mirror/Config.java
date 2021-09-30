@@ -6,11 +6,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.collect.Sets;
 import com.streever.hadoop.HadoopSession;
 import com.streever.hadoop.HadoopSessionFactory;
 import com.streever.hadoop.HadoopSessionPool;
-import com.streever.hadoop.hms.mirror.feature.Feature;
-import com.streever.hadoop.hms.mirror.feature.Features;
 import com.streever.hadoop.shell.command.CommandReturn;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
@@ -45,6 +44,8 @@ public class Config {
     private HadoopSessionPool cliPool;
 
     private DataStrategy dataStrategy = DataStrategy.SCHEMA_ONLY;
+    private Environment dumpSource = null;
+
     private HybridConfig hybrid = new HybridConfig();
     private MigrateACID migrateACID = new MigrateACID();
     private MigrateVIEW migrateVIEW = new MigrateVIEW();
@@ -188,6 +189,14 @@ public class Config {
             this.getMigrateVIEW().setOn(Boolean.TRUE);
             this.setMigratedNonNative(Boolean.TRUE);
         }
+    }
+
+    public Environment getDumpSource() {
+        return dumpSource;
+    }
+
+    public void setDumpSource(Environment dumpSource) {
+        this.dumpSource = dumpSource;
     }
 
     public HybridConfig getHybrid() {
@@ -376,6 +385,11 @@ public class Config {
                 }
                 break;
             case DUMP:
+                if (getDumpSource() == Environment.RIGHT) {
+                    issues.add("You've requested DUMP on the RIGHT cluster.  The runtime configuration will " +
+                            "adjusted to complete this.  The RIGHT configuration will be MOVED to the LEFT to process " +
+                            "the DUMP strategy.  LEFT = RIGHT...");
+                }
             case COMMON:
                 break;
         }
@@ -593,11 +607,11 @@ public class Config {
     }
 
     public Boolean checkConnections() {
-        Boolean rtn = Boolean.TRUE;
-        Set<Environment> envs = clusters.keySet();
+        Boolean rtn = Boolean.FALSE;
+        Set<Environment> envs = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
         for (Environment env : envs) {
             Cluster cluster = clusters.get(env);
-            if (cluster.getHiveServer2().isValidUri()) {
+            if (cluster != null && cluster.getHiveServer2().isValidUri()) {
                 Connection conn = null;
                 try {
                     conn = cluster.getConnection();
@@ -610,6 +624,7 @@ public class Config {
                             stmt = conn.createStatement();
                             resultSet = stmt.executeQuery("SHOW DATABASES");
                             LOG.debug(env + ":" + ": Hive Connection Successful");
+                            rtn = Boolean.TRUE;
                         } catch (SQLException sql) {
                             // DB Doesn't Exists.
                             LOG.error(env + ": Hive Connection check failed.", sql);

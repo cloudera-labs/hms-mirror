@@ -1,5 +1,6 @@
 package com.streever.hadoop.hms.mirror;
 
+import com.google.common.collect.Sets;
 import com.streever.hadoop.hms.util.DriverUtils;
 import org.apache.commons.dbcp2.*;
 import org.apache.commons.pool2.ObjectPool;
@@ -34,18 +35,20 @@ public class ConnectionPools {
     }
 
     protected void initDrivers() {
-        Set<Environment> environments = hiveServerConfigs.keySet();
+        Set<Environment> environments = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
 
         for (Environment environment : environments) {
             HiveServer2Config hs2Config = hiveServerConfigs.get(environment);
-            Driver driver = DriverUtils.getDriver(hs2Config.getJarFile());
-            // Need to deregister, cause it was registered in the getDriver.
-            try {
-                DriverManager.deregisterDriver(driver);
-            } catch (SQLException throwables) {
-                throwables.printStackTrace();
+            if (hs2Config != null) {
+                Driver driver = DriverUtils.getDriver(hs2Config.getJarFile());
+                // Need to deregister, cause it was registered in the getDriver.
+                try {
+                    DriverManager.deregisterDriver(driver);
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+                drivers.put(environment, driver);
             }
-            drivers.put(environment, driver);
         }
     }
 

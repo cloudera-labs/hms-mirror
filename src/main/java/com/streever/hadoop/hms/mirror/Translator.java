@@ -7,7 +7,6 @@ import org.codehaus.jackson.annotate.JsonIgnore;
 
 import java.util.*;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class Translator {
     private static Logger LOG = LogManager.getLogger(Translator.class);

@@ -1,7 +1,6 @@
 package com.streever.hadoop.hms.stage;
 
 import com.streever.hadoop.hms.mirror.*;
-import jdk.nashorn.internal.codegen.CompilerConstants;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 

@@ -1,5 +1,9 @@
 package com.streever.hadoop.hms.mirror;
 
+import com.streever.hadoop.hms.Mirror;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,6 +12,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Reporter implements Runnable {
+    private static Logger LOG = LogManager.getLogger(Reporter.class);
 
     private Thread worker;
     private Boolean retry = Boolean.FALSE;
@@ -183,8 +188,13 @@ public class Reporter implements Runnable {
         report.append(ReportingConf.substituteAllVariables(reportTemplateFooter, varMap));
 
         // Output
-        if (showAll)
+        if (showAll) {
+            report.append("\nDatabases(<db>):\n");
+            report.append(String.join(",", conversion.getDatabases().keySet()));
+            report.append("\n");
             report.append(ReportingConf.substituteAllVariables(reportTemplateOutput, varMap));
+            LOG.info(report.toString());
+        }
 
         System.out.println(report.toString());
 
