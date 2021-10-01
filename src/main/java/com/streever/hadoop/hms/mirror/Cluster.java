@@ -207,6 +207,8 @@ public class Cluster implements Comparable<Cluster> {
                     }
                 } catch (SQLException se) {
                     LOG.error(getEnvironment() + ":" + database + " ", se);
+                    // This is helpful if the user running the process doesn't have permissions.
+                    dbMirror.addIssue(getEnvironment() + ":" + database + " " + se.getMessage());
                 } finally {
                     if (resultSet != null) {
                         try {

@@ -1,0 +1,1 @@
+DB/TBLS:(Progress)  ${total.dbs}/${total.tbls}:(${started.tbls}/${completed.tbls}/${error.tbls})           Elapse Time: ${elapsed.time}secs

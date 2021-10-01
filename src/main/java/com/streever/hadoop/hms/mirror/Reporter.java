@@ -1,6 +1,5 @@
 package com.streever.hadoop.hms.mirror;
 
-import com.streever.hadoop.hms.Mirror;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -16,6 +15,7 @@ public class Reporter implements Runnable {
 
     private Thread worker;
     private Boolean retry = Boolean.FALSE;
+    private Boolean quiet = Boolean.FALSE;
     private Date start = new Date();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private int sleepInterval;
@@ -37,6 +37,14 @@ public class Reporter implements Runnable {
         this.retry = retry;
     }
 
+    public Boolean getQuiet() {
+        return quiet;
+    }
+
+    public void setQuiet(Boolean quiet) {
+        this.quiet = quiet;
+    }
+
     public Reporter(Conversion conversion, int sleepInterval) {
         this.conversion = conversion;
         this.sleepInterval = sleepInterval;
@@ -56,25 +64,26 @@ public class Reporter implements Runnable {
     }
 
     private void fetchReportTemplates() throws IOException {
-        InputStream his = this.getClass().getResourceAsStream("/report_header.txt");
+
+        InputStream his = this.getClass().getResourceAsStream(!quiet?"/report_header.txt":"/quiet/report_header.txt");
         BufferedReader hbr = new BufferedReader(new InputStreamReader(his));
         String hline = null;
         while ((hline = hbr.readLine()) != null) {
             reportTemplateHeader.add(hline);
         }
-        InputStream fis = this.getClass().getResourceAsStream("/report_footer.txt");
+        InputStream fis = this.getClass().getResourceAsStream(!quiet?"/report_footer.txt":"/quiet/report_footer.txt");
         BufferedReader fbr = new BufferedReader(new InputStreamReader(fis));
         String fline = null;
         while ((fline = fbr.readLine()) != null) {
             reportTemplateFooter.add(fline);
         }
-        InputStream fisop = this.getClass().getResourceAsStream("/report_output.txt");
+        InputStream fisop = this.getClass().getResourceAsStream(!quiet?"/report_output.txt":"/quiet/report_output.txt");
         BufferedReader fbrop = new BufferedReader(new InputStreamReader(fisop));
         String flineop = null;
         while ((flineop = fbrop.readLine()) != null) {
             reportTemplateOutput.add(flineop);
         }
-        InputStream tis = this.getClass().getResourceAsStream("/table_display.txt");
+        InputStream tis = this.getClass().getResourceAsStream(!quiet?"/table_display.txt":"/quiet/table_display.txt");
         BufferedReader tbr = new BufferedReader(new InputStreamReader(tis));
         String tline = null;
         while ((tline = tbr.readLine()) != null) {
@@ -171,17 +180,19 @@ public class Reporter implements Runnable {
         System.out.print(ReportingConf.CLEAR_CONSOLE);
         StringBuilder report = new StringBuilder();
         // Header
-        report.append(ReportingConf.substituteAllVariables(reportTemplateHeader, varMap));
+        if (!quiet) {
+            report.append(ReportingConf.substituteAllVariables(reportTemplateHeader, varMap));
 
-        // Table Processing
-        for (TableMirror tblMirror : startedTables) {
-            Map<String, String> tblVars = new TreeMap<String, String>();
-            tblVars.put("db.name", tblMirror.getDbName());
-            tblVars.put("tbl.name", tblMirror.getName());
-            tblVars.put("tbl.progress", tblMirror.getProgressIndicator(80, 10));
-            tblVars.put("tbl.msg", tblMirror.getMigrationStageMessage());
-            tblVars.put("tbl.strategy", tblMirror.getStrategy().toString());
-            report.append(ReportingConf.substituteAllVariables(reportTemplateTableDetail, tblVars));
+            // Table Processing
+            for (TableMirror tblMirror : startedTables) {
+                Map<String, String> tblVars = new TreeMap<String, String>();
+                tblVars.put("db.name", tblMirror.getDbName());
+                tblVars.put("tbl.name", tblMirror.getName());
+                tblVars.put("tbl.progress", tblMirror.getProgressIndicator(80, 10));
+                tblVars.put("tbl.msg", tblMirror.getMigrationStageMessage());
+                tblVars.put("tbl.strategy", tblMirror.getStrategy().toString());
+                report.append(ReportingConf.substituteAllVariables(reportTemplateTableDetail, tblVars));
+            }
         }
 
         // Footer
@@ -196,7 +207,7 @@ public class Reporter implements Runnable {
             LOG.info(report.toString());
         }
 
-        System.out.println(report.toString());
+        System.out.print(report.toString());
 
     }
 

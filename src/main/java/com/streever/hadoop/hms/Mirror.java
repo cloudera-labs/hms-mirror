@@ -48,7 +48,16 @@ public class Mirror {
     private String leftActionFile = null;
     private String rightActionFile = null;
     private Boolean retry = Boolean.FALSE;
+    private Boolean quiet = Boolean.FALSE;
     private String dateMarker;
+
+    public Boolean getQuiet() {
+        return quiet;
+    }
+
+    public void setQuiet(Boolean quiet) {
+        this.quiet = quiet;
+    }
 
     public String getDateMarker() {
         if (dateMarker == null) {
@@ -222,6 +231,11 @@ public class Mirror {
         if (cmd.hasOption("sf")) {
             // Skip Features.
             config.setSkipFeatures(Boolean.TRUE);
+        }
+
+        if (cmd.hasOption("q")) {
+            // Skip Features.
+            this.setQuiet(Boolean.TRUE);
         }
 
         if (cmd.hasOption("t")) {
@@ -576,6 +590,7 @@ public class Mirror {
 
         // Setup and Start the Reporter
         Reporter reporter = new Reporter(conversion, 1000);
+        reporter.setQuiet(getQuiet());
         reporter.setVariable("config.file", configFile);
         reporter.setVariable("config.strategy", config.getDataStrategy().toString());
         reporter.setVariable("report.file", reportOutputFile);
@@ -821,6 +836,12 @@ public class Mirror {
     private Options getOptions() {
         // create Options object
         Options options = new Options();
+
+        Option quietOutput = new Option("q", "quiet", false,
+                "Reduce screen reporting output.  Good for background processes with output redirects to a file");
+        quietOutput.setOptionalArg(Boolean.FALSE);
+        quietOutput.setRequired(Boolean.FALSE);
+        options.addOption(quietOutput);
 
         Option metadataStage = new Option("d", "data-strategy", true,
                 "Specify how the data will follow the schema. " + Arrays.deepToString(DataStrategy.visibleValues()));
