@@ -144,9 +144,16 @@ public class CreateDatabases implements Callable<ReturnStatus> {
                                     CommandReturn testCr = main.processInput("test -d " + dbLocation);
                                     if (testCr.isError()) {
                                         // Doesn't exist.  So we can't create the DB in a "read-only" mode.
-                                        String message = "Database directory: **'" + dbLocation + "'** on the RIGHT cluster does NOT exist. " +
+                                        String message = "Database directory: **'" + dbLocation + "'** on the RIGHT cluster does NOT exist.\n" +
                                                 "In 'read-only' mode, it must exist before creating the database to ensure we " +
-                                                "don't corrupt the Filesystems Read-Only State. ErrCode: " + testCr.getCode() + "HDFS Command: " + testCr.getCommand();
+                                                "don't corrupt the Filesystems Read-Only State." +
+                                                "\nErrCode: " + testCr.getCode() +
+                                                "\nHDFS Command: " + testCr.getCommand() +
+                                                "\nWARNING: \n\tIf you have created the Database on the RIGHT cluster already, " +
+                                                "   \n\t\tit is possible that the DB property 'LOCATION' (external warehouse) does " +
+                                                "   \n\t\tNOT match to DB location on the LEFT.  They MUST match to process 'read-only'." +
+                                                "   \n\t\tYou can either\n\tDROP the right database and run 'hms-mirror' with the `-dbo -e` " +
+                                                "option \n\t\t\tOR\n\tALTER DATABASE " + dbMirror.getName() + " SET LOCATION '" + dbLocation + "'";
                                         dbMirror.addIssue(message);
                                         throw new RuntimeException(message);
                                     } else {

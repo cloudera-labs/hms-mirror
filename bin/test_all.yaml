@@ -1,0 +1,81 @@
+- hosts: '{{edge_node}}'
+  become: false
+
+- name: Run SCHEMA_ONLY Tests (01)
+  import_playbook: test.yaml
+  vars:
+    data_strategy: 'SCHEMA_ONLY'
+    drop_db: true
+    hms_scenarios:
+      - { desc: '01_basic', db: '{{ target_db }}', options: '' }
+      - { desc: '01_view', db: '{{ target_db }}', options: '-v' }
+      - { desc: '01_ma', db: '{{ target_db }}', options: '-ma' }
+      - { desc: '01_mao', db: '{{ target_db }}', options: '-mao' }
+      - { desc: '01_mnn', db: '{{ target_db }}', options: '-mnn' }
+      - { desc: '01_mnno', db: '{{ target_db }}', options: '-mnno' }
+      - { desc: '01_tf_1', db: '{{ target_db }}', options: '-tf call_center.*' }
+      - { desc: '01_create_db', db: '{{ target_db }}', options: '-dbo' }
+
+- name: Run SCHEMA_ONLY Tests (02-e)
+  import_playbook: test.yaml
+  vars:
+    data_strategy: 'SCHEMA_ONLY'
+    drop_db: true
+    hms_scenarios:
+      - { desc: '02-e_basic', db: '{{ target_db }}', options: '-e -accept' }
+      - { desc: '02-e_view', db: '{{ target_db }}', options: '-v -e -accept' }
+      - { desc: '02-e_ma', db: '{{ target_db }}', options: '-ma -e -accept' }
+      - { desc: '02-e_mao', db: '{{ target_db }}', options: '-mao -e -accept' }
+      - { desc: '02-e_mnn', db: '{{ target_db }}', options: '-mnn -e -accept' }
+      - { desc: '02-e_mnno', db: '{{ target_db }}', options: '-mnno -e -accept' }
+      - { desc: '02-e_tf_1', db: '{{ target_db }}', options: '-tf call_center.* -e -accept' }
+
+- name: DROP DB ONLY
+  import_playbook: test.yaml
+  vars:
+    data_strategy: 'SCHEMA_ONLY'
+    drop_db:       true
+    skip_scenarios: true
+
+- name: Run SCHEMA_ONLY Tests (03-db-ro-e)
+  import_playbook: test.yaml
+  vars:
+    data_strategy: 'SCHEMA_ONLY'
+    drop_db: false
+    hms_scenarios:
+      - { desc: '03-db-ro-e_create_db', db: '{{ target_db }}', options: '-dbo' }
+      - { desc: '03-ro-e_tf_ro_e_fail', db: '{{ target_db }}', options: '-e --accept -ro -tf call_center.*' }
+      - { desc: '03-db-ro-e_create_db_e', db: '{{ target_db }}', options: '-dbo -e --accept' }
+      - { desc: '03-ro-e_tf_ro_e_succ', db: '{{ target_db }}', options: '-e --accept -ro -tf call_center.*' }
+      - { desc: '03-ro-e_tf_ro_s_e_1', db: '{{ target_db }}', options: '-e --accept -ro -sync -tf call_center.*' }
+      - { desc: '03-all-e', db: '{{ target_db }}', options: '-e --accept' }
+
+- name: Run SCHEMA_ONLY Tests (04)
+  import_playbook: test.yaml
+  vars:
+    data_strategy: 'SCHEMA_ONLY'
+    drop_db: true
+    hms_scenarios:
+      - { desc: '04_basic', db: '{{ target_db }}', options: '-is s3a://my-bucket' }
+
+- name: Run DUMP Tests (01)
+  import_playbook: test.yaml
+  vars:
+    data_strategy: 'DUMP'
+    drop_db: false
+    hms_scenarios:
+      - { desc: '01-basic', db: '{{ target_db }}', options: '-d DUMP' }
+      - { desc: '01-basic-vo', db: '{{ target_db }}', options: '-d DUMP -v' }
+      - { desc: '01-RIGHT', db: '{{ target_db }}', options: '-d DUMP -ds RIGHT' }
+      - { desc: '01-RIGHT-vo', db: '{{ target_db }}', options: '-d DUMP -ds RIGHT -v' }
+      - { desc: '01-RIGHT2', db: '{{ target_db }}', options: '-d DUMP --dump-source RIGHT' }
+
+- name: Run EXPORT_IMPORT Tests (01)
+  import_playbook: test.yaml
+  vars:
+    data_strategy: 'EXPORT_IMPORT'
+    drop_db: true
+    hms_scenarios:
+      - { desc: '01_basic', db: '{{ target_db }}', options: '' }
+      - { desc: '01_is', db: '{{ target_db }}', options: '-is s3a://my-bucket' }
+      - { desc: '01_basic-e', db: '{{ target_db }}', options: '-e -accept' }

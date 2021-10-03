@@ -50,6 +50,7 @@ public class Config {
     private MigrateACID migrateACID = new MigrateACID();
     private MigrateVIEW migrateVIEW = new MigrateVIEW();
     private Boolean migratedNonNative = Boolean.FALSE;
+    private Boolean databaseOnly = Boolean.FALSE;
 
 //    private Boolean migrateACID = Boolean.FALSE;
 
@@ -176,6 +177,14 @@ public class Config {
 
     public void setMigratedNonNative(Boolean migratedNonNative) {
         this.migratedNonNative = migratedNonNative;
+    }
+
+    public Boolean getDatabaseOnly() {
+        return databaseOnly;
+    }
+
+    public void setDatabaseOnly(Boolean databaseOnly) {
+        this.databaseOnly = databaseOnly;
     }
 
     public DataStrategy getDataStrategy() {

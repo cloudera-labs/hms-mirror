@@ -49,8 +49,10 @@ public class Setup {
             }
 
             // Build out the table in a database.
-            Callable<ReturnStatus> gt = new GetTables(config, dbMirror);
-            gtf.add(config.getTransferThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
+            if (!config.getDatabaseOnly()) {
+                Callable<ReturnStatus> gt = new GetTables(config, dbMirror);
+                gtf.add(config.getTransferThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
+            }
         }
 
         // Check and Build DB's First.
@@ -75,6 +77,7 @@ public class Setup {
                 break;
         }
         gtf.clear(); // reset
+
 
         // Create the databases we'll need on the LEFT and RIGHT
         Callable<ReturnStatus> createDatabases = new CreateDatabases(config, conversion);
@@ -103,50 +106,53 @@ public class Setup {
         }
         gtf.clear(); // reset
 
-        // Get the table METADATA for the tables collected in the databases.
-        LOG.info(">>>>>>>>>>> Getting Table Metadata");
-        Set<String> collectedDbs = conversion.getDatabases().keySet();
-        for (String database : collectedDbs) {
-            DBMirror dbMirror = conversion.getDatabase(database);
-            Set<String> tables = dbMirror.getTableMirrors().keySet();
-            for (String table : tables) {
-                TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
-                GetTableMetadata tmd = new GetTableMetadata(config, dbMirror, tblMirror);
-                gtf.add(config.getTransferThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
-            }
-        }
+        // Shortcut.  Only DB's.
+        if (!config.getDatabaseOnly()) {
 
-        while (true) {
-            boolean check = true;
-            for (Future<ReturnStatus> sf : gtf) {
-                if (!sf.isDone()) {
-                    check = false;
-                    break;
+            // Get the table METADATA for the tables collected in the databases.
+            LOG.info(">>>>>>>>>>> Getting Table Metadata");
+            Set<String> collectedDbs = conversion.getDatabases().keySet();
+            for (String database : collectedDbs) {
+                DBMirror dbMirror = conversion.getDatabase(database);
+                Set<String> tables = dbMirror.getTableMirrors().keySet();
+                for (String table : tables) {
+                    TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
+                    GetTableMetadata tmd = new GetTableMetadata(config, dbMirror, tblMirror);
+                    gtf.add(config.getTransferThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
                 }
-                try {
-                    if (sf.isDone() && sf.get() != null) {
-                        if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
-                            throw new RuntimeException(sf.get().getException());
-                        }
+            }
+
+            while (true) {
+                boolean check = true;
+                for (Future<ReturnStatus> sf : gtf) {
+                    if (!sf.isDone()) {
+                        check = false;
+                        break;
                     }
-                } catch (InterruptedException | ExecutionException e) {
-                    throw new RuntimeException(e);
+                    try {
+                        if (sf.isDone() && sf.get() != null) {
+                            if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
+                                throw new RuntimeException(sf.get().getException());
+                            }
+                        }
+                    } catch (InterruptedException | ExecutionException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
+                if (check)
+                    break;
             }
-            if (check)
-                break;
+            gtf.clear(); // reset
+
+            LOG.info("==============================");
+            LOG.info(conversion.toString());
+            LOG.info("==============================");
+            Date endTime = new Date();
+            DecimalFormat df = new DecimalFormat("#.###");
+            df.setRoundingMode(RoundingMode.CEILING);
+            LOG.info("GATHERING METADATA: Completed in " + df.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
         }
-        gtf.clear(); // reset
-
-        LOG.info("==============================");
-        LOG.info(conversion.toString());
-        LOG.info("==============================");
-        Date endTime = new Date();
-        DecimalFormat df = new DecimalFormat("#.###");
-        df.setRoundingMode(RoundingMode.CEILING);
-        LOG.info("GATHERING METADATA: Completed in " + df.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
         return rtn;
-
     }
 
 }

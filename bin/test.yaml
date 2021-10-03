@@ -1,0 +1,51 @@
+- hosts: '{{edge_node}}'
+  become: false
+
+  vars:
+    target_db: tpcds_bin_partitioned_orc_10
+    data_strategy: SCHEMA_ONLY
+    test_run: '{{ ansible_date_time.iso8601_basic_short }}'
+    output_dir_base: temp/hms-mirror-reports/{{ test_run }}
+    drop_db: false
+    skip_scenarios: false
+    hms_scenarios:
+      - { desc: 'basic', db: '{{ target_db }}', options: '' }
+      - { desc: 'view', db: '{{ target_db }}', options: '-v' }
+
+  #  hms-mirror -q -d ${ds} -db tpcds_bin_partitioned_orc_10 -o ${OUTPUT_DIR}/${ds}
+  #  hms-mirror -q -d ${ds} -ds RIGHT -db tpcds_bin_partitioned_orc_250 -o ${OUTPUT_DIR}/${ds}_right
+  #  hms-mirror -q -d ${ds} -db tpcds_bin_partitioned_orc_10 -o ${OUTPUT_DIR}/${ds}
+  #  hms-mirror -q -d ${ds} -db tpcds_bin_partitioned_orc_10 -v -o ${OUTPUT_DIR}/${ds}_v
+  #  hms-mirror -q -d ${ds} -db tpcds_bin_partitioned_orc_10 -mao -o ${OUTPUT_DIR}/${ds}_mao
+  #  hms-mirror -q -d ${ds} -db tpcds_bin_partitioned_orc_10 -ma -mnn -o ${OUTPUT_DIR}/${ds}_ma_mnn
+  #  hms-mirror -q -d ${ds} -db tpcds_bin_partitioned_orc_10 -mnn -o ${OUTPUT_DIR}/${ds}_mnn
+  #  hms-mirror -q -d ${ds} -db tpcds_bin_partitioned_orc_10 -mnn -o ${OUTPUT_DIR}/${ds}_is
+  #  # Table Filter with RO
+  #  hms-mirror -q -d ${ds} -db tpcds_bin_partitioned_orc_10 -o ${OUTPUT_DIR}/${ds}_is -ro -e --accept -tf call_center.*
+  #  # Sync
+  #  hms-mirror -q -d ${ds} -db tpcds_bin_partitioned_orc_10 -o ${OUTPUT_DIR}/${ds}_is -sync -ro -e --accept -tf call_center.*
+  #  # All Sync
+  #  hms-mirror -q -d ${ds} -db tpcds_bin_partitioned_orc_10 -o ${OUTPUT_DIR}/${ds}_is -sync -ro -e --accept
+  #  # Views
+  #  hms-mirror -q -d ${ds} -db tpcds_bin_partitioned_orc_10 -o ${OUTPUT_DIR}/${ds}_is -sync -ro -v -e --accept
+  #  # Drop DB for next run.
+  #  hive -e 'DROP DATABASE IF EXISTS tpcds_bin_partitioned_orc_10 cascade'
+
+
+  tasks:
+    - name: Create Output Directories - {{ data_strategy }}
+      file:
+        path: "{{output_dir_base}}/{{data_strategy}}/{{item.desc}}"
+        state: directory
+      with_items: "{{ hms_scenarios }}"
+      when: skip_scenarios != true
+
+    - name: DROP RIGHT DB (cascade)
+      shell: hive -e 'DROP DATABASE IF EXISTS {{ target_db }} cascade'
+      when: drop_db
+
+    - name:  Run 'hms-mirror' scenarios - {{ data_strategy }}
+      shell: hms-mirror -q -d {{data_strategy}} -db {{item.db}} {{item.options}} -o {{output_dir_base}}//{{data_strategy}}/{{item.desc}} 2>&1 > {{output_dir_base}}/{{data_strategy}}/{{item.desc}}/script.out;
+      with_items: "{{ hms_scenarios }}"
+      when: skip_scenarios != true
+

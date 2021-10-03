@@ -286,8 +286,8 @@ public class Cluster implements Comparable<Cluster> {
                                 tableMirror.setRemove(Boolean.TRUE);
                                 tableMirror.setRemoveReason("Non-ACID table and ACID only processing selected `-mao`");
                             }
-                            // When processing Tables, remove views.
-                            if (TableUtils.isView(et) && config.getDataStrategy() != DataStrategy.DUMP) {
+                        } else if (TableUtils.isView(et)) {
+                            if (config.getDataStrategy() != DataStrategy.DUMP) {
                                 tableMirror.setRemove(Boolean.TRUE);
                                 tableMirror.setRemoveReason("This is a VIEW and VIEW processing wasn't selected.");
                             }

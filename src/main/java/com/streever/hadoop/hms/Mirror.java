@@ -296,6 +296,10 @@ public class Mirror {
             config.getMigrateVIEW().setOn(Boolean.TRUE);
         }
 
+        if (cmd.hasOption("dbo")) {
+            config.setDatabaseOnly(Boolean.TRUE);
+        }
+
         if (cmd.hasOption("ma")) {
             config.getMigrateACID().setOn(Boolean.TRUE);
             String bucketLimit = cmd.getOptionValue("ma");
@@ -624,9 +628,11 @@ public class Mirror {
         }
 
 //        stateMaintenance.start();
-
         // State reason table/view was removed from processing list.
         for (Map.Entry<String, DBMirror> dbEntry : conversion.getDatabases().entrySet()) {
+            if (config.getDatabaseOnly()) {
+                dbEntry.getValue().addIssue("FYI:Only processing DB.");
+            }
             for (TableMirror tm : dbEntry.getValue().getTableMirrors().values()) {
                 if (tm.isRemove()) {
                     dbEntry.getValue().getFilteredOut().put(tm.getName(), tm.getRemoveReason());
@@ -642,7 +648,6 @@ public class Mirror {
         // GO TIME!!!
         conversion = runTransfer(conversion);
 //        stateMaintenance.saveState();
-
         // Actions
 
         // Remove the abstract environments from config before reporting output.
@@ -873,6 +878,11 @@ public class Mirror {
         OptionGroup migrationOptionsGroup = new OptionGroup();
         migrationOptionsGroup.setRequired(Boolean.FALSE);
 
+        Option dboOption = new Option("dbo", "database-only", false,
+                "Migrate the Database definitions as they exist from LEFT to RIGHT");
+        dboOption.setRequired(Boolean.FALSE);
+        migrationOptionsGroup.addOption(dboOption);
+
         Option maoOption = new Option("mao", "migrate-acid-only", false,
                 "Migrate ACID tables ONLY (if strategy allows). Optional: ArtificialBucketThreshold count that will remove " +
                         "the bucket definition if it's below this.  Use this as a way to remove artificial bucket definitions that " +
@@ -885,8 +895,6 @@ public class Mirror {
         Option mnnoOption = new Option("mnno", "migrate-non-native-only", false,
                 "Migrate Non-Native tables (if strategy allows). These include table definitions that rely on " +
                         "external connection to systems like: HBase, Kafka, JDBC");
-        mnnoOption.setArgs(1);
-        mnnoOption.setOptionalArg(Boolean.TRUE);
         mnnoOption.setRequired(Boolean.FALSE);
         migrationOptionsGroup.addOption(mnnoOption);
 
@@ -905,7 +913,6 @@ public class Mirror {
         maOption.setOptionalArg(Boolean.TRUE);
         maOption.setRequired(Boolean.FALSE);
         options.addOption(maOption);
-
 
         // Non Native Migrations
         Option mnnOption = new Option("mnn", "migrate-non-native", false,
