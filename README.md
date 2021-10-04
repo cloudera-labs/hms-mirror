@@ -610,8 +610,12 @@ Hive Metastore Migration Utility
                                                  SCHEMA_ONLY, LINKED, SQL, EXPORT_IMPORT, HYBRID,
                                                  COMMON]
  -db,--database <databases>                      Comma separated list of Databases (upto 100).
+ -dbo,--database-only                            Migrate the Database definitions as they exist from
+                                                 LEFT to RIGHT
  -dbp,--db-prefix <prefix>                       Optional: A prefix to add to the RIGHT cluster DB
                                                  Name. Usually used for testing.
+ -ds,--dump-source <source>                      Specify which 'cluster' is the source for the DUMP
+                                                 strategy (LEFT|RIGHT).
  -e,--execute                                    Execute actions request, without this flag the
                                                  process is a dry-run.
  -h,--help                                       Help
@@ -637,6 +641,14 @@ Hive Metastore Migration Utility
                                                  Use this as a way to remove artificial bucket
                                                  definitions that were added 'artificially' in
                                                  legacy Hive. (default: 2)
+ -mnn,--migrate-non-native <arg>                 Migrate Non-Native tables (if strategy allows).
+                                                 These include table definitions that rely on
+                                                 external connection to systems like: HBase, Kafka,
+                                                 JDBC
+ -mnno,--migrate-non-native-only                 Migrate Non-Native tables (if strategy allows).
+                                                 These include table definitions that rely on
+                                                 external connection to systems like: HBase, Kafka,
+                                                 JDBC
  -o,--output-dir <outputdir>                     Output Directory (default:
                                                  $HOME/.hms-mirror/reports/<yyyy-MM-dd_HH-mm-ss>
  -p,--password <password>                        Used this in conjunction with '-pkey' to generate
@@ -645,8 +657,9 @@ Hive Metastore Migration Utility
  -pkey,--password-key <password-key>             The key used to encrypt / decrypt the cluster jdbc
                                                  passwords.  If not present, the passwords will be
                                                  processed as is (clear text) from the config file.
- -r,--retry                                      Retry last incomplete run for 'cfg'.  If none
-                                                 specified, will check for 'default'
+ -q,--quiet                                      Reduce screen reporting output.  Good for
+                                                 background processes with output redirects to a
+                                                 file
  -ro,--read-only                                 For SCHEMA_ONLY, COMMON, and LINKED data strategies
                                                  set RIGHT table to NOT purge on DROP
  -s,--sync                                       For SCHEMA_ONLY, COMMON, and LINKED data
