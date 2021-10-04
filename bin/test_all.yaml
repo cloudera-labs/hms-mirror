@@ -78,4 +78,30 @@
     hms_scenarios:
       - { desc: '01_basic', db: '{{ target_db }}', options: '' }
       - { desc: '01_is', db: '{{ target_db }}', options: '-is s3a://my-bucket' }
-      - { desc: '01_basic-e', db: '{{ target_db }}', options: '-e -accept' }
+      - { desc: '01_basic-e', db: '{{ target_db }}', options: '-e -accept -tf call_center.*' }
+      - { desc: '01_ma', db: '{{ target_db }}', options: '-ma' }
+      - { desc: '01_mao', db: '{{ target_db }}', options: '-mao -e -accept' }
+
+- name: Run SQL Tests (01)
+  import_playbook: test.yaml
+  vars:
+    data_strategy: 'SQL'
+    drop_db: true
+    hms_scenarios:
+      - { desc: '01_basic', db: '{{ target_db }}', options: '' }
+      - { desc: '01_is', db: '{{ target_db }}', options: '-is s3a://my-bucket' }
+      - { desc: '01_basic-e', db: '{{ target_db }}', options: '-e -accept -tf call_center.*' }
+      - { desc: '01_ma', db: '{{ target_db }}', options: '-ma' }
+      - { desc: '01_mao', db: '{{ target_db }}', options: '-mao -e -accept' }
+
+- name: Run HYBRID Tests (01)
+  import_playbook: test.yaml
+  vars:
+    data_strategy: 'HYBRID'
+    drop_db: true
+    hms_scenarios:
+      - { desc: '01_basic', db: '{{ target_db }}', options: '' }
+      - { desc: '01_is', db: '{{ target_db }}', options: '-is s3a://my-bucket' }
+      - { desc: '01_basic-e', db: '{{ target_db }}', options: '-e -accept -tf call_center.*' }
+      - { desc: '01_ma', db: '{{ target_db }}', options: '-ma' }
+      - { desc: '01_mao', db: '{{ target_db }}', options: '-mao' }

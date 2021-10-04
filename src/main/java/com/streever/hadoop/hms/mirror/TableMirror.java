@@ -690,12 +690,20 @@ public class TableMirror {
 //        }
 
         String transferLoc = null;
+        // When intermediate storage specified, use it.
         if (config.getTransfer().getIntermediateStorage() != null) {
             String isLoc = config.getTransfer().getIntermediateStorage();
             // Deal with extra '/'
             isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
             transferLoc = isLoc + "/" +
                     config.getTransfer().getTransferPrefix() + this.getUnique() + "_" + this.getName();
+        } else {
+            //  strip location
+            transferSpec.setStripLocation(Boolean.TRUE);
+            // build loc of transfer based on export base dir.
+            transferLoc = config.getCluster(Environment.LEFT).getHcfsNamespace() +
+                    config.getTransfer().getExportBaseDirPrefix() + dbMirror.getName() +
+                    "/" + getName();
         }
 
         if (transferLoc != null)
@@ -1299,10 +1307,12 @@ public class TableMirror {
                         if (copySpec.getLocation() != null) {
                             String isLoc = config.getTransfer().getIntermediateStorage();
                             // Deal with extra '/'
-                            isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
-                            isLoc = isLoc + "/" +
-                                    config.getTransfer().getTransferPrefix() + this.getUnique() + "_" + this.getName();
-                            TableUtils.updateTableLocation(target, isLoc);
+                            if (isLoc != null) {
+                                isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
+                                isLoc = isLoc + "/" +
+                                        config.getTransfer().getTransferPrefix() + this.getUnique() + "_" + this.getName();
+                                TableUtils.updateTableLocation(target, isLoc);
+                            }
                         } else {
                             if (copySpec.getStripLocation()) {
                                 TableUtils.stripLocation(target);
