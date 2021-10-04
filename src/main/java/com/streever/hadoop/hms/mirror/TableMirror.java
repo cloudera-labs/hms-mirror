@@ -535,7 +535,7 @@ public class TableMirror {
 
         let = getEnvironmentTable(Environment.LEFT);
         ret = getEnvironmentTable(Environment.RIGHT);
-        set = getEnvironmentTable(Environment.SHADOW);
+//        set = getEnvironmentTable(Environment.SHADOW);
 
         if (TableUtils.isACID(let)) {
             let.addIssue("ACID table migration NOT support in this scenario.");
@@ -564,6 +564,7 @@ public class TableMirror {
             ret.addIssue("Schema exists already, no action.  If you wish to rebuild the schema, " +
                     "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
             ret.setCreateStrategy(CreateStrategy.LEAVE);
+            return Boolean.FALSE;
         } else {
             ret.addIssue("Schema will be created");
             ret.setCreateStrategy(CreateStrategy.CREATE);
@@ -585,15 +586,15 @@ public class TableMirror {
             copySpec.setTakeOwnership(Boolean.TRUE);
         }
 
-        if (ret.getExists()) {
-            // Already exists, no action.
-            ret.addIssue("Schema exists already, no action.  If you wish to rebuild the schema, " +
-                    "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
-            ret.setCreateStrategy(CreateStrategy.LEAVE);
-        } else {
-            ret.addIssue("Schema will be created");
-            ret.setCreateStrategy(CreateStrategy.CREATE);
-        }
+//        if (ret.getExists()) {
+//            // Already exists, no action.
+//            ret.addIssue("Schema exists already, no action.  If you wish to rebuild the schema, " +
+//                    "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
+//            ret.setCreateStrategy(CreateStrategy.LEAVE);
+//        } else {
+//            ret.addIssue("Schema will be created");
+//            ret.setCreateStrategy(CreateStrategy.CREATE);
+//        }
 
         // Rebuild Target from Source.
         rtn = buildTableSchema(copySpec);

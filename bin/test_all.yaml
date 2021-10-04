@@ -105,3 +105,4 @@
       - { desc: '01_basic-e', db: '{{ target_db }}', options: '-e -accept -tf call_center.*' }
       - { desc: '01_ma', db: '{{ target_db }}', options: '-ma' }
       - { desc: '01_mao', db: '{{ target_db }}', options: '-mao' }
+      - { desc: '01_mao-e', db: '{{ target_db }}', options: '-mao -e -accept' }

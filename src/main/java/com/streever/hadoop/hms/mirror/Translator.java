@@ -288,7 +288,6 @@ public class Translator {
 
             switch (config.getDataStrategy()) {
                 case EXPORT_IMPORT:
-//                case INTERMEDIATE:
                 case HYBRID:
                 case SQL:
                 case SCHEMA_ONLY:

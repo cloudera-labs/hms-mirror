@@ -112,32 +112,34 @@ public class Transfer implements Callable<ReturnStatus> {
         EnvironmentTable set = tblMirror.getEnvironmentTable(Environment.SHADOW);
 
         // Construct Transfer SQL
-        if (let.getPartitioned()) {
-            // Check that the partition count doesn't exceed the configuration limit.
-            // Build Partition Elements.
-            String partElement = TableUtils.getPartitionElements(let);
-            String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS,
-                    set.getName(), ret.getName(), partElement);
-            String transferDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, let.getPartitions().size());
-            ret.addSql(new Pair(transferDesc, transferSql));
-            if (let.getPartitions().size() > config.getHybrid().getSqlPartitionLimit()) {
-                // The partition limit has been exceeded.  The process will need to be done manually.
-                let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
-                        "limit (hybrid->sqlPartitionLimit) of " + config.getHybrid().getSqlPartitionLimit() +
-                        ".  This value is used to abort migrations that have a high potential for failure.  " +
-                        "The migration will need to be done manually OR try increasing the limit.");
-                rtn = Boolean.FALSE;
+        if (rtn) {
+            if (let.getPartitioned()) {
+                // Check that the partition count doesn't exceed the configuration limit.
+                // Build Partition Elements.
+                String partElement = TableUtils.getPartitionElements(let);
+                String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS,
+                        set.getName(), ret.getName(), partElement);
+                String transferDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, let.getPartitions().size());
+                ret.addSql(new Pair(transferDesc, transferSql));
+                if (let.getPartitions().size() > config.getHybrid().getSqlPartitionLimit()) {
+                    // The partition limit has been exceeded.  The process will need to be done manually.
+                    let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
+                            "limit (hybrid->sqlPartitionLimit) of " + config.getHybrid().getSqlPartitionLimit() +
+                            ".  This value is used to abort migrations that have a high potential for failure.  " +
+                            "The migration will need to be done manually OR try increasing the limit.");
+                    rtn = Boolean.FALSE;
+                }
+            } else {
+                // No Partitions
+                String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, set.getName(), ret.getName());
+                ret.addSql(new Pair(TableUtils.LOAD_FROM_SHADOW_DESC, transferSql));
             }
-        } else {
-            // No Partitions
-            String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, set.getName(), ret.getName());
-            ret.addSql(new Pair(TableUtils.LOAD_FROM_SHADOW_DESC, transferSql));
+
+
+            // Clean up shadow table.
+            String dropShadowSql = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
+            ret.getSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropShadowSql));
         }
-
-
-        // Clean up shadow table.
-        String dropShadowSql = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
-        ret.getSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropShadowSql));
 
         // Execute the RIGHT sql if config.execute.
         if (rtn && config.isExecute()) {
