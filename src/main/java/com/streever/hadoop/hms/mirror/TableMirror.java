@@ -1204,14 +1204,20 @@ public class TableMirror {
                         case SHADOW:
                             target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "false");
                             TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                            TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL_PROPERTIES, target);
+                            TableUtils.removeTblProperty(MirrorConf.BUCKETING_VERSION, target);
                             converted = TableUtils.makeExternal(target);
                             break;
                         case TRANSFER:
                             if (config.getCluster(Environment.LEFT).getLegacyHive()) {
                                 TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                                TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL_PROPERTIES, target);
+                                TableUtils.removeTblProperty(MirrorConf.BUCKETING_VERSION, target);
                             } else {
                                 target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true");
                                 TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                                TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL_PROPERTIES, target);
+                                TableUtils.removeTblProperty(MirrorConf.BUCKETING_VERSION, target);
                                 converted = TableUtils.makeExternal(target);
                             }
                             break;
@@ -1240,6 +1246,8 @@ public class TableMirror {
                                     TableUtils.makeExternal(target);
                                 }
                                 TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                                TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL_PROPERTIES, target);
+                                TableUtils.removeTblProperty(MirrorConf.BUCKETING_VERSION, target);
                                 break;
                             case SHADOW:
                             case RIGHT:
@@ -1247,11 +1255,15 @@ public class TableMirror {
                                     TableUtils.makeExternal(target);
                                 }
                                 TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                                TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL_PROPERTIES, target);
+                                TableUtils.removeTblProperty(MirrorConf.BUCKETING_VERSION, target);
                         }
 
                     } else if (copySpec.isMakeExternal()) {
                         TableUtils.makeExternal(target);
                         TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
+                        TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL_PROPERTIES, target);
+                        TableUtils.removeTblProperty(MirrorConf.BUCKETING_VERSION, target);
                     }
 
                 }

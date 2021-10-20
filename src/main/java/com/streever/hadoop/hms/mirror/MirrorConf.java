@@ -36,6 +36,8 @@ public class MirrorConf {
     public static final String DISCOVER_PARTITIONS = "discover.partitions";
     public static final String EXTERNAL_TABLE_PURGE = "external.table.purge";
     public static final String TRANSACTIONAL = "transactional";
+    public static final String TRANSACTIONAL_PROPERTIES = "transactional_properties";
+    public static final String BUCKETING_VERSION = "bucketing_version";
     public static final String AVRO_SCHEMA_URL_KEY = "avro.schema.url";
     public static final String TEZ_EXECUTION_DESC = "Set 'tez' as the execution engine";
     public static final String SET_TEZ_AS_EXECUTION_ENGINE = "set hive.execution.engine=tez";
