@@ -6,10 +6,10 @@
 
     <groupId>com.streever.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>1.3.0.17-SNAPSHOT</version>
+    <version>1.3.0.18-SNAPSHOT</version>
     <name>hms-mirror</name>
 
-    <url>https://github.com/dstreev/hms_transparent_mirror</url>
+    <url>https://github.com/dstreev/hms_mirror</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

@@ -176,6 +176,8 @@ public class Cluster implements Comparable<Cluster> {
                             if (config.getDataStrategy() == DataStrategy.DUMP) {
                                 shows.add(MirrorConf.SHOW_TABLES);
                             }
+                        } else {
+                            shows.add(MirrorConf.SHOW_TABLES);
                         }
                     } else {
                         shows.add(MirrorConf.SHOW_TABLES);
