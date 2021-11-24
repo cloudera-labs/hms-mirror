@@ -2,7 +2,7 @@ package com.streever.hadoop.hms.mirror;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streever.hadoop.hms.mirror.feature.Feature;
-import com.streever.hadoop.hms.mirror.feature.Features;
+import com.streever.hadoop.hms.mirror.feature.FeaturesEnum;
 import com.streever.hadoop.hms.util.TableUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.LogManager;
@@ -1343,14 +1343,13 @@ public class TableMirror {
 
                 // 6. Go through the features, if any.
                 if (!config.getSkipFeatures()) {
-                    for (Features features : Features.values()) {
+                    for (FeaturesEnum features : FeaturesEnum.values()) {
                         Feature feature = features.getFeature();
                         LOG.debug("Table: " + getName() + " - Checking Feature: " + features.toString());
-                        if (feature.applicable(target)) {
+                        if (feature.fixSchema(target)) {
                             LOG.debug("Table: " + getName() + " - Feature Applicable: " + features.toString());
                             target.addIssue("Feature (" + features.toString() + ") was found applicable and adjustments applied. " +
                                     feature.getDescription());
-                            target = feature.fixSchema(target);
                         } else {
                             LOG.debug("Table: " + getName() + " - Feature NOT Applicable: " + features.toString());
                         }

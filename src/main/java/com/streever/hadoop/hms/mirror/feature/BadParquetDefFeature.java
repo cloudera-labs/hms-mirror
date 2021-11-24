@@ -23,7 +23,6 @@ public class BadParquetDefFeature extends BaseFeature implements Feature {
                 "remove the invalid declarations and set STORED AS PARQUET";
     }
 
-
     @Override
     public Boolean applicable(EnvironmentTable envTable) {
         return applicable(envTable.getDefinition());
@@ -41,11 +40,7 @@ public class BadParquetDefFeature extends BaseFeature implements Feature {
                 if (of > saiIdx + 1) {
                     // Now check for OUTPUT class match
                     if (schema.get(of + 1).trim().equals(OUTPUT_FORMAT_CLASS)) {
-                        // Check for Serde Class. If not present, we need to fix.
-                        int rowFtSrdClz = indexOf(schema, ROW_FORMAT_SERDE_CLASS);
-                        if (rowFtSrdClz == 0) {
-                            rtn = Boolean.TRUE;
-                        }
+                        rtn = Boolean.TRUE;
                     }
                 }
             }
@@ -55,10 +50,8 @@ public class BadParquetDefFeature extends BaseFeature implements Feature {
     }
 
     @Override
-    public EnvironmentTable fixSchema(EnvironmentTable envTable) {
-        List<String> fixed = fixSchema(envTable.getDefinition());
-        envTable.setDefinition(fixed);
-        return envTable;
+    public Boolean fixSchema(EnvironmentTable envTable) {
+        return fixSchema(envTable.getDefinition());
     }
 
     @Override
@@ -68,44 +61,47 @@ public class BadParquetDefFeature extends BaseFeature implements Feature {
      OUTPUTFORMAT
      'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
      */
-    public List<String> fixSchema(List<String> schema) {
-        List<String> rtn = addEscaped(schema);
-        LOG.debug("Checking if table has bad PARQUET definition");
-        // find the index of the ROW_FORMAT_DELIMITED
+    public Boolean fixSchema(List<String> schema) {
+        if (applicable(schema)) {
+//            schema = addEscaped(schema);
+            LOG.debug("Checking if table has bad PARQUET definition");
+            // find the index of the ROW_FORMAT_DELIMITED
 
-        int startRange = -1;
-        int endRange = -1;
-        int rfdIdx = indexOf(rtn, ROW_FORMAT_DELIMITED);
-        if (rfdIdx > 0) {
-            startRange = rfdIdx;
-        }
-
-        if (startRange == -1) {
-            int rfsIdx = indexOf(rtn, ROW_FORMAT_SERDE);
-            if (rfsIdx > 0) {
-                startRange = rfsIdx;
+            int startRange = -1;
+            int endRange = -1;
+            int rfdIdx = indexOf(schema, ROW_FORMAT_DELIMITED);
+            if (rfdIdx > 0) {
+                startRange = rfdIdx;
             }
-        }
 
-        if (startRange == -1) {
-            int saiIdx = indexOf(rtn, STORED_AS_INPUTFORMAT);
-            if (saiIdx > 0) {
-                startRange = saiIdx;
+            if (startRange == -1) {
+                int rfsIdx = indexOf(schema, ROW_FORMAT_SERDE);
+                if (rfsIdx > 0) {
+                    startRange = rfsIdx;
+                }
             }
-        }
 
-        int of = indexOf(schema, OUTPUTFORMAT);
-        if (of > 0) {
-            endRange = of + 2;
-        }
+            if (startRange == -1) {
+                int saiIdx = indexOf(schema, STORED_AS_INPUTFORMAT);
+                if (saiIdx > 0) {
+                    startRange = saiIdx;
+                }
+            }
 
-        if ((startRange < endRange) & (startRange > 0)) {
-            LOG.debug("BAD PARQUET definition found. Correcting...");
-            removeRange(startRange, endRange, rtn);
-            rtn.add(rfdIdx, STORED_AS_PARQUET);
-        }
+            int of = indexOf(schema, OUTPUTFORMAT);
+            if (of > 0) {
+                endRange = of + 2;
+            }
 
-        return rtn;
+            if ((startRange < endRange) & (startRange > 0)) {
+                LOG.debug("BAD PARQUET definition found. Correcting...");
+                removeRange(startRange, endRange, schema);
+                schema.add(startRange, STORED_AS_PARQUET);
+            }
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
     }
 
 }

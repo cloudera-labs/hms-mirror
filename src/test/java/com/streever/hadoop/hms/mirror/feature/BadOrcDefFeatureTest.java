@@ -4,11 +4,17 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-public class BadOrcDefFeatureTest {
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-    private String[] schema_01 = new String[]{
+public class BadOrcDefFeatureTest extends BaseFeatureTest {
+
+    private Feature feature = new BadOrcDefFeature();
+
+    public static String[] schema_01 = new String[]{
             "        CREATE EXTERNAL TABLE `data`(",
             "            `sys01`timestamp,",
             "            `transactiontype`string,",
@@ -38,7 +44,7 @@ public class BadOrcDefFeatureTest {
             "        'transient_lastDdlTime'='1555609592')"
     };
 
-    private String[] schema_02 = new String[]{
+    public static String[] schema_02 = new String[]{
             " CREATE EXTERNAL TABLE `data`(                 ",
             "   `systime` timestamp,                ",
             "   `transactiontype` string,                        ",
@@ -74,17 +80,18 @@ public class BadOrcDefFeatureTest {
 
     @Test
     public void test_001() {
-        Feature bof = new BadOrcDefFeature();
-        List<String> newSchemaList = bof.fixSchema(Arrays.asList(schema_01));
-        newSchemaList.stream().forEach(System.out::println);
+        List<String> schema = toList(schema_01);
+        Boolean check = feature.fixSchema(schema);
+        assertTrue(check);
+        schema.stream().forEach(System.out::println);
     }
 
     @Test
     public void test_002() {
-        Feature bof = new BadOrcDefFeature();
-        List<String> newSchemaList = bof.fixSchema(Arrays.asList(schema_02));
-        System.out.println(newSchemaList.toString());
-//        newSchemaList.stream().forEach(System.out::println);
+        List<String> schema = toList(schema_02);
+        Boolean check = feature.fixSchema(schema);
+        assertFalse(check);
+        schema.stream().forEach(System.out::println);
     }
 
 }

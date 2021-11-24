@@ -34,20 +34,16 @@ public class BadTextFileDefFeature extends BaseFeature implements Feature {
     @Override
     public Boolean applicable(List<String> schema) {
         Boolean rtn = Boolean.FALSE;
-
         if (contains(ROW_FORMAT_DELIMITED, schema) && contains(WITH_SERDEPROPERTIES, schema)) {
             rtn = Boolean.TRUE;
         }
-
         return rtn;
     }
 
 
     @Override
-    public EnvironmentTable fixSchema(EnvironmentTable envTable) {
-        List<String> fixed = fixSchema(envTable.getDefinition());
-        envTable.setDefinition(fixed);
-        return envTable;
+    public Boolean fixSchema(EnvironmentTable envTable) {
+        return fixSchema(envTable.getDefinition());
     }
 
     @Override
@@ -62,36 +58,40 @@ public class BadTextFileDefFeature extends BaseFeature implements Feature {
      OUTPUTFORMAT
      'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
      */
-    public List<String> fixSchema(List<String> schema) {
-        List<String> rtn = addEscaped(schema);
-        LOG.debug("Checking if table has OLD TEXTFILE definition");
-        // find the index of the ROW_FORMAT_DELIMITED
-        if (contains(ROW_FORMAT_DELIMITED, rtn) && contains(WITH_SERDEPROPERTIES, rtn)) {
-            // Bad Definition.
-            // Get the value for FIELDS_TERMINATED_BY
-            String ftb = getGroupFor(FIELDS_TERMINATED_BY, rtn);
-            if (ftb.equals("\f")) {
-                // Convert to O
-                ftb = "\014";
-            }
-            // Get the value for LINES_TERMINATED_BY
-            String ltb = getGroupFor(LINES_TERMINATED_BY, rtn);
-            // Remove bad elements
-            int RFD = indexOf(rtn, ROW_FORMAT_DELIMITED);
-            int WS = indexOf(rtn, WITH_SERDEPROPERTIES);
-            removeRange(RFD, WS, rtn);
+    public Boolean fixSchema(List<String> schema) {
+        if (applicable(schema)) {
+//            schema = addEscaped(schema);
+            LOG.debug("Checking if table has OLD TEXTFILE definition");
+            // find the index of the ROW_FORMAT_DELIMITED
+            if (contains(ROW_FORMAT_DELIMITED, schema) && contains(WITH_SERDEPROPERTIES, schema)) {
+                // Bad Definition.
+                // Get the value for FIELDS_TERMINATED_BY
+                String ftb = getGroupFor(FIELDS_TERMINATED_BY, schema);
+                if (ftb.equals("\f")) {
+                    // Convert to O
+                    ftb = "\014";
+                }
+                // Get the value for LINES_TERMINATED_BY
+                String ltb = getGroupFor(LINES_TERMINATED_BY, schema);
+                // Remove bad elements
+                int RFD = indexOf(schema, ROW_FORMAT_DELIMITED);
+                int WS = indexOf(schema, WITH_SERDEPROPERTIES);
+                removeRange(RFD, WS, schema);
 
-            rtn.add(RFD++, ROW_FORMAT_SERDE);
-            rtn.add(RFD++, LAZY_SERDE);
-            RFD++;
-            if (ftb != null) {
-                rtn.add(RFD++, "'field.delim'=" + ftb + ",");
+                schema.add(RFD++, ROW_FORMAT_SERDE);
+                schema.add(RFD++, LAZY_SERDE);
+                RFD++;
+                if (ftb != null) {
+                    schema.add(RFD++, "'field.delim'=" + ftb + ",");
+                }
+                if (ltb != null) {
+                    schema.add(RFD++, "'line.delim'=" + ltb + ",");
+                }
             }
-            if (ltb != null) {
-                rtn.add(RFD++, "'line.delim'=" + ltb + ",");
-            }
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
         }
-        return rtn;
     }
 
 }

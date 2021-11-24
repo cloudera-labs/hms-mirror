@@ -4,11 +4,16 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-public class BadRCDefFeatureTest {
+import static org.junit.Assert.assertTrue;
 
-    private String[] schema_01 = new String[]{
+public class BadRCDefFeatureTest extends BaseFeatureTest {
+
+    private Feature feature = new BadRCDefFeature();
+
+    public static String[] schema_01 = new String[]{
             "CREATE EXTERNAL TABLE `data`(",
             "    `sys01`timestamp,",
             "    `transactiontype`string,",
@@ -38,10 +43,10 @@ public class BadRCDefFeatureTest {
 
     @Test
     public void test_001() {
-        List<String> schemaList = new ArrayList<String>();
-        schemaList.addAll(Arrays.asList(schema_01));
-        Feature bof = new BadRCDefFeature();
-        List<String> newSchemaList = bof.fixSchema(schemaList);
-        System.out.println("Hello");
+        List<String> schema = toList(schema_01);
+        Boolean check = feature.fixSchema(schema);
+        assertTrue(check);
+        schema.stream().forEach(System.out::println);
     }
+
 }

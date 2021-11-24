@@ -15,6 +15,9 @@ public class BadOrcDefFeature extends BaseFeature implements Feature {
     private final String ROW_FORMAT_SERDE = "ROW FORMAT SERDE";
     private final String LAZY_SERDE = "'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'";
     private final String ORC_SERDE = "  'org.apache.hadoop.hive.ql.io.orc.OrcSerde'";
+    private final String INPUT_FORMAT_CLASS = "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'";
+    private final String OUTPUT_FORMAT_CLASS = "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'";
+
     private final String STORED_AS_ORC = "STORED AS ORC";
     private static Logger LOG = LogManager.getLogger(BadOrcDefFeature.class);
 
@@ -39,10 +42,10 @@ public class BadOrcDefFeature extends BaseFeature implements Feature {
             // Find the "STORED AS INPUTFORMAT" index
             int saiIdx = indexOf(schema, STORED_AS_INPUTFORMAT);
             if (saiIdx > rfdIdx) {
-                if (schema.get(saiIdx + 1).trim().equals("'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'")) {
+                if (schema.get(saiIdx + 1).trim().equals(INPUT_FORMAT_CLASS)) {
                     int of = indexOf(schema, OUTPUTFORMAT);
                     if (of > saiIdx + 1) {
-                        if (schema.get(of + 1).trim().equals("'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'")) {
+                        if (schema.get(of + 1).trim().equals(OUTPUT_FORMAT_CLASS)) {
                             rtn = Boolean.TRUE;
                         }
                     }
@@ -54,10 +57,8 @@ public class BadOrcDefFeature extends BaseFeature implements Feature {
     }
 
     @Override
-    public EnvironmentTable fixSchema(EnvironmentTable envTable) {
-        List<String> fixed = fixSchema(envTable.getDefinition());
-        envTable.setDefinition(fixed);
-        return envTable;
+    public Boolean fixSchema(EnvironmentTable envTable) {
+        return fixSchema(envTable.getDefinition());
     }
 
     @Override
@@ -70,29 +71,33 @@ public class BadOrcDefFeature extends BaseFeature implements Feature {
      * OUTPUTFORMAT
      *   'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'
      */
-    public List<String> fixSchema(List<String> schema) {
-        List<String> rtn = addEscaped(schema);
-        LOG.debug("Checking if table has bad ORC definition");
-        // find the index of the ROW_FORMAT_DELIMITED
-        int rfdIdx = indexOf(rtn, ROW_FORMAT_DELIMITED);
-        if (rfdIdx > 0) {
-            // Find the "STORED AS INPUTFORMAT" index
-            int saiIdx = indexOf(rtn, STORED_AS_INPUTFORMAT);
-            if (saiIdx > rfdIdx) {
-                if (rtn.get(saiIdx + 1).trim().equals("'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'")) {
-                    int of = indexOf(rtn, OUTPUTFORMAT);
-                    if (of > saiIdx + 1) {
-                        if (rtn.get(of + 1).trim().equals("'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'")) {
-                            LOG.debug("BAD ORC definition found. Correcting...");
-                            // All matches.  Need to replace with serde
-                            removeRange(rfdIdx, of+2, rtn);
-                            rtn.add(rfdIdx, STORED_AS_ORC);
+    public Boolean fixSchema(List<String> schema) {
+        if (applicable(schema)) {
+//            schema = addEscaped(schema);
+            LOG.debug("Checking if table has bad ORC definition");
+            // find the index of the ROW_FORMAT_DELIMITED
+            int rfdIdx = indexOf(schema, ROW_FORMAT_DELIMITED);
+            if (rfdIdx > 0) {
+                // Find the "STORED AS INPUTFORMAT" index
+                int saiIdx = indexOf(schema, STORED_AS_INPUTFORMAT);
+                if (saiIdx > rfdIdx) {
+                    if (schema.get(saiIdx + 1).trim().equals("'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'")) {
+                        int of = indexOf(schema, OUTPUTFORMAT);
+                        if (of > saiIdx + 1) {
+                            if (schema.get(of + 1).trim().equals("'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'")) {
+                                LOG.debug("BAD ORC definition found. Correcting...");
+                                // All matches.  Need to replace with serde
+                                removeRange(rfdIdx, of + 2, schema);
+                                schema.add(rfdIdx, STORED_AS_ORC);
+                            }
                         }
                     }
                 }
             }
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
         }
-        return rtn;
     }
 
 }
