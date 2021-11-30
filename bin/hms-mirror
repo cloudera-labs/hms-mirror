@@ -120,6 +120,6 @@ fi
 
 $(${JAVA} -version)
 
-CLI_CMD="${JAVA} -cp ${CMD_CP} ${APP_JAVA_OPTS} com.streever.hadoop.hms.Mirror ${PRG_ARGS}"
+CLI_CMD="${JAVA} -cp ${CMD_CP} ${APP_JAVA_OPTS} com.cloudera.utils.hadoop.hms.Mirror ${PRG_ARGS}"
 
 eval "${CLI_CMD}"
