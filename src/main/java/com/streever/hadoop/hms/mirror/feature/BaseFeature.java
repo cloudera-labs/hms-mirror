@@ -52,23 +52,23 @@ public abstract class BaseFeature {
         Boolean rtn = Boolean.FALSE;
         if (from < to) {
             for (int i = from; i < to; i++) {
-                definition.remove(from);
+                ((ArrayList)definition).remove(from);
             }
         }
         return rtn;
     }
 
-    public List<String> addEscaped(List<String> definition) {
-        List<String> escapedList = new ArrayList<String>();
-        for (String line : definition) {
-            // Causing too many level of escapes.
-//            if (line.contains("escape.delim")) {
-//                String escapedLine = StringEscapeUtils.escapeJava(line);
-//                escapedList.add(escapedLine);
-//            } else {
-                escapedList.add(line);
-//            }
-        }
-        return escapedList;
-    }
+//    public List<String> addEscaped(List<String> definition) {
+//        List<String> escapedList = new ArrayList<String>();
+//        for (String line : definition) {
+//            // Causing too many level of escapes.
+////            if (line.contains("escape.delim")) {
+////                String escapedLine = StringEscapeUtils.escapeJava(line);
+////                escapedList.add(escapedLine);
+////            } else {
+//                escapedList.add(line);
+////            }
+//        }
+//        return escapedList;
+//    }
 }

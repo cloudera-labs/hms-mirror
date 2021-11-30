@@ -2,12 +2,18 @@ package com.streever.hadoop.hms.mirror.feature;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-public class BadTextfileDefFeatureTest {
+import static org.junit.Assert.assertTrue;
 
-    private String[] schema_01 = new String[]{
+public class BadTextfileDefFeatureTest extends BaseFeatureTest {
+
+    private Feature feature = new BadTextFileDefFeature();
+
+    public static String[] schema_01 = new String[]{
             "CREATE EXTERNAL TABLE `thing_two`(",
             "  `fund` int, ",
             "  `ent_id` varchar(10), ",
@@ -41,7 +47,7 @@ public class BadTextfileDefFeatureTest {
             "  'transient_lastDdlTime'='1468009889');"
     };
 
-    private String[] schema_02 = new String[]{
+    public static String[] schema_02 = new String[]{
             "CREATE EXTERNAL TABLE `cp`(",
             "  `internal_id` bigint, ",
             "  `cm_pgm_num` varchar(30), ",
@@ -102,16 +108,18 @@ public class BadTextfileDefFeatureTest {
 
     @Test
     public void test_001() {
-        Feature bof = new BadTextFileDefFeature();
-        List<String> newSchemaList = bof.fixSchema(Arrays.asList(schema_01));
-        newSchemaList.stream().forEach(System.out::println);
+        List<String> schema = toList(schema_01);
+        Boolean check = feature.fixSchema(schema);
+        assertTrue(check);
+        schema.stream().forEach(System.out::println);
     }
 
     @Test
     public void test_002() {
-        Feature bof = new BadTextFileDefFeature();
-        List<String> newSchemaList = bof.fixSchema(Arrays.asList(schema_02));
-        newSchemaList.stream().forEach(System.out::println);
+        List<String> schema = toList(schema_02);
+        Boolean check = feature.fixSchema(schema);
+        assertTrue(check);
+        schema.stream().forEach(System.out::println);
     }
 
 }
