@@ -112,8 +112,12 @@ public class Reporter implements Runnable {
     }
 
     public void refresh(Boolean showAll) {
-        populateVarMap();
-        displayReport(showAll);
+        try {
+            populateVarMap();
+            displayReport(showAll);
+        } catch (ConcurrentModificationException cme) {
+            LOG.error("Report Refresh", cme);
+        }
     }
 
     private boolean tiktok = false;
