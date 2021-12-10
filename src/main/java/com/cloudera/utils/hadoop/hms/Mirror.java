@@ -369,6 +369,12 @@ public class Mirror {
                     config.setDumpSource(Environment.LEFT);
                 }
             }
+            if (config.getDataStrategy() == DataStrategy.LINKED) {
+                if (cmd.hasOption("ma") || cmd.hasOption("mao")) {
+                    LOG.error("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy.");
+                    throw new RuntimeException("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy.");
+                }
+            }
         }
 
         // To keep the connections and remainder of the processing in place, set the env for the cluster
@@ -382,6 +388,7 @@ public class Mirror {
         if (cmd.hasOption("is")) {
             config.getTransfer().setIntermediateStorage(cmd.getOptionValue("is"));
         }
+
 
         if (cmd.hasOption("ro")) {
             switch (config.getDataStrategy()) {

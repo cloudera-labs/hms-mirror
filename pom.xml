@@ -364,7 +364,7 @@
                                     <include>com.fasterxml.jackson.core:*</include>
                                     <include>com.fasterxml.jackson.dataformat:*</include>
                                     <include>org.yaml:snakeyaml</include>
-                                    <include>com.streever.hadoop:*</include>
+                                    <include>com.cloudera.utils:*</include>
                                     <include>org.commonmark:*</include>
                                     <include>org.apache.commons:commons-dbcp2</include>
                                     <include>org.apache.commons:commons-pool2</include>
