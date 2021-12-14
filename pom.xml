@@ -80,7 +80,7 @@
         <!--        <hadoop.major>3.1</hadoop.major>-->
         <!--        <hive.version>3.1.1</hive.version>-->
 
-        <hadoop-cli.version>2.4.0.0-SNAPSHOT</hadoop-cli.version>
+        <hadoop-cli.version>2.4.0.3-SNAPSHOT</hadoop-cli.version>
 
     </properties>
 
