@@ -73,10 +73,13 @@ public class Conversion {
 
     public String executeSql(Environment environment, String database) {
         StringBuilder sb = new StringBuilder();
-        sb.append("-- EXECUTION script for ").append(Environment.RIGHT).append(" cluster\n\n");
+        sb.append("-- EXECUTION script for ").append(database).append(" on ").append(Environment.RIGHT).append(" cluster\n\n");
         sb.append("-- ").append(new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date()));
         sb.append("-- These are the command run on the RIGHT cluster when `-e` is used.\n");
         DBMirror dbMirror = databases.get(database);
+        String[] dbcreate = dbMirror.dbCreate(getConfig());
+        sb.append("\n\n-- CREATE DATABASE ").append(database).append("\n");
+        sb.append(dbcreate[0]).append(";\n");
         Set<String> tables = dbMirror.getTableMirrors().keySet();
         for (String table : tables) {
             TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
