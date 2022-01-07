@@ -79,6 +79,10 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
 
 <!-- tocstop -->
 
+## Quick Start Scenarios
+
+[On-prem Sidecar Migrations](./use_cases/on-prem_legacy_to_non-legacy.md)
+
 ## WARNING
 
 ### Building METADATA
@@ -975,6 +979,8 @@ The `-ma` (migrate acid) tables option is NOT valid in this scenario and will re
 [Sample Reports - LINKED](./sample_reports/linked)
 
 ![linked](./images/linked.png)
+
+WARNING:  If the LOCATION element is specified in the database definition AND you use `DROP DATABASE ... CASCADE` from the RIGHT cluster, YOU WILL DROP THE DATA ON THE LEFT CLUSTER even though the tables are NOT purgeable.  This is the DEFAULT behavior of hive 'DROP DATABASE'.  So BE CAREFUL!!!!
 
 ### SQL
 

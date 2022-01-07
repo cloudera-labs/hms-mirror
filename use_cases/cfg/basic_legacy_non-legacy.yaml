@@ -1,0 +1,39 @@
+transfer:
+  concurrency: 10
+  transferPrefix: "hms_mirror_transfer_"
+  exportBaseDirPrefix: "/apps/hive/warehouse/export_"
+  intermediateStorage: null
+clusters:
+  LEFT:
+    environment: "LEFT"
+    legacyHive: true
+    hcfsNamespace: "hdfs://HDP50"
+    hiveServer2:
+      uri: "jdbc:hive2://k02.streever.local:10000/perf_test"
+      connectionProperties:
+        user: "*****"
+        maxWaitMillis: "5000"
+        password: "*******"
+        maxTotal: "-1"
+      # NOTE: This HS2 endpoint is NOT Kerberized, so we need to reference the jdbc jar file.
+      jarFile: "/home/dstreev/.hms-mirror/aux_libs/ext/hive-jdbc-1.2.1000.2.6.5.1175-1-standalone.jar"
+    partitionDiscovery:
+      auto: true
+      initMSCK: true
+  RIGHT:
+    environment: "RIGHT"
+    legacyHive: false
+    hcfsNamespace: "hdfs://HOME90"
+    hiveServer2:
+      uri: "jdbc:hive2://s03.streever.local:8443/perf_test;ssl=true;transportMode=http;httpPath=gateway/cdp-proxy-api/hive;sslTrustStore=/home/dstreev/bin/certs/gateway-client-trust.jks;trustStorePassword=changeit"
+      connectionProperties:
+        user: "****"
+        maxWaitMillis: "5000"
+        password: "*****"
+        maxTotal: "-1"
+      # NOTE: This HS2 endpoint is NOT Kerberized, so we need to reference the jdbc jar file.
+      # The endpoint for this CDP cluster is actually KNOX, so we can avoid the Kerberos complexities
+      jarFile: "/home/dstreev/.hms-mirror/aux_libs/ext/hive-jdbc-3.1.3000.7.1.7.0-551-standalone.jar"
+    partitionDiscovery:
+      auto: true
+      initMSCK: true
