@@ -12,6 +12,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
 
 <!-- toc -->
 
+- [Quick Start Scenarios](#quick-start-scenarios)
 - [WARNING](#warning)
   * [Building METADATA](#building-metadata)
   * [Partition Handling for Data Transfers](#partition-handling-for-data-transfers)
@@ -19,6 +20,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
 - [Features](#features)
   * [VIEWS](#views)
   * [ACID Tables](#acid-tables)
+  * [Non-Native Hive Tables (Hbase, KAFKA, JDBC, Druid, etc..)](#non-native-hive-tables-hbase-kafka-jdbc-druid-etc)
   * [AVRO Tables](#avro-tables)
   * [Table Translations](#table-translations)
   * [`distcp` Planning Workbook and Scripts](#distcp-planning-workbook-and-scripts)
@@ -28,6 +30,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Quick Start](#quick-start)
   * [General Guidance](#general-guidance)
 - [Optimizations](#optimizations)
+- [Controlling the YARN Queue that runs the SQL queries from `hms-mirror`](#controlling-the-yarn-queue-that-runs-the-sql-queries-from-hms-mirror)
   * [Make Backups before running `hms-mirror`](#make-backups-before-running-hms-mirror)
   * [Isolate Migration Activities](#isolate-migration-activities)
   * [Speed up CREATE/ALTER Table Statements - with existing data](#speed-up-createalter-table-statements---with-existing-data)
@@ -272,6 +275,12 @@ Under certain conditions, you may need to run `hms-mirror` from the *LEFT* clust
 Moving metadata and data between two clusters is a pretty straightforward process but depends entirely on the proper configurations in each cluster.  Listed here are a few tips on some crucial configurations.
 
 NOTE: HMS-Mirror only moves data with the [SQL](#sql) and [EXPORT_IMPORT](#export-import) data strategies.  All other strategies either use the data as-is ([LINKED](#linked) or [COMMON](#common)) or depend on the data being moved by something like `distcp`.
+
+## Controlling the YARN Queue that runs the SQL queries from `hms-mirror`
+
+Use the jdbc url defined in `default.yaml` to set a queue.
+
+`jdbc:hive2://host:10000/.....;...?tez.queue.name=batch`
 
 ### Make Backups before running `hms-mirror`
 
