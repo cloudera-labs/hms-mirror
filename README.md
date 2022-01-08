@@ -30,7 +30,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Quick Start](#quick-start)
   * [General Guidance](#general-guidance)
 - [Optimizations](#optimizations)
-- [Controlling the YARN Queue that runs the SQL queries from `hms-mirror`](#controlling-the-yarn-queue-that-runs-the-sql-queries-from-hms-mirror)
+  * [Controlling the YARN Queue that runs the SQL queries from `hms-mirror`](#controlling-the-yarn-queue-that-runs-the-sql-queries-from-hms-mirror)
   * [Make Backups before running `hms-mirror`](#make-backups-before-running-hms-mirror)
   * [Isolate Migration Activities](#isolate-migration-activities)
   * [Speed up CREATE/ALTER Table Statements - with existing data](#speed-up-createalter-table-statements---with-existing-data)
@@ -276,7 +276,7 @@ Moving metadata and data between two clusters is a pretty straightforward proces
 
 NOTE: HMS-Mirror only moves data with the [SQL](#sql) and [EXPORT_IMPORT](#export-import) data strategies.  All other strategies either use the data as-is ([LINKED](#linked) or [COMMON](#common)) or depend on the data being moved by something like `distcp`.
 
-## Controlling the YARN Queue that runs the SQL queries from `hms-mirror`
+### Controlling the YARN Queue that runs the SQL queries from `hms-mirror`
 
 Use the jdbc url defined in `default.yaml` to set a queue.
 
