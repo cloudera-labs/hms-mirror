@@ -20,7 +20,9 @@ transfer:
   # This directory is appended to the 'clusters:...:hcfsNamespace' value to store the transfer package for hive export/import.
   # Optional (default: '/apps/hive/warehouse/export_')
   exportBaseDirPrefix: "/apps/hive/warehouse/export_"
-  storageMigrationTarget: "ofs://OHOME90"
+  storageMigration:
+    target: "ofs://OHOME90"
+    strategy: "SQL"
   pathMappings:
     - from: "/warehouse/tablespace/managed"
       to: "/warehouse/managed"

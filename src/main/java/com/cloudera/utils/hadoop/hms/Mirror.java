@@ -376,10 +376,21 @@ public class Mirror {
                 }
             }
             if (config.getDataStrategy() == DataStrategy.STORAGE_MIGRATION) {
+                if (config.getTransfer().getStorageMigration() == null)
+                    config.getTransfer().setStorageMigration(new StorageMigration());
                 if (cmd.hasOption("smt")) {
-                    config.getTransfer().setStorageMigrationTarget(cmd.getOptionValue("smt"));
+                    config.getTransfer().getStorageMigration().setTarget(cmd.getOptionValue("smt"));
                 }
-                if (config.getTransfer().getStorageMigrationTarget() == null) {
+                if (cmd.hasOption("sms")) {
+                    try {
+                        DataStrategy migrationStrategy = DataStrategy.valueOf(cmd.getOptionValue("sms"));
+                        config.getTransfer().getStorageMigration().setStrategy(migrationStrategy);
+                    } catch (Throwable t) {
+                        LOG.error("Only SQL,EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
+                        throw new RuntimeException("Only SQL,EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
+                    }
+                }
+                if (config.getTransfer().getStorageMigration().getTarget() == null) {
                     LOG.error("The Storage Migration Target must be set.  Use either the commandline option -smt or " +
                             "set it in the configuration (transfer->storageMigrationTarget");
                     throw new RuntimeException("The Storage Migration Target must be set.  Use either the commandline " +
@@ -1019,6 +1030,13 @@ public class Mirror {
         storageMigrationTargetOption.setRequired(Boolean.FALSE);
         storageMigrationTargetOption.setArgName("Storage Migration Target Namespace");
         options.addOption(storageMigrationTargetOption);
+
+        Option storageMigrationStrategyOption = new Option("sms", "storage-migration-strategy", true,
+                "Optional: Used with the 'data strategy' STORAGE_MIGRATION to specify the technique used to migration.  " +
+                        "Options are: [SQL,EXPORT_IMPORT,HYBRID]. Default is SQL");
+        storageMigrationStrategyOption.setRequired(Boolean.FALSE);
+        storageMigrationStrategyOption.setArgName("Storage Migration Strategy");
+        options.addOption(storageMigrationStrategyOption);
 
         Option dbOption = new Option("db", "database", true,
                 "Comma separated list of Databases (upto 100).");

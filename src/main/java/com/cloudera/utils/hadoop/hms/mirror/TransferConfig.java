@@ -23,7 +23,7 @@ public class TransferConfig {
     private String transferPrefix = "hms_mirror_transfer_";
     private String exportBaseDirPrefix = "/apps/hive/warehouse/export_";
     private String intermediateStorage = null;
-    private String storageMigrationTarget = null;
+    private StorageMigration storageMigration = null;
     private List<Mapping> pathMappings = null;
 
     public int getConcurrency() {
@@ -58,12 +58,12 @@ public class TransferConfig {
         this.intermediateStorage = intermediateStorage;
     }
 
-    public String getStorageMigrationTarget() {
-        return storageMigrationTarget;
+    public StorageMigration getStorageMigration() {
+        return storageMigration;
     }
 
-    public void setStorageMigrationTarget(String storageMigrationTarget) {
-        this.storageMigrationTarget = storageMigrationTarget;
+    public void setStorageMigration(StorageMigration storageMigration) {
+        this.storageMigration = storageMigration;
     }
 
     public List<Mapping> getPathMappings() {
