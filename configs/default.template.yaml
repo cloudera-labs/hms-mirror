@@ -14,16 +14,22 @@
 
 transfer:
   # Optional (default: 4)
-  concurrency: 10
+  concurrency:         10
   # Optional (default: 'transfer_')
-  transferPrefix: "transfer_"
+  transferPrefix:      "transfer_"
   # This directory is appended to the 'clusters:...:hcfsNamespace' value to store the transfer package for hive export/import.
   # Optional (default: '/apps/hive/warehouse/export_')
   exportBaseDirPrefix: "/apps/hive/warehouse/export_"
+  storageMigrationTarget: "ofs://OHOME90"
+  pathMappings:
+    - from: "/warehouse/tablespace/managed"
+      to: "/warehouse/managed"
+    - from: "/warehouse/tablespace/external"
+      to: "/warehouse/external"
 clusters:
   LEFT:
     # Set for Hive 1/2 environments
-    legacyHive: true
+    legacyHive:    true
     # Is the 'Hadoop COMPATIBLE File System' used to prefix data locations for this cluster.
     # It is mainly used as the transfer location for metadata (export)
     # If the primary storage for this cluster is 'hdfs' than use 'hdfs://...'
@@ -34,15 +40,15 @@ clusters:
       # URI is the Hive JDBC URL in the form of:
       # jdbc:hive2://<server>:<port>
       # See docs for restrictions
-      uri: "<LEFT-cluster-jdbc-url>"
+      uri:     "<LEFT-cluster-jdbc-url>"
       connectionProperties:
-        user: "*****"
+        user:     "*****"
         password: "*****"
       # Standalone jar file used to connect via JDBC to the LEFT environment Hive Server 2
       # NOTE: Hive 3 jars will NOT work against Hive 1.  The protocol isn't compatible.
       jarFile: "<environment-specific-jdbc-standalone-driver>"
   RIGHT:
-    legacyHive: false
+    legacyHive:    false
     # Is the 'Hadoop COMPATIBLE File System' used to prefix data locations for this cluster.
     # It is mainly used to as a baseline for where "DATA" will be transfered in the
     # STORAGE stage.  The data location in the source location will be move to this
@@ -56,15 +62,15 @@ clusters:
       # URI is the Hive JDBC URL in the form of:
       # jdbc:hive2://<server>:<port>
       # See docs for restrictions
-      uri: "<RIGHT-cluster-jdbc-url>"
+      uri:     "<RIGHT-cluster-jdbc-url>"
       connectionProperties:
-        user: "*****"
+        user:     "*****"
         password: "*****"
       # Standalone jar file used to connect via JDBC to the LEFT environment Hive Server 2
       # NOTE: Hive 3 jars will NOT work against Hive 1.  The protocol isn't compatible.
       jarFile: "<environment-specific-jdbc-standalone-driver>"
     partitionDiscovery:
       # Addition HMS configuration needed for this "discover.partitions"="true"
-      auto: true
+      auto:     true
       # When a table is created, run MSCK when there are partitions.
       initMSCK: true

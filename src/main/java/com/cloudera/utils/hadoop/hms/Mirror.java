@@ -375,6 +375,17 @@ public class Mirror {
                     throw new RuntimeException("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy.");
                 }
             }
+            if (config.getDataStrategy() == DataStrategy.STORAGE_MIGRATION) {
+                if (cmd.hasOption("smt")) {
+                    config.getTransfer().setStorageMigrationTarget(cmd.getOptionValue("smt"));
+                }
+                if (config.getTransfer().getStorageMigrationTarget() == null) {
+                    LOG.error("The Storage Migration Target must be set.  Use either the commandline option -smt or " +
+                            "set it in the configuration (transfer->storageMigrationTarget");
+                    throw new RuntimeException("The Storage Migration Target must be set.  Use either the commandline " +
+                            "option -smt or set it in the configuration (transfer->storageMigrationTarget");
+                }
+            }
         }
 
         // To keep the connections and remainder of the processing in place, set the env for the cluster
@@ -1002,6 +1013,12 @@ public class Mirror {
         dbPrefixOption.setRequired(Boolean.FALSE);
         dbPrefixOption.setArgName("prefix");
         options.addOption(dbPrefixOption);
+
+        Option storageMigrationTargetOption = new Option("smt", "storage-migration-target", true,
+                "Optional: Used with the 'data strategy STORAGE_MIGRATION to specify the target namespace.");
+        storageMigrationTargetOption.setRequired(Boolean.FALSE);
+        storageMigrationTargetOption.setArgName("Storage Migration Target Namespace");
+        options.addOption(storageMigrationTargetOption);
 
         Option dbOption = new Option("db", "database", true,
                 "Comma separated list of Databases (upto 100).");

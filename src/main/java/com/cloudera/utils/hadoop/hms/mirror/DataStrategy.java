@@ -22,10 +22,8 @@ import java.util.List;
 public enum DataStrategy {
     /*
     The DUMP strategy will run against the LEFT cluster (attaching to it) and build scripts
-    that can be applied to the RIGHT cluster, without having to connect to the RIGHT cluster.
-
-    All other attributes of the RIGHT cluster will be considered in the conversion, we just won't
-    connect.  Check the output sql for the scripts to run.
+     based on the configuration in that cluster.  You can optionally use the -ds|--dump-source
+     option to use the RIGHT cluster as the target for the dump.
      */
     DUMP(Boolean.FALSE),
     /*
@@ -56,6 +54,10 @@ public enum DataStrategy {
     tables data strategy depending on the criteria of the table.
      */
     HYBRID(Boolean.FALSE),
+    /*
+
+     */
+    STORAGE_MIGRATION(Boolean.FALSE),
     /*
     The data storage is shared between the two clusters and no data
     migration is required.  Schema's are transferred using the same

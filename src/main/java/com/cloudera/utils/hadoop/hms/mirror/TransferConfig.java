@@ -16,11 +16,15 @@
 
 package com.cloudera.utils.hadoop.hms.mirror;
 
+import java.util.List;
+
 public class TransferConfig {
     private int concurrency = 4;
     private String transferPrefix = "hms_mirror_transfer_";
     private String exportBaseDirPrefix = "/apps/hive/warehouse/export_";
     private String intermediateStorage = null;
+    private String storageMigrationTarget = null;
+    private List<Mapping> pathMappings = null;
 
     public int getConcurrency() {
         return concurrency;
@@ -52,5 +56,21 @@ public class TransferConfig {
 
     public void setIntermediateStorage(String intermediateStorage) {
         this.intermediateStorage = intermediateStorage;
+    }
+
+    public String getStorageMigrationTarget() {
+        return storageMigrationTarget;
+    }
+
+    public void setStorageMigrationTarget(String storageMigrationTarget) {
+        this.storageMigrationTarget = storageMigrationTarget;
+    }
+
+    public List<Mapping> getPathMappings() {
+        return pathMappings;
+    }
+
+    public void setPathMappings(List<Mapping> pathMappings) {
+        this.pathMappings = pathMappings;
     }
 }
