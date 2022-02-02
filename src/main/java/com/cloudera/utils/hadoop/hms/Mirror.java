@@ -743,9 +743,9 @@ public class Mirror {
             distcpScriptFW.append("# 2. Export an env var 'HCFS_BASE_DIR' that represents where these files where placed.").append("\n");
             distcpScriptFW.append("#      NOTE: ${HCFS_BASE_DIR} must be available to the user running 'distcp'").append("\n");
             distcpScriptFW.append("# 3. Export an env var 'DISTCP_OPTS' with any special settings needed to run the job.").append("\n");
-            distcpScriptFW.append("       For large jobs, you may need to adjust memory settings.").append("\n");
+            distcpScriptFW.append("#      For large jobs, you may need to adjust memory settings.").append("\n");
             distcpScriptFW.append("# 4. Run the following in an order or framework that is appropriate for your environment.").append("\n");
-            distcpScriptFW.append("       These aren't necessarily expected to run in this shell script as is in production.").append("\n");
+            distcpScriptFW.append("#       These aren't necessarily expected to run in this shell script as is in production.").append("\n");
             distcpScriptFW.append("\n");
             distcpScriptFW.append("\n");
 
