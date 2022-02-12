@@ -333,6 +333,13 @@ public class Mirror {
             }
         }
 
+        if (config.getMigrateACID().isOn()) {
+            if (cmd.hasOption("da")) {
+                // Downgrade ACID tables
+                config.getMigrateACID().setDowngrade(Boolean.TRUE);
+            }
+        }
+
         if (cmd.hasOption("mnn")) {
             config.setMigratedNonNative(Boolean.TRUE);
         }
@@ -937,6 +944,11 @@ public class Mirror {
         maOption.setOptionalArg(Boolean.TRUE);
         maOption.setRequired(Boolean.FALSE);
         options.addOption(maOption);
+
+        Option daOption = new Option("da", "downgrade-acid", false,
+                "Downgrade ACID tables to EXTERNAL tables with purge.");
+        daOption.setRequired(Boolean.FALSE);
+        options.addOption(daOption);
 
         // Non Native Migrations
         Option mnnOption = new Option("mnn", "migrate-non-native", false,

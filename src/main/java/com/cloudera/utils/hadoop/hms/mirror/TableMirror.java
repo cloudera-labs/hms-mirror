@@ -692,6 +692,17 @@ public class TableMirror {
         if (!TableUtils.isACID(let)) {
             // Managed to EXTERNAL
             rightSpec.setUpgrade(Boolean.TRUE);
+        } else {
+            // ACID
+            if (config.getMigrateACID().isDowngrade()) {
+                rightSpec.setMakeExternal(Boolean.TRUE);
+                // Use the system default EXTERNAL location when converting.
+                rightSpec.setStripLocation(Boolean.TRUE);
+                // Strip the Transactional Elements
+                rightSpec.setMakeNonTransactional(Boolean.TRUE);
+                // Set Purge Flag
+                rightSpec.setTakeOwnership(Boolean.TRUE);
+            }
         }
 
         // Build Target from Source.
@@ -1269,6 +1280,9 @@ public class TableMirror {
                             case RIGHT:
                                 if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
                                     TableUtils.makeExternal(target);
+                                }
+                                if (copySpec.getTakeOwnership()) {
+                                    TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true", target);
                                 }
                                 TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
                                 TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL_PROPERTIES, target);
