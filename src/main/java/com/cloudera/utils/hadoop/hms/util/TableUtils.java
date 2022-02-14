@@ -620,8 +620,18 @@ public class TableUtils {
             if (line.contains(MirrorConf.AVRO_SCHEMA_URL_KEY)) {
                 try {
                     String[] parts = line.split("=");
-                    // Stripe Quotes
-                    rtn = parts[1].replace("'", " ").replace(",", "").trim();
+                    if (parts.length > 2) {
+                        StringBuilder sb = new StringBuilder();
+                        for (int i=1;i<parts.length;i++) {
+                            sb.append(parts[i]);
+                            if (i<parts.length-1)
+                                sb.append("=");
+                        }
+                        rtn = sb.toString().replace("'", " ").replace(",", "").trim();
+                    } else {
+                        // Stripe Quotes
+                        rtn = parts[1].replace("'", " ").replace(",", "").trim();
+                    }
                     break;
                 } catch (Throwable t) {
                     // Nothing, just return null.
