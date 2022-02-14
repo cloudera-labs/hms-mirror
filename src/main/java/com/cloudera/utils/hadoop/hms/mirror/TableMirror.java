@@ -630,8 +630,8 @@ public class TableMirror {
         let = getEnvironmentTable(Environment.LEFT);
         ret = getEnvironmentTable(Environment.RIGHT);
 
-        if (!TableUtils.isHiveNative(let) || TableUtils.isACID(let)) {
-            let.addIssue("Can't process ACID tables, VIEWs, or Non Native Hive Tables with this strategy.");
+        if (!TableUtils.isHiveNative(let)) {
+            let.addIssue("Can't process VIEWs, or Non Native Hive Tables with this strategy.");
             return Boolean.FALSE;
         }
 
@@ -1086,8 +1086,16 @@ public class TableMirror {
         }
         String sourceLocation = TableUtils.getLocation(let.getName(), let.getDefinition());
         String targetLocation = config.getTranslator().translateTableLocation(database, let.getName(), sourceLocation, config);
-
-        String importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, ret.getName(), importLoc, targetLocation);
+        String importSql;
+        if (TableUtils.isACID(let.getName(), let.getDefinition())) {
+            if (!config.getMigrateACID().isDowngrade()) {
+                importSql = MessageFormat.format(MirrorConf.IMPORT_TABLE, ret.getName(), importLoc);
+            } else {
+                importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, ret.getName(), importLoc);
+            }
+        } else {
+            importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, ret.getName(), importLoc, targetLocation);
+        }
         ret.addSql(TableUtils.IMPORT_TABLE, importSql);
 
         rtn = Boolean.TRUE;

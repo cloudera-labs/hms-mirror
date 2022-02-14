@@ -29,9 +29,19 @@ public class MirrorTest {
     }
 
     @Test
+    public void test_so() {
+        String outputDir = homedir + System.getProperty("file.separator") + "hms-mirror-reports/so";
+        String[] args = new String[]{"-db", "tpcds_bin_partitioned_orc_10", "-o", outputDir};
+
+        Mirror mirror = new Mirror();
+        mirror.init(args);
+        mirror.doit();
+    }
+
+    @Test
     public void test_so_ro() {
         String outputDir = homedir + System.getProperty("file.separator") + "hms-mirror-reports/so_ro";
-        String[] args = new String[]{"-db", "tpcds_bin_partitioned_orc_10", "-ro", "-sql",  "-o", outputDir};
+        String[] args = new String[]{"-db", "tpcds_bin_partitioned_orc_10", "-ro", "-o", outputDir};
 
         Mirror mirror = new Mirror();
         mirror.init(args);
@@ -117,5 +127,77 @@ public class MirrorTest {
         mirror.init(args);
         mirror.doit();
     }
+
+    @Test
+    public void test_acid() {
+        String outputDir = homedir + System.getProperty("file.separator") + "hms-mirror-reports/acid";
+        String[] args = new String[]{"-d", "SCHEMA_ONLY", "-db", "tpcds_bin_partitioned_orc_10", "-mao", "-o", outputDir};
+
+        Mirror mirror = new Mirror();
+        mirror.init(args);
+        mirror.doit();
+    }
+
+    @Test
+    public void test_acid_exp_imp() {
+        String outputDir = homedir + System.getProperty("file.separator") + "hms-mirror-reports/acid_exp_imp";
+        String[] args = new String[]{"-d", "EXPORT_IMPORT", "-db", "tpcds_bin_partitioned_orc_10", "-mao", "-o", outputDir};
+
+        Mirror mirror = new Mirror();
+        mirror.init(args);
+        mirror.doit();
+    }
+
+    @Test
+    public void test_acid_exp_imp_da() {
+        String outputDir = homedir + System.getProperty("file.separator") + "hms-mirror-reports/acid_exp_imp_da";
+        String[] args = new String[]{"-d", "EXPORT_IMPORT", "-db", "tpcds_bin_partitioned_orc_10", "-mao", "-da", "-o", outputDir};
+
+        Mirror mirror = new Mirror();
+        mirror.init(args);
+        mirror.doit();
+    }
+
+    @Test
+    public void test_acid_sql() {
+        String outputDir = homedir + System.getProperty("file.separator") + "hms-mirror-reports/acid_sql";
+        String[] args = new String[]{"-d", "SQL", "-db", "tpcds_bin_partitioned_orc_10", "-mao", "-o", outputDir};
+
+        Mirror mirror = new Mirror();
+        mirror.init(args);
+        mirror.doit();
+    }
+
+    @Test
+    public void test_acid_sql_da() {
+        String outputDir = homedir + System.getProperty("file.separator") + "hms-mirror-reports/acid_sql_da";
+        String[] args = new String[]{"-d", "SQL", "-db", "tpcds_bin_partitioned_orc_10", "-mao", "-da", "-o", outputDir};
+
+        Mirror mirror = new Mirror();
+        mirror.init(args);
+        mirror.doit();
+    }
+
+    @Test
+    public void test_acid_hybrid() {
+        String outputDir = homedir + System.getProperty("file.separator") + "hms-mirror-reports/acid_hybrid";
+        String[] args = new String[]{"-d", "HYBRID", "-db", "tpcds_bin_partitioned_orc_10", "-mao", "-o", outputDir};
+
+        Mirror mirror = new Mirror();
+        mirror.init(args);
+        mirror.doit();
+    }
+
+    @Test
+    public void test_acid_hybrid_da() {
+        String outputDir = homedir + System.getProperty("file.separator") + "hms-mirror-reports/acid_hybrid_da";
+        String[] args = new String[]{"-d", "HYBRID", "-db", "tpcds_bin_partitioned_orc_10", "-mao", "-da", "-o", outputDir};
+
+        Mirror mirror = new Mirror();
+        mirror.init(args);
+        mirror.doit();
+    }
+
+
 
 }
