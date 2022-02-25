@@ -112,6 +112,7 @@ public class DBMirror {
             case SQL:
             case EXPORT_IMPORT:
             case HYBRID:
+            case LINKED:
                 if (location != null) {
                     location = location.replace(leftNamespace, rightNamespace);
                     rtn[1] = location;
@@ -123,7 +124,6 @@ public class DBMirror {
                 break;
             case DUMP:
             case COMMON:
-            case LINKED:
                 break;
         }
         sb.append("CREATE DATABASE IF NOT EXISTS ").append(database).append("\n");
