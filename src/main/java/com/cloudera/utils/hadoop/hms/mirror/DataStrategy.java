@@ -55,6 +55,15 @@ public enum DataStrategy {
      */
     HYBRID(Boolean.FALSE),
     /*
+    If you had previously created a schema on the RIGHT that is LINKED to the LEFT's data,
+    this option provides a way to 'convert' the LINKED schemas to SCHEMA_ONLY without having to
+    drop and recreate the schema.  This assumes that the data is migrated through other means.
+    The conversion will simple review the RIGHT schema's and convert the NAMESPACE from the LEFT
+    to the RIGHT's NAMESPACE.  In addition, tables that were 'legacy' managed and converted to EXTERNAL
+    WITHOUT purge, will have the purge flag set since the data is now owned by the RIGHT cluster.
+     */
+    CONVERT_LINKED(Boolean.FALSE),
+    /*
 
      */
     STORAGE_MIGRATION(Boolean.FALSE),

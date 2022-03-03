@@ -26,12 +26,23 @@ public class MirrorConf {
     public static final String MSCK_REPAIR_TABLE = "MSCK REPAIR TABLE {0}";
     public static final String CREATE_DB =
             "CREATE DATABASE IF NOT EXISTS {0}";
+    public static final String ALTER_DB_LOCATION =
+            "ALTER DATABASE {0} SET LOCATION \"{1}\"";
+    public static final String ALTER_DB_LOCATION_DESC =
+            "Alter Database Location";
+    public static final String ALTER_DB_MNGD_LOCATION =
+            "ALTER DATABASE {0} SET MANAGEDLOCATION \"{1}\"";
+    public static final String ALTER_DB_MNGD_LOCATION_DESC =
+            "Alter Database Managed Location";
+
     public static final String CREATE_LIKE =
             "CREATE TABLE IF NOT EXISTS {0} LIKE {1}";
     public static final String CREATE_EXTERNAL_LIKE =
             "CREATE EXTERNAL TABLE IF NOT EXISTS {0} LIKE {1}";
     public static final String USE = "USE {0}";
+    public static final String USE_DESC = "Set Database";
     public static final String DROP_TABLE = "DROP TABLE IF EXISTS {0}";
+    public static final String DROP_TABLE_DESC = "Drop table";
     public static final String DROP_VIEW = "DROP VIEW IF EXISTS {0}";
     public static final String RENAME_TABLE = " ALTER TABLE {0} RENAME TO {1}";
     public static final String EXPORT_TABLE =
@@ -42,12 +53,18 @@ public class MirrorConf {
             "IMPORT TABLE {0} FROM \"{1}\"";
     public static final String IMPORT_EXTERNAL_TABLE_LOCATION =
             "IMPORT EXTERNAL TABLE {0} FROM \"{1}\" LOCATION \"{2}\"";
-    public static final String ADD_TBL_PROP =
-            "ALTER TABLE {0}.{1} SET TBLPROPERTIES (\"{2}\"=\"{3}\")";
-    public static final String REMOVE_TBL_PROP =
-            "ALTER TABLE {0}.{1} UNSET TBLPROPERTIES (\"{2}\")";
+    public static final String ADD_TABLE_PROP_DESC =
+            "Add/Update Table Property";
+    public static final String ADD_TABLE_PROP =
+            "ALTER TABLE {0} SET TBLPROPERTIES (\"{1}\"=\"{2}\")";
+    public static final String REMOVE_TABLE_PROP =
+            "ALTER TABLE {0} UNSET TBLPROPERTIES (\"{1}\")";
+    public static final String REMOVE_TABLE_PROP_DESC =
+            "Remove table property";
     public static final String ALTER_TABLE_LOCATION =
-            "ALTER TABLE {0}.{1} SET LOCATION \"{2}\"";
+            "ALTER TABLE {0} SET LOCATION \"{1}\"";
+    public static final String ALTER_TABLE_LOCATION_DESC =
+            "Alter Table Location";
     public static final String HMS_MIRROR_LEGACY_MANAGED_FLAG = "hmsMirror_LegacyManaged";
     public static final String DISCOVER_PARTITIONS = "discover.partitions";
     public static final String EXTERNAL_TABLE_PURGE = "external.table.purge";

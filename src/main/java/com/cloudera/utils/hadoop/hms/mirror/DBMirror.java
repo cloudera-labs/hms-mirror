@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -94,50 +95,79 @@ public class DBMirror {
         String[] rtn = new String[3];
         StringBuilder sb = new StringBuilder();
         // Start with the LEFT definition.
-        Map<String, String> dbDef = getDBDefinition(Environment.LEFT);
-        String database = config.getResolvedDB(getName());
-        String location = dbDef.get(MirrorConf.DB_LOCATION);
+        Map<String, String> dbDef = null;//getDBDefinition(Environment.LEFT);
+        String database = null; //config.getResolvedDB(getName());
+        String location = null; //dbDef.get(MirrorConf.DB_LOCATION);
         String managedLocation = null;
-        if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
-            // Check for Managed Location.
-            managedLocation = dbDef.get(MirrorConf.DB_MANAGED_LOCATION);
-        }
-//        if (config.getDataStrategy() != DataStrategy.DUMP) {
-            String leftNamespace = config.getCluster(Environment.LEFT).getHcfsNamespace();
-            String rightNamespace = config.getCluster(Environment.RIGHT).getHcfsNamespace();
-//        }
+        String leftNamespace = config.getCluster(Environment.LEFT).getHcfsNamespace();
+        String rightNamespace = config.getCluster(Environment.RIGHT).getHcfsNamespace();
 
         switch (config.getDataStrategy()) {
-            case SCHEMA_ONLY:
-            case SQL:
-            case EXPORT_IMPORT:
-            case HYBRID:
-            case LINKED:
+            case CONVERT_LINKED:
+                // ALTER the 'existing' database to ensure locations are set to the RIGHT hcfsNamespace.
+                dbDef = getDBDefinition(Environment.RIGHT);
+                database = config.getResolvedDB(getName());
+                location = dbDef.get(MirrorConf.DB_LOCATION);
+                managedLocation = dbDef.get(MirrorConf.DB_MANAGED_LOCATION);
+
                 if (location != null) {
                     location = location.replace(leftNamespace, rightNamespace);
                     rtn[1] = location;
+                    String alterDB_location = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, location);
+                    sb.append(alterDB_location).append(";\n");
                 }
                 if (managedLocation != null) {
                     managedLocation = managedLocation.replace(leftNamespace, rightNamespace);
                     rtn[2] = managedLocation;
+                    String alterDBMngdLocationSql = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, managedLocation);
+                    sb.append(alterDBMngdLocationSql).append(";\n");
                 }
+                rtn[0] = sb.toString();
                 break;
-            case DUMP:
-            case COMMON:
-                break;
+            default:
+                // Start with the LEFT definition.
+                dbDef = getDBDefinition(Environment.LEFT);
+                database = config.getResolvedDB(getName());
+                location = dbDef.get(MirrorConf.DB_LOCATION);
+
+                if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                    // Check for Managed Location.
+                    managedLocation = dbDef.get(MirrorConf.DB_MANAGED_LOCATION);
+                }
+
+                switch (config.getDataStrategy()) {
+                    case SCHEMA_ONLY:
+                    case SQL:
+                    case EXPORT_IMPORT:
+                    case HYBRID:
+                    case LINKED:
+                        if (location != null) {
+                            location = location.replace(leftNamespace, rightNamespace);
+                            rtn[1] = location;
+                        }
+                        if (managedLocation != null) {
+                            managedLocation = managedLocation.replace(leftNamespace, rightNamespace);
+                            rtn[2] = managedLocation;
+                        }
+                        break;
+                    case DUMP:
+                    case COMMON:
+                        break;
+                }
+                String createDb = MessageFormat.format(MirrorConf.CREATE_DB, database);
+                sb.append(createDb).append("\n");
+                if (dbDef.get(MirrorConf.COMMENT) != null && dbDef.get(MirrorConf.COMMENT).trim().length() > 0) {
+                    sb.append(MirrorConf.COMMENT).append(" \"").append(dbDef.get(MirrorConf.COMMENT)).append("\"\n");
+                }
+                if (location != null) {
+                    sb.append(MirrorConf.DB_LOCATION).append(" \"").append(location).append("\"\n");
+                }
+                if (managedLocation != null) {
+                    sb.append(MirrorConf.DB_MANAGED_LOCATION).append(" \"").append(managedLocation).append("\"\n");
+                }
+                // TODO: DB Properties.
+                rtn[0] = sb.toString();
         }
-        sb.append("CREATE DATABASE IF NOT EXISTS ").append(database).append("\n");
-        if (dbDef.get(MirrorConf.COMMENT) != null && dbDef.get(MirrorConf.COMMENT).trim().length() > 0) {
-            sb.append(MirrorConf.COMMENT).append(" \"").append(dbDef.get(MirrorConf.COMMENT)).append("\"\n");
-        }
-        if (location != null) {
-            sb.append(MirrorConf.DB_LOCATION).append(" \"").append(location).append("\"\n");
-        }
-        if (managedLocation != null) {
-            sb.append(MirrorConf.DB_MANAGED_LOCATION).append(" \"").append(managedLocation).append("\"\n");
-        }
-        // TODO: DB Properties.
-        rtn[0] = sb.toString();
         return rtn;
     }
 
@@ -163,7 +193,7 @@ public class DBMirror {
 
     public Boolean hasIssues() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<String, TableMirror> entry: tableMirrors.entrySet()) {
+        for (Map.Entry<String, TableMirror> entry : tableMirrors.entrySet()) {
             if (entry.getValue().hasIssues())
                 rtn = Boolean.TRUE;
         }
@@ -172,7 +202,7 @@ public class DBMirror {
 
     public Boolean hasActions() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<String, TableMirror> entry: tableMirrors.entrySet()) {
+        for (Map.Entry<String, TableMirror> entry : tableMirrors.entrySet()) {
             if (entry.getValue().hasActions())
                 rtn = Boolean.TRUE;
         }
@@ -181,7 +211,7 @@ public class DBMirror {
 
     public Boolean hasAddedProperties() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<String, TableMirror> entry: tableMirrors.entrySet()) {
+        for (Map.Entry<String, TableMirror> entry : tableMirrors.entrySet()) {
             if (entry.getValue().hasAddedProperties())
                 rtn = Boolean.TRUE;
         }

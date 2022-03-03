@@ -852,7 +852,8 @@ public class TableMirror {
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
         EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
 
-        ret.getSql().clear();
+        //ret.getSql().clear();
+
         database = config.getResolvedDB(dbMirror.getName());
         useDb = MessageFormat.format(MirrorConf.USE, database);
 

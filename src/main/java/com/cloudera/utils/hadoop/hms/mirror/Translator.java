@@ -308,6 +308,7 @@ public class Translator {
                 case SQL:
                 case SCHEMA_ONLY:
                 case DUMP:
+                case CONVERT_LINKED:
                     newLocation = originalLocation.replace(leftNS, rightNS);
                     break;
                 case LINKED:

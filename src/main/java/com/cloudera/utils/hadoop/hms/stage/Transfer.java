@@ -18,7 +18,6 @@ package com.cloudera.utils.hadoop.hms.stage;
 
 import com.cloudera.utils.hadoop.hms.mirror.*;
 import com.cloudera.utils.hadoop.HadoopSession;
-import com.cloudera.utils.hadoop.hms.mirror.*;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import org.apache.log4j.LogManager;
@@ -88,6 +87,9 @@ public class Transfer implements Callable<ReturnStatus> {
                         break;
                     case HYBRID:
                         successful = doHybrid();
+                        break;
+                    case CONVERT_LINKED:
+                        successful = doConvertLinked();
                         break;
                 }
                 if (successful)
@@ -364,6 +366,73 @@ public class Transfer implements Callable<ReturnStatus> {
         }
         return rtn;
     }
+
+    protected Boolean doConvertLinked() {
+        Boolean rtn = Boolean.FALSE;
+        EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
+
+        String targetDBName = config.getResolvedDB(tblMirror.getDbName());
+
+        // If RIGHT doesn't exist, run SCHEMA_ONLY.
+        if (ret == null) {
+            tblMirror.addIssue(Environment.RIGHT, "Table doesn't exist.  To transfer, run 'SCHEMA_ONLY'");
+        } else {
+            // Make sure table isn't an ACID table.
+            if (TableUtils.isACID(let)) {
+                tblMirror.addIssue(Environment.LEFT, "ACID tables not eligible for this operation");
+            } else if (tblMirror.isPartitioned(Environment.LEFT)) {
+                // We need to drop the RIGHT and RECREATE.
+                ret.addIssue("Table is partitioned.  Need to change data strategy to drop and recreate.");
+                String useDb = MessageFormat.format(MirrorConf.USE, targetDBName);
+                ret.addSql(MirrorConf.USE_DESC, useDb);
+
+                // Make sure the table is NOT set to purge.
+                if (TableUtils.isExternalPurge(ret)) {
+                    String purgeSql = MessageFormat.format(MirrorConf.REMOVE_TABLE_PROP, ret.getName(), MirrorConf.EXTERNAL_TABLE_PURGE);
+                    ret.addSql(MirrorConf.REMOVE_TABLE_PROP_DESC, purgeSql);
+                }
+
+                String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, tblMirror.getName());
+                ret.addSql(MirrorConf.DROP_TABLE_DESC, dropTable);
+                tblMirror.setStrategy(DataStrategy.SCHEMA_ONLY);
+                // Set False that it doesn't exists, which it won't, since we're dropping it.
+                ret.setExists(Boolean.FALSE);
+                rtn = doBasic();
+            } else {
+                // - AVRO LOCATION
+                if (AVROCheck()) {
+                    String useDb = MessageFormat.format(MirrorConf.USE, targetDBName);
+                    ret.addSql(MirrorConf.USE_DESC, useDb);
+                    // Look at the table definition and get.
+                    // - LOCATION
+                    String sourceLocation = TableUtils.getLocation(ret.getName(), ret.getDefinition());
+                    String targetLocation = config.getTranslator().
+                            translateTableLocation(targetDBName, tblMirror.getName(), sourceLocation, config);
+                    String alterLocSql = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, ret.getName(), targetLocation);
+                    ret.addSql(MirrorConf.ALTER_TABLE_LOCATION_DESC, alterLocSql);
+                    // TableUtils.updateTableLocation(ret, targetLocation)
+                    // - Check Comments for "legacy.managed" setting.
+                    //    - MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG (if so, set purge flag MirrorConf.EXTERNAL_TABLE_PURGE)
+                    if (TableUtils.isHMSLegacyManaged(tblMirror.getName(), ret.getDefinition())) {
+                        // ALTER TABLE x SET TBLPROPERTIES ('purge flag').
+                        String purgeSql = MessageFormat.format(MirrorConf.ADD_TABLE_PROP,ret.getName(), MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+                        ret.addSql(MirrorConf.ADD_TABLE_PROP_DESC, purgeSql);
+                    }
+                    rtn = Boolean.TRUE;
+
+                    // Execute the RIGHT sql if config.execute.
+                    if (rtn && config.isExecute()) {
+                        rtn = config.getCluster(Environment.RIGHT).runSql(tblMirror);
+                    }
+
+                }
+            }
+        }
+
+        return rtn;
+    }
+
 
     protected Boolean AVROCheck() {
         Boolean rtn = Boolean.TRUE;

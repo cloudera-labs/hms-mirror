@@ -64,7 +64,8 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Logs](#logs)
 - [Strategies](#strategies)
   * [Schema Only and DUMP](#schema-only-and-dump)
-  * [Linked](#linked)
+  * [LINKED](#linked)
+  * [CONVERT_LINKED](#convert_linked)
   * [SQL](#sql)
   * [Export Import](#export-import)
   * [Hybrid](#hybrid)
@@ -977,7 +978,7 @@ With the DUMP strategy, you'll have a 'translated' (for legacy hive) table DDL t
 
 ![schema_only_cloud](./images/schema_only_cloud.png)
 
-### Linked
+### LINKED
 
 Assumes the clusters are [linked](#linking-clusters-storage-layers).  We'll transfer the schema and leave the location as is on the new cluster.
 
@@ -990,6 +991,18 @@ The `-ma` (migrate acid) tables option is NOT valid in this scenario and will re
 ![linked](./images/linked.png)
 
 WARNING:  If the LOCATION element is specified in the database definition AND you use `DROP DATABASE ... CASCADE` from the RIGHT cluster, YOU WILL DROP THE DATA ON THE LEFT CLUSTER even though the tables are NOT purgeable.  This is the DEFAULT behavior of hive 'DROP DATABASE'.  So BE CAREFUL!!!!
+
+### CONVERT_LINKED
+
+If you migrated schemas with the [Linked](#linked) strategy and don't want to drop the database and run SCHEMA_ONLY to adjust the locations from the LEFT to the RIGHT cluster, use this strategy to make the adjustment.
+
+This will work only on tables that were migrated already.  It will reset the location to the same relative location on the RIGHT clusters `hcfsNamespace`.  This will also check to see if the table was a 'legacy' managed table and set the `external.table.purge` flag appropriately.  Tables that are 'partitioned' will be handled differently, since each partition has a reference to the 'linked' location.  Those tables will first be validated that they NOT `external.table.purge`.  If they are, that property will 'UNSET'.  Then the table will be dropped, which will remove all the partition information.  Then they'll be created again and `MSCK` will be used to discover the partitions again on the RIGHT clusters namespace.
+
+This process does NOT move data.  It expects that the data was migrated in the background, usually by `distcp` and has been placed in the same relative locations on the RIGHT clusters `hcfsNameSpace`.
+
+This process does NOT work for ACID tables.
+
+AVRO table locations and SCHEMA location and definitions will be changed and copied.
 
 ### SQL
 

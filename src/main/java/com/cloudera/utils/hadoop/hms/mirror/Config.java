@@ -417,6 +417,13 @@ public class Config {
                 }
             case COMMON:
                 break;
+            case CONVERT_LINKED:
+                // Check that the RIGHT cluster is NOT a legacy cluster.  No testing done in this scenario.
+                if (getCluster(Environment.RIGHT).getLegacyHive()) {
+                    issues.add("Legacy Hive is not supported as a 'target' (RIGHT) cluster.  clusters->RIGHT->legacyHive");
+                    rtn = Boolean.FALSE;
+                }
+                break;
         }
 
         // TODO: Check the connections.
