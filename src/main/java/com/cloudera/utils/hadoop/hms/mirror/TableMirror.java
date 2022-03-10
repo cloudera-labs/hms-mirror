@@ -692,6 +692,9 @@ public class TableMirror {
         if (!TableUtils.isACID(let)) {
             // Managed to EXTERNAL
             rightSpec.setUpgrade(Boolean.TRUE);
+            rightSpec.setReplaceLocation(Boolean.TRUE);
+        } else {
+            rightSpec.setStripLocation(Boolean.TRUE);
         }
 
         // Build Target from Source.
