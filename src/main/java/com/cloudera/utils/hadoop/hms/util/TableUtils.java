@@ -35,6 +35,7 @@ public class TableUtils {
     public static final String CREATE_EXTERNAL_TABLE = "CREATE EXTERNAL TABLE";
     public static final String CREATE_VIEW = "CREATE VIEW";
     public static final String PARTITIONED_BY = "PARTITIONED BY";
+    public static final String ROW_FORMAT_DELIMITED = "ROW FORMAT DELIMITED";
     public static final String ROW_FORMAT_SERDE = "ROW FORMAT SERDE";
     public static final String STORED_AS_INPUTFORMAT = "STORED AS INPUTFORMAT";
     public static final String OUTPUTFORMAT = "OUTPUTFORMAT";
@@ -132,7 +133,7 @@ public class TableUtils {
         LOG.trace("Updating AVRO Schema URL: " + tableName);
 
         if (newLocation != null) {
-            for (String line: tableDefinition) {
+            for (String line : tableDefinition) {
                 if (line.contains(MirrorConf.AVRO_SCHEMA_URL_KEY)) {
                     int lineIdx = tableDefinition.indexOf(line);
                     String[] parts = line.split("=");
@@ -173,7 +174,7 @@ public class TableUtils {
         // path.
         int wspIdx = tableDefinition.indexOf(WITH_SERDEPROPERTIES);
         if (wspIdx > 0) {
-            for (int i = wspIdx+1;i<tableDefinition.size();i++) {
+            for (int i = wspIdx + 1; i < tableDefinition.size(); i++) {
                 String sprop = tableDefinition.get(i);
                 if (sprop.trim().startsWith(PATH)) {
                     String rprop = "'path'='" + newLocation.replaceAll("'", "") + "'";
@@ -213,7 +214,8 @@ public class TableUtils {
                 pIdx = envTable.getDefinition().indexOf(line);
             }
             if (line.trim().startsWith(ROW_FORMAT_SERDE) || line.trim().startsWith(STORED_AS_INPUTFORMAT)
-                    || line.trim().startsWith(OUTPUTFORMAT) || line.trim().startsWith(CLUSTERED_BY)) {
+                    || line.trim().startsWith(OUTPUTFORMAT) || line.trim().startsWith(CLUSTERED_BY)
+                    || line.trim().startsWith(ROW_FORMAT_DELIMITED)) {
                 pEIdx = envTable.getDefinition().indexOf(line);
             }
             if (pIdx > 0 && pEIdx > 0) {
@@ -622,9 +624,9 @@ public class TableUtils {
                     String[] parts = line.split("=");
                     if (parts.length > 2) {
                         StringBuilder sb = new StringBuilder();
-                        for (int i=1;i<parts.length;i++) {
+                        for (int i = 1; i < parts.length; i++) {
                             sb.append(parts[i]);
-                            if (i<parts.length-1)
+                            if (i < parts.length - 1)
                                 sb.append("=");
                         }
                         rtn = sb.toString().replace("'", " ").replace(",", "").trim();
