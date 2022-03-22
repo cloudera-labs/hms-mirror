@@ -694,7 +694,16 @@ public class TableMirror {
             rightSpec.setUpgrade(Boolean.TRUE);
             rightSpec.setReplaceLocation(Boolean.TRUE);
         } else {
+            // Use the system default EXTERNAL location when converting.
             rightSpec.setStripLocation(Boolean.TRUE);
+            // ACID
+            if (config.getMigrateACID().isDowngrade()) {
+                rightSpec.setMakeExternal(Boolean.TRUE);
+                // Strip the Transactional Elements
+                rightSpec.setMakeNonTransactional(Boolean.TRUE);
+                // Set Purge Flag
+                rightSpec.setTakeOwnership(Boolean.TRUE);
+            }
         }
 
         // Build Target from Source.
@@ -1079,8 +1088,16 @@ public class TableMirror {
         }
         String sourceLocation = TableUtils.getLocation(let.getName(), let.getDefinition());
         String targetLocation = config.getTranslator().translateTableLocation(database, let.getName(), sourceLocation, config);
-
-        String importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, ret.getName(), importLoc, targetLocation);
+        String importSql;
+        if (TableUtils.isACID(let.getName(), let.getDefinition())) {
+            if (!config.getMigrateACID().isDowngrade()) {
+                importSql = MessageFormat.format(MirrorConf.IMPORT_TABLE, ret.getName(), importLoc);
+            } else {
+                importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, ret.getName(), importLoc);
+            }
+        } else {
+            importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, ret.getName(), importLoc, targetLocation);
+        }
         ret.addSql(TableUtils.IMPORT_TABLE, importSql);
 
         rtn = Boolean.TRUE;
@@ -1273,6 +1290,9 @@ public class TableMirror {
                             case RIGHT:
                                 if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
                                     TableUtils.makeExternal(target);
+                                }
+                                if (copySpec.getTakeOwnership()) {
+                                    TableUtils.upsertTblProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true", target);
                                 }
                                 TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, target);
                                 TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL_PROPERTIES, target);

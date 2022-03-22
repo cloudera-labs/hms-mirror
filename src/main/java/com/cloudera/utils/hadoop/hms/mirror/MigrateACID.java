@@ -49,6 +49,11 @@ public class MigrateACID {
      */
     private Integer partitionLimit = 500;
 
+    /*
+    Downgrade ACID tables to EXTERNAL w/ purge tables.
+     */
+    private Boolean downgrade = Boolean.FALSE;
+
 //    /*
 //
 //     */
@@ -93,7 +98,15 @@ public class MigrateACID {
         this.partitionLimit = partitionLimit;
     }
 
-//    public String getTransferPrefix() {
+    public Boolean isDowngrade() {
+        return downgrade;
+    }
+
+    public void setDowngrade(Boolean downgrade) {
+        this.downgrade = downgrade;
+    }
+
+    //    public String getTransferPrefix() {
 //        return transferPrefix;
 //    }
 //
