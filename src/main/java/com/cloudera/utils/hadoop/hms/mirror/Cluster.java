@@ -34,6 +34,9 @@ public class Cluster implements Comparable<Cluster> {
     @JsonIgnore
     private ConnectionPools pools = null;
 
+    @JsonIgnore
+    private Config config = null;
+
     private Environment environment = null;
     private Boolean legacyHive = Boolean.TRUE;
     private String hcfsNamespace = null;
@@ -45,6 +48,14 @@ public class Cluster implements Comparable<Cluster> {
 
     public Environment getEnvironment() {
         return environment;
+    }
+
+    public void setConfig(Config config) {
+        this.config = config;
+    }
+
+    public Config getConfig() {
+        return config;
     }
 
     public void setEnvironment(Environment environment) {
@@ -390,51 +401,61 @@ public class Cluster implements Comparable<Cluster> {
         Connection conn = null;
         Boolean rtn = Boolean.FALSE;
 
-        try {
-            conn = getConnection();
+        if (config.isExecute()) {
+            try {
+                conn = getConnection();
 
-            if (conn != null) {
-                Statement stmt = null;
-                try {
-                    stmt = conn.createStatement();
-                    for (Pair pair : sqlList) {
-                        LOG.info(getEnvironment() + ":SQL:" + pair.getDescription() + ":" + pair.getAction());
-                        tblMirror.setMigrationStageMessage("Executing SQL: " + pair.getDescription());
-                        stmt.execute(pair.getAction());
-                        tblMirror.addStep(getEnvironment().toString(), "Sql Run Complete for: " + pair.getDescription());
-                    }
-                    rtn = Boolean.TRUE;
-                } catch (SQLException throwables) {
-                    LOG.error(throwables);
-                    String message = throwables.getMessage();
-                    if (throwables.getMessage().contains("HiveAccessControlException Permission denied")) {
-                        message = message + " See [Hive SQL Exception / HDFS Permissions Issues](https://github.com/dstreev/hms-mirror#hive-sql-exception--hdfs-permissions-issues)";
-                    }
-                    if (throwables.getMessage().contains("AvroSerdeException")) {
-                        message = message + ". It's possible the `avro.schema.url` referenced file doesn't exist at the target. " +
-                                "Use the `-asm` option and hms-mirror will attempt to copy it to the new cluster.";
-                    }
-                    tblMirror.getEnvironmentTable(environment).addIssue(message);
-                } finally {
-                    if (stmt != null) {
-                        try {
-                            stmt.close();
-                        } catch (SQLException sqlException) {
-                            // ignore
+                if (conn != null) {
+                    Statement stmt = null;
+                    try {
+                        stmt = conn.createStatement();
+                        for (Pair pair : sqlList) {
+                            LOG.info(getEnvironment() + ":SQL:" + pair.getDescription() + ":" + pair.getAction());
+                            tblMirror.setMigrationStageMessage("Executing SQL: " + pair.getDescription());
+                            stmt.execute(pair.getAction());
+                            tblMirror.addStep(getEnvironment().toString(), "Sql Run Complete for: " + pair.getDescription());
+                        }
+                        rtn = Boolean.TRUE;
+                    } catch (SQLException throwables) {
+                        LOG.error(throwables);
+                        String message = throwables.getMessage();
+                        if (throwables.getMessage().contains("HiveAccessControlException Permission denied")) {
+                            message = message + " See [Hive SQL Exception / HDFS Permissions Issues](https://github.com/dstreev/hms-mirror#hive-sql-exception--hdfs-permissions-issues)";
+                        }
+                        if (throwables.getMessage().contains("AvroSerdeException")) {
+                            message = message + ". It's possible the `avro.schema.url` referenced file doesn't exist at the target. " +
+                                    "Use the `-asm` option and hms-mirror will attempt to copy it to the new cluster.";
+                        }
+                        tblMirror.getEnvironmentTable(environment).addIssue(message);
+                    } finally {
+                        if (stmt != null) {
+                            try {
+                                stmt.close();
+                            } catch (SQLException sqlException) {
+                                // ignore
+                            }
                         }
                     }
                 }
-            }
-        } catch (SQLException throwables) {
-            tblMirror.getEnvironmentTable(environment).addIssue("Connecting: " + throwables.getMessage());
-            LOG.error(throwables);
-        } finally {
-            try {
-                if (conn != null)
-                    conn.close();
             } catch (SQLException throwables) {
-                //
+                tblMirror.getEnvironmentTable(environment).addIssue("Connecting: " + throwables.getMessage());
+                LOG.error(throwables);
+            } finally {
+                try {
+                    if (conn != null)
+                        conn.close();
+                } catch (SQLException throwables) {
+                    //
+                }
             }
+        } else {
+            for (Pair pair : sqlList) {
+                LOG.info(getEnvironment() + ":SQL:DRY-RUN:" + pair.getDescription() + ":" + pair.getAction());
+                tblMirror.setMigrationStageMessage("Executing SQL: " + pair.getDescription());
+                tblMirror.addStep(getEnvironment().toString(), "Sql Run Complete for: " + pair.getDescription());
+            }
+            rtn = Boolean.TRUE;
+
         }
         return rtn;
     }

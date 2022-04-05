@@ -176,13 +176,14 @@ public class Transfer implements Callable<ReturnStatus> {
                 // Clean up shadow table.
                 String dropShadowSql = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
                 ret.getSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropShadowSql));
+
+                // Execute the RIGHT sql if config.execute.
+                if (rtn) {
+                    config.getCluster(Environment.RIGHT).runSql(tblMirror);
+                }
             }
         }
 
-        // Execute the RIGHT sql if config.execute.
-        if (rtn && config.isExecute()) {
-            config.getCluster(Environment.RIGHT).runSql(tblMirror);
-        }
         return rtn;
     }
 
@@ -260,12 +261,12 @@ public class Transfer implements Callable<ReturnStatus> {
             }
 
             // Execute the LEFT sql if config.execute.
-            if (rtn && config.isExecute()) {
+            if (rtn) {
                 rtn = config.getCluster(Environment.LEFT).runSql(tblMirror);
             }
 
             // Execute the RIGHT sql if config.execute.
-            if (rtn && config.isExecute()) {
+            if (rtn) {
                 rtn = config.getCluster(Environment.RIGHT).runSql(tblMirror);
             }
 
@@ -287,10 +288,14 @@ public class Transfer implements Callable<ReturnStatus> {
                 // alter 'let' and rename to an archive
                 String archiveOrigStmt = MessageFormat.format(MirrorConf.RENAME_TABLE, let.getName(),
                         MirrorConf.ARCHIVE + "_" + let.getName() + "_" + tblMirror.getUnique());
-                let.addSql(MirrorConf.RENAME_TABLE_DESC, archiveOrigStmt);
+                Pair renamePairDesc = new Pair(MirrorConf.RENAME_TABLE_DESC, archiveOrigStmt);
+                leftCleanup.add(renamePairDesc);
+                let.addSql(renamePairDesc);
                 // alter 'tet' and rename to original table name.
                 String renameStmt = MessageFormat.format(MirrorConf.RENAME_TABLE, tet.getName(), let.getName());
-                let.addSql(MirrorConf.RENAME_TABLE_DESC, renameStmt);
+                Pair renamePair = new Pair(MirrorConf.RENAME_TABLE_DESC, renameStmt);
+                leftCleanup.add(renamePair);
+                let.addSql(renamePair);
             } else {
                 //
                 String dropTransfer = MessageFormat.format(MirrorConf.DROP_TABLE, tet.getName());
@@ -300,7 +305,7 @@ public class Transfer implements Callable<ReturnStatus> {
                 tblMirror.addStep("LEFT ACID Transfer/Shadow SQL Cleanup", "Built");
             }
 
-            if (rtn && config.isExecute()) {
+            if (rtn) {
                 // Run the Cleanup Scripts
                 config.getCluster(Environment.LEFT).runSql(leftCleanup, tblMirror, Environment.LEFT);
             }
@@ -322,7 +327,7 @@ public class Transfer implements Callable<ReturnStatus> {
                 ret.addSql(rightDropPair);
                 tblMirror.addStep("RIGHT ACID Shadow SQL Cleanup", "Built");
 
-                if (rtn && config.isExecute()) {
+                if (rtn) {
                     // Run the Cleanup Scripts
                     config.getCluster(Environment.RIGHT).runSql(rightCleanup, tblMirror, Environment.RIGHT);
                 }
@@ -390,12 +395,12 @@ public class Transfer implements Callable<ReturnStatus> {
                         rtn = tblMirror.buildoutSql(config, dbMirror);
 
                     // If EXPORT_IMPORT, need to run LEFT queries.
-                    if (rtn && tblMirror.getStrategy() == DataStrategy.EXPORT_IMPORT && config.isExecute()) {
+                    if (rtn && tblMirror.getStrategy() == DataStrategy.EXPORT_IMPORT) {
                         rtn = config.getCluster(Environment.LEFT).runSql(tblMirror);
                     }
 
                     // Execute the RIGHT sql if config.execute.
-                    if (rtn && config.isExecute()) {
+                    if (rtn) {
                         rtn = config.getCluster(Environment.RIGHT).runSql(tblMirror);
                     }
 
@@ -417,12 +422,12 @@ public class Transfer implements Callable<ReturnStatus> {
                 rtn = tblMirror.buildoutSql(config, dbMirror);
 
             // If EXPORT_IMPORT, need to run LEFT queries.
-            if (rtn && tblMirror.getStrategy() == DataStrategy.EXPORT_IMPORT && config.isExecute()) {
+            if (rtn && tblMirror.getStrategy() == DataStrategy.EXPORT_IMPORT) {
                 rtn = config.getCluster(Environment.LEFT).runSql(tblMirror);
             }
 
             // Execute the RIGHT sql if config.execute.
-            if (rtn && config.isExecute()) {
+            if (rtn) {
                 rtn = config.getCluster(Environment.RIGHT).runSql(tblMirror);
             }
         }
@@ -484,7 +489,7 @@ public class Transfer implements Callable<ReturnStatus> {
                     rtn = Boolean.TRUE;
 
                     // Execute the RIGHT sql if config.execute.
-                    if (rtn && config.isExecute()) {
+                    if (rtn) {
                         rtn = config.getCluster(Environment.RIGHT).runSql(tblMirror);
                     }
 

@@ -27,6 +27,7 @@ import com.cloudera.utils.hadoop.HadoopSession;
 import com.cloudera.utils.hadoop.HadoopSessionFactory;
 import com.cloudera.utils.hadoop.HadoopSessionPool;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
+import org.apache.avro.reflect.MapEntry;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.log4j.LogManager;
@@ -798,6 +799,9 @@ public class Config {
 
     public void setClusters(Map<Environment, Cluster> clusters) {
         this.clusters = clusters;
+        for (Map.Entry<Environment, Cluster> entry: clusters.entrySet()) {
+            entry.getValue().setConfig(this);
+        }
     }
 
     public Cluster getCluster(Environment environment) {

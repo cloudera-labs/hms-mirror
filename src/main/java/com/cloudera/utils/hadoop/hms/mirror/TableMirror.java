@@ -45,7 +45,7 @@ public class TableMirror {
     @JsonIgnore
     private String removeReason = null;
     @JsonIgnore
-    private UUID unique = UUID.randomUUID();
+    private String unique = UUID.randomUUID().toString().replaceAll("-", "");
 
     private DateFormat tdf = new SimpleDateFormat("HH:mm:ss.SSS");
     @JsonIgnore
@@ -78,7 +78,7 @@ public class TableMirror {
         return et.getName();
     }
 
-    public UUID getUnique() {
+    public String getUnique() {
         return unique;
     }
 
@@ -1093,8 +1093,12 @@ public class TableMirror {
                 String createStmt2 = getCreateStatement(Environment.RIGHT);
                 ret.addSql(TableUtils.CREATE_DESC, createStmt2);
                 if (let.getPartitioned()) {
-                    String rightMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, ret.getName());
-                    ret.addSql(TableUtils.REPAIR_DESC, rightMSCKStmt);
+                    if (config.getTransfer().getCommonStorage() != null) {
+                        if (!TableUtils.isACID(let) || (TableUtils.isACID(let) && config.getMigrateACID().isDowngrade())) {
+                            String rightMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, ret.getName());
+                            ret.addSql(TableUtils.REPAIR_DESC, rightMSCKStmt);
+                        }
+                    }
                 }
 
                 break;
