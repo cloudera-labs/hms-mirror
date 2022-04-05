@@ -198,7 +198,7 @@ public class Cluster implements Comparable<Cluster> {
                     } else {
                         shows.add(MirrorConf.SHOW_TABLES);
                     }
-                    for (String show: shows) {
+                    for (String show : shows) {
                         resultSet = stmt.executeQuery(show);
                         while (resultSet.next()) {
                             String tableName = resultSet.getString(1);
@@ -284,47 +284,49 @@ public class Cluster implements Comparable<Cluster> {
                     et.setExists(Boolean.TRUE);
                     tableMirror.addStep(getEnvironment().toString(), "Fetched Schema");
 
-                    if (config.getMigrateVIEW().isOn() && config.getDataStrategy() != DataStrategy.DUMP) {
-                        if (!TableUtils.isView(et)) {
-                            tableMirror.setRemove(Boolean.TRUE);
-                            tableMirror.setRemoveReason("VIEW's only processing selected.");
-                        }
-                    } else {
-                        if (TableUtils.isACID(et)) {
-                            // For ACID tables, check that Migrate is ON.
-                            if (config.getMigrateACID().isOn()) {
-                                tableMirror.addStep("TRANSACTIONAL", Boolean.TRUE);
-                            } else {
+                    if (this.environment == Environment.LEFT) {
+                        if (config.getMigrateVIEW().isOn() && config.getDataStrategy() != DataStrategy.DUMP) {
+                            if (!TableUtils.isView(et)) {
                                 tableMirror.setRemove(Boolean.TRUE);
-                                tableMirror.setRemoveReason("ACID table and ACID processing not selected (-ma|-mao).");
-                            }
-                        } else if (TableUtils.isHiveNative(et)) {
-                            // Non ACID Tables should NOT be process if 'isOnly' is set.
-                            if (config.getMigrateACID().isOnly()) {
-                                tableMirror.setRemove(Boolean.TRUE);
-                                tableMirror.setRemoveReason("Non-ACID table and ACID only processing selected `-mao`");
-                            }
-                        } else if (TableUtils.isView(et)) {
-                            if (config.getDataStrategy() != DataStrategy.DUMP) {
-                                tableMirror.setRemove(Boolean.TRUE);
-                                tableMirror.setRemoveReason("This is a VIEW and VIEW processing wasn't selected.");
+                                tableMirror.setRemoveReason("VIEW's only processing selected.");
                             }
                         } else {
-                            // Non-Native Tables.
-                            if (!config.getMigratedNonNative()) {
-                                tableMirror.setRemove(Boolean.TRUE);
-                                tableMirror.setRemoveReason("This is a Non-Native hive table and non-native process wasn't " +
-                                        "selected.");
+                            // Check if ACID for only the LEFT cluster.  If it's the RIGHT cluster, other steps will deal with
+                            // the conflict.  IE: Rename or exists already.
+                            if (TableUtils.isACID(et) && this.getEnvironment() == Environment.LEFT) {
+                                // For ACID tables, check that Migrate is ON.
+                                if (config.getMigrateACID().isOn()) {
+                                    tableMirror.addStep("TRANSACTIONAL", Boolean.TRUE);
+                                } else {
+                                    tableMirror.setRemove(Boolean.TRUE);
+                                    tableMirror.setRemoveReason("ACID table and ACID processing not selected (-ma|-mao).");
+                                }
+                            } else if (TableUtils.isHiveNative(et)) {
+                                // Non ACID Tables should NOT be process if 'isOnly' is set.
+                                if (config.getMigrateACID().isOnly()) {
+                                    tableMirror.setRemove(Boolean.TRUE);
+                                    tableMirror.setRemoveReason("Non-ACID table and ACID only processing selected `-mao`");
+                                }
+                            } else if (TableUtils.isView(et)) {
+                                if (config.getDataStrategy() != DataStrategy.DUMP) {
+                                    tableMirror.setRemove(Boolean.TRUE);
+                                    tableMirror.setRemoveReason("This is a VIEW and VIEW processing wasn't selected.");
+                                }
+                            } else {
+                                // Non-Native Tables.
+                                if (!config.getMigratedNonNative()) {
+                                    tableMirror.setRemove(Boolean.TRUE);
+                                    tableMirror.setRemoveReason("This is a Non-Native hive table and non-native process wasn't " +
+                                            "selected.");
+                                }
                             }
                         }
-
+                        Boolean partitioned = TableUtils.isPartitioned(et.getName(), et.getDefinition());
+                        if (partitioned) {
+                            loadTablePartitionMetadata(database, et);
+                        }
                     }
 
-
-                    Boolean partitioned = TableUtils.isPartitioned(et.getName(), et.getDefinition());
-                    if (partitioned) {
-                        loadTablePartitionMetadata(database, et);
-                    }
                     LOG.debug(getEnvironment() + ":" + database + "." + et.getName() +
                             ": Loaded Table Definition");
                 } catch (SQLException throwables) {

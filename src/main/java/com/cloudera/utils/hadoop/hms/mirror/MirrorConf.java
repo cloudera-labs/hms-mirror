@@ -26,6 +26,8 @@ public class MirrorConf {
     public static final String MSCK_REPAIR_TABLE = "MSCK REPAIR TABLE {0}";
     public static final String CREATE_DB =
             "CREATE DATABASE IF NOT EXISTS {0}";
+    public static final String DROP_DB =
+            "DROP DATABASE IF EXISTS {0} CASCADE";
     public static final String ALTER_DB_LOCATION =
             "ALTER DATABASE {0} SET LOCATION \"{1}\"";
     public static final String ALTER_DB_LOCATION_DESC =
@@ -34,6 +36,9 @@ public class MirrorConf {
             "ALTER DATABASE {0} SET MANAGEDLOCATION \"{1}\"";
     public static final String ALTER_DB_MNGD_LOCATION_DESC =
             "Alter Database Managed Location";
+
+    public static final String ANALYZE_TABLE_STATS = "";
+    public static final String ANALYZE_COLUMN_STATS = "";
 
     public static final String CREATE_LIKE =
             "CREATE TABLE IF NOT EXISTS {0} LIKE {1}";
@@ -44,6 +49,7 @@ public class MirrorConf {
     public static final String DROP_TABLE = "DROP TABLE IF EXISTS {0}";
     public static final String DROP_TABLE_DESC = "Drop table";
     public static final String DROP_VIEW = "DROP VIEW IF EXISTS {0}";
+    public static final String RENAME_TABLE_DESC = "Rename table";
     public static final String RENAME_TABLE = " ALTER TABLE {0} RENAME TO {1}";
     public static final String EXPORT_TABLE =
             "EXPORT TABLE {0} TO \"{1}\"";
@@ -65,17 +71,24 @@ public class MirrorConf {
             "ALTER TABLE {0} SET LOCATION \"{1}\"";
     public static final String ALTER_TABLE_LOCATION_DESC =
             "Alter Table Location";
+    public static final String ARCHIVE = "archive";
     public static final String HMS_MIRROR_LEGACY_MANAGED_FLAG = "hmsMirror_LegacyManaged";
+    public static final String DOWNGRADED_FROM_ACID = "downgraded_from_acid";
     public static final String DISCOVER_PARTITIONS = "discover.partitions";
     public static final String EXTERNAL_TABLE_PURGE = "external.table.purge";
     public static final String TRANSACTIONAL = "transactional";
     public static final String TRANSACTIONAL_PROPERTIES = "transactional_properties";
+    public static final String HMS_MIRROR_TRANSFER_TABLE = "hms-mirror_transfer_table";
+    public static final String HMS_MIRROR_SHADOW_TABLE = "hms-mirror_shadow_table";
     public static final String BUCKETING_VERSION = "bucketing_version";
     public static final String AVRO_SCHEMA_URL_KEY = "avro.schema.url";
     public static final String TEZ_EXECUTION_DESC = "Set 'tez' as the execution engine";
     public static final String SET_TEZ_AS_EXECUTION_ENGINE = "set hive.execution.engine=tez";
     public static final String SQL_DATA_TRANSFER = "FROM {0} INSERT OVERWRITE TABLE {1} SELECT *";
     public static final String SQL_DATA_TRANSFER_WITH_PARTITIONS = "FROM {0} INSERT OVERWRITE TABLE {1} PARTITION ({2}) SELECT *";
+    public static final String SORT_DYNAMIC_PARTITION = "hive.optimize.sort.dynamic.partition";
+    public static final String SORT_DYNAMIC_PARTITION_THRESHOLD = "hive.optimize.sort.dynamic.partition.threshold";
+
     /*
     METADATA Transfer Flag
      */

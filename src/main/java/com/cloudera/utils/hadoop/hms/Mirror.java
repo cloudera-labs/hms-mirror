@@ -20,12 +20,11 @@ import com.cloudera.utils.hadoop.hms.mirror.*;
 import com.cloudera.utils.hadoop.hms.stage.ReturnStatus;
 import com.cloudera.utils.hadoop.hms.stage.Setup;
 import com.cloudera.utils.hadoop.hms.stage.Transfer;
+import com.cloudera.utils.hadoop.hms.util.Protect;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.Sets;
-import com.cloudera.utils.hadoop.hms.mirror.*;
-import com.cloudera.utils.hadoop.hms.util.Protect;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -33,6 +32,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.Op;
 import org.commonmark.Extension;
 import org.commonmark.ext.front.matter.YamlFrontMatterExtension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
@@ -53,9 +53,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.CONFIGURATION_REMOVED_OR_INVALID;
+
 public class Mirror {
     private static Logger LOG = LogManager.getLogger(Mirror.class);
 
+    private Conversion conversion = null;
     private Config config = null;
     private String configFile = null;
     private String reportOutputDir = null;
@@ -67,6 +70,10 @@ public class Mirror {
     private Boolean retry = Boolean.FALSE;
     private Boolean quiet = Boolean.FALSE;
     private String dateMarker;
+
+    public Conversion getConversion() {
+        return conversion;
+    }
 
     public Boolean getQuiet() {
         return quiet;
@@ -236,209 +243,245 @@ public class Mirror {
                 throw new RuntimeException("The format of the 'config' yaml file MAY HAVE CHANGED from the last release.  Please make a copy and run " +
                         "'-su|--setup' again to recreate in the new format", t);
             } else {
-                System.err.println("======");
-                System.err.println("A configuration element is no longer valid (progress!!!).  Please remove the element from the configuration 'yaml' and try again.");
-                System.err.println(t.getMessage());
-                System.err.println("======");
+//                config = new Config();
+//                config.getErrors().set(CONFIGURATION_REMOVED_OR_INVALID.getCode(), t.getMessage());
                 LOG.error(t);
-                throw new RuntimeException("Configuration invalid.  Review message and make adjustments.");
+                throw new RuntimeException("A configuration element is no longer valid, progress.  Please remove the element from the configuration yaml and try again.", t);
             }
         }
 
-        if (cmd.hasOption("sf")) {
-            // Skip Features.
-            config.setSkipFeatures(Boolean.TRUE);
-        }
+        config.setCommandLineOptions(args);
 
-        if (cmd.hasOption("q")) {
-            // Skip Features.
-            this.setQuiet(Boolean.TRUE);
-        }
+        if (cmd.hasOption("reset-right")) {
+            config.setResetRight(Boolean.TRUE);
+            config.setDatabaseOnly(Boolean.TRUE);
+        } else {
+            if (cmd.hasOption("f")) {
+                config.setFlip(Boolean.TRUE);
+            }
 
-        if (cmd.hasOption("t")) {
-            Translator translator = null;
-            File tCfgFile = new File(cmd.getOptionValue("t"));
-            if (!tCfgFile.exists()) {
-                throw new RuntimeException("Couldn't locate translation configuration file: " + cmd.getOptionValue("t"));
-            } else {
-                try {
-                    System.out.println("Using Translation Config: " + cmd.getOptionValue("t"));
-                    String yamlCfgFile = FileUtils.readFileToString(tCfgFile, Charset.forName("UTF-8"));
-                    translator = mapper.readerFor(Translator.class).readValue(yamlCfgFile);
-                    if (translator.validate()) {
-                        config.setTranslator(translator);
-                    } else {
-                        throw new RuntimeException("Translator config can't be validated, check logs.");
-                    }
-                } catch (Throwable t) {
-                    throw new RuntimeException(t);
+            if (cmd.hasOption("sf")) {
+                // Skip Features.
+                config.setSkipFeatures(Boolean.TRUE);
+            }
+
+            if (cmd.hasOption("q")) {
+                // Skip Features.
+                this.setQuiet(Boolean.TRUE);
+            }
+
+            if (cmd.hasOption("r")) {
+                // replace
+                config.setReplace(Boolean.TRUE);
+            }
+
+//        if (cmd.hasOption("t")) {
+//            Translator translator = null;
+//            File tCfgFile = new File(cmd.getOptionValue("t"));
+//            if (!tCfgFile.exists()) {
+//                throw new RuntimeException("Couldn't locate translation configuration file: " + cmd.getOptionValue("t"));
+//            } else {
+//                try {
+//                    System.out.println("Using Translation Config: " + cmd.getOptionValue("t"));
+//                    String yamlCfgFile = FileUtils.readFileToString(tCfgFile, Charset.forName("UTF-8"));
+//                    translator = mapper.readerFor(Translator.class).readValue(yamlCfgFile);
+//                    if (translator.validate()) {
+//                        config.setTranslator(translator);
+//                    } else {
+//                        throw new RuntimeException("Translator config can't be validated, check logs.");
+//                    }
+//                } catch (Throwable t) {
+//                    throw new RuntimeException(t);
+//                }
+//
+//            }
+//        }
+
+            if (cmd.hasOption("ap")) {
+                config.getMigrateACID().setPartitionLimit(Integer.valueOf(cmd.getOptionValue("ap")));
+            }
+
+            if (cmd.hasOption("sp")) {
+                config.getHybrid().setSqlPartitionLimit(Integer.valueOf(cmd.getOptionValue("sp")));
+            }
+
+            if (cmd.hasOption("ep")) {
+                config.getHybrid().setExportImportPartitionLimit(Integer.valueOf(cmd.getOptionValue("ep")));
+            }
+
+            if (cmd.hasOption("dbp")) {
+                config.setDbPrefix(cmd.getOptionValue("dbp"));
+            }
+
+            if (cmd.hasOption("v")) {
+                config.getMigrateVIEW().setOn(Boolean.TRUE);
+            }
+
+            if (cmd.hasOption("dbo")) {
+                config.setDatabaseOnly(Boolean.TRUE);
+            }
+
+            if (cmd.hasOption("ma")) {
+                config.getMigrateACID().setOn(Boolean.TRUE);
+                String bucketLimit = cmd.getOptionValue("ma");
+                if (bucketLimit != null) {
+                    config.getMigrateACID().setArtificialBucketThreshold(Integer.valueOf(bucketLimit));
                 }
-
             }
-        }
 
-        // When the pkey is specified, we assume the config passwords are encrytped and we'll decrypt them before continuing.
-        if (cmd.hasOption("pkey")) {
-            // Loop through the HiveServer2 Configs and decode the password.
-            System.out.println("Password Key specified.  Decrypting config password before submitting.");
+            if (cmd.hasOption("mao")) {
+                config.getMigrateACID().setOnly(Boolean.TRUE);
+                String bucketLimit = cmd.getOptionValue("mao");
+                if (bucketLimit != null) {
+                    config.getMigrateACID().setArtificialBucketThreshold(Integer.valueOf(bucketLimit));
+                }
+            }
 
-            String pkey = cmd.getOptionValue("pkey");
-            Protect protect = new Protect(pkey);
+            if (config.getMigrateACID().isOn()) {
+                if (cmd.hasOption("da")) {
+                    // Downgrade ACID tables
+                    config.getMigrateACID().setDowngrade(Boolean.TRUE);
+                }
+            }
 
-            for (Environment env : Environment.values()) {
-                Cluster cluster = config.getCluster(env);
-                if (cluster != null) {
-                    HiveServer2Config hiveServer2Config = cluster.getHiveServer2();
-                    Properties props = hiveServer2Config.getConnectionProperties();
-                    String password = props.getProperty("password");
-                    if (password != null) {
+            if (cmd.hasOption("mnn")) {
+                config.setMigratedNonNative(Boolean.TRUE);
+            }
+
+            if (cmd.hasOption("mnno")) {
+                config.setMigratedNonNative(Boolean.TRUE);
+            }
+
+            // AVRO Schema Migration
+            if (cmd.hasOption("asm")) {
+                config.setCopyAvroSchemaUrls(Boolean.TRUE);
+            }
+
+            String dataStrategyStr = cmd.getOptionValue("d");
+            // default is SCHEMA_ONLY
+            if (dataStrategyStr != null) {
+                DataStrategy dataStrategy = DataStrategy.valueOf(dataStrategyStr.toUpperCase());
+                config.setDataStrategy(dataStrategy);
+                if (config.getDataStrategy() == DataStrategy.DUMP) {
+                    config.setExecute(Boolean.FALSE); // No Actions.
+                    config.setSync(Boolean.FALSE);
+                    // If a source cluster is specified for the cluster to DUMP from, set it.
+                    if (cmd.hasOption("ds")) {
                         try {
-                            String decryptedPassword = protect.decrypt(password);
-                            props.put("password", decryptedPassword);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            System.err.println("Issue decrypting password");
-                            System.exit(-1);
+                            Environment source = Environment.valueOf(cmd.getOptionValue("ds").toUpperCase());
+                            config.setDumpSource(source);
+                        } catch (RuntimeException re) {
+                            LOG.error("The `-ds` option should be either: (LEFT|RIGHT). " + cmd.getOptionValue("ds") +
+                                    " is NOT a valid option.");
+                            throw new RuntimeException("The `-ds` option should be either: (LEFT|RIGHT). " + cmd.getOptionValue("ds") +
+                                    " is NOT a valid option.");
+                        }
+                    } else {
+                        config.setDumpSource(Environment.LEFT);
+                    }
+                }
+                if (config.getDataStrategy() == DataStrategy.LINKED) {
+                    if (cmd.hasOption("ma") || cmd.hasOption("mao")) {
+                        LOG.error("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy.");
+                        throw new RuntimeException("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy.");
+                    }
+                }
+                if (config.getDataStrategy() == DataStrategy.STORAGE_MIGRATION) {
+                    if (config.getTransfer().getStorageMigration() == null)
+                        config.getTransfer().setStorageMigration(new StorageMigration());
+                    if (cmd.hasOption("smt")) {
+                        config.getTransfer().getStorageMigration().setTarget(cmd.getOptionValue("smt"));
+                    }
+                    if (cmd.hasOption("sms")) {
+                        try {
+                            DataStrategy migrationStrategy = DataStrategy.valueOf(cmd.getOptionValue("sms"));
+                            config.getTransfer().getStorageMigration().setStrategy(migrationStrategy);
+                        } catch (Throwable t) {
+                            LOG.error("Only SQL,EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
+                            throw new RuntimeException("Only SQL,EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
+                        }
+                    }
+                    if (config.getTransfer().getStorageMigration().getTarget() == null) {
+                        LOG.error("The Storage Migration Target must be set.  Use either the commandline option -smt or " +
+                                "set it in the configuration (transfer->storageMigrationTarget");
+                        throw new RuntimeException("The Storage Migration Target must be set.  Use either the commandline " +
+                                "option -smt or set it in the configuration (transfer->storageMigrationTarget");
+                    }
+                }
+            }
+
+            // When the pkey is specified, we assume the config passwords are encrytped and we'll decrypt them before continuing.
+            if (cmd.hasOption("pkey")) {
+                // Loop through the HiveServer2 Configs and decode the password.
+                System.out.println("Password Key specified.  Decrypting config password before submitting.");
+
+                String pkey = cmd.getOptionValue("pkey");
+                Protect protect = new Protect(pkey);
+
+                for (Environment env : Environment.values()) {
+                    Cluster cluster = config.getCluster(env);
+                    if (cluster != null) {
+                        HiveServer2Config hiveServer2Config = cluster.getHiveServer2();
+                        Properties props = hiveServer2Config.getConnectionProperties();
+                        String password = props.getProperty("password");
+                        if (password != null) {
+                            try {
+                                String decryptedPassword = protect.decrypt(password);
+                                props.put("password", decryptedPassword);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                System.err.println("Issue decrypting password");
+                                System.exit(-1);
+                            }
                         }
                     }
                 }
             }
-        }
 
-        if (cmd.hasOption("dbp")) {
-            config.setDbPrefix(cmd.getOptionValue("dbp"));
-        }
 
-        if (cmd.hasOption("v")) {
-            config.getMigrateVIEW().setOn(Boolean.TRUE);
-        }
-
-        if (cmd.hasOption("dbo")) {
-            config.setDatabaseOnly(Boolean.TRUE);
-        }
-
-        if (cmd.hasOption("ma")) {
-            config.getMigrateACID().setOn(Boolean.TRUE);
-            String bucketLimit = cmd.getOptionValue("ma");
-            if (bucketLimit != null) {
-                config.getMigrateACID().setArtificialBucketThreshold(Integer.valueOf(bucketLimit));
+            // To keep the connections and remainder of the processing in place, set the env for the cluster
+            //   to the abstract name.
+            Set<Environment> environmentSet = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
+            for (Environment lenv : environmentSet) {
+                config.getCluster(lenv).setEnvironment(lenv);
             }
-        }
 
-        if (cmd.hasOption("mao")) {
-            config.getMigrateACID().setOnly(Boolean.TRUE);
-            String bucketLimit = cmd.getOptionValue("mao");
-            if (bucketLimit != null) {
-                config.getMigrateACID().setArtificialBucketThreshold(Integer.valueOf(bucketLimit));
+            // Get intermediate Storage Location
+            if (cmd.hasOption("is")) {
+                config.getTransfer().setIntermediateStorage(cmd.getOptionValue("is"));
             }
-        }
 
-        if (config.getMigrateACID().isOn()) {
-            if (cmd.hasOption("da")) {
-                // Downgrade ACID tables
-                config.getMigrateACID().setDowngrade(Boolean.TRUE);
+            // Get intermediate Storage Location
+            if (cmd.hasOption("cs")) {
+                config.getTransfer().setCommonStorage(cmd.getOptionValue("cs"));
             }
-        }
 
-        if (cmd.hasOption("mnn")) {
-            config.setMigratedNonNative(Boolean.TRUE);
-        }
-
-        if (cmd.hasOption("mnno")) {
-            config.setMigratedNonNative(Boolean.TRUE);
-        }
-
-        // AVRO Schema Migration
-        if (cmd.hasOption("asm")) {
-            config.setCopyAvroSchemaUrls(Boolean.TRUE);
-        }
-
-        String dataStrategyStr = cmd.getOptionValue("d");
-        // default is SCHEMA_ONLY
-        if (dataStrategyStr != null) {
-            DataStrategy dataStrategy = DataStrategy.valueOf(dataStrategyStr.toUpperCase());
-            config.setDataStrategy(dataStrategy);
-            if (config.getDataStrategy() == DataStrategy.DUMP) {
-                config.setExecute(Boolean.FALSE); // No Actions.
-                config.setSync(Boolean.FALSE);
-                // If a source cluster is specified for the cluster to DUMP from, set it.
-                if (cmd.hasOption("ds")) {
-                    try {
-                        Environment source = Environment.valueOf(cmd.getOptionValue("ds").toUpperCase());
-                        config.setDumpSource(source);
-                    } catch (RuntimeException re) {
-                        LOG.error("The `-ds` option should be either: (LEFT|RIGHT). " + cmd.getOptionValue("ds") +
-                                " is NOT a valid option.");
-                        throw new RuntimeException("The `-ds` option should be either: (LEFT|RIGHT). " + cmd.getOptionValue("ds") +
-                                " is NOT a valid option.");
-                    }
-                } else {
-                    config.setDumpSource(Environment.LEFT);
+            if (cmd.hasOption("ro")) {
+                switch (config.getDataStrategy()) {
+                    case SCHEMA_ONLY:
+                    case LINKED:
+                    case COMMON:
+                    case SQL:
+                        config.setReadOnly(Boolean.TRUE);
+                        break;
+                    default:
+                        throw new RuntimeException("RO option only valid with SCHEMA_ONLY, LINKED, SQL, and COMMON data strategies.");
                 }
             }
-            if (config.getDataStrategy() == DataStrategy.LINKED) {
-                if (cmd.hasOption("ma") || cmd.hasOption("mao")) {
-                    LOG.error("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy.");
-                    throw new RuntimeException("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy.");
-                }
+
+            if (cmd.hasOption("sync") && config.getDataStrategy() != DataStrategy.DUMP) {
+                config.setSync(Boolean.TRUE);
             }
-            if (config.getDataStrategy() == DataStrategy.STORAGE_MIGRATION) {
-                if (config.getTransfer().getStorageMigration() == null)
-                    config.getTransfer().setStorageMigration(new StorageMigration());
-                if (cmd.hasOption("smt")) {
-                    config.getTransfer().getStorageMigration().setTarget(cmd.getOptionValue("smt"));
-                }
-                if (cmd.hasOption("sms")) {
-                    try {
-                        DataStrategy migrationStrategy = DataStrategy.valueOf(cmd.getOptionValue("sms"));
-                        config.getTransfer().getStorageMigration().setStrategy(migrationStrategy);
-                    } catch (Throwable t) {
-                        LOG.error("Only SQL,EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
-                        throw new RuntimeException("Only SQL,EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
-                    }
-                }
-                if (config.getTransfer().getStorageMigration().getTarget() == null) {
-                    LOG.error("The Storage Migration Target must be set.  Use either the commandline option -smt or " +
-                            "set it in the configuration (transfer->storageMigrationTarget");
-                    throw new RuntimeException("The Storage Migration Target must be set.  Use either the commandline " +
-                            "option -smt or set it in the configuration (transfer->storageMigrationTarget");
-                }
+
+            if (cmd.hasOption("dbRegEx")) {
+                config.setDbRegEx(cmd.getOptionValue("dbRegEx"));
             }
-        }
 
-        // To keep the connections and remainder of the processing in place, set the env for the cluster
-        //   to the abstract name.
-        Set<Environment> environmentSet = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
-        for (Environment lenv : environmentSet) {
-            config.getCluster(lenv).setEnvironment(lenv);
-        }
-
-        // Get intermediate Storage Location
-        if (cmd.hasOption("is")) {
-            config.getTransfer().setIntermediateStorage(cmd.getOptionValue("is"));
-        }
-
-
-        if (cmd.hasOption("ro")) {
-            switch (config.getDataStrategy()) {
-                case SCHEMA_ONLY:
-                case LINKED:
-                case COMMON:
-                    config.setReadOnly(Boolean.TRUE);
-                    break;
-                default:
-                    throw new RuntimeException("RO option only valid with SCHEMA_ONLY,COMMON, and LINKED data strategies.");
+            if (cmd.hasOption("tf")) {
+                config.setTblRegEx(cmd.getOptionValue("tf"));
             }
+
         }
-
-        if (cmd.hasOption("sql")) {
-            config.setSqlOutput(Boolean.TRUE);
-        }
-
-//        if (cmd.hasOption("r")) {
-//            retry = Boolean.TRUE;
-//        }
-
         if (cmd.hasOption("o")) {
             reportOutputDir = cmd.getOptionValue("o");
         } else {
@@ -484,18 +527,6 @@ public class Mirror {
             String[] databases = cmd.getOptionValues("db");
             if (databases != null)
                 config.setDatabases(databases);
-        }
-
-        if (cmd.hasOption("sync") && config.getDataStrategy() != DataStrategy.DUMP) {
-            config.setSync(Boolean.TRUE);
-        }
-
-        if (cmd.hasOption("dbRegEx")) {
-            config.setDbRegEx(cmd.getOptionValue("dbRegEx"));
-        }
-
-        if (cmd.hasOption("tf")) {
-            config.setTblRegEx(cmd.getOptionValue("tf"));
         }
 
         if (config.getDatabases() == null || config.getDatabases().length == 0) {
@@ -558,13 +589,6 @@ public class Mirror {
         }
 
         if (!config.validate()) {
-            List<String> issues = config.getIssues();
-            System.err.println("");
-            for (String issue : issues) {
-                LOG.error(issue);
-                System.err.println(issue);
-            }
-            System.err.println("");
             throw new RuntimeException("Configuration issues., check log (~/.hms-mirror/logs/hms-mirror.log) for details");
         }
 
@@ -617,7 +641,7 @@ public class Mirror {
     }
 
     public void doit() {
-        Conversion conversion = new Conversion(config);
+        conversion = new Conversion(config);
 
         // Setup and Start the State Maintenance Routine
         StateMaintenance stateMaintenance = new StateMaintenance(10000, configFile, getDateMarker());
@@ -901,6 +925,17 @@ public class Mirror {
         quietOutput.setRequired(Boolean.FALSE);
         options.addOption(quietOutput);
 
+        Option resetTarget = new Option("rr", "reset-right", false,
+                "Use this for testing to remove the database on the RIGHT using CASCADE.");
+        resetTarget.setRequired(Boolean.FALSE);
+        options.addOption(resetTarget);
+
+        Option flipOption = new Option("f", "flip", false,
+                "Flip the definitions for LEFT and RIGHT.  Allows the same config to be used in reverse.");
+        flipOption.setOptionalArg(Boolean.FALSE);
+        flipOption.setRequired(Boolean.FALSE);
+        options.addOption(flipOption);
+
         Option metadataStage = new Option("d", "data-strategy", true,
                 "Specify how the data will follow the schema. " + Arrays.deepToString(DataStrategy.visibleValues()));
         metadataStage.setOptionalArg(Boolean.TRUE);
@@ -915,6 +950,9 @@ public class Mirror {
         dumpSource.setRequired(Boolean.FALSE);
         options.addOption(dumpSource);
 
+        OptionGroup storageOptionsGroup = new OptionGroup();
+        storageOptionsGroup.setRequired(Boolean.FALSE);
+
         Option intermediateStorageOption = new Option("is", "intermediate-storage", true,
                 "Intermediate Storage used with Data Strategy HYBRID, SQL, EXPORT_IMPORT.  This will change " +
                         "the way these methods are implemented by using the specified storage location as an " +
@@ -925,7 +963,21 @@ public class Mirror {
         intermediateStorageOption.setOptionalArg(Boolean.TRUE);
         intermediateStorageOption.setArgName("storage-path");
         intermediateStorageOption.setRequired(Boolean.FALSE);
-        options.addOption(intermediateStorageOption);
+        storageOptionsGroup.addOption(intermediateStorageOption);
+
+        Option commonStorageOption = new Option("cs", "common-storage", true,
+                "Common Storage used with Data Strategy HYBRID, SQL, EXPORT_IMPORT.  This will change " +
+                        "the way these methods are implemented by using the specified storage location as an " +
+                        "'common' storage point between two clusters.  In this case, the cluster do NOT need to " +
+                        "be 'linked'.  Each cluster DOES need to have access to the location and authorization to " +
+                        "interact with the location.  This may mean additional configuration requirements for " +
+                        "'hdfs' to ensure this seamless access.");
+        commonStorageOption.setOptionalArg(Boolean.TRUE);
+        commonStorageOption.setArgName("storage-path");
+        commonStorageOption.setRequired(Boolean.FALSE);
+        storageOptionsGroup.addOption(commonStorageOption);
+
+        options.addOptionGroup(storageOptionsGroup);
 
         // Migration Options - Only one of these can be selected at a time, but isn't required.
         OptionGroup migrationOptionsGroup = new OptionGroup();
@@ -981,6 +1033,13 @@ public class Mirror {
         mnnOption.setRequired(Boolean.FALSE);
         options.addOption(mnnOption);
 
+        Option replaceOption = new Option("r", "replace", false,
+                "When downgrading an ACID table as its transferred to the 'RIGHT' cluster, this option " +
+                        "will replace the current ACID table on the LEFT cluster with a 'downgraded' table (EXTERNAL). " +
+                        "The option only works with options '-da' and '-cs'.");
+        replaceOption.setRequired(Boolean.FALSE);
+        options.addOption(replaceOption);
+
         Option syncOption = new Option("s", "sync", false,
                 "For SCHEMA_ONLY, COMMON, and LINKED data strategies.  Drop and Recreate Schema's when different.  " +
                         "Best to use with RO to ensure table/partition drops don't delete data. When used WITHOUT `-tf` it will " +
@@ -1001,11 +1060,11 @@ public class Mirror {
         acceptOption.setRequired(Boolean.FALSE);
         options.addOption(acceptOption);
 
-        Option translateConfigOption = new Option("t", "translate-config", true,
-                "Translator Configuration File (Experimental)");
-        translateConfigOption.setRequired(Boolean.FALSE);
-        translateConfigOption.setArgName("translate-config-file");
-        options.addOption(translateConfigOption);
+//        Option translateConfigOption = new Option("t", "translate-config", true,
+//                "Translator Configuration File (Experimental)");
+//        translateConfigOption.setRequired(Boolean.FALSE);
+//        translateConfigOption.setArgName("translate-config-file");
+//        options.addOption(translateConfigOption);
 
         Option outputOption = new Option("o", "output-dir", true,
                 "Output Directory (default: $HOME/.hms-mirror/reports/<yyyy-MM-dd_HH-mm-ss>");
@@ -1078,9 +1137,27 @@ public class Mirror {
         options.addOptionGroup(dbGroup);
 
         Option sqlOutputOption = new Option("sql", "sql-output", false,
-                "Output the SQL to the report");
+                "<deprecated>.  This option is no longer required to get SQL out in a report.  That is the default behavior.");
         sqlOutputOption.setRequired(Boolean.FALSE);
         options.addOption(sqlOutputOption);
+
+        Option acidPartCountOption = new Option("ap", "acid-partition-count", true,
+                "Set the limit of partitions that the ACID strategy will work with. '-1' means no-limit.");
+        acidPartCountOption.setRequired(Boolean.FALSE);
+        acidPartCountOption.setArgName("limit");
+        options.addOption(acidPartCountOption);
+
+        Option sqlPartCountOption = new Option("sp", "sql-partition-count", true,
+                "Set the limit of partitions that the SQL strategy will work with. '-1' means no-limit.");
+        sqlPartCountOption.setRequired(Boolean.FALSE);
+        sqlPartCountOption.setArgName("limit");
+        options.addOption(sqlPartCountOption);
+
+        Option expImpPartCountOption = new Option("ep", "export-partition-count", true,
+                "Set the limit of partitions that the EXPORT_IMPORT strategy will work with.");
+        expImpPartCountOption.setRequired(Boolean.FALSE);
+        expImpPartCountOption.setArgName("limit");
+        options.addOption(expImpPartCountOption);
 
         Option tableFilterOption = new Option("tf", "table-filter", true,
                 "Filter tables (inclusive) with name matching RegEx. Comparison done with 'show tables' " +
@@ -1102,37 +1179,52 @@ public class Mirror {
         options.addOption(pKeyOption);
 
 
-//        Option retryOption = new Option("r", "retry", false,
-//                "Retry last incomplete run for 'cfg'.  If none specified, will check for 'default'");
-//        retryOption.setRequired(false);
-//        options.addOption(retryOption);
-
         return options;
     }
 
-    public static void main(String[] args) {
-        Mirror mirror = new Mirror();
+    public long go(String[] args) {
+        long returnCode = 0;
         LOG.info("===================================================");
         LOG.info("Running: hms-mirror " + ReportingConf.substituteVariablesFromManifest("v.${Implementation-Version}"));
         LOG.info(" with commandline parameters: " + String.join(",", args));
         LOG.info("===================================================");
         try {
-            mirror.init(args);
+            init(args);
             try {
-                mirror.doit();
+                doit();
             } catch (RuntimeException rte) {
                 System.out.println(rte.getMessage());
                 rte.printStackTrace();
+                if (config != null) {
+                    returnCode = config.getErrors().getReturnCode(); //MessageCode.returnCode(config.getErrors());
+                } else {
+                    returnCode = -1;
+                }
             }
-            System.exit(0);
         } catch (RuntimeException e) {
-            e.printStackTrace();
             LOG.error(e.getMessage(), e);
-            System.err.println("\nERROR: ==============================================");
-            System.err.println(e.getMessage());
-            System.err.println("\nSee log for stack trace");
             System.err.println("=====================================================");
-            System.exit(-1);
+            System.err.println("Commandline args: " + Arrays.toString(args));
+            System.err.println("");
+            LOG.error("Commandline args: " + Arrays.toString(args));
+            if (config != null) {
+                for (String error : config.getErrors().getMessages()) {
+                    LOG.error(error);
+                    System.err.println(error);
+                }
+                returnCode = config.getErrors().getReturnCode();
+            } else {
+                returnCode = -1;
+            }
+            System.err.println(e.getMessage());
+            e.printStackTrace();
+            System.err.println("\nSee log for stack trace ($HOME/.hms-mirror/logs)");
         }
+        return returnCode;
+    }
+
+    public static void main(String[] args) {
+        Mirror mirror = new Mirror();
+        System.exit((int) mirror.go(args));
     }
 }

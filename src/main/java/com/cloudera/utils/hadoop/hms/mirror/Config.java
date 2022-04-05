@@ -31,6 +31,7 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.Op;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -44,40 +45,47 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
 
+import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.*;
+
 @JsonIgnoreProperties({"featureList"})
 public class Config {
 
     private static Logger LOG = LogManager.getLogger(Config.class);
-
-    @JsonIgnore
-    private ScheduledExecutorService transferThreadPool;
-    @JsonIgnore
-    private Translator translator = new Translator();
-    @JsonIgnore
-    private List<String> flags = new LinkedList<String>();
-
+    private Acceptance acceptance = new Acceptance();
     @JsonIgnore
     private HadoopSessionPool cliPool;
-
+    private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
+    private String commandLineOptions = null;
+    private boolean copyAvroSchemaUrls = Boolean.FALSE;
     private DataStrategy dataStrategy = DataStrategy.SCHEMA_ONLY;
-    private Environment dumpSource = null;
+    private Boolean databaseOnly = Boolean.FALSE;
+    private String[] databases = null;
+    @JsonIgnore
+    private Pattern dbFilterPattern = null;
+    /*
+   Prefix the DB with this to create an alternate db.
+   Good for testing.
 
+   Should leave null for like replication.
+    */
+    private String dbPrefix = null;
+    @JsonIgnore // wip
+    private String dbRegEx = null;
+    private Environment dumpSource = null;
+    @JsonIgnore
+    private Messages errors = new Messages(100);
+    private boolean execute = Boolean.FALSE;
+    @JsonIgnore
+    private List<String> flags = new LinkedList<String>();
+    /*
+    Use 'flip' to switch LEFT and RIGHT cluster definitions.  Allows you to change the direction of the calls.
+     */
+    private Boolean flip = Boolean.FALSE;
     private HybridConfig hybrid = new HybridConfig();
     private MigrateACID migrateACID = new MigrateACID();
     private MigrateVIEW migrateVIEW = new MigrateVIEW();
     private Boolean migratedNonNative = Boolean.FALSE;
-    private Boolean databaseOnly = Boolean.FALSE;
-
-//    private Boolean migrateACID = Boolean.FALSE;
-
-    @JsonIgnore
-    private List<String> issues = new ArrayList<String>();
-
-    private boolean execute = Boolean.FALSE;
-//    private boolean viewsOnly = Boolean.FALSE;
-
-    private boolean copyAvroSchemaUrls = Boolean.FALSE;
-
+    private Optimization optimization = new Optimization();
     /*
     Used when a schema is transferred and has 'purge' properties for the table.
     When this is 'true', we'll remove the 'purge' option.
@@ -85,7 +93,18 @@ public class Config {
     control the Filesystem and we don't want to mess that up.
      */
     private boolean readOnly = Boolean.FALSE;
-
+    /*
+    When Common Storage is used with the SQL Data Strategy, this will 'replace' the original table
+    with a table by the same name but who's data lives in the common storage location.
+     */
+    private Boolean replace = Boolean.FALSE;
+    private Boolean resetRight = Boolean.FALSE;
+    private Boolean skipFeatures = Boolean.FALSE;
+    /*
+    Always true.  leaving to ensure config serialization compatibility.
+     */
+    @Deprecated
+    private Boolean sqlOutput = Boolean.TRUE;
     /*
     Sync is valid for SCHEMA_ONLY, LINKED, and COMMON data strategies.
     This will compare the tables between LEFT and RIGHT to ensure that they are in SYNC.
@@ -102,419 +121,16 @@ public class Config {
     Transactional tables are NOT considered in this process.
      */
     private boolean sync = Boolean.FALSE;
-
-    /*
-    Output SQL to report
-     */
-    private boolean sqlOutput = Boolean.TRUE;
-
-    private Acceptance acceptance = new Acceptance();
-
-    @JsonIgnore // wip
-    private String dbRegEx = null;
-    @JsonIgnore
-    private Pattern dbFilterPattern = null;
-
-    private String tblRegEx = null;
     @JsonIgnore
     private Pattern tblFilterPattern = null;
-
-    /*
-   Prefix the DB with this to create an alternate db.
-   Good for testing.
-
-   Should leave null for like replication.
-    */
-    private String dbPrefix = null;
-
-    private String[] databases = null;
-    private Boolean skipFeatures = Boolean.FALSE;
-
-    public HadoopSessionPool getCliPool() {
-        if (cliPool == null) {
-            GenericObjectPoolConfig<HadoopSession> hspCfg = new GenericObjectPoolConfig<HadoopSession>();
-            hspCfg.setMaxTotal(transfer.getConcurrency());
-            this.cliPool = new HadoopSessionPool(new GenericObjectPool<HadoopSession>(new HadoopSessionFactory(), hspCfg));
-        }
-        return cliPool;
-    }
-
-    public void setCliPool(HadoopSessionPool cliPool) {
-        this.cliPool = cliPool;
-    }
-
+    private String tblRegEx = null;
     private TransferConfig transfer = new TransferConfig();
-
-    private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
-
-    public boolean convertManaged() {
-        if (getCluster(Environment.LEFT).getLegacyHive() && !getCluster(Environment.RIGHT).getLegacyHive()) {
-            return Boolean.TRUE;
-        } else {
-            return Boolean.FALSE;
-        }
-    }
-
-    public Translator getTranslator() {
-        return translator;
-    }
-
-    public void setTranslator(Translator translator) {
-        this.translator = translator;
-    }
-
-    public List<String> getIssues() {
-        return issues;
-    }
-
-    public void setIssues(List<String> issues) {
-        this.issues = issues;
-    }
-
-    public MigrateACID getMigrateACID() {
-        return migrateACID;
-    }
-
-    public void setMigrateACID(MigrateACID migrateACID) {
-        this.migrateACID = migrateACID;
-    }
-
-    public MigrateVIEW getMigrateVIEW() {
-        return migrateVIEW;
-    }
-
-    public void setMigrateVIEW(MigrateVIEW migrateVIEW) {
-        this.migrateVIEW = migrateVIEW;
-    }
-
-    public Boolean getMigratedNonNative() {
-        return migratedNonNative;
-    }
-
-    public void setMigratedNonNative(Boolean migratedNonNative) {
-        this.migratedNonNative = migratedNonNative;
-    }
-
-    public Boolean getDatabaseOnly() {
-        return databaseOnly;
-    }
-
-    public void setDatabaseOnly(Boolean databaseOnly) {
-        this.databaseOnly = databaseOnly;
-    }
-
-    public DataStrategy getDataStrategy() {
-        return dataStrategy;
-    }
-
-    public void setDataStrategy(DataStrategy dataStrategy) {
-        this.dataStrategy = dataStrategy;
-        if (this.dataStrategy == DataStrategy.DUMP) {
-            this.getMigrateACID().setOn(Boolean.TRUE);
-            this.getMigrateVIEW().setOn(Boolean.TRUE);
-            this.setMigratedNonNative(Boolean.TRUE);
-        }
-    }
-
-    public Environment getDumpSource() {
-        return dumpSource;
-    }
-
-    public void setDumpSource(Environment dumpSource) {
-        this.dumpSource = dumpSource;
-    }
-
-    public HybridConfig getHybrid() {
-        return hybrid;
-    }
-
-    public void setHybrid(HybridConfig hybrid) {
-        this.hybrid = hybrid;
-    }
-
-    public boolean isExecute() {
-        if (!execute) {
-            LOG.debug("Dry-run: ON");
-        }
-        return execute;
-    }
-
-    public boolean isCopyAvroSchemaUrls() {
-        return copyAvroSchemaUrls;
-    }
-
-    public void setCopyAvroSchemaUrls(boolean copyAvroSchemaUrls) {
-        this.copyAvroSchemaUrls = copyAvroSchemaUrls;
-    }
-
-    public boolean isReadOnly() {
-        return readOnly;
-    }
-
-    public void setReadOnly(boolean readOnly) {
-        this.readOnly = readOnly;
-    }
-
-    public boolean isSync() {
-        return sync;
-    }
-
-    public void setSync(boolean sync) {
-        this.sync = sync;
-    }
-
-    public boolean isSqlOutput() {
-        return sqlOutput;
-    }
-
-    public void setSqlOutput(boolean sqlOutput) {
-        this.sqlOutput = sqlOutput;
-    }
-
-    public Acceptance getAcceptance() {
-        return acceptance;
-    }
-
-    public void setAcceptance(Acceptance acceptance) {
-        this.acceptance = acceptance;
-    }
-
-    public String getDbPrefix() {
-        return dbPrefix;
-    }
-
-    public void setDbPrefix(String dbPrefix) {
-        this.dbPrefix = dbPrefix;
-    }
-
-    public String getResolvedDB(String database) {
-        String rtn = null;
-        rtn = (dbPrefix != null ? dbPrefix + database : database);
-        return rtn;
-    }
-
-    public ScheduledExecutorService getTransferThreadPool() {
-        if (transferThreadPool == null) {
-            transferThreadPool = Executors.newScheduledThreadPool(getTransfer().getConcurrency());
-        }
-        return transferThreadPool;
-    }
-
-    public String getDbRegEx() {
-        return dbRegEx;
-    }
-
-    public void setDbRegEx(String dbRegEx) {
-        this.dbRegEx = dbRegEx;
-        if (this.dbRegEx != null)
-            dbFilterPattern = Pattern.compile(dbRegEx);
-        else
-            dbFilterPattern = null;
-
-    }
-
-    public Pattern getDbFilterPattern() {
-        return dbFilterPattern;
-    }
-
-    public String getTblRegEx() {
-        return tblRegEx;
-    }
-
-    public void setTblRegEx(String tblRegEx) {
-        this.tblRegEx = tblRegEx;
-        if (this.tblRegEx != null)
-            tblFilterPattern = Pattern.compile(tblRegEx);
-        else
-            tblFilterPattern = null;
-    }
-
-    public Boolean getSkipFeatures() {
-        return skipFeatures;
-    }
-
-    public void setSkipFeatures(Boolean skipFeatures) {
-        this.skipFeatures = skipFeatures;
-    }
-
-    public Pattern getTblFilterPattern() {
-        return tblFilterPattern;
-    }
-
     @JsonIgnore
-    public Boolean isConnectionKerberized() {
-        Boolean rtn = Boolean.FALSE;
-        Set<Environment> envs = clusters.keySet();
-        for (Environment env : envs) {
-            Cluster cluster = clusters.get(env);
-            if (cluster.getHiveServer2().isValidUri() && cluster.getHiveServer2().getUri().contains("principal")) {
-                rtn = Boolean.TRUE;
-            }
-        }
-        return rtn;
-    }
-
-    /*
-    Before processing, validate the config for issues and warn.  A valid configuration will return 'null'.  An invalid
-    config will return an array of String representing the issues.
-     */
-    public Boolean validate() {
-        Boolean rtn = Boolean.TRUE;
-        issues.clear();
-        if (sync && tblRegEx != null) {
-            String issue = "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '" +
-                    tblRegEx + "' ON BOTH SIDES!!!";
-            issues.add(issue);
-        }
-        if (sync && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.LINKED ||
-                dataStrategy == DataStrategy.LINKED)) {
-            String issue = "'sync' only valid for SCHEMA_ONLY, LINKED, and COMMON data strategies";
-            issues.add(issue);
-            System.err.println(issue);
-            rtn = Boolean.FALSE;
-        }
-        if (migrateACID.isOn() && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.DUMP ||
-                dataStrategy == DataStrategy.EXPORT_IMPORT || dataStrategy == DataStrategy.HYBRID || dataStrategy == DataStrategy.SQL)) {
-            String issue = "Migrating ACID tables only valid for SCHEMA_ONLY, DUMP, SQL, EXPORT_IMPORT and HYBRID data strategies";
-            issues.add(issue);
-            System.err.println(issue);
-            rtn = Boolean.FALSE;
-        }
-        // DUMP does require Execute.
-        if (isExecute() && dataStrategy == DataStrategy.DUMP) {
-            setExecute(Boolean.FALSE);
-        }
-
-        if (dataStrategy == DataStrategy.ACID) {
-            issues.add("The `ACID` strategy is not a valid `hms-mirror` top level strategy.  Use 'HYBRID' to " +
-             " along with the `-ma|-mao` option to address ACID tables.");
-            return Boolean.FALSE;
-        }
-
-        // Test to ensure the clusters are LINKED to support underlying functions.
-        switch (dataStrategy) {
-            case LINKED:
-            case HYBRID:
-            case EXPORT_IMPORT:
-            case SQL:
-                // Only do link test when NOT using intermediate storage.
-                if (this.getTransfer().getIntermediateStorage() == null)
-                    rtn = linkTest();
-                else
-                    issues.add("Link TEST skipped because you've specified an 'Intermediate Storage' option");
-                break;
-            case SCHEMA_ONLY:
-                if (this.isCopyAvroSchemaUrls()) {
-                    LOG.info("CopyAVROSchemaUrls is TRUE, so the cluster must be linked to do this.  Testing...");
-                    rtn = linkTest();
-                }
-                break;
-            case DUMP:
-                if (getDumpSource() == Environment.RIGHT) {
-                    issues.add("You've requested DUMP on the RIGHT cluster.  The runtime configuration will " +
-                            "adjusted to complete this.  The RIGHT configuration will be MOVED to the LEFT to process " +
-                            "the DUMP strategy.  LEFT = RIGHT...");
-                }
-            case COMMON:
-                break;
-            case CONVERT_LINKED:
-                // Check that the RIGHT cluster is NOT a legacy cluster.  No testing done in this scenario.
-                if (getCluster(Environment.RIGHT).getLegacyHive()) {
-                    issues.add("Legacy Hive is not supported as a 'target' (RIGHT) cluster.  clusters->RIGHT->legacyHive");
-                    rtn = Boolean.FALSE;
-                }
-                break;
-        }
-
-        // TODO: Check the connections.
-        // If the environments are mix of legacy and non-legacy, check the connections for kerberos or zk.
-
-
-        // Set maxConnections to Concurrency.
-        HiveServer2Config leftHS2 = this.getCluster(Environment.LEFT).getHiveServer2();
-        if (!leftHS2.isValidUri()) {
-            rtn = Boolean.FALSE;
-            issues.add("LEFT HiveServer2 URI config is NOT valid");
-        }
-        leftHS2.getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
-        leftHS2.getConnectionProperties().setProperty("initialSize", Integer.toString(getTransfer().getConcurrency()));
-        leftHS2.getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency()/2));
-        leftHS2.getConnectionProperties().setProperty("validationQuery", "SELECT 1");
-        leftHS2.getConnectionProperties().setProperty("validationQueryTimeout", "5");
-        leftHS2.getConnectionProperties().setProperty("testOnCreate", "true");
-
-        if (leftHS2.isKerberosConnection() && leftHS2.getJarFile() != null) {
-            rtn = Boolean.FALSE;
-            issues.add("LEFT: For Kerberized connections, place the Hive JDBC jar file in $HOME/.hms-mirror/aux_libs and remove the 'jarFile' entry in the config.");
-        }
-
-        HiveServer2Config rightHS2 = this.getCluster(Environment.RIGHT).getHiveServer2();
-
-        if (!rightHS2.isValidUri()) {
-            if (!this.getDataStrategy().equals(DataStrategy.DUMP)) {
-                rtn = Boolean.FALSE;
-                issues.add("The RIGHT HiveServer2 URI is not defined OR invalid. You need to define the RIGHT cluster " +
-                        "with a valid URI for all Data Strategies, except DUMP");
-            }
-        } else {
-
-            rightHS2.getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
-            rightHS2.getConnectionProperties().setProperty("initialSize", Integer.toString(getTransfer().getConcurrency()));
-            rightHS2.getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency() / 2));
-            rightHS2.getConnectionProperties().setProperty("validationQuery", "SELECT 1");
-            rightHS2.getConnectionProperties().setProperty("validationQueryTimeout", "5");
-            rightHS2.getConnectionProperties().setProperty("testOnCreate", "true");
-
-            if (rightHS2.isKerberosConnection() && rightHS2.getJarFile() != null) {
-                rtn = Boolean.FALSE;
-                issues.add("RIGHT: For Kerberized connections, place the Hive JDBC jar file in $HOME/.hms-mirror/aux_libs and remove the 'jarFile' entry in the config.");
-            }
-
-            if (leftHS2.isKerberosConnection() && rightHS2.isKerberosConnection() &&
-                    (this.getCluster(Environment.LEFT).getLegacyHive() != this.getCluster(Environment.RIGHT).getLegacyHive())) {
-                rtn = Boolean.FALSE;
-                issues.add("Kerberos connections can only be supported to a single version of the platform.  LEFT and RIGHT " +
-                        "'legacy' definitions are not the same, so we are assuming the cluster versions aren't the same.");
-            }
-        }
-        return rtn;
-    }
-
-    protected Boolean linkTest() {
-        Boolean rtn = Boolean.FALSE;
-        HadoopSession session = null;
-        try {
-            session = getCliPool().borrow();
-            LOG.info("Performing Cluster Link Test to validate cluster 'hcfsNamespace' availability.");
-            // TODO: develop a test to copy data between clusters.
-            String leftHCFSNamespace = this.getCluster(Environment.LEFT).getHcfsNamespace();
-            String rightHCFSNamespace = this.getCluster(Environment.RIGHT).getHcfsNamespace();
-
-            // List User Directories on LEFT
-            String leftlsTestLine = "ls " + leftHCFSNamespace + "/user";
-            String rightlsTestLine = "ls " + rightHCFSNamespace + "/user";
-
-            CommandReturn lcr = session.processInput(leftlsTestLine);
-            if (lcr.isError()) {
-                throw new RuntimeException("Link to RIGHT cluster FAILED.\n " + lcr.getError() +
-                        "\nCheck configuration and hcfsNamespace value.  " +
-                        "Check the documentation about Linking clusters: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
-            }
-            CommandReturn rcr = session.processInput(rightlsTestLine);
-            if (rcr.isError()) {
-                throw new RuntimeException("Link to LEFT cluster FAILED.\n " + rcr.getError() +
-                        "\nCheck configuration and hcfsNamespace value.  " +
-                        "Check the documentation about Linking clusters: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
-            }
-            rtn = Boolean.TRUE;
-        } finally {
-            if (session != null)
-                getCliPool().returnSession(session);
-        }
-
-
-        return rtn;
-    }
+    private ScheduledExecutorService transferThreadPool;
+    @JsonIgnore
+    private Translator translator = new Translator();
+    @JsonIgnore
+    private Messages warnings = new Messages(100);
 
     /*
     Use this to initialize a default config.
@@ -638,6 +254,471 @@ public class Config {
         }
     }
 
+    public HadoopSessionPool getCliPool() {
+        if (cliPool == null) {
+            GenericObjectPoolConfig<HadoopSession> hspCfg = new GenericObjectPoolConfig<HadoopSession>();
+            hspCfg.setMaxTotal(transfer.getConcurrency());
+            this.cliPool = new HadoopSessionPool(new GenericObjectPool<HadoopSession>(new HadoopSessionFactory(), hspCfg));
+        }
+        return cliPool;
+    }
+
+    public void setCliPool(HadoopSessionPool cliPool) {
+        this.cliPool = cliPool;
+    }
+
+    public Boolean getFlip() {
+        return flip;
+    }
+
+    public void setFlip(Boolean flip) {
+        this.flip = flip;
+        if (this.flip) {
+            Cluster origLeft = getCluster(Environment.LEFT);
+            origLeft.setEnvironment(Environment.RIGHT);
+            Cluster origRight = getCluster(Environment.RIGHT);
+            origRight.setEnvironment(Environment.LEFT);
+            getClusters().put(Environment.RIGHT, origLeft);
+            getClusters().put(Environment.LEFT, origRight);
+        }
+    }
+
+    public Boolean isReplace() {
+        return replace;
+    }
+
+    public void setReplace(Boolean replace) {
+        this.replace = replace;
+    }
+
+    public Boolean getSqlOutput() {
+        return sqlOutput;
+    }
+
+    public void setSqlOutput(Boolean sqlOutput) {
+        this.sqlOutput = sqlOutput;
+    }
+
+    public Optimization getOptimization() {
+        return optimization;
+    }
+
+    public void setOptimization(Optimization optimization) {
+        this.optimization = optimization;
+    }
+
+    public boolean convertManaged() {
+        if (getCluster(Environment.LEFT).getLegacyHive() && !getCluster(Environment.RIGHT).getLegacyHive()) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
+    }
+
+    public Translator getTranslator() {
+        return translator;
+    }
+
+    public void setTranslator(Translator translator) {
+        this.translator = translator;
+    }
+
+    public String getCommandLineOptions() {
+        return commandLineOptions;
+    }
+
+    public void setCommandLineOptions(String[] commandLineOptions) {
+        this.commandLineOptions = Arrays.toString(commandLineOptions);
+    }
+
+    public void setCommandLineOptions(String commandLineOptions) {
+        this.commandLineOptions = commandLineOptions;
+    }
+
+    public Messages getErrors() {
+        return errors;
+    }
+
+    public Messages getWarnings() {
+        return warnings;
+    }
+
+    public MigrateACID getMigrateACID() {
+        return migrateACID;
+    }
+
+    public void setMigrateACID(MigrateACID migrateACID) {
+        this.migrateACID = migrateACID;
+    }
+
+    public MigrateVIEW getMigrateVIEW() {
+        return migrateVIEW;
+    }
+
+    public void setMigrateVIEW(MigrateVIEW migrateVIEW) {
+        this.migrateVIEW = migrateVIEW;
+    }
+
+    public Boolean getMigratedNonNative() {
+        return migratedNonNative;
+    }
+
+    public void setMigratedNonNative(Boolean migratedNonNative) {
+        this.migratedNonNative = migratedNonNative;
+    }
+
+    public Boolean getDatabaseOnly() {
+        return databaseOnly;
+    }
+
+    public void setDatabaseOnly(Boolean databaseOnly) {
+        this.databaseOnly = databaseOnly;
+    }
+
+    public DataStrategy getDataStrategy() {
+        return dataStrategy;
+    }
+
+    public void setDataStrategy(DataStrategy dataStrategy) {
+        this.dataStrategy = dataStrategy;
+        if (this.dataStrategy == DataStrategy.DUMP) {
+            this.getMigrateACID().setOn(Boolean.TRUE);
+            this.getMigrateVIEW().setOn(Boolean.TRUE);
+            this.setMigratedNonNative(Boolean.TRUE);
+        }
+    }
+
+    public Environment getDumpSource() {
+        return dumpSource;
+    }
+
+    public void setDumpSource(Environment dumpSource) {
+        this.dumpSource = dumpSource;
+    }
+
+    public HybridConfig getHybrid() {
+        return hybrid;
+    }
+
+    public void setHybrid(HybridConfig hybrid) {
+        this.hybrid = hybrid;
+    }
+
+    public boolean isExecute() {
+        if (!execute) {
+            LOG.debug("Dry-run: ON");
+        }
+        return execute;
+    }
+
+    public void setExecute(boolean execute) {
+        this.execute = execute;
+    }
+
+    public boolean isCopyAvroSchemaUrls() {
+        return copyAvroSchemaUrls;
+    }
+
+    public void setCopyAvroSchemaUrls(boolean copyAvroSchemaUrls) {
+        this.copyAvroSchemaUrls = copyAvroSchemaUrls;
+    }
+
+    public boolean isReadOnly() {
+        return readOnly;
+    }
+
+    public void setReadOnly(boolean readOnly) {
+        this.readOnly = readOnly;
+    }
+
+    public boolean isSync() {
+        return sync;
+    }
+
+    public void setSync(boolean sync) {
+        this.sync = sync;
+    }
+
+    public Acceptance getAcceptance() {
+        return acceptance;
+    }
+
+    public void setAcceptance(Acceptance acceptance) {
+        this.acceptance = acceptance;
+    }
+
+    public String getDbPrefix() {
+        return dbPrefix;
+    }
+
+    public void setDbPrefix(String dbPrefix) {
+        this.dbPrefix = dbPrefix;
+    }
+
+    public String getResolvedDB(String database) {
+        String rtn = null;
+        rtn = (dbPrefix != null ? dbPrefix + database : database);
+        return rtn;
+    }
+
+    public ScheduledExecutorService getTransferThreadPool() {
+        if (transferThreadPool == null) {
+            transferThreadPool = Executors.newScheduledThreadPool(getTransfer().getConcurrency());
+        }
+        return transferThreadPool;
+    }
+
+    public String getDbRegEx() {
+        return dbRegEx;
+    }
+
+    public void setDbRegEx(String dbRegEx) {
+        this.dbRegEx = dbRegEx;
+        if (this.dbRegEx != null)
+            dbFilterPattern = Pattern.compile(dbRegEx);
+        else
+            dbFilterPattern = null;
+
+    }
+
+    public Pattern getDbFilterPattern() {
+        return dbFilterPattern;
+    }
+
+    public String getTblRegEx() {
+        return tblRegEx;
+    }
+
+    public void setTblRegEx(String tblRegEx) {
+        this.tblRegEx = tblRegEx;
+        if (this.tblRegEx != null)
+            tblFilterPattern = Pattern.compile(tblRegEx);
+        else
+            tblFilterPattern = null;
+    }
+
+    public Boolean getSkipFeatures() {
+        return skipFeatures;
+    }
+
+    public void setSkipFeatures(Boolean skipFeatures) {
+        this.skipFeatures = skipFeatures;
+    }
+
+    public Pattern getTblFilterPattern() {
+        return tblFilterPattern;
+    }
+
+    public Boolean getResetRight() {
+        return resetRight;
+    }
+
+    public void setResetRight(Boolean resetRight) {
+        this.resetRight = resetRight;
+    }
+
+    @JsonIgnore
+    public Boolean isConnectionKerberized() {
+        Boolean rtn = Boolean.FALSE;
+        Set<Environment> envs = clusters.keySet();
+        for (Environment env : envs) {
+            Cluster cluster = clusters.get(env);
+            if (cluster.getHiveServer2().isValidUri() && cluster.getHiveServer2().getUri().contains("principal")) {
+                rtn = Boolean.TRUE;
+            }
+        }
+        return rtn;
+    }
+
+    /*
+    Before processing, validate the config for issues and warn.  A valid configuration will return 'null'.  An invalid
+    config will return an array of String representing the issues.
+     */
+    public Boolean validate() {
+        Boolean rtn = Boolean.TRUE;
+//        errors.clear();
+//        warnings.clear();
+        if (sync && tblRegEx != null) {
+            warnings.set(SYNC_TBL_FILTER.getCode());
+        }
+        if (sync && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.LINKED ||
+                dataStrategy == DataStrategy.LINKED)) {
+//            String issue = "'sync' only valid for SCHEMA_ONLY, LINKED, and COMMON data strategies";
+            errors.set(VALID_SYNC_STRATEGIES.getCode());
+//            System.err.println(issue);
+            rtn = Boolean.FALSE;
+        }
+        if (migrateACID.isOn() && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.DUMP ||
+                dataStrategy == DataStrategy.EXPORT_IMPORT || dataStrategy == DataStrategy.HYBRID || dataStrategy == DataStrategy.SQL)) {
+//            String issue = "Migrating ACID tables only valid for SCHEMA_ONLY, DUMP, SQL, EXPORT_IMPORT and HYBRID data strategies";
+            errors.set(VALID_ACID_STRATEGIES.getCode());
+//            System.err.println(issue);
+            rtn = Boolean.FALSE;
+        }
+        // DUMP does require Execute.
+        if (isExecute() && dataStrategy == DataStrategy.DUMP) {
+            setExecute(Boolean.FALSE);
+        }
+
+        if (dataStrategy == DataStrategy.ACID) {
+            errors.set(ACID_NOT_TOP_LEVEL_STRATEGY.getCode());
+            rtn = Boolean.FALSE;
+        }
+
+        // Test to ensure the clusters are LINKED to support underlying functions.
+        switch (dataStrategy) {
+            case LINKED:
+                if (this.getTransfer().getCommonStorage() != null) {
+                    errors.set(COMMON_STORAGE_WITH_LINKED.getCode());
+                    rtn = Boolean.FALSE;
+                }
+                if (this.getTransfer().getIntermediateStorage() != null) {
+                    errors.set(INTERMEDIATE_STORAGE_WITH_LINKED.getCode());
+                    rtn = Boolean.FALSE;
+                }
+            case HYBRID:
+            case EXPORT_IMPORT:
+            case SQL:
+                // Only do link test when NOT using intermediate storage.
+                if (this.getTransfer().getIntermediateStorage() == null && this.getTransfer().getCommonStorage() == null)
+                    if (!linkTest()) {
+                        rtn = Boolean.FALSE;
+                    }
+                else
+                    warnings.set(LINK_TEST_SKIPPED_WITH_IS.getCode());
+                break;
+            case SCHEMA_ONLY:
+                if (this.isCopyAvroSchemaUrls()) {
+                    LOG.info("CopyAVROSchemaUrls is TRUE, so the cluster must be linked to do this.  Testing...");
+                    if (!linkTest()) {
+                        errors.set(LINK_TEST_FAILED.getCode());
+                        rtn = Boolean.FALSE;
+                    }
+                }
+                break;
+            case DUMP:
+                if (getDumpSource() == Environment.RIGHT) {
+                    warnings.set(DUMP_ENV_FLIP.getCode());
+                }
+            case COMMON:
+                break;
+            case CONVERT_LINKED:
+                // Check that the RIGHT cluster is NOT a legacy cluster.  No testing done in this scenario.
+                if (getCluster(Environment.RIGHT).getLegacyHive()) {
+                    errors.set(LEGACY_HIVE_RIGHT_CLUSTER.getCode());
+                    rtn = Boolean.FALSE;
+                }
+                break;
+        }
+
+        // Check the use of downgrades and replace.
+        if (getMigrateACID().isDowngrade()) {
+            if (!getMigrateACID().isOn()) {
+                errors.set(DOWNGRADE_ONLY_FOR_ACID.getCode());
+                rtn = Boolean.FALSE;
+            }
+        }
+
+        if (isReplace()) {
+            if (getDataStrategy() != DataStrategy.SQL) {
+                errors.set(REPLACE_ONLY_WITH_SQL.getCode());
+                rtn = Boolean.FALSE;
+            }
+            if (getMigrateACID().isOn()) {
+                if (!getMigrateACID().isDowngrade()) {
+                    errors.set(REPLACE_ONLY_WITH_DA.getCode());
+                    rtn = Boolean.FALSE;
+                }
+            }
+        }
+
+        // TODO: Check the connections.
+        // If the environments are mix of legacy and non-legacy, check the connections for kerberos or zk.
+
+        // Set maxConnections to Concurrency.
+        HiveServer2Config leftHS2 = this.getCluster(Environment.LEFT).getHiveServer2();
+        if (!leftHS2.isValidUri()) {
+            rtn = Boolean.FALSE;
+            errors.set(LEFT_HS2_URI_INVALID.getCode());
+        }
+        leftHS2.getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
+        leftHS2.getConnectionProperties().setProperty("initialSize", Integer.toString(getTransfer().getConcurrency()));
+        leftHS2.getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency()/2));
+        leftHS2.getConnectionProperties().setProperty("validationQuery", "SELECT 1");
+        leftHS2.getConnectionProperties().setProperty("validationQueryTimeout", "5");
+        leftHS2.getConnectionProperties().setProperty("testOnCreate", "true");
+
+        if (leftHS2.isKerberosConnection() && leftHS2.getJarFile() != null) {
+            rtn = Boolean.FALSE;
+            errors.set(LEFT_KERB_JAR_LOCATION.getCode());
+        }
+
+        HiveServer2Config rightHS2 = this.getCluster(Environment.RIGHT).getHiveServer2();
+
+        if (!rightHS2.isValidUri()) {
+            if (!this.getDataStrategy().equals(DataStrategy.DUMP)) {
+                rtn = Boolean.FALSE;
+                errors.set(RIGHT_HS2_URI_INVALID.getCode());
+            }
+        } else {
+
+            rightHS2.getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
+            rightHS2.getConnectionProperties().setProperty("initialSize", Integer.toString(getTransfer().getConcurrency()));
+            rightHS2.getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency() / 2));
+            rightHS2.getConnectionProperties().setProperty("validationQuery", "SELECT 1");
+            rightHS2.getConnectionProperties().setProperty("validationQueryTimeout", "5");
+            rightHS2.getConnectionProperties().setProperty("testOnCreate", "true");
+
+            if (rightHS2.isKerberosConnection() && rightHS2.getJarFile() != null) {
+                rtn = Boolean.FALSE;
+                errors.set(RIGHT_KERB_JAR_LOCATION.getCode());
+            }
+
+            if (leftHS2.isKerberosConnection() && rightHS2.isKerberosConnection() &&
+                    (this.getCluster(Environment.LEFT).getLegacyHive() != this.getCluster(Environment.RIGHT).getLegacyHive())) {
+                rtn = Boolean.FALSE;
+                errors.set(KERB_ACROSS_VERSIONS.getCode());
+            }
+        }
+        return rtn;
+    }
+
+    protected Boolean linkTest() {
+        Boolean rtn = Boolean.FALSE;
+        HadoopSession session = null;
+        try {
+            session = getCliPool().borrow();
+            LOG.info("Performing Cluster Link Test to validate cluster 'hcfsNamespace' availability.");
+            // TODO: develop a test to copy data between clusters.
+            String leftHCFSNamespace = this.getCluster(Environment.LEFT).getHcfsNamespace();
+            String rightHCFSNamespace = this.getCluster(Environment.RIGHT).getHcfsNamespace();
+
+            // List User Directories on LEFT
+            String leftlsTestLine = "ls " + leftHCFSNamespace + "/user";
+            String rightlsTestLine = "ls " + rightHCFSNamespace + "/user";
+
+            CommandReturn lcr = session.processInput(leftlsTestLine);
+            if (lcr.isError()) {
+                throw new RuntimeException("Link to RIGHT cluster FAILED.\n " + lcr.getError() +
+                        "\nCheck configuration and hcfsNamespace value.  " +
+                        "Check the documentation about Linking clusters: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
+            }
+            CommandReturn rcr = session.processInput(rightlsTestLine);
+            if (rcr.isError()) {
+                throw new RuntimeException("Link to LEFT cluster FAILED.\n " + rcr.getError() +
+                        "\nCheck configuration and hcfsNamespace value.  " +
+                        "Check the documentation about Linking clusters: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
+            }
+            rtn = Boolean.TRUE;
+        } finally {
+            if (session != null)
+                getCliPool().returnSession(session);
+        }
+
+
+        return rtn;
+    }
+
     public Boolean checkConnections() {
         Boolean rtn = Boolean.FALSE;
         Set<Environment> envs = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
@@ -703,10 +784,6 @@ public class Config {
         this.databases = databases;
     }
 
-    public void setExecute(boolean execute) {
-        this.execute = execute;
-    }
-
     public TransferConfig getTransfer() {
         return transfer;
     }
@@ -727,6 +804,14 @@ public class Config {
         Cluster cluster = getClusters().get(environment);
         if (cluster == null) {
             cluster = new Cluster();
+            switch (environment) {
+                case TRANSFER:
+                    cluster.setLegacyHive(getCluster(Environment.LEFT).getLegacyHive());
+                    break;
+                case SHADOW:
+                    cluster.setLegacyHive(getCluster(Environment.RIGHT).getLegacyHive());
+                    break;
+            }
             getClusters().put(environment, cluster);
         }
         if (cluster.getEnvironment() == null) {
@@ -734,14 +819,5 @@ public class Config {
         }
         return cluster;
     }
-
-//    public void init() {
-//        // Link Cluster and it's Environment Type.
-//        Set<Environment> environmentSet = this.getClusters().keySet();
-//        for (Environment environment : environmentSet) {
-//            Cluster cluster = clusters.get(environment);
-//            cluster.setEnvironment(environment);
-//        }
-//    }
 
 }

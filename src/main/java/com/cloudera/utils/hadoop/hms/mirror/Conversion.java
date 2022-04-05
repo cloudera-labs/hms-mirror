@@ -146,17 +146,33 @@ public class Conversion {
         sb.append(yamlStr).append("\n");
         sb.append("```\n\n");
 
-        if (config.getIssues().size() > 0) {
-            sb.append("### Config Issues/Notices:\n");
-            for (String issue : config.getIssues()) {
-                sb.append("- ").append(issue).append("\n");
+        if (config.getErrors().getMessages().length > 0) {
+            sb.append("### Config Errors:\n");
+            for (String message : config.getErrors().getMessages()) {
+//            for (MessageCode error : MessageCode.getCodes(config.getErrors())) {
+                sb.append("- ").append(message).append("\n");
             }
+            sb.append("\n");
+        }
+        if (config.getWarnings().getMessages().length > 0) {
+            sb.append("### Config Warnings:\n");
+            for (String message: config.getWarnings().getMessages()) {
+//            for (MessageCode error : MessageCode.getCodes(config.getErrors())) {
+                sb.append("- ").append(message).append("\n");
+            }
+//            for (WarningCode warning : WarningCode.getCodes(config.getWarnings())) {
+//                sb.append("- ").append(warning.getDesc()).append("\n");
+//            }
             sb.append("\n");
         }
 
         DBMirror dbMirror = databases.get(database);
 //        if (config.getDataStrategy() != DataStrategy.DUMP) {
-        sb.append("## DB Create Statement").append("\n\n");
+        if (!config.getResetRight()) {
+            sb.append("## DB Create Statement").append("\n\n");
+        } else {
+            sb.append("## DB DROP Statement").append("\n\n");
+        }
         sb.append("```").append("\n");
         try {
             sb.append(dbMirror.dbCreate(config)[0]);
@@ -200,11 +216,8 @@ public class Conversion {
         if (dbMirror.hasIssues()) {
             sb.append("<th style=\"test-align:left\">Issues</th>").append("\n");
         }
-        if (config.isSqlOutput()) {
-            sb.append("<th style=\"test-align:left\">SQL</th>").append("\n");
-        }
+        sb.append("<th style=\"test-align:left\">SQL</th>").append("\n");
         sb.append("</tr>").append("\n");
-
 
         Set<String> tables = dbMirror.getTableMirrors().keySet();
         for (String table : tables) {
@@ -348,33 +361,30 @@ public class Conversion {
             }
 
             // SQL Output
-            if (config.isSqlOutput()) {
-                sb.append("<td>\n");
-                sb.append("<table>");
-                for (Map.Entry<Environment, EnvironmentTable> entry : tblMirror.getEnvironments().entrySet()) {
-                    if (entry.getValue().getSql().size() > 0) {
-                        sb.append("<tr>\n");
-                        sb.append("<th colspan=\"2\">");
-                        sb.append(entry.getKey());
-                        sb.append("</th>\n");
-                        sb.append("</tr>").append("\n");
+            sb.append("<td>\n");
+            sb.append("<table>");
+            for (Map.Entry<Environment, EnvironmentTable> entry : tblMirror.getEnvironments().entrySet()) {
+                if (entry.getValue().getSql().size() > 0) {
+                    sb.append("<tr>\n");
+                    sb.append("<th colspan=\"2\">");
+                    sb.append(entry.getKey());
+                    sb.append("</th>\n");
+                    sb.append("</tr>").append("\n");
 
-                        for (Pair pair : entry.getValue().getSql()) {
-                            sb.append("<tr>\n");
-                            sb.append("<td>");
-                            sb.append(pair.getDescription());
-                            sb.append("</td>\n");
-                            sb.append("<td>");
-                            sb.append(pair.getAction());
-                            sb.append("</td>\n");
-                            sb.append("</tr>\n");
-                        }
+                    for (Pair pair : entry.getValue().getSql()) {
+                        sb.append("<tr>\n");
+                        sb.append("<td>");
+                        sb.append(pair.getDescription());
+                        sb.append("</td>\n");
+                        sb.append("<td>");
+                        sb.append(pair.getAction());
+                        sb.append("</td>\n");
+                        sb.append("</tr>\n");
                     }
                 }
-                sb.append("</table>");
-                sb.append("</td>").append("\n");
-
             }
+            sb.append("</table>");
+            sb.append("</td>").append("\n");
             sb.append("</tr>").append("\n");
         }
         sb.append("</table>").append("\n");

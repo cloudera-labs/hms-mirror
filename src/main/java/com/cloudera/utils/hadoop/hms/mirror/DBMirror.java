@@ -102,71 +102,78 @@ public class DBMirror {
         String leftNamespace = config.getCluster(Environment.LEFT).getHcfsNamespace();
         String rightNamespace = config.getCluster(Environment.RIGHT).getHcfsNamespace();
 
-        switch (config.getDataStrategy()) {
-            case CONVERT_LINKED:
-                // ALTER the 'existing' database to ensure locations are set to the RIGHT hcfsNamespace.
-                dbDef = getDBDefinition(Environment.RIGHT);
-                database = config.getResolvedDB(getName());
-                location = dbDef.get(MirrorConf.DB_LOCATION);
-                managedLocation = dbDef.get(MirrorConf.DB_MANAGED_LOCATION);
-
-                if (location != null) {
-                    location = location.replace(leftNamespace, rightNamespace);
-                    rtn[1] = location;
-                    String alterDB_location = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, location);
-                    sb.append(alterDB_location).append(";\n");
-                }
-                if (managedLocation != null) {
-                    managedLocation = managedLocation.replace(leftNamespace, rightNamespace);
-                    rtn[2] = managedLocation;
-                    String alterDBMngdLocationSql = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, managedLocation);
-                    sb.append(alterDBMngdLocationSql).append(";\n");
-                }
-                rtn[0] = sb.toString();
-                break;
-            default:
-                // Start with the LEFT definition.
-                dbDef = getDBDefinition(Environment.LEFT);
-                database = config.getResolvedDB(getName());
-                location = dbDef.get(MirrorConf.DB_LOCATION);
-
-                if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
-                    // Check for Managed Location.
+        if (!config.getResetRight()) {
+            switch (config.getDataStrategy()) {
+                case CONVERT_LINKED:
+                    // ALTER the 'existing' database to ensure locations are set to the RIGHT hcfsNamespace.
+                    dbDef = getDBDefinition(Environment.RIGHT);
+                    database = config.getResolvedDB(getName());
+                    location = dbDef.get(MirrorConf.DB_LOCATION);
                     managedLocation = dbDef.get(MirrorConf.DB_MANAGED_LOCATION);
-                }
 
-                switch (config.getDataStrategy()) {
-                    case SCHEMA_ONLY:
-                    case SQL:
-                    case EXPORT_IMPORT:
-                    case HYBRID:
-                    case LINKED:
-                        if (location != null) {
-                            location = location.replace(leftNamespace, rightNamespace);
-                            rtn[1] = location;
-                        }
-                        if (managedLocation != null) {
-                            managedLocation = managedLocation.replace(leftNamespace, rightNamespace);
-                            rtn[2] = managedLocation;
-                        }
-                        break;
-                    case DUMP:
-                    case COMMON:
-                        break;
-                }
-                String createDb = MessageFormat.format(MirrorConf.CREATE_DB, database);
-                sb.append(createDb).append("\n");
-                if (dbDef.get(MirrorConf.COMMENT) != null && dbDef.get(MirrorConf.COMMENT).trim().length() > 0) {
-                    sb.append(MirrorConf.COMMENT).append(" \"").append(dbDef.get(MirrorConf.COMMENT)).append("\"\n");
-                }
-                if (location != null) {
-                    sb.append(MirrorConf.DB_LOCATION).append(" \"").append(location).append("\"\n");
-                }
-                if (managedLocation != null) {
-                    sb.append(MirrorConf.DB_MANAGED_LOCATION).append(" \"").append(managedLocation).append("\"\n");
-                }
-                // TODO: DB Properties.
-                rtn[0] = sb.toString();
+                    if (location != null) {
+                        location = location.replace(leftNamespace, rightNamespace);
+                        rtn[1] = location;
+                        String alterDB_location = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, location);
+                        sb.append(alterDB_location).append(";\n");
+                    }
+                    if (managedLocation != null) {
+                        managedLocation = managedLocation.replace(leftNamespace, rightNamespace);
+                        rtn[2] = managedLocation;
+                        String alterDBMngdLocationSql = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, managedLocation);
+                        sb.append(alterDBMngdLocationSql).append(";\n");
+                    }
+                    rtn[0] = sb.toString();
+                    break;
+                default:
+                    // Start with the LEFT definition.
+                    dbDef = getDBDefinition(Environment.LEFT);
+                    database = config.getResolvedDB(getName());
+                    location = dbDef.get(MirrorConf.DB_LOCATION);
+
+                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                        // Check for Managed Location.
+                        managedLocation = dbDef.get(MirrorConf.DB_MANAGED_LOCATION);
+                    }
+
+                    switch (config.getDataStrategy()) {
+                        case SCHEMA_ONLY:
+                        case SQL:
+                        case EXPORT_IMPORT:
+                        case HYBRID:
+                        case LINKED:
+                            if (location != null) {
+                                location = location.replace(leftNamespace, rightNamespace);
+                                rtn[1] = location;
+                            }
+                            if (managedLocation != null) {
+                                managedLocation = managedLocation.replace(leftNamespace, rightNamespace);
+                                rtn[2] = managedLocation;
+                            }
+                            break;
+                        case DUMP:
+                        case COMMON:
+                            break;
+                    }
+                    String createDb = MessageFormat.format(MirrorConf.CREATE_DB, database);
+                    sb.append(createDb).append("\n");
+                    if (dbDef.get(MirrorConf.COMMENT) != null && dbDef.get(MirrorConf.COMMENT).trim().length() > 0) {
+                        sb.append(MirrorConf.COMMENT).append(" \"").append(dbDef.get(MirrorConf.COMMENT)).append("\"\n");
+                    }
+                    if (location != null) {
+                        sb.append(MirrorConf.DB_LOCATION).append(" \"").append(location).append("\"\n");
+                    }
+                    if (managedLocation != null) {
+                        sb.append(MirrorConf.DB_MANAGED_LOCATION).append(" \"").append(managedLocation).append("\"\n");
+                    }
+                    // TODO: DB Properties.
+                    rtn[0] = sb.toString();
+            }
+        } else {
+            // Reset Right DB.
+            database = config.getResolvedDB(getName());
+            String dropDb = MessageFormat.format(MirrorConf.DROP_DB, database);
+            rtn[0] = dropDb + "\n";
         }
         return rtn;
     }

@@ -80,10 +80,10 @@ public class Transfer implements Callable<ReturnStatus> {
                         successful = doBasic();
                         break;
                     case SQL:
-                        if (config.getTransfer().getIntermediateStorage() == null)
-                            successful = doSQL();
-                        else
+                        if (config.getTransfer().getIntermediateStorage() != null || config.getTransfer().getCommonStorage() != null)
                             successful = doIntermediateTransfer();
+                        else
+                            successful = doSQL();
                         break;
                     case HYBRID:
                         successful = doHybrid();
@@ -144,17 +144,26 @@ public class Transfer implements Callable<ReturnStatus> {
                 if (let.getPartitioned()) {
                     // Check that the partition count doesn't exceed the configuration limit.
                     // Build Partition Elements.
+                    if (config.getOptimization().getSortDynamicPartitionInserts()) {
+                        ret.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=true");
+                        ret.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=1");
+                    }
                     String partElement = TableUtils.getPartitionElements(let);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS,
                             set.getName(), ret.getName(), partElement);
                     String transferDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, let.getPartitions().size());
                     ret.addSql(new Pair(transferDesc, transferSql));
-                    if (let.getPartitions().size() > config.getHybrid().getSqlPartitionLimit()) {
+                    if (config.getOptimization().getBuildShadowStatistics()) {
+                        // TODO: The 'hive' service user needs WRITE permissions to the tables location.
+                        // In my first test against hdp2.6, the ownership (without Ranger Plugins) was the user that build the original transfer table. doas=true.
+                        // So this might fail in an environment that isn't too robust of access is different.
+                    }
+                    if (let.getPartitions().size() > config.getHybrid().getSqlPartitionLimit() && config.getHybrid().getSqlPartitionLimit() > 0) {
                         // The partition limit has been exceeded.  The process will need to be done manually.
                         let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
                                 "limit (hybrid->sqlPartitionLimit) of " + config.getHybrid().getSqlPartitionLimit() +
                                 ".  This value is used to abort migrations that have a high potential for failure.  " +
-                                "The migration will need to be done manually OR try increasing the limit.");
+                                "The migration will need to be done manually OR try increasing the limit. Review commandline option '-sp'.");
                         rtn = Boolean.FALSE;
                     }
                 } else {
@@ -169,6 +178,7 @@ public class Transfer implements Callable<ReturnStatus> {
                 ret.getSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropShadowSql));
             }
         }
+
         // Execute the RIGHT sql if config.execute.
         if (rtn && config.isExecute()) {
             config.getCluster(Environment.RIGHT).runSql(tblMirror);
@@ -204,21 +214,21 @@ public class Transfer implements Callable<ReturnStatus> {
                 String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, let.getPartitions().size());
                 let.addSql(new Pair(transferDesc, transferSql));
                 if (TableUtils.isACID(let)) {
-                    if (let.getPartitions().size() > config.getMigrateACID().getPartitionLimit()) {
+                    if (let.getPartitions().size() > config.getMigrateACID().getPartitionLimit() && config.getMigrateACID().getPartitionLimit() > 0) {
                         // The partition limit has been exceeded.  The process will need to be done manually.
                         let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
                                 "limit (migrateACID->partitionLimit) of " + config.getMigrateACID().getPartitionLimit() +
                                 ".  This value is used to abort migrations that have a high potential for failure.  " +
-                                "The migration will need to be done manually OR try increasing the limit.");
+                                "The migration will need to be done manually OR try increasing the limit. Review commandline option '-ap'.");
                         rtn = Boolean.FALSE;
                     }
                 } else {
-                    if (let.getPartitions().size() > config.getHybrid().getSqlPartitionLimit()) {
+                    if (let.getPartitions().size() > config.getHybrid().getSqlPartitionLimit() && config.getHybrid().getSqlPartitionLimit() > 0) {
                         // The partition limit has been exceeded.  The process will need to be done manually.
                         let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
                                 "limit (hybrid->sqlPartitionLimit) of " + config.getHybrid().getSqlPartitionLimit() +
                                 ".  This value is used to abort migrations that have a high potential for failure.  " +
-                                "The migration will need to be done manually OR try increasing the limit.");
+                                "The migration will need to be done manually OR try increasing the limit. Review commandline option '-sp'.");
                         rtn = Boolean.FALSE;
                     }
                 }
@@ -228,20 +238,26 @@ public class Transfer implements Callable<ReturnStatus> {
                 let.addSql(new Pair(TableUtils.STAGE_TRANSFER_DESC, transferSql));
             }
 
-            // Construct the Shadow Transfer SQL
-            if (let.getPartitioned()) {
-                // Build Partition Elements.
-                String partElement = TableUtils.getPartitionElements(let);
-                String shadowTransferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS,
-                        set.getName(), ret.getName(), partElement);
-                String transferDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, let.getPartitions().size());
-                ret.addSql(new Pair(transferDesc, shadowTransferSql));
-            } else {
-                // No Partitions
-                String shadowTransferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, set.getName(), ret.getName());
-                ret.addSql(new Pair(TableUtils.LOAD_FROM_SHADOW_DESC, shadowTransferSql));
+            // Construct the Shadow Transfer SQL.  No transfer needed with commonStorage
+            if (config.getTransfer().getCommonStorage() == null || (TableUtils.isACID(let) && !config.getMigrateACID().isDowngrade()) ) {
+                if (let.getPartitioned()) {
+                    // Build Partition Elements.
+                    if (config.getOptimization().getSortDynamicPartitionInserts()) {
+                        ret.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=true");
+                        ret.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=1");
+                    }
+                    String partElement = TableUtils.getPartitionElements(let);
+                    String shadowTransferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS,
+                            set.getName(), ret.getName(), partElement);
+                    String transferDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, let.getPartitions().size());
+                    ret.addSql(new Pair(transferDesc, shadowTransferSql));
+                } else {
+                    // No Partitions
+                    String shadowTransferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER, set.getName(), ret.getName());
+                    ret.addSql(new Pair(TableUtils.LOAD_FROM_SHADOW_DESC, shadowTransferSql));
+                }
+                tblMirror.addStep("Transfer/Shadow SQL", "Built");
             }
-            tblMirror.addStep("Transfer/Shadow SQL", "Built");
 
             // Execute the LEFT sql if config.execute.
             if (rtn && config.isExecute()) {
@@ -253,20 +269,36 @@ public class Transfer implements Callable<ReturnStatus> {
                 rtn = config.getCluster(Environment.RIGHT).runSql(tblMirror);
             }
 
+
             // Cleanup, POST creation and TRANSFERS.
             // LEFT TRANSFER table
             List<Pair> leftCleanup = new ArrayList<Pair>();
+
+            Pair cleanUp = new Pair("Post Migration Cleanup", "-- To be run AFTER final RIGHT SQL statements.");
+            let.addSql(cleanUp);
 
             String useLeftDb = MessageFormat.format(MirrorConf.USE, dbMirror.getName());
             Pair leftUsePair = new Pair(TableUtils.USE_DESC, useLeftDb);
             leftCleanup.add(leftUsePair);
             let.addSql(leftUsePair);
 
-            String dropTransfer = MessageFormat.format(MirrorConf.DROP_TABLE, tet.getName());
-            Pair leftDropPair = new Pair(TableUtils.DROP_TRANSFER_TABLE, dropTransfer);
-            leftCleanup.add(leftDropPair);
-            let.addSql(leftDropPair);
-            tblMirror.addStep("LEFT ACID Transfer/Shadow SQL Cleanup", "Built");
+            if (config.isReplace()) {
+                // If 'replace' option is specified (along with -da and -cs), we change out the ACID table.
+                // alter 'let' and rename to an archive
+                String archiveOrigStmt = MessageFormat.format(MirrorConf.RENAME_TABLE, let.getName(),
+                        MirrorConf.ARCHIVE + "_" + let.getName() + "_" + tblMirror.getUnique());
+                let.addSql(MirrorConf.RENAME_TABLE_DESC, archiveOrigStmt);
+                // alter 'tet' and rename to original table name.
+                String renameStmt = MessageFormat.format(MirrorConf.RENAME_TABLE, tet.getName(), let.getName());
+                let.addSql(MirrorConf.RENAME_TABLE_DESC, renameStmt);
+            } else {
+                //
+                String dropTransfer = MessageFormat.format(MirrorConf.DROP_TABLE, tet.getName());
+                Pair leftDropPair = new Pair(TableUtils.DROP_TRANSFER_TABLE, dropTransfer);
+                leftCleanup.add(leftDropPair);
+                let.addSql(leftDropPair);
+                tblMirror.addStep("LEFT ACID Transfer/Shadow SQL Cleanup", "Built");
+            }
 
             if (rtn && config.isExecute()) {
                 // Run the Cleanup Scripts
@@ -274,24 +306,26 @@ public class Transfer implements Callable<ReturnStatus> {
             }
 
             // RIGHT Shadow table
-            List<Pair> rightCleanup = new ArrayList<Pair>();
+            if (config.getTransfer().getCommonStorage() == null) {
+                List<Pair> rightCleanup = new ArrayList<Pair>();
 
-            String useRightDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(dbMirror.getName()));
-            Pair rightUsePair = new Pair(TableUtils.USE_DESC, useRightDb);
-            rightCleanup.add(rightUsePair);
-            ret.addSql(rightUsePair);
+                String useRightDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(dbMirror.getName()));
+                Pair rightUsePair = new Pair(TableUtils.USE_DESC, useRightDb);
+                rightCleanup.add(rightUsePair);
+                ret.addSql(rightUsePair);
 
-            String rightDropShadow = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
+                String rightDropShadow = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
 
-            Pair rightDropPair = new Pair(TableUtils.DROP_SHADOW_TABLE, rightDropShadow);
+                Pair rightDropPair = new Pair(TableUtils.DROP_SHADOW_TABLE, rightDropShadow);
 
-            rightCleanup.add(rightDropPair);
-            ret.addSql(rightDropPair);
-            tblMirror.addStep("RIGHT ACID Shadow SQL Cleanup", "Built");
+                rightCleanup.add(rightDropPair);
+                ret.addSql(rightDropPair);
+                tblMirror.addStep("RIGHT ACID Shadow SQL Cleanup", "Built");
 
-            if (rtn && config.isExecute()) {
-                // Run the Cleanup Scripts
-                config.getCluster(Environment.RIGHT).runSql(rightCleanup, tblMirror, Environment.RIGHT);
+                if (rtn && config.isExecute()) {
+                    // Run the Cleanup Scripts
+                    config.getCluster(Environment.RIGHT).runSql(rightCleanup, tblMirror, Environment.RIGHT);
+                }
             }
         }
         return rtn;
@@ -320,10 +354,11 @@ public class Transfer implements Callable<ReturnStatus> {
                             ".  Hence, the SQL method has been selected for the migration.");
 
                     tblMirror.setStrategy(DataStrategy.SQL);
-                    if (config.getTransfer().getIntermediateStorage() == null) {
-                        rtn = doSQL();
-                    } else {
+                    if (config.getTransfer().getIntermediateStorage() != null ||
+                        config.getTransfer().getCommonStorage() != null) {
                         rtn = doIntermediateTransfer();
+                    } else {
+                        rtn = doSQL();
                     }
                 } else {
                     // EXPORT
@@ -443,7 +478,7 @@ public class Transfer implements Callable<ReturnStatus> {
                     //    - MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG (if so, set purge flag MirrorConf.EXTERNAL_TABLE_PURGE)
                     if (TableUtils.isHMSLegacyManaged(tblMirror.getName(), ret.getDefinition())) {
                         // ALTER TABLE x SET TBLPROPERTIES ('purge flag').
-                        String purgeSql = MessageFormat.format(MirrorConf.ADD_TABLE_PROP,ret.getName(), MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+                        String purgeSql = MessageFormat.format(MirrorConf.ADD_TABLE_PROP, ret.getName(), MirrorConf.EXTERNAL_TABLE_PURGE, "true");
                         ret.addSql(MirrorConf.ADD_TABLE_PROP_DESC, purgeSql);
                     }
                     rtn = Boolean.TRUE;

@@ -212,7 +212,9 @@ public class Translator {
         StringBuilder dirBuilder = new StringBuilder();
 
         String leftNS = config.getCluster(Environment.LEFT).getHcfsNamespace();
-        String rightNS = config.getCluster(Environment.RIGHT).getHcfsNamespace();
+        // Set base on rightNS or Common Storage, if specified
+        String rightNS = config.getTransfer().getCommonStorage() == null?
+                config.getCluster(Environment.RIGHT).getHcfsNamespace(): config.getTransfer().getCommonStorage();
 
         if (isOn()) {
             // Get the relative dir.

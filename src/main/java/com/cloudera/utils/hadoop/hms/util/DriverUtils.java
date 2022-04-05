@@ -37,6 +37,9 @@ public class DriverUtils {
         try {
             if (jarFile != null) {
                 File jdbcJar = new File(jarFile);
+                if (!jdbcJar.exists()) {
+                    throw new RuntimeException("JDBC Jarfile: " + jarFile + " can't be located.");
+                }
                 URL[] urls = {jdbcJar.toURI().toURL()};
                 LOG.trace("Building Classloader to isolate JDBC Library for: " + jarFile);
                 URLClassLoader hive3ClassLoader = URLClassLoader.newInstance(urls, jdbcJar.getClass().getClassLoader());

@@ -21,8 +21,10 @@ import java.util.List;
 public class TransferConfig {
     private int concurrency = 4;
     private String transferPrefix = "hms_mirror_transfer_";
+    private String shadowPrefix = "hms_mirror_shadow_";
     private String exportBaseDirPrefix = "/apps/hive/warehouse/export_";
     private String intermediateStorage = null;
+    private String commonStorage = null;
     private StorageMigration storageMigration = null;
     private List<Mapping> pathMappings = null;
 
@@ -42,6 +44,14 @@ public class TransferConfig {
         this.transferPrefix = transferPrefix;
     }
 
+    public String getShadowPrefix() {
+        return shadowPrefix;
+    }
+
+    public void setShadowPrefix(String shadowPrefix) {
+        this.shadowPrefix = shadowPrefix;
+    }
+
     public String getExportBaseDirPrefix() {
         return exportBaseDirPrefix;
     }
@@ -56,6 +66,14 @@ public class TransferConfig {
 
     public void setIntermediateStorage(String intermediateStorage) {
         this.intermediateStorage = intermediateStorage;
+    }
+
+    public String getCommonStorage() {
+        return commonStorage;
+    }
+
+    public void setCommonStorage(String commonStorage) {
+        this.commonStorage = commonStorage;
     }
 
     public StorageMigration getStorageMigration() {

@@ -54,12 +54,6 @@ public class MigrateACID {
      */
     private Boolean downgrade = Boolean.FALSE;
 
-//    /*
-//
-//     */
-//    private String transferPrefix = "hsmm_transfer_";
-
-
     public Boolean getOn() {
         return on;
     }

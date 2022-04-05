@@ -43,6 +43,7 @@ public class TableUtils {
     public static final String WITH_SERDEPROPERTIES = "WITH SERDEPROPERTIES (";
     public static final String PATH = "'path'=";
     public static final String CLUSTERED_BY = "CLUSTERED BY (";
+    public static final String BUCKETS = "BUCKETS";
     public static final String INTO = "INTO";
     public static final String TBL_PROPERTIES = "TBLPROPERTIES (";
     public static final String USE_DESC = "Selecting DB";
@@ -252,14 +253,21 @@ public class TableUtils {
         if (threshold >= 0 && numOfBuckets(envTable) <= threshold) {
             // If the bucketCount is <= 0, remove bucket definition.
             List<String> tblDef = envTable.getDefinition();
-            int indOf = -1;
+            int clusterIndOf = -1;
+            int bucketIndOf = -1;
             for (String line : tblDef) {
                 if (line != null && line.trim().startsWith(CLUSTERED_BY)) {
-                    indOf = tblDef.indexOf(line);
-                    break;
+                    clusterIndOf = tblDef.indexOf(line);
+                }
+                if (clusterIndOf > -1) {
+                    // Look for bucket index
+                    if (line != null && line.trim().contains(BUCKETS)) {
+                        bucketIndOf = tblDef.indexOf(line);
+                        break;
+                    }
                 }
             }
-            if (indOf > -1) {
+            if (clusterIndOf > -1 && bucketIndOf > -1) {
                 // found
                 // remove 3 lines at CLUSTERED BY
                     /* For example:
@@ -267,8 +275,9 @@ public class TableUtils {
                         vin)
                     INTO 10 BUCKETS
                      */
-                for (int i = 0; i < 3; i++) {
-                    tblDef.remove(indOf);
+                int diff = bucketIndOf - clusterIndOf;
+                for (int i = 0; i <= diff; i++) {
+                    tblDef.remove(clusterIndOf);
                 }
                 rtn = Boolean.TRUE;
             }
@@ -373,12 +382,48 @@ public class TableUtils {
             }
             // If ACID, remove transactional property to complete conversion to external.
             removeTblProperty(MirrorConf.TRANSACTIONAL, tableDefinition);
+            removeTblProperty(MirrorConf.TRANSACTIONAL_PROPERTIES, tableDefinition);
+            removeTblProperty(MirrorConf.BUCKETING_VERSION, tableDefinition);
         }
         return rtn;
     }
 
     public static Boolean makeExternal(EnvironmentTable envTable) {
         return makeExternal(envTable.getName(), envTable.getDefinition());
+    }
+
+    public static Boolean fixTableDefinition(EnvironmentTable environmentTable) {
+        return fixTableDefinition(environmentTable.getDefinition());
+    }
+
+    /*
+    Fix any potention syntax issues.
+     */
+    public static Boolean fixTableDefinition(List<String> tableDefinition) {
+        // Remove trailing ',' from TBL_PROPERTIES.
+        int tpIdx = tableDefinition.indexOf(TBL_PROPERTIES);
+        if (tpIdx != -1) {
+            boolean hangingParen = tableDefinition.get(tableDefinition.size()-1).trim().equals(")")?Boolean.TRUE:Boolean.FALSE;
+            int checkLineNum = tableDefinition.size()-1;
+            if (hangingParen) {
+                checkLineNum = tableDefinition.size()-2;
+            }
+            for (int i = tpIdx + 1; i < tableDefinition.size() - 1; i++) {
+                String line = tableDefinition.get(i).trim();
+
+                if (i >= checkLineNum) {
+                    if (line.endsWith(",")) {
+                        // need to remove comma.
+                        String newLine = line.substring(0,line.length()-1);
+//                        tableDefinition.remove(i);
+                        // Replace without comma
+                        tableDefinition.set(i, newLine);
+                    }
+                }
+            }
+        }
+
+        return Boolean.TRUE;
     }
 
     /*
@@ -688,6 +733,7 @@ public class TableUtils {
                 String line = tableDefinition.get(i).trim();
                 String[] checkProperty = line.split("=");
                 String checkKey = checkProperty[0].replace("'", "");
+//                checkKey = checkKey.replace(",", "");
                 if (checkKey.equals(key)) {
                     // Found existing Property, replace it.
                     tableDefinition.remove(i);
@@ -698,7 +744,8 @@ public class TableUtils {
                     } else {
                         sb.append("'").append(key).append("'");
                     }
-                    if (line.trim().endsWith(",")) {
+                    if (i < tableDefinition.size()) {
+//                    if (line.trim().endsWith(",")) {
                         sb.append(",");
                     }
                     tableDefinition.add(i, sb.toString());
@@ -735,7 +782,7 @@ public class TableUtils {
             String line = tableDefinition.get(i).trim();
             String[] checkProperty = line.split("=");
             String checkKey = checkProperty[0].replace("'", "");
-            if (checkKey.equals(key)) {
+            if (checkKey.equalsIgnoreCase(key)) {
                 // Found existing Property, replace it.
                 tableDefinition.remove(i);
                 // Replace ending param.
