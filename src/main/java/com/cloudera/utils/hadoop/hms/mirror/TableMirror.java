@@ -1379,7 +1379,7 @@ public class TableMirror {
                 TableUtils.removeTblProperty("last_modified_time", target);
 
                 // 6. Set 'discover.partitions' if config and non-acid
-                if (config.getCluster(copySpec.getTarget()).getPartitionDiscovery().getAuto()) {
+                if (config.getCluster(copySpec.getTarget()).getPartitionDiscovery().getAuto() && TableUtils.isPartitioned(target.getName(), target.getDefinition())) {
                     if (converted) {
                         target.addProperty(MirrorConf.DISCOVER_PARTITIONS, Boolean.TRUE.toString());
                     } else if (TableUtils.isExternal(target)) {
