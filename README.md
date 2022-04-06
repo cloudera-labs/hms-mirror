@@ -87,8 +87,8 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
 
 ## Quick Start Scenarios
 
-[On-prem Sidecar Migrations](./use_cases/on-prem_legacy_to_non-legacy.md)
-[Hybrid Migrations](./use_cases/hybrid.md)
+- [On-prem Sidecar Migrations](./use_cases/on-prem_legacy_to_non-legacy.md)
+- [Hybrid Migrations](./use_cases/hybrid.md)
 
 ## WARNING
 
