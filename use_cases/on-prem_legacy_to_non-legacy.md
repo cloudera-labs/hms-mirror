@@ -45,12 +45,13 @@ Review the report markdown files (html version also available) for details about
 - [Migrate SCHEMA's and Data using `EXPORT_IMPORT`](#migrate-schemas-and-data-using-export_import)
 - [Migrate SCHEMA's and Data using `HYBRID`](#migrate-schemas-and-data-using-hybrid)
 - [Disaster Recovery (RIGHT Cluster is DR and READ-ONLY)](#disaster-recovery-right-cluster-is-dr-and-read-only)
+- [Downgrade and Replace ACID tables](#downgrade-and-replace-acid-tables)
 
 <!-- tocstop -->
 
 ## One-time migration of SCHEMA's from LEFT to RIGHT.
 
-This is done with the basic `SCHMEA_ONLY` data strategy (default) and will extract the schema's from the LEFT and replay them on the RIGHT cluster.  In this mode, NO DATA is moved.
+This is done with the basic `SCHEMA_ONLY` data strategy (default) and will extract the schema's from the LEFT and replay them on the RIGHT cluster.  In this mode, NO DATA is moved.
 
 ### Command
 
@@ -190,3 +191,17 @@ WARNING: Do not attempt to `DROP DATABASE ... CASCADE` on the RIGHT cluster, thi
 This process will review the tables on the LEFT cluster with the RIGHT and either update the schema when it's changed (by dropping and recreating), add missing tables, or drop tables that don't exist anymore.
 
 Tables that are migrated this way will NOT have the `PURGE` flag set on the RIGHT cluster.  This allows us to `DROP` a table without affecting the data for the `-sync` process.
+
+## Downgrade and Replace ACID tables
+
+In this scenario, you're choosing to downgrade ACID tables that are migrated, as well as the current tables on the source cluster.
+
+### Commands
+
+`hms-mirror -db tpcds_bin_partitioned_orc_10 -mao -da -r`
+
+### Notes
+
+This will migrate ACID tables only (-mao vs. -ma), downgrade them to EXTERNAL/PURGE tables, and 'replace' the current ACID table with a MANAGED Non-Transactional table in legacy environments OR a EXTERNAL/PURGE table in Hive3+ environments.
+
+Using the DRY-RUN mode, experiment with options `-is` and `-cs` for various implementations of this conversion.

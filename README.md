@@ -20,6 +20,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
 - [Features](#features)
   * [VIEWS](#views)
   * [ACID Tables](#acid-tables)
+  * [Intermediate/Common Storage Options](#intermediatecommon-storage-options)
   * [Non-Native Hive Tables (Hbase, KAFKA, JDBC, Druid, etc..)](#non-native-hive-tables-hbase-kafka-jdbc-druid-etc)
   * [AVRO Tables](#avro-tables)
   * [Table Translations](#table-translations)
@@ -80,12 +81,14 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Spark DFS Access](#spark-dfs-access)
   * [Permission Issues](#permission-issues)
   * [Must use HiveInputFormat to read ACID tables](#must-use-hiveinputformat-to-read-acid-tables)
+  * [ACL issues across cross while using LOWER clusters storage](#acl-issues-across-cross-while-using-lower-clusters-storage)
 
 <!-- tocstop -->
 
 ## Quick Start Scenarios
 
 [On-prem Sidecar Migrations](./use_cases/on-prem_legacy_to_non-legacy.md)
+[Hybrid Migrations](./use_cases/hybrid.md)
 
 ## WARNING
 
