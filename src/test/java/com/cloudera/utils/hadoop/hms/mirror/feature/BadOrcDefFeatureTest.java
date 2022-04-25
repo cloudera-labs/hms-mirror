@@ -25,8 +25,6 @@ import static org.junit.Assert.assertTrue;
 
 public class BadOrcDefFeatureTest extends BaseFeatureTest {
 
-    private Feature feature = new BadOrcDefFeature();
-
     public static String[] schema_01 = new String[]{
             "        CREATE EXTERNAL TABLE `data`(",
             "            `sys01`timestamp,",
@@ -56,7 +54,6 @@ public class BadOrcDefFeatureTest extends BaseFeatureTest {
             "        'mapred.output.compression.codec'='org.apache.hadoop.io.compress.SnappyCodec',",
             "        'transient_lastDdlTime'='1555609592')"
     };
-
     public static String[] schema_02 = new String[]{
             " CREATE EXTERNAL TABLE `data`(                 ",
             "   `systime` timestamp,                ",
@@ -90,6 +87,7 @@ public class BadOrcDefFeatureTest extends BaseFeatureTest {
             "   'mapred.output.compression.codec'='org.apache.hadoop.io.compress.SnappyCodec',  ",
             "   'transient_lastDdlTime'='1618859429')            "
     };
+    private final Feature feature = new BadOrcDefFeature();
 
     @Test
     public void test_001() {

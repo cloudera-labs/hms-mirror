@@ -26,8 +26,11 @@ public class MirrorConf {
     public static final String MSCK_REPAIR_TABLE = "MSCK REPAIR TABLE {0}";
     public static final String CREATE_DB =
             "CREATE DATABASE IF NOT EXISTS {0}";
+    public static final String CREATE_DB_DESC = "Create Database";
+    public static final String CREATE_TRANSFER_DB_DESC = "Create Transfer Database";
     public static final String DROP_DB =
             "DROP DATABASE IF EXISTS {0} CASCADE";
+    public static final String DROP_DB_DESC = "Drop Database";
     public static final String ALTER_DB_LOCATION =
             "ALTER DATABASE {0} SET LOCATION \"{1}\"";
     public static final String ALTER_DB_LOCATION_DESC =
@@ -84,8 +87,10 @@ public class MirrorConf {
     public static final String AVRO_SCHEMA_URL_KEY = "avro.schema.url";
     public static final String TEZ_EXECUTION_DESC = "Set 'tez' as the execution engine";
     public static final String SET_TEZ_AS_EXECUTION_ENGINE = "set hive.execution.engine=tez";
-    public static final String SQL_DATA_TRANSFER = "FROM {0} INSERT OVERWRITE TABLE {1} SELECT *";
-    public static final String SQL_DATA_TRANSFER_WITH_PARTITIONS = "FROM {0} INSERT OVERWRITE TABLE {1} PARTITION ({2}) SELECT *";
+    public static final String SQL_DATA_TRANSFER = "FROM {0} INSERT INTO TABLE {1} SELECT *";
+    public static final String SQL_DATA_TRANSFER_OVERWRITE = "FROM {0} INSERT OVERWRITE TABLE {1} SELECT *";
+    public static final String SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE = "FROM {0} INSERT OVERWRITE TABLE {1} PARTITION ({2}) SELECT * DISTRIBUTE BY {2}";
+    public static final String SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE = "FROM {0} INSERT OVERWRITE TABLE {1} PARTITION ({2}) SELECT * ";
     public static final String SORT_DYNAMIC_PARTITION = "hive.optimize.sort.dynamic.partition";
     public static final String SORT_DYNAMIC_PARTITION_THRESHOLD = "hive.optimize.sort.dynamic.partition.threshold";
 

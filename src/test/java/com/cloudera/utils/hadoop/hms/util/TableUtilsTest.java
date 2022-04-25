@@ -24,14 +24,72 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TableUtilsTest {
 
-    private List<String> table_01 = new ArrayList<String>();
-    private List<String> table_02 = new ArrayList<String>();
-    private List<String> table_03 = new ArrayList<String>();
-    private List<String> table_04 = new ArrayList<String>();
+    private final List<String> table_01 = new ArrayList<String>();
+    private final List<String> table_02 = new ArrayList<String>();
+    private final List<String> table_03 = new ArrayList<String>();
+    private final List<String> table_04 = new ArrayList<String>();
+
+    @Test
+    public void changeTableName() {
+        List<String> tblDef = TableUtils.changeTableName("call_center", "transfer_call_center", table_04);
+        tblDef = TableUtils.stripLocation("call_center", tblDef);
+        TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, tblDef);
+        System.out.println("Def: ");
+    }
+
+    @Test
+    public void getLocation() {
+    }
+
+    @Test
+    public void isACID() {
+        assertTrue(TableUtils.isACID("check_table", table_03));
+    }
+
+    @Test
+    public void isExternal() {
+        assertFalse(TableUtils.isExternal("check_table", table_02));
+    }
+
+    @Test
+    public void isExternalPurge() {
+        assertTrue(TableUtils.isExternalPurge("check_table", table_04));
+    }
+
+    @Test
+    public void isHMSConverted() {
+        assertTrue(TableUtils.isHMSConverted("check_table", table_01));
+    }
+
+    @Test
+    public void isHive3Standard() {
+        assertFalse(TableUtils.isHive3Standard("check_table", table_02));
+    }
+
+    @Test
+    public void isLegacyManaged() {
+//        assertTrue(TableUtils.isLegacyManaged("check_table", table_02));
+    }
+
+    @Test
+    public void isManaged() {
+        assertTrue(TableUtils.isManaged("check_table", table_02));
+        assertTrue(TableUtils.isManaged("check_table", table_03));
+        assertFalse(TableUtils.isManaged("check_table", table_04));
+    }
+
+    @Test
+    public void isPartitioned() {
+    }
+
+    @Test
+    public void removeTblProperty() {
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -246,63 +304,6 @@ public class TableUtilsTest {
     }
 
     @Test
-    public void getLocation() {
-    }
-
-    @Test
-    public void isManaged() {
-        assertTrue(TableUtils.isManaged("check_table", table_02));
-        assertTrue(TableUtils.isManaged("check_table", table_03));
-        assertFalse(TableUtils.isManaged("check_table", table_04));
-    }
-
-    @Test
-    public void isExternal() {
-        assertFalse(TableUtils.isExternal("check_table", table_02));
-    }
-
-    @Test
-    public void isHMSConverted() {
-        assertTrue(TableUtils.isHMSConverted("check_table", table_01));
-    }
-
-    @Test
-    public void isACID() {
-        assertTrue(TableUtils.isACID("check_table", table_03));
-    }
-
-    @Test
-    public void isHive3Standard() {
-        assertFalse(TableUtils.isHive3Standard("check_table", table_02));
-    }
-
-    @Test
-    public void isExternalPurge() {
-        assertTrue(TableUtils.isExternalPurge("check_table", table_04));
-    }
-
-    @Test
-    public void isPartitioned() {
-    }
-
-    @Test
-    public void isLegacyManaged() {
-//        assertTrue(TableUtils.isLegacyManaged("check_table", table_02));
-    }
-
-    @Test
     public void updateTblProperty() {
-    }
-
-    @Test
-    public void removeTblProperty() {
-    }
-
-    @Test
-    public void changeTableName() {
-        List<String> tblDef = TableUtils.changeTableName("call_center", "transfer_call_center", table_04);
-        tblDef = TableUtils.stripLocation("call_center", tblDef);
-        TableUtils.removeTblProperty(MirrorConf.TRANSACTIONAL, tblDef);
-        System.out.println("Def: ");
     }
 }

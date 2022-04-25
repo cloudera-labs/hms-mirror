@@ -64,6 +64,37 @@ public enum DataStrategy {
      */
     CONVERT_LINKED(Boolean.FALSE),
     /*
+    Using the LEFT cluster configuration (or RIGHT when `-f|--flip` is used), migrate the tables from
+    the current storage location to one of two possibilities: The default locations in 'hms' as identified by
+    the metastores `hive.metastore.warehouse.dir` for MANAGED (ACID) tables and `hive.metastore.warehouse.external.dir`
+    for EXTERNAL tables. As an alternative, the LOCATION and MANAGEDLOCATION properties of the database can be
+    configured/changed to a combination of the `-sms`, `-smn|-cs`, `-wd`, and `-ewd`.<p/>
+
+    For ALL:
+    We need to alter the database LOCATION and MANAGEDLOCATION properties to a default that relies on the new target
+    namespace
+
+    For SCHEMA_ONLY:
+    This would be a change to the LOCATION of the 'table' and 'partitions'.  This applies to EXTERNAL tables. For this
+    strategy we're assuming the data would be moved via 'distcp'.  See the 'distcp' reports for a shell of what we expect.
+    We can NOT move ACID tables this way.
+
+    This option is least desirable because files aren't rewritten (consolidate) and the locations for ALL partitions needs
+    to be changed.  Consider removing as option.
+
+    For SQL:
+    We'll create 'target' tables rooted on the new namespace and then use SQL to migrate the data from the old table to
+    the new table.  We'll rename the old table to an archive before the data is moved.  The new table will have the same
+    name as the original.
+
+    For EXPORT_IMPORT:
+    Rename Table, EXPORT to export dir.  Create table with original name on the new namespace and IMPORT.
+
+    For HYBRID:
+    Choose either EXPORT_IMPORT or SQL.
+
+    We won't automatically DROP old data.  But we will build a script that will drop the tables we rename to facilitate
+    this process.
 
      */
     STORAGE_MIGRATION(Boolean.FALSE),

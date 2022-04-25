@@ -30,9 +30,63 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 public class TranslatorTest {
-    private static Logger LOG = LogManager.getLogger(TranslatorTest.class);
+    private static final Logger LOG = LogManager.getLogger(TranslatorTest.class);
+
+    public static Translator deserializeResource(String configResource) throws IOException {
+        Translator translator = null;
+        String extension = FilenameUtils.getExtension(configResource);
+        ObjectMapper mapper = null;
+        if ("yaml".equalsIgnoreCase(extension) || "yml".equalsIgnoreCase(extension)) {
+            mapper = new ObjectMapper(new YAMLFactory());
+        } else if ("json".equalsIgnoreCase(extension) || "jsn".equalsIgnoreCase(extension)) {
+            mapper = new ObjectMapper(new JsonFactory());
+        } else {
+            throw new RuntimeException(configResource + ": can't determine type by extension.  Require one of: ['yaml',yml,'json','jsn']");
+        }
+
+        // Try as a Resource (in classpath)
+        URL configURL = mapper.getClass().getResource(configResource);
+        if (configURL != null) {
+            // Convert to String.
+            String configDefinition = IOUtils.toString(configURL, StandardCharsets.UTF_8);
+            translator = mapper.readerFor(Translator.class).readValue(configDefinition);
+        } else {
+            // Try on Local FileSystem.
+            configURL = new URL("file", null, configResource);
+            if (configURL != null) {
+                String configDefinition = IOUtils.toString(configURL, StandardCharsets.UTF_8);
+                translator = mapper.readerFor(Translator.class).readValue(configDefinition);
+            } else {
+                throw new RuntimeException("Couldn't locate 'Serialized Record File': " + configResource);
+            }
+        }
+
+        return translator;
+    }
+
+    @Test
+    public void lastUrlBit_01() {
+        String dir = "hdfs://apps/hive/warehouse/my.db/call/";
+        dir = Translator.reduceUrlBy(dir, 1);
+        Assert.assertTrue("Directory Reduction Failed: " + dir, dir.equals("hdfs://apps/hive/warehouse/my.db"));
+    }
+
+    @Test
+    public void lastUrlBit_02() {
+        String dir = "hdfs://apps/hive/warehouse/my.db/call";
+        dir = Translator.reduceUrlBy(dir, 2);
+        Assert.assertTrue("Directory Reduction Failed: " + dir, dir.equals("hdfs://apps/hive/warehouse"));
+    }
+
+    @Test
+    public void lastUrlBit_03() {
+        String dir = "hdfs://apps/hive/warehouse/my.db/warehouse";
+        dir = Translator.reduceUrlBy(dir, 1);
+        Assert.assertTrue("Directory Reduction Failed: " + dir, dir.equals("hdfs://apps/hive/warehouse/my.db"));
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -47,29 +101,17 @@ public class TranslatorTest {
     }
 
     @Test
-    public void translateTable_01() throws IOException {
+    public void translateTableLocation_03() throws IOException {
         Translator translator = deserializeResource("/translator/testcase_01.yaml");
         translator.setOn(true);
         Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
-        String dbName = "tpcds_12";
-        String tblName = "call_center";
-        String tblExpectedName = "call_center_new";
-        String tblNewName = translator.translateTable(dbName, tblName);
-        Assert.assertTrue("Table Rename Failed " + dbName + " : " + tblName + " : " + tblNewName +
-                " : " + tblExpectedName, tblNewName.equals(tblExpectedName));
-    }
-
-    @Test
-    public void translateTable_02() throws IOException {
-        Translator translator = deserializeResource("/translator/testcase_01.yaml");
-        translator.setOn(true);
-        Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
-        String dbName = "unknown";
-        String tblName = "my_table";
-        String tblExpectedName = "my_table";
-        String tblNewName = translator.translateTable(dbName, tblName);
-        Assert.assertTrue("Table Rename Failed " + dbName + " : " + tblName + " : " + tblNewName +
-                " : " + tblExpectedName, tblNewName.equals(tblExpectedName));
+        Config config = ConfigTest.deserializeResource("/config/default_01.yaml");
+        String originalLoc = "hdfs://LEFT/apps/hive/warehouse/tpcds_09.db";
+        String expectedLoc = "hdfs://RIGHT/apps/hive/warehouse/tpcds_09.db";
+        String translatedLocation =
+                translator.translateTableLocation("tpcds_09", "call_center", originalLoc, config);
+        Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
+                translatedLocation, expectedLoc.equals(translatedLocation));
     }
 
     @Test
@@ -200,70 +242,29 @@ public class TranslatorTest {
     }
 
     @Test
-    public void translateTableLocation_03() throws IOException {
+    public void translateTable_01() throws IOException {
         Translator translator = deserializeResource("/translator/testcase_01.yaml");
         translator.setOn(true);
         Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
-        Config config = ConfigTest.deserializeResource("/config/default_01.yaml");
-        String originalLoc = "hdfs://LEFT/apps/hive/warehouse/tpcds_09.db";
-        String expectedLoc = "hdfs://RIGHT/apps/hive/warehouse/tpcds_09.db";
-        String translatedLocation =
-                translator.translateTableLocation("tpcds_09", "call_center", originalLoc, config);
-        Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                translatedLocation, expectedLoc.equals(translatedLocation));
+        String dbName = "tpcds_12";
+        String tblName = "call_center";
+        String tblExpectedName = "call_center_new";
+        String tblNewName = translator.translateTable(dbName, tblName);
+        Assert.assertTrue("Table Rename Failed " + dbName + " : " + tblName + " : " + tblNewName +
+                " : " + tblExpectedName, tblNewName.equals(tblExpectedName));
     }
 
     @Test
-    public void lastUrlBit_01() {
-        String dir = "hdfs://apps/hive/warehouse/my.db/call/";
-        dir = Translator.reduceUrlBy(dir, 1);
-        Assert.assertTrue("Directory Reduction Failed: " + dir, dir.equals("hdfs://apps/hive/warehouse/my.db"));
-    }
-
-    @Test
-    public void lastUrlBit_02() {
-        String dir = "hdfs://apps/hive/warehouse/my.db/call";
-        dir = Translator.reduceUrlBy(dir, 2);
-        Assert.assertTrue("Directory Reduction Failed: " + dir, dir.equals("hdfs://apps/hive/warehouse"));
-    }
-
-    @Test
-    public void lastUrlBit_03() {
-        String dir = "hdfs://apps/hive/warehouse/my.db/warehouse";
-        dir = Translator.reduceUrlBy(dir, 1);
-        Assert.assertTrue("Directory Reduction Failed: " + dir, dir.equals("hdfs://apps/hive/warehouse/my.db"));
-    }
-
-    public static Translator deserializeResource(String configResource) throws IOException, JsonMappingException {
-        Translator translator = null;
-        String extension = FilenameUtils.getExtension(configResource);
-        ObjectMapper mapper = null;
-        if ("yaml".equals(extension.toLowerCase()) || "yml".equals(extension.toLowerCase())) {
-            mapper = new ObjectMapper(new YAMLFactory());
-        } else if ("json".equals(extension.toLowerCase()) || "jsn".equals(extension.toLowerCase())) {
-            mapper = new ObjectMapper(new JsonFactory());
-        } else {
-            throw new RuntimeException(configResource + ": can't determine type by extension.  Require one of: ['yaml',yml,'json','jsn']");
-        }
-
-        // Try as a Resource (in classpath)
-        URL configURL = mapper.getClass().getResource(configResource);
-        if (configURL != null) {
-            // Convert to String.
-            String configDefinition = IOUtils.toString(configURL, "UTF-8");
-            translator = mapper.readerFor(Translator.class).readValue(configDefinition);
-        } else {
-            // Try on Local FileSystem.
-            configURL = new URL("file", null, configResource);
-            if (configURL != null) {
-                String configDefinition = IOUtils.toString(configURL, "UTF-8");
-                translator = mapper.readerFor(Translator.class).readValue(configDefinition);
-            } else {
-                throw new RuntimeException("Couldn't locate 'Serialized Record File': " + configResource);
-            }
-        }
-
-        return translator;
+    public void translateTable_02() throws IOException {
+        Translator translator = deserializeResource("/translator/testcase_01.yaml");
+        translator.setOn(true);
+        Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
+        String dbName = "unknown";
+        String tblName = "my_table";
+        String tblExpectedName = "my_table";
+        String tblNewName = translator.translateTable(dbName, tblName);
+        Assert.assertTrue("Table Rename Failed " + dbName + " : " + tblName + " : " + tblNewName +
+                " : " + tblExpectedName, tblNewName.equals(tblExpectedName));
     }
 
 }

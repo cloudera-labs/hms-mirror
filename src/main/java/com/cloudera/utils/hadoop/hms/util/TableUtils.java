@@ -55,7 +55,9 @@ public class TableUtils {
     public static final String DROP_TRANSFER_TABLE = "Dropping Transfer Table";
     public static final String REPAIR_DESC = "Repairing Table (MSCK)";
     public static final String STAGE_TRANSFER_DESC = "Moving data to transfer table";
+    public static final String STORAGE_MIGRATION_TRANSFER_DESC = "Moving data to new Namespace";
     public static final String STAGE_TRANSFER_PARTITION_DESC = "Moving data to partitioned ({0}) transfer table";
+    public static final String STORAGE_MIGRATION_TRANSFER_PARTITION_DESC = "Moving partitioned ({0}) data to new Namespace";
     public static final String LOAD_DESC = "Loading table from Staging";
     public static final String LOAD_FROM_SHADOW_DESC = "Loading table from Shadow";
     public static final String LOAD_FROM_PARTITIONED_SHADOW_DESC = "Loading table from Partitioned ({0}) Shadow";

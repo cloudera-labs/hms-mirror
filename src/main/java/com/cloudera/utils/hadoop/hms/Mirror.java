@@ -32,7 +32,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.Op;
 import org.commonmark.Extension;
 import org.commonmark.ext.front.matter.YamlFrontMatterExtension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
@@ -45,6 +44,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -52,8 +53,6 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
-import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.CONFIGURATION_REMOVED_OR_INVALID;
 
 public class Mirror {
     private static Logger LOG = LogManager.getLogger(Mirror.class);
@@ -64,6 +63,7 @@ public class Mirror {
     private String reportOutputDir = null;
     private String reportOutputFile = null;
     private String leftExecuteFile = null;
+    private String leftCleanUpFile = null;
     private String rightExecuteFile = null;
     private String leftActionFile = null;
     private String rightActionFile = null;
@@ -386,28 +386,29 @@ public class Mirror {
                         throw new RuntimeException("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy.");
                     }
                 }
-                if (config.getDataStrategy() == DataStrategy.STORAGE_MIGRATION) {
-                    if (config.getTransfer().getStorageMigration() == null)
-                        config.getTransfer().setStorageMigration(new StorageMigration());
-                    if (cmd.hasOption("smt")) {
-                        config.getTransfer().getStorageMigration().setTarget(cmd.getOptionValue("smt"));
-                    }
-                    if (cmd.hasOption("sms")) {
-                        try {
-                            DataStrategy migrationStrategy = DataStrategy.valueOf(cmd.getOptionValue("sms"));
-                            config.getTransfer().getStorageMigration().setStrategy(migrationStrategy);
-                        } catch (Throwable t) {
-                            LOG.error("Only SQL,EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
-                            throw new RuntimeException("Only SQL,EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
-                        }
-                    }
-                    if (config.getTransfer().getStorageMigration().getTarget() == null) {
-                        LOG.error("The Storage Migration Target must be set.  Use either the commandline option -smt or " +
-                                "set it in the configuration (transfer->storageMigrationTarget");
-                        throw new RuntimeException("The Storage Migration Target must be set.  Use either the commandline " +
-                                "option -smt or set it in the configuration (transfer->storageMigrationTarget");
+                if (cmd.hasOption("smn")) {
+                    config.getTransfer().setCommonStorage(cmd.getOptionValue("smn"));
+                }
+                if (cmd.hasOption("sms")) {
+                    try {
+                        DataStrategy migrationStrategy = DataStrategy.valueOf(cmd.getOptionValue("sms"));
+                        config.getTransfer().getStorageMigration().setStrategy(migrationStrategy);
+                    } catch (Throwable t) {
+                        LOG.error("Only SQL, EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
+                        throw new RuntimeException("Only SQL, EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
                     }
                 }
+            }
+
+            if (cmd.hasOption("wd")) {
+                if (config.getTransfer().getWarehouse() == null)
+                    config.getTransfer().setWarehouse(new WarehouseConfig());
+                config.getTransfer().getWarehouse().setManagedDirectory(cmd.getOptionValue("wd"));
+            }
+            if (cmd.hasOption("ewd")) {
+                if (config.getTransfer().getWarehouse() == null)
+                    config.getTransfer().setWarehouse(new WarehouseConfig());
+                config.getTransfer().getWarehouse().setExternalDirectory(cmd.getOptionValue("ewd"));
             }
 
             // When the pkey is specified, we assume the config passwords are encrytped and we'll decrypt them before continuing.
@@ -494,6 +495,7 @@ public class Mirror {
         // Action Files
         reportOutputFile = reportOutputDir + System.getProperty("file.separator") + "<db>_hms-mirror.md|html";
         leftExecuteFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_execute.sql";
+        leftCleanUpFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_CleanUp_execute.sql";
         rightExecuteFile = reportOutputDir + System.getProperty("file.separator") + "<db>_RIGHT_execute.sql";
         leftActionFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_action.sql";
         rightActionFile = reportOutputDir + System.getProperty("file.separator") + "<db>_RIGHT_action.sql";
@@ -603,6 +605,7 @@ public class Mirror {
                     config.getCluster(Environment.LEFT).setEnvironment(Environment.LEFT);
                     config.getClusters().remove(Environment.RIGHT);
                 }
+            case STORAGE_MIGRATION:
                 // Get Pool
                 connPools.addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
                 break;
@@ -676,6 +679,7 @@ public class Mirror {
         reporter.setVariable("config.strategy", config.getDataStrategy().toString());
         reporter.setVariable("report.file", reportOutputFile);
         reporter.setVariable("left.execute.file", leftExecuteFile);
+        reporter.setVariable("left.cleanup.file", leftCleanUpFile);
         reporter.setVariable("right.execute.file", rightExecuteFile);
         reporter.setVariable("left.action.file", leftActionFile);
         reporter.setVariable("right.action.file", rightActionFile);
@@ -704,7 +708,6 @@ public class Mirror {
             }
         }
 
-//        stateMaintenance.start();
         // State reason table/view was removed from processing list.
         for (Map.Entry<String, DBMirror> dbEntry : conversion.getDatabases().entrySet()) {
             if (config.getDatabaseOnly()) {
@@ -735,6 +738,7 @@ public class Mirror {
 
             String dbReportOutputFile = reportOutputDir + System.getProperty("file.separator") + database + "_hms-mirror";
             String dbLeftExecuteFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_execute.sql";
+            String dbLeftCleanUpFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_CleanUp_execute.sql";
             String dbRightExecuteFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_execute.sql";
             String dbLeftActionFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_action.sql";
             String dbRightActionFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_action.sql";
@@ -761,6 +765,11 @@ public class Mirror {
                 leftExecOutput.write(conversion.executeSql(Environment.LEFT, database));
                 leftExecOutput.close();
                 LOG.info("LEFT Execution Script is here: " + dbLeftExecuteFile.toString());
+
+                FileWriter leftCleanUpOutput = new FileWriter(dbLeftCleanUpFile);
+                leftCleanUpOutput.write(conversion.executeCleanUpSql(Environment.LEFT, database));
+                leftCleanUpOutput.close();
+                LOG.info("LEFT CleanUp Execution Script is here: " + dbLeftCleanUpFile.toString());
 
                 FileWriter rightExecOutput = new FileWriter(dbRightExecuteFile);
                 rightExecOutput.write(conversion.executeSql(Environment.RIGHT, database));
@@ -979,6 +988,24 @@ public class Mirror {
 
         options.addOptionGroup(storageOptionsGroup);
 
+        // External Warehouse Dir
+        Option externalWarehouseDirOption = new Option("ewd", "external-warehouse-directory", true,
+                "The external warehouse directory path.  Should not include the namespace OR the database directory. " +
+                        "This will be used to set the LOCATION database option.");
+        externalWarehouseDirOption.setOptionalArg(Boolean.TRUE);
+        externalWarehouseDirOption.setArgName("external-warehouse-path");
+        externalWarehouseDirOption.setRequired(Boolean.FALSE);
+        options.addOption(externalWarehouseDirOption);
+
+        // Warehouse Dir
+        Option warehouseDirOption = new Option("wd", "warehouse-directory", true,
+                "The warehouse directory path.  Should not include the namespace OR the database directory. " +
+                        "This will be used to set the MANAGEDLOCATION database option.");
+        warehouseDirOption.setOptionalArg(Boolean.TRUE);
+        warehouseDirOption.setArgName("warehouse-path");
+        warehouseDirOption.setRequired(Boolean.FALSE);
+        options.addOption(warehouseDirOption);
+
         // Migration Options - Only one of these can be selected at a time, but isn't required.
         OptionGroup migrationOptionsGroup = new OptionGroup();
         migrationOptionsGroup.setRequired(Boolean.FALSE);
@@ -1060,6 +1087,7 @@ public class Mirror {
         acceptOption.setRequired(Boolean.FALSE);
         options.addOption(acceptOption);
 
+        // TODO: Add addition Storage Migration Strategies (current default and only option is SQL)
 //        Option translateConfigOption = new Option("t", "translate-config", true,
 //                "Translator Configuration File (Experimental)");
 //        translateConfigOption.setRequired(Boolean.FALSE);
@@ -1096,18 +1124,18 @@ public class Mirror {
         dbPrefixOption.setArgName("prefix");
         options.addOption(dbPrefixOption);
 
-        Option storageMigrationTargetOption = new Option("smt", "storage-migration-target", true,
+        Option storageMigrationNamespaceOption = new Option("smn", "storage-migration-namespace", true,
                 "Optional: Used with the 'data strategy STORAGE_MIGRATION to specify the target namespace.");
-        storageMigrationTargetOption.setRequired(Boolean.FALSE);
-        storageMigrationTargetOption.setArgName("Storage Migration Target Namespace");
-        options.addOption(storageMigrationTargetOption);
+        storageMigrationNamespaceOption.setRequired(Boolean.FALSE);
+        storageMigrationNamespaceOption.setArgName("Storage Migration Target Namespace");
+        options.addOption(storageMigrationNamespaceOption);
 
-        Option storageMigrationStrategyOption = new Option("sms", "storage-migration-strategy", true,
-                "Optional: Used with the 'data strategy' STORAGE_MIGRATION to specify the technique used to migration.  " +
-                        "Options are: [SQL,EXPORT_IMPORT,HYBRID]. Default is SQL");
-        storageMigrationStrategyOption.setRequired(Boolean.FALSE);
-        storageMigrationStrategyOption.setArgName("Storage Migration Strategy");
-        options.addOption(storageMigrationStrategyOption);
+//        Option storageMigrationStrategyOption = new Option("sms", "storage-migration-strategy", true,
+//                "Optional: Used with the 'data strategy' STORAGE_MIGRATION to specify the technique used to migration.  " +
+//                        "Options are: [SQL,EXPORT_IMPORT,HYBRID]. Default is SQL");
+//        storageMigrationStrategyOption.setRequired(Boolean.FALSE);
+//        storageMigrationStrategyOption.setArgName("Storage Migration Strategy");
+//        options.addOption(storageMigrationStrategyOption);
 
         Option dbOption = new Option("db", "database", true,
                 "Comma separated list of Databases (upto 100).");
@@ -1180,6 +1208,65 @@ public class Mirror {
 
 
         return options;
+    }
+
+    protected Boolean setupSql(Environment environment, List<Pair> sqlPairList) {
+        Boolean rtn = Boolean.TRUE;
+        rtn = config.getCluster(environment).runClusterSql(sqlPairList);
+        return rtn;
+    }
+
+    public long setupSql(String[] args, List<Pair> leftSql, List<Pair> rightSql) {
+        long returnCode = 0;
+        LOG.info("===================================================");
+        LOG.info("Running: hms-mirror " + ReportingConf.substituteVariablesFromManifest("v.${Implementation-Version}"));
+        LOG.info(" with commandline parameters: " + String.join(",", args));
+        LOG.info("===================================================");
+        LOG.info("");
+        LOG.info("======  SQL Setup ======");
+        try {
+            init(args);
+            try {
+                if (leftSql != null && leftSql.size() > 0) {
+                    if (!setupSql(Environment.LEFT, leftSql)) {
+                        LOG.error("Failed to run LEFT SQL, check Logs");
+                    }
+                }
+                if (rightSql != null && rightSql.size() > 0) {
+                    if (!setupSql(Environment.RIGHT, rightSql)) {
+                        LOG.error("Failed to run RIGHT SQL, check Logs");
+                    }
+                }
+            } catch (RuntimeException rte) {
+                System.out.println(rte.getMessage());
+                rte.printStackTrace();
+                if (config != null) {
+                    returnCode = config.getErrors().getReturnCode(); //MessageCode.returnCode(config.getErrors());
+                } else {
+                    returnCode = -1;
+                }
+            }
+        } catch (RuntimeException e) {
+            LOG.error(e.getMessage(), e);
+            System.err.println("=====================================================");
+            System.err.println("Commandline args: " + Arrays.toString(args));
+            System.err.println("");
+            LOG.error("Commandline args: " + Arrays.toString(args));
+            if (config != null) {
+                for (String error : config.getErrors().getMessages()) {
+                    LOG.error(error);
+                    System.err.println(error);
+                }
+                returnCode = config.getErrors().getReturnCode();
+            } else {
+                returnCode = -1;
+            }
+            System.err.println(e.getMessage());
+            e.printStackTrace();
+            System.err.println("\nSee log for stack trace ($HOME/.hms-mirror/logs)");
+        }
+        return returnCode;
+
     }
 
     public long go(String[] args) {

@@ -16,6 +16,10 @@
 
 package com.cloudera.utils.hadoop.hms.mirror;
 
+import com.cloudera.utils.hadoop.HadoopSession;
+import com.cloudera.utils.hadoop.HadoopSessionFactory;
+import com.cloudera.utils.hadoop.HadoopSessionPool;
+import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -23,16 +27,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.Sets;
-import com.cloudera.utils.hadoop.HadoopSession;
-import com.cloudera.utils.hadoop.HadoopSessionFactory;
-import com.cloudera.utils.hadoop.HadoopSessionPool;
-import com.cloudera.utils.hadoop.shell.command.CommandReturn;
-import org.apache.avro.reflect.MapEntry;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.Op;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -41,6 +39,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -61,6 +60,9 @@ public class Config {
     private DataStrategy dataStrategy = DataStrategy.SCHEMA_ONLY;
     private Boolean databaseOnly = Boolean.FALSE;
     private String[] databases = null;
+    @JsonIgnore
+    private String runMarker = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+
     @JsonIgnore
     private Pattern dbFilterPattern = null;
     /*
@@ -266,6 +268,10 @@ public class Config {
 
     public void setCliPool(HadoopSessionPool cliPool) {
         this.cliPool = cliPool;
+    }
+
+    public String getRunMarker() {
+        return runMarker;
     }
 
     public Boolean getFlip() {
@@ -524,7 +530,7 @@ public class Config {
         Set<Environment> envs = clusters.keySet();
         for (Environment env : envs) {
             Cluster cluster = clusters.get(env);
-            if (cluster.getHiveServer2().isValidUri() && cluster.getHiveServer2().getUri().contains("principal")) {
+            if (cluster.getHiveServer2() != null && cluster.getHiveServer2().isValidUri() && cluster.getHiveServer2().getUri().contains("principal")) {
                 rtn = Boolean.TRUE;
             }
         }
@@ -550,7 +556,8 @@ public class Config {
             rtn = Boolean.FALSE;
         }
         if (migrateACID.isOn() && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.DUMP ||
-                dataStrategy == DataStrategy.EXPORT_IMPORT || dataStrategy == DataStrategy.HYBRID || dataStrategy == DataStrategy.SQL)) {
+                dataStrategy == DataStrategy.EXPORT_IMPORT || dataStrategy == DataStrategy.HYBRID ||
+                dataStrategy == DataStrategy.SQL || dataStrategy == DataStrategy.STORAGE_MIGRATION)) {
 //            String issue = "Migrating ACID tables only valid for SCHEMA_ONLY, DUMP, SQL, EXPORT_IMPORT and HYBRID data strategies";
             errors.set(VALID_ACID_STRATEGIES.getCode());
 //            System.err.println(issue);
@@ -559,6 +566,24 @@ public class Config {
         // DUMP does require Execute.
         if (isExecute() && dataStrategy == DataStrategy.DUMP) {
             setExecute(Boolean.FALSE);
+        }
+
+        if (dataStrategy == DataStrategy.STORAGE_MIGRATION) {
+            // The commonStorage and Storage Migration Namespace are the same thing.
+            if (this.getTransfer().getCommonStorage() == null) {
+                errors.set(STORAGE_MIGRATION_REQUIRED_NAMESPACE.getCode());
+                rtn = Boolean.FALSE;
+            }
+//            if (this.getTransfer().getStorageMigration().getStrategy() == null) {
+//                errors.set(STORAGE_MIGRATION_REQUIRED_STRATEGY.getCode());
+//                rtn = Boolean.FALSE;
+//            }
+            if (this.getTransfer().getWarehouse() == null ||
+                    (this.getTransfer().getWarehouse().getManagedDirectory() == null ||
+                            this.getTransfer().getWarehouse().getExternalDirectory() == null)) {
+                errors.set(STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getCode());
+                rtn = Boolean.FALSE;
+            }
         }
 
         if (dataStrategy == DataStrategy.ACID) {
@@ -581,12 +606,15 @@ public class Config {
             case EXPORT_IMPORT:
             case SQL:
                 // Only do link test when NOT using intermediate storage.
-                if (this.getTransfer().getIntermediateStorage() == null && this.getTransfer().getCommonStorage() == null)
+                if (this.getTransfer().getIntermediateStorage() == null && this.getTransfer().getCommonStorage() == null) {
                     if (!linkTest()) {
+                        errors.set(LINK_TEST_FAILED.getCode());
                         rtn = Boolean.FALSE;
+
                     }
-                else
+                } else {
                     warnings.set(LINK_TEST_SKIPPED_WITH_IS.getCode());
+                }
                 break;
             case SCHEMA_ONLY:
                 if (this.isCopyAvroSchemaUrls()) {
@@ -644,7 +672,7 @@ public class Config {
         }
         leftHS2.getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
         leftHS2.getConnectionProperties().setProperty("initialSize", Integer.toString(getTransfer().getConcurrency()));
-        leftHS2.getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency()/2));
+        leftHS2.getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency() / 2));
         leftHS2.getConnectionProperties().setProperty("validationQuery", "SELECT 1");
         leftHS2.getConnectionProperties().setProperty("validationQueryTimeout", "5");
         leftHS2.getConnectionProperties().setProperty("testOnCreate", "true");
@@ -656,30 +684,38 @@ public class Config {
 
         HiveServer2Config rightHS2 = this.getCluster(Environment.RIGHT).getHiveServer2();
 
-        if (!rightHS2.isValidUri()) {
-            if (!this.getDataStrategy().equals(DataStrategy.DUMP)) {
-                rtn = Boolean.FALSE;
-                errors.set(RIGHT_HS2_URI_INVALID.getCode());
+        if (rightHS2 != null) {
+            if (getDataStrategy() != DataStrategy.STORAGE_MIGRATION && !rightHS2.isValidUri()) {
+                if (!this.getDataStrategy().equals(DataStrategy.DUMP)) {
+                    rtn = Boolean.FALSE;
+                    errors.set(RIGHT_HS2_URI_INVALID.getCode());
+                }
+            } else {
+
+                rightHS2.getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
+                rightHS2.getConnectionProperties().setProperty("initialSize", Integer.toString(getTransfer().getConcurrency()));
+                rightHS2.getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency() / 2));
+                rightHS2.getConnectionProperties().setProperty("validationQuery", "SELECT 1");
+                rightHS2.getConnectionProperties().setProperty("validationQueryTimeout", "5");
+                rightHS2.getConnectionProperties().setProperty("testOnCreate", "true");
+
+                if (rightHS2.isKerberosConnection() && rightHS2.getJarFile() != null) {
+                    rtn = Boolean.FALSE;
+                    errors.set(RIGHT_KERB_JAR_LOCATION.getCode());
+                }
+
+                if (leftHS2.isKerberosConnection() && rightHS2.isKerberosConnection() &&
+                        (this.getCluster(Environment.LEFT).getLegacyHive() != this.getCluster(Environment.RIGHT).getLegacyHive())) {
+                    rtn = Boolean.FALSE;
+                    errors.set(KERB_ACROSS_VERSIONS.getCode());
+                }
             }
         } else {
-
-            rightHS2.getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
-            rightHS2.getConnectionProperties().setProperty("initialSize", Integer.toString(getTransfer().getConcurrency()));
-            rightHS2.getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency() / 2));
-            rightHS2.getConnectionProperties().setProperty("validationQuery", "SELECT 1");
-            rightHS2.getConnectionProperties().setProperty("validationQueryTimeout", "5");
-            rightHS2.getConnectionProperties().setProperty("testOnCreate", "true");
-
-            if (rightHS2.isKerberosConnection() && rightHS2.getJarFile() != null) {
+            if (!(getDataStrategy() == DataStrategy.STORAGE_MIGRATION || getDataStrategy() == DataStrategy.DUMP)) {
                 rtn = Boolean.FALSE;
-                errors.set(RIGHT_KERB_JAR_LOCATION.getCode());
+                errors.set(RIGHT_HS2_DEFINITION_MISSING.getCode());
             }
 
-            if (leftHS2.isKerberosConnection() && rightHS2.isKerberosConnection() &&
-                    (this.getCluster(Environment.LEFT).getLegacyHive() != this.getCluster(Environment.RIGHT).getLegacyHive())) {
-                rtn = Boolean.FALSE;
-                errors.set(KERB_ACROSS_VERSIONS.getCode());
-            }
         }
         return rtn;
     }
@@ -725,7 +761,7 @@ public class Config {
         Set<Environment> envs = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
         for (Environment env : envs) {
             Cluster cluster = clusters.get(env);
-            if (cluster != null && cluster.getHiveServer2().isValidUri()) {
+            if (cluster != null && cluster.getHiveServer2() != null && cluster.getHiveServer2().isValidUri()) {
                 Connection conn = null;
                 try {
                     conn = cluster.getConnection();
@@ -799,7 +835,7 @@ public class Config {
 
     public void setClusters(Map<Environment, Cluster> clusters) {
         this.clusters = clusters;
-        for (Map.Entry<Environment, Cluster> entry: clusters.entrySet()) {
+        for (Map.Entry<Environment, Cluster> entry : clusters.entrySet()) {
             entry.getValue().setConfig(this);
         }
     }

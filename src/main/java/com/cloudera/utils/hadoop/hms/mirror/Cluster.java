@@ -79,8 +79,8 @@ public class Cluster implements Comparable<Cluster> {
     }
 
     public HiveServer2Config getHiveServer2() {
-        if (hiveServer2 == null)
-            hiveServer2 = new HiveServer2Config();
+//        if (hiveServer2 == null)
+//            hiveServer2 = new HiveServer2Config();
         return hiveServer2;
     }
 
@@ -375,8 +375,8 @@ public class Cluster implements Comparable<Cluster> {
         }
     }
 
-    public Boolean runSql(TableMirror tblMirror) {
-        return runSql(tblMirror, getEnvironment());
+    public Boolean runTableSql(TableMirror tblMirror) {
+        return runTableSql(tblMirror, getEnvironment());
     }
 
     /**
@@ -386,88 +386,115 @@ public class Cluster implements Comparable<Cluster> {
      * @param environment Allows to override cluster environment
      * @return
      */
-    public Boolean runSql(TableMirror tblMirror, Environment environment) {
+    public Boolean runTableSql(TableMirror tblMirror, Environment environment) {
         Connection conn = null;
         Boolean rtn = Boolean.FALSE;
 
         EnvironmentTable et = tblMirror.getEnvironmentTable(environment);
 
-        rtn = runSql(et.getSql(), tblMirror, environment);
+        rtn = runTableSql(et.getSql(), tblMirror, environment);
 
         return rtn;
     }
 
-    public Boolean runSql(List<Pair> sqlList, TableMirror tblMirror, Environment environment) {
+    public Boolean runTableSql(List<Pair> sqlList, TableMirror tblMirror, Environment environment) {
         Connection conn = null;
         Boolean rtn = Boolean.FALSE;
 
-        if (config.isExecute()) {
-            try {
-                conn = getConnection();
+//        if (config.isExecute()) {
+        try {
+            conn = getConnection();
 
-                if (conn != null) {
-                    Statement stmt = null;
-                    try {
-                        stmt = conn.createStatement();
-                        for (Pair pair : sqlList) {
-                            LOG.info(getEnvironment() + ":SQL:" + pair.getDescription() + ":" + pair.getAction());
-                            tblMirror.setMigrationStageMessage("Executing SQL: " + pair.getDescription());
+            if (conn != null) {
+                Statement stmt = null;
+                try {
+                    stmt = conn.createStatement();
+                    for (Pair pair : sqlList) {
+                        LOG.info(getEnvironment() + ":SQL:" + pair.getDescription() + ":" + pair.getAction());
+                        tblMirror.setMigrationStageMessage("Executing SQL: " + pair.getDescription());
+                        if (config.isExecute())
                             stmt.execute(pair.getAction());
-                            tblMirror.addStep(getEnvironment().toString(), "Sql Run Complete for: " + pair.getDescription());
-                        }
-                        rtn = Boolean.TRUE;
-                    } catch (SQLException throwables) {
-                        LOG.error(throwables);
-                        String message = throwables.getMessage();
-                        if (throwables.getMessage().contains("HiveAccessControlException Permission denied")) {
-                            message = message + " See [Hive SQL Exception / HDFS Permissions Issues](https://github.com/dstreev/hms-mirror#hive-sql-exception--hdfs-permissions-issues)";
-                        }
-                        if (throwables.getMessage().contains("AvroSerdeException")) {
-                            message = message + ". It's possible the `avro.schema.url` referenced file doesn't exist at the target. " +
-                                    "Use the `-asm` option and hms-mirror will attempt to copy it to the new cluster.";
-                        }
-                        tblMirror.getEnvironmentTable(environment).addIssue(message);
-                    } finally {
-                        if (stmt != null) {
-                            try {
-                                stmt.close();
-                            } catch (SQLException sqlException) {
-                                // ignore
-                            }
+                        tblMirror.addStep(getEnvironment().toString(), "Sql Run Complete for: " + pair.getDescription());
+                    }
+                    rtn = Boolean.TRUE;
+                } catch (SQLException throwables) {
+                    LOG.error(throwables);
+                    String message = throwables.getMessage();
+                    if (throwables.getMessage().contains("HiveAccessControlException Permission denied")) {
+                        message = message + " See [Hive SQL Exception / HDFS Permissions Issues](https://github.com/dstreev/hms-mirror#hive-sql-exception--hdfs-permissions-issues)";
+                    }
+                    if (throwables.getMessage().contains("AvroSerdeException")) {
+                        message = message + ". It's possible the `avro.schema.url` referenced file doesn't exist at the target. " +
+                                "Use the `-asm` option and hms-mirror will attempt to copy it to the new cluster.";
+                    }
+                    tblMirror.getEnvironmentTable(environment).addIssue(message);
+                } finally {
+                    if (stmt != null) {
+                        try {
+                            stmt.close();
+                        } catch (SQLException sqlException) {
+                            // ignore
                         }
                     }
                 }
+            }
+        } catch (SQLException throwables) {
+            tblMirror.getEnvironmentTable(environment).addIssue("Connecting: " + throwables.getMessage());
+            LOG.error(throwables);
+        } finally {
+            try {
+                if (conn != null)
+                    conn.close();
             } catch (SQLException throwables) {
-                tblMirror.getEnvironmentTable(environment).addIssue("Connecting: " + throwables.getMessage());
-                LOG.error(throwables);
-            } finally {
-                try {
-                    if (conn != null)
-                        conn.close();
-                } catch (SQLException throwables) {
-                    //
-                }
+                //
             }
-        } else {
-            for (Pair pair : sqlList) {
-                LOG.info(getEnvironment() + ":SQL:DRY-RUN:" + pair.getDescription() + ":" + pair.getAction());
-                tblMirror.setMigrationStageMessage("Executing SQL: " + pair.getDescription());
-                tblMirror.addStep(getEnvironment().toString(), "Sql Run Complete for: " + pair.getDescription());
-            }
-            rtn = Boolean.TRUE;
-
+//            }
+//        } else {
+//            for (Pair pair : sqlList) {
+//                LOG.info(getEnvironment() + ":SQL:DRY-RUN:" + pair.getDescription() + ":" + pair.getAction());
+//                tblMirror.setMigrationStageMessage("Executing SQL: " + pair.getDescription());
+//                tblMirror.addStep(getEnvironment().toString(), "Sql Run Complete for: " + pair.getDescription());
+//            }
+//            rtn = Boolean.TRUE;
         }
         return rtn;
     }
 
-    public void createDatabase(Config config, String database, String createDBSql) {
+    public Boolean runClusterSql(List<Pair> clusterSql) {
+        Boolean rtn = Boolean.TRUE;
+        for (Pair pair : clusterSql) {
+            if (!runDatabaseSql(null, pair)) {
+                rtn = Boolean.FALSE;
+            }
+        }
+        return rtn;
+    }
+
+
+    public Boolean runDatabaseSql(DBMirror dbMirror) {
+        List<Pair> dbPairs = dbMirror.getSql(environment);
+        Boolean rtn = Boolean.TRUE;
+        for (Pair pair : dbPairs) {
+            if (!runDatabaseSql(dbMirror, pair)) {
+                rtn = Boolean.FALSE;
+            }
+        }
+        return rtn;
+    }
+
+    public Boolean runDatabaseSql(DBMirror dbMirror, Pair dbSqlPair) {
         // Open the connection and ensure we are running this on the "RIGHT" cluster.
         Connection conn = null;
+        Boolean rtn = Boolean.TRUE;
+
         try {
             conn = getConnection();
             if (conn != null) {
 
-                LOG.debug(getEnvironment() + " - Create Database: " + database);
+                if (dbMirror != null)
+                    LOG.debug(getEnvironment() + " - " + dbSqlPair.getDescription() + ": " + dbMirror.getName());
+                else
+                    LOG.debug(getEnvironment() + " - " + dbSqlPair.getDescription() + ":" + dbSqlPair.getAction());
 
                 Statement stmt = null;
                 try {
@@ -475,14 +502,16 @@ public class Cluster implements Comparable<Cluster> {
                         stmt = conn.createStatement();
                     } catch (SQLException throwables) {
                         LOG.error("Issue building statement", throwables);
+                        rtn = Boolean.FALSE;
                     }
 
                     try {
-                        LOG.debug(getEnvironment() + ":CREATE_DB:" + createDBSql);
+                        LOG.debug(getEnvironment() + ":" + dbSqlPair.getDescription() + ":" + dbSqlPair.getAction());
                         if (config.isExecute()) // on dry-run, without db, hard to get through the rest of the steps.
-                            stmt.execute(createDBSql);
+                            stmt.execute(dbSqlPair.getAction());
                     } catch (SQLException throwables) {
-                        LOG.error(getEnvironment() + ":Creating DB", throwables);
+                        LOG.error(getEnvironment() + ":" + dbSqlPair.getDescription() + ":", throwables);
+                        rtn = Boolean.FALSE;
                     }
 
                 } finally {
@@ -506,98 +535,30 @@ public class Cluster implements Comparable<Cluster> {
                 //
             }
         }
+        return rtn;
     }
 
-    public void createDatabase(Config config, String database) {
-        // Open the connection and ensure we are running this on the "RIGHT" cluster.
-        String createDb = MessageFormat.format(MirrorConf.CREATE_DB, database);
-        createDatabase(config, database, createDb);
-    }
-
-//    protected Boolean checkAndDoOverwrite(Statement stmt, Config config, DBMirror dbMirror, EnvironmentTable source, EnTableMirror tblMirror) {
-//        return checkAndDoOverwrite(stmt, config, dbMirror, tblMirror, null);
+//    public Boolean createDatabase(Config config, String database) {
+//        // Open the connection and ensure we are running this on the "RIGHT" cluster.
+//        String createDb = MessageFormat.format(MirrorConf.CREATE_DB, database);
+//        Pair createDbPair = new Pair(MirrorConf.CREATE_DB_DESC, createDb);
+//        return databaseSql(config, database, createDbPair);
+//    }
+//
+//    public Boolean alterDatabaseLocation(Config config, String database, String location) {
+//        // Open the connection and ensure we are running this on the "RIGHT" cluster.
+//        String alterDb = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, location);
+//        Pair locPair = new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDb);
+//        return databaseSql(config, database, locPair);
+//    }
+//
+//    public Boolean alterDatabaseManagedLocation(Config config, String database, String location) {
+//        // Open the connection and ensure we are running this on the "RIGHT" cluster.
+//        String alterDb = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, location);
+//        Pair locPair = new Pair(MirrorConf.ALTER_DB_MNGD_LOCATION_DESC, alterDb);
+//        return databaseSql(config, database, locPair);
 //    }
 
-    //    protected Boolean checkAndDoOverwrite(Statement stmt, Config config, DBMirror dbMirror, TableMirror tblMirror, String tblPrefix) {
-//    protected Boolean checkAndDoOverwrite(Statement stmt, Config config, DBMirror dbMirror, EnvironmentTable source, EnvironmentTable target) {
-//        Boolean rtn = Boolean.TRUE;
-//
-//        String database = dbMirror.getName();
-//        tblMirror.setMigrationStageMessage("Checking whether the overwrite");
-//        String tableName = tblPrefix == null ? tblMirror.getName() : tblPrefix + tblMirror.getName();
-//        try {
-//            // Run check for non-prefix (transfer) tables.
-//            if (tblPrefix == null) {
-//                // Check if we should overwrite existing table.
-//                if (tblMirror.getTableDefinition(Environment.RIGHT) != null) {
-//                    LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Exists in RIGHT cluster. ");
-//                    tblMirror.addIssue("Schema exists already");
-////                    tblMirror.addIssue("No Schema action performed");
-//                    // Compare Schemas
-//                    if (config.isSync()) {
-//                        // ? Check for ACID table ?
-//                        tblMirror.addIssue("Schema has changed and 'sync' is set. Will drop table so it can be recreated.");
-//                        if (config.isReadOnly()) {
-//                            // Alter target table and unset external.table.purge property.  May fail if not set, which is ok.
-//                            String removePurgePropSql = MessageFormat.format(MirrorConf.REMOVE_TBL_PROP, config.getResolvedDB(database), tableName, MirrorConf.EXTERNAL_TABLE_PURGE);
-//                            LOG.debug(getEnvironment() + ":" + removePurgePropSql);
-//                            try {
-//                                if (stmt != null && config.isExecute()) {
-//                                    stmt.execute(removePurgePropSql);
-//                                }
-//                                tblMirror.addSql(removePurgePropSql);
-//                                tblMirror.addIssue(getEnvironment() + ":Removed " + MirrorConf.EXTERNAL_TABLE_PURGE + " property from " + config.getResolvedDB(database) + "." + tableName);
-//                            } catch (SQLException sqle) {
-//                                LOG.debug(getEnvironment() + ":" + removePurgePropSql + " failed, reason: " + sqle.getMessage());
-//                                tblMirror.addIssue(getEnvironment() + ":Failed to Removed " + MirrorConf.EXTERNAL_TABLE_PURGE + " property from " +
-//                                        config.getResolvedDB(database) + "." + tableName + ". It probably wasn't set.");
-//                            }
-//                        }
-//                        // Drop table.
-//                        String dropTableSql = MessageFormat.format(MirrorConf.DROP_TABLE, config.getResolvedDB(database), tableName);
-//                        LOG.debug(getEnvironment() + ":" + dropTableSql);
-//                        try {
-//                            if (stmt != null && config.isExecute()) {
-//                                stmt.execute(dropTableSql);
-//                            }
-//                            tblMirror.addSql(dropTableSql);
-//                            tblMirror.addIssue(getEnvironment() + ": Dropped table " + config.getResolvedDB(database) + "." + tableName);
-//                        } catch (SQLException sqle) {
-//                            LOG.debug(getEnvironment() + ":" + dropTableSql + " failed, reason: " + sqle.getMessage());
-//                        }
-//                    } else {
-//                        tblMirror.addIssue("SCHEMA HAS CHANGED");
-//                        tblMirror.addIssue("DROP before running again to MIGRATE FRESH SCHEMA.");
-//                        tblMirror.addIssue("If you are dropping table, understand the impact on the underlying data (is it attached).");
-//                        tblMirror.addIssue("No Schema action performed");
-//                        rtn = Boolean.FALSE;
-//                    }
-//                }
-//            } else {
-//                // Always drop the transfer table.
-//                if (rtn) {
-//                    LOG.debug(getEnvironment() + ":" + database + "." + tableName + ": Dropping table");
-//                    // It was created by HMS Mirror, safe to drop.
-//                    String dropTable = MessageFormat.format(MirrorConf.DROP_TABLE, database, tableName);
-//                    LOG.debug(getEnvironment() + ":(SQL)" + dropTable);
-//                    tblMirror.setMigrationStageMessage("Dropping table (overwrite)");
-//
-//                    tblMirror.addSql(dropTable);
-//                    if (stmt != null && config.isExecute()) {
-//                        stmt.execute(dropTable);
-//                    } else {
-//                        tblMirror.addIssue("DRY-RUN: Table NOT dropped");
-//                    }
-//                    // TODO: change current to address tablename so we pickup transfer.
-//                    tblMirror.setMigrationStageMessage("Table dropped");
-//                    tblMirror.addAction(getEnvironment().toString(), "DROPPED Transfer (if existed)");
-//                }
-//            }
-//        } catch (SQLException throwables) {
-//            tblMirror.addIssue(this.getEnvironment() + ":" + tableName + "->" + throwables.getMessage());
-//        }
-//        return rtn;
-//    }
 
     protected void loadTablePartitionMetadata(String database, EnvironmentTable envTable) throws SQLException {
         Connection conn = null;

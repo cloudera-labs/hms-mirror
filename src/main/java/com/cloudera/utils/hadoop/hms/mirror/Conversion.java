@@ -16,6 +16,7 @@
 
 package com.cloudera.utils.hadoop.hms.mirror;
 
+import com.cloudera.utils.hadoop.hms.util.TableUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -77,17 +78,20 @@ public class Conversion {
         sb.append("-- ").append(new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date()));
         sb.append("-- These are the command run on the " + environment + " cluster when `-e` is used.\n");
         DBMirror dbMirror = databases.get(database);
-        if (environment == Environment.RIGHT) {
-            String[] dbcreate = dbMirror.dbCreate(getConfig());
-            sb.append("\n\n-- CREATE DATABASE ").append(database).append("\n");
-            sb.append(dbcreate[0]).append(";\n");
+
+        List<Pair> dbSql = dbMirror.getSql(environment);
+        if (dbSql != null && dbSql.size() > 0) {
+            for (Pair sqlPair : dbSql) {
+                sb.append("-- ").append(sqlPair.getDescription()).append("\n");
+                sb.append(sqlPair.getAction()).append(";\n");
+            }
         }
+
         Set<String> tables = dbMirror.getTableMirrors().keySet();
         for (String table : tables) {
             TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
             sb.append("\n--    Table: ").append(table).append("\n");
             if (tblMirror.isThereSql(environment)) {
-//                Map<String, String> sqlMap = tblMirror.getSql(environment);
                 for (Pair pair : tblMirror.getSql(environment)) {
                     sb.append(pair.getAction()).append(";\n");
                 }
@@ -97,6 +101,31 @@ public class Conversion {
         }
         return sb.toString();
     }
+
+    public String executeCleanUpSql(Environment environment, String database) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("-- EXECUTION CLEANUP script for ").append(database).append(" on ").append(environment).append(" cluster\n\n");
+        sb.append("-- ").append(new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date())).append("\n\n");
+//        sb.append("-- These are the command run on the " + environment + " cluster when `-e` is used.\n");
+        DBMirror dbMirror = databases.get(database);
+
+        sb.append("USE ").append(database).append(";\n");
+
+        Set<String> tables = dbMirror.getTableMirrors().keySet();
+        for (String table : tables) {
+            TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
+            sb.append("\n--    Cleanup Old version of table: ").append(table).append("\n");
+            if (tblMirror.isThereSql(environment)) {
+                for (Pair pair : tblMirror.getCleanUpSql(environment)) {
+                    sb.append(pair.getAction()).append(";\n");
+                }
+            } else {
+                sb.append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
 
     public String actionsSql(Environment env, String database) {
         StringBuilder sb = new StringBuilder();
@@ -151,37 +180,33 @@ public class Conversion {
         if (config.getErrors().getMessages().length > 0) {
             sb.append("### Config Errors:\n");
             for (String message : config.getErrors().getMessages()) {
-//            for (MessageCode error : MessageCode.getCodes(config.getErrors())) {
                 sb.append("- ").append(message).append("\n");
             }
             sb.append("\n");
         }
         if (config.getWarnings().getMessages().length > 0) {
             sb.append("### Config Warnings:\n");
-            for (String message: config.getWarnings().getMessages()) {
-//            for (MessageCode error : MessageCode.getCodes(config.getErrors())) {
+            for (String message : config.getWarnings().getMessages()) {
                 sb.append("- ").append(message).append("\n");
             }
-//            for (WarningCode warning : WarningCode.getCodes(config.getWarnings())) {
-//                sb.append("- ").append(warning.getDesc()).append("\n");
-//            }
             sb.append("\n");
         }
 
         DBMirror dbMirror = databases.get(database);
-//        if (config.getDataStrategy() != DataStrategy.DUMP) {
-        if (!config.getResetRight()) {
-            sb.append("## DB Create Statement").append("\n\n");
-        } else {
-            sb.append("## DB DROP Statement").append("\n\n");
+
+        sb.append("## Database SQL Statement(s)").append("\n\n");
+
+        for (Environment environment : Environment.values()) {
+            if (dbMirror.getSql(environment) != null && dbMirror.getSql(environment).size() > 0) {
+                sb.append("### ").append(environment.toString()).append("\n\n");
+                sb.append("```\n");
+                for (Pair sqlPair : dbMirror.getSql(environment)) {
+                    sb.append("-- ").append(sqlPair.getDescription()).append("\n");
+                    sb.append(sqlPair.getAction()).append("\n");
+                }
+                sb.append("```\n");
+            }
         }
-        sb.append("```").append("\n");
-        try {
-            sb.append(dbMirror.dbCreate(config)[0]);
-        } catch (NullPointerException npe) {
-            sb.append("Issue constructing RIGHT DB SQL from LEFT.  Does the LEFT DB exists?");
-        }
-        sb.append("```").append("\n");
 
         sb.append("\n");
 
@@ -194,7 +219,6 @@ public class Conversion {
         } else {
             sb.append("none\n");
         }
-//        }
 
         sb.append("\n## Table Status (").append(dbMirror.getTableMirrors().size()).append(")\n\n");
 
@@ -204,13 +228,14 @@ public class Conversion {
         sb.append("<tr>").append("\n");
         sb.append("<th style=\"test-align:left\">Table</th>").append("\n");
         sb.append("<th style=\"test-align:left\">Strategy</th>").append("\n");
+        sb.append("<th style=\"test-align:left\">Source<br/>Managed</th>").append("\n");
+        sb.append("<th style=\"test-align:left\">Source<br/>ACID</th>").append("\n");
         sb.append("<th style=\"test-align:left\">Phase<br/>State</th>").append("\n");
         sb.append("<th style=\"test-align:right\">Duration</th>").append("\n");
         sb.append("<th style=\"test-align:right\">Partition<br/>Count</th>").append("\n");
         sb.append("<th style=\"test-align:left\">Steps</th>").append("\n");
         if (dbMirror.hasActions()) {
             sb.append("<th style=\"test-align:left\">Actions</th>").append("\n");
-//            sb.append("<th style=\"test-align:left\">RIGHT Table Actions</th>").append("\n");
         }
         if (dbMirror.hasAddedProperties()) {
             sb.append("<th style=\"test-align:left\">Added<br/>Properties</th>").append("\n");
@@ -225,10 +250,23 @@ public class Conversion {
         for (String table : tables) {
             sb.append("<tr>").append("\n");
             TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
+            EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
             // table
             sb.append("<td>").append(table).append("</td>").append("\n");
             // Strategy
             sb.append("<td>").append(tblMirror.getStrategy()).append("</td>").append("\n");
+            // Source Managed
+            sb.append("<td>");
+            if (TableUtils.isManaged(let)) {
+                sb.append("X");
+            }
+            sb.append("</td>").append("\n");
+            // Source ACID
+            sb.append("<td>").append("\n");
+            if (TableUtils.isACID(let)) {
+                sb.append("X");
+            }
+            sb.append("</td>").append("\n");
             // phase state
             sb.append("<td>").append(tblMirror.getPhaseState().toString()).append("</td>").append("\n");
 
@@ -239,7 +277,6 @@ public class Conversion {
             sb.append("<td>").append(secStr).append("</td>").append("\n");
 
             // Partition Count
-            EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
             sb.append("<td>").append(let.getPartitioned() ?
                     let.getPartitions().size() : " ").append("</td>").append("\n");
 
@@ -265,24 +302,6 @@ public class Conversion {
 
             // Actions
             if (dbMirror.hasActions()) {
-//                Iterator<Map.Entry<String[], Object>> aIter = tblMirror.getTableActions().iterator();
-//                sb.append("<td>").append("\n");
-//                sb.append("<table>");
-//                while (aIter.hasNext()) {
-//                    sb.append("<tr>");
-//                    Map.Entry<String[], Object> item = aIter.next();
-//                    String[] keySet = item.getKey();
-//                    sb.append("<td style=\"text-align:left\">").append(keySet[0]).append("</td>");
-//                    sb.append("<td>").append(keySet[1]).append("</td>");
-//                    if (item.getValue() != null)
-//                        sb.append("<td>").append(item.getValue().toString()).append("</td>");
-//                    else
-//                        sb.append("<td></td>");
-//                    sb.append("</tr>");
-//                }
-//                sb.append("</table>");
-//                sb.append("</td>").append("\n");
-
                 // LEFT Table Actions
                 Iterator<String> a1Iter = tblMirror.getTableActions(Environment.LEFT).iterator();
                 sb.append("<td>").append("\n");

@@ -24,8 +24,6 @@ import static org.junit.Assert.assertTrue;
 
 public class BadRCDefFeatureTest extends BaseFeatureTest {
 
-    private Feature feature = new BadRCDefFeature();
-
     public static String[] schema_01 = new String[]{
             "CREATE EXTERNAL TABLE `data`(",
             "    `sys01`timestamp,",
@@ -53,6 +51,7 @@ public class BadRCDefFeatureTest extends BaseFeatureTest {
             "   'mapred.output.compression.codec'='org.apache.hadoop.io.compress.SnappyCodec',",
             "   'transient_lastDdlTime'='1555609592')"
     };
+    private final Feature feature = new BadRCDefFeature();
 
     @Test
     public void test_001() {

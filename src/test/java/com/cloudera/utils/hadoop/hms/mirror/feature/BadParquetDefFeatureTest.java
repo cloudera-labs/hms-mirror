@@ -24,8 +24,6 @@ import static org.junit.Assert.assertTrue;
 
 public class BadParquetDefFeatureTest extends BaseFeatureTest {
 
-    private Feature feature = new BadParquetDefFeature();
-
     public static String[] schema_01 = new String[]{
             "CREATE EXTERNAL TABLE `bad_parquet_legacy`(                         ",
             "  `ticker` string,                                                  ",
@@ -55,7 +53,6 @@ public class BadParquetDefFeatureTest extends BaseFeatureTest {
             "TBLPROPERTIES (                                                     ",
             "  'PARQUET.COMPRESSION'='GZIP')                                     "
     };
-
     public static String[] schema_02 = new String[]{
             "CREATE EXTERNAL TABLE `data02`(",
             "  `field1` string,",
@@ -95,6 +92,7 @@ public class BadParquetDefFeatureTest extends BaseFeatureTest {
             "  'PARQUET.COMPRESSION'='GZIP',",
             "  'transient_lastDdlTime'='1631064805')"
     };
+    private final Feature feature = new BadParquetDefFeature();
 
     @Test
     public void test_001() {

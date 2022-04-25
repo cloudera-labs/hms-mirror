@@ -16,6 +16,8 @@
 
 package com.cloudera.utils.hadoop.hms.mirror;
 
+import com.cloudera.utils.hadoop.hms.util.TableUtils;
+
 import java.util.*;
 
 public class EnvironmentTable {
@@ -30,6 +32,7 @@ public class EnvironmentTable {
     private Map<String, String> addProperties = new TreeMap<String, String>();
     private List<String> issues = new ArrayList<String>();
     private List<Pair> sql = new ArrayList<Pair>();
+    private List<Pair> cleanUpsql = new ArrayList<Pair>();
 
     public String getName() {
         return name;
@@ -122,4 +125,18 @@ public class EnvironmentTable {
         Pair pair = new Pair(desc, sql);
         addSql(pair);
     }
+
+    public List<Pair> getCleanUpSql() {
+        return cleanUpsql;
+    }
+
+    public void addCleanUpSql(Pair sqlPair) {
+        getCleanUpSql().add(sqlPair);
+    }
+
+    public void addCleanUpSql(String desc, String sql) {
+        Pair pair = new Pair(desc, sql);
+        addCleanUpSql(pair);
+    }
+
 }

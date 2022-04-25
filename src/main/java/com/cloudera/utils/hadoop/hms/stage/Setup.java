@@ -95,7 +95,6 @@ public class Setup {
         }
         gtf.clear(); // reset
 
-
         // Create the databases we'll need on the LEFT and RIGHT
         Callable<ReturnStatus> createDatabases = new CreateDatabases(config, conversion);
         gtf.add(config.getTransferThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));

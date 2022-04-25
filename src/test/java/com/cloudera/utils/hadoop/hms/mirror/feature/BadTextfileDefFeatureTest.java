@@ -24,8 +24,6 @@ import static org.junit.Assert.assertTrue;
 
 public class BadTextfileDefFeatureTest extends BaseFeatureTest {
 
-    private Feature feature = new BadTextFileDefFeature();
-
     public static String[] schema_01 = new String[]{
             "CREATE EXTERNAL TABLE `thing_two`(",
             "  `fund` int, ",
@@ -59,7 +57,6 @@ public class BadTextfileDefFeatureTest extends BaseFeatureTest {
             "  'serialization.null.format'='', ",
             "  'transient_lastDdlTime'='1468009889');"
     };
-
     public static String[] schema_02 = new String[]{
             "CREATE EXTERNAL TABLE `cp`(",
             "  `internal_id` bigint, ",
@@ -118,6 +115,7 @@ public class BadTextfileDefFeatureTest extends BaseFeatureTest {
             "  'serialization.null.format'='', ",
             "  'transient_lastDdlTime'='1470863258');"
     };
+    private final Feature feature = new BadTextFileDefFeature();
 
     @Test
     public void test_001() {

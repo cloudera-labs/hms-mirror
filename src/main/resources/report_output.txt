@@ -1,6 +1,7 @@
 
 Report file              : ${report.file}
 LEFT Execute file        : ${left.execute.file}
+LEFT CleanUp file        : ${left.cleanup.file}
 RIGHT Execute file       : ${right.execute.file}
 LEFT Action file         : ${left.action.file}
 RIGHT Action file        : ${right.action.file}

@@ -23,10 +23,13 @@ public class TransferConfig {
     private String transferPrefix = "hms_mirror_transfer_";
     private String shadowPrefix = "hms_mirror_shadow_";
     private String exportBaseDirPrefix = "/apps/hive/warehouse/export_";
+    private String remoteWorkingDirectory = "hms_mirror_working";
     private String intermediateStorage = null;
     private String commonStorage = null;
     private StorageMigration storageMigration = null;
-    private List<Mapping> pathMappings = null;
+    private WarehouseConfig warehouse = null;
+    // TODO:
+//    private List<Mapping> pathMappings = null;
 
     public int getConcurrency() {
         return concurrency;
@@ -60,6 +63,14 @@ public class TransferConfig {
         this.exportBaseDirPrefix = exportBaseDirPrefix;
     }
 
+    public String getRemoteWorkingDirectory() {
+        return remoteWorkingDirectory;
+    }
+
+    public void setRemoteWorkingDirectory(String remoteWorkingDirectory) {
+        this.remoteWorkingDirectory = remoteWorkingDirectory;
+    }
+
     public String getIntermediateStorage() {
         return intermediateStorage;
     }
@@ -73,10 +84,16 @@ public class TransferConfig {
     }
 
     public void setCommonStorage(String commonStorage) {
-        this.commonStorage = commonStorage;
+        this.commonStorage = commonStorage.trim();
+        if (this.commonStorage.endsWith("/")) {
+            // Remove trailing slash.
+            this.commonStorage = this.commonStorage.substring(0,this.commonStorage.length()-1);
+        }
     }
 
     public StorageMigration getStorageMigration() {
+        if (storageMigration == null)
+            storageMigration = new StorageMigration();
         return storageMigration;
     }
 
@@ -84,11 +101,21 @@ public class TransferConfig {
         this.storageMigration = storageMigration;
     }
 
-    public List<Mapping> getPathMappings() {
-        return pathMappings;
+    public WarehouseConfig getWarehouse() {
+        if (warehouse == null)
+            warehouse = new WarehouseConfig();
+        return warehouse;
     }
 
-    public void setPathMappings(List<Mapping> pathMappings) {
-        this.pathMappings = pathMappings;
+    public void setWarehouse(WarehouseConfig warehouse) {
+        this.warehouse = warehouse;
     }
+
+//    public List<Mapping> getPathMappings() {
+//        return pathMappings;
+//    }
+//
+//    public void setPathMappings(List<Mapping> pathMappings) {
+//        this.pathMappings = pathMappings;
+//    }
 }

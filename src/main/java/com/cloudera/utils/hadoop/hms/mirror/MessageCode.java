@@ -7,7 +7,7 @@ import java.util.List;
 public enum MessageCode {
     // ERRORS
     VALID_SYNC_STRATEGIES(0, "'-sync' only valid for SCHEMA_ONLY, LINKED, and COMMON data strategies"),
-    VALID_ACID_STRATEGIES(1, "Migrating ACID tables only valid for SCHEMA_ONLY, DUMP, SQL, EXPORT_IMPORT and HYBRID data strategies"),
+    VALID_ACID_STRATEGIES(1, "Migrating ACID tables only valid for SCHEMA_ONLY, DUMP, SQL, EXPORT_IMPORT, HYBRID, and STORAGE_MIGRATION data strategies"),
     ACID_NOT_TOP_LEVEL_STRATEGY(2, "The `ACID` strategy is not a valid `hms-mirror` top level strategy.  Use 'HYBRID' or 'SQL' " +
             "along with the `-ma|-mao` option to address ACID tables."),
     COMMON_STORAGE_WITH_LINKED(3,"Common Storage (-cs) is not a valid option for the LINKED data strategy."),
@@ -36,6 +36,14 @@ public enum MessageCode {
             "You can either DROP the right database and run hms-mirror with the `-dbo -e` " +
             "option OR \"ALTER DATABASE {3} SET LOCATION `{0}`\""),
     CONFIGURATION_REMOVED_OR_INVALID(17, "A configuration element is no longer valid, progress.  Please remove the element from the configuration yaml and try again. {0}"),
+    STORAGE_MIGRATION_REQUIRED_NAMESPACE(18,  "STORAGE_MIGRATION requires -smn or -cs to define the new namespace."),
+    STORAGE_MIGRATION_REQUIRED_STRATEGY(19,  "STORAGE_MIGRATION requires -sms to set the Data Strategy.  Applicable options " +
+            "are SCHEMA_ONLY, SQL, EXPORT_IMPORT, or HYBRID"),
+    STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS(20,"STORAGE_MIGRATION requires you to specify PATH location for " +
+            "'managed' and 'external' tables (-swd, -sewd) to migrate storage.  These will be appended to the -smn " +
+            "(storage-migration-namespace) parameter and used to set the 'database' LOCATION and MANAGEDLOCATION properties"),
+    RIGHT_HS2_DEFINITION_MISSING(21, "The 'RIGHT' HS2 definition is missing.  Only STORAGE_MIGRATION or DUMP strategies allow " +
+            "that definition to be skipped."),
 
     // WARNINGS
     SYNC_TBL_FILTER(50, "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"
@@ -44,7 +52,6 @@ public enum MessageCode {
     DUMP_ENV_FLIP(52,"You've requested DUMP on the RIGHT cluster.  The runtime configuration will " +
             "adjusted to complete this.  The RIGHT configuration will be MOVED to the LEFT to process " +
             "the DUMP strategy.  LEFT = RIGHT...")
-
     ;
 
 
