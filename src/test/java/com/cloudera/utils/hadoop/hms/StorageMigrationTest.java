@@ -172,4 +172,27 @@ public class StorageMigrationTest extends MirrorTestBase {
         rtn = mirror.go(args);
     }
 
+    @Test
+    public void test_storage_migration_06() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-d", "STORAGE_MIGRATION",
+                "-smn", common_storage,
+                "-ma", "4",
+                "-rdl",
+                "-wd", "/warehouse/managed", "-ewd", "/warehouse/external",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+    }
+
+
 }

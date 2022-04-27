@@ -71,6 +71,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Export Import](#export-import)
   * [Hybrid](#hybrid)
   * [Common](#common)
+  * [Storage Migration](#storage-migration)
 - [Troubleshooting / Issues](#troubleshooting--issues)
   * [Failed AVRO Table Creation](#failed-avro-table-creation)
   * [Table processing completed with `ERROR.`](#table-processing-completed-with-error)
@@ -622,221 +623,270 @@ When you do need to move data, `hms-mirror` create a workbook of 'source' and 't
 ### Options (Help)
 
 ```
-Hive Metastore Migration Utility
- -accept,--accept                                                       Accept ALL confirmations and
-                                                                        silence prompts
- -ap,--acid-partition-count <limit>                                     Set the limit of partitions
-                                                                        that the ACID strategy will
-                                                                        work with. '-1' means
-                                                                        no-limit.
- -asm,--avro-schema-migration                                           Migrate AVRO Schema Files
-                                                                        referenced in TBLPROPERTIES
-                                                                        by 'avro.schema.url'.
-                                                                        Without migration it is
-                                                                        expected that the file will
-                                                                        exist on the other cluster
-                                                                        and match the 'url' defined
-                                                                        in the schema DDL.
-                                                                        If it's not present, schema
-                                                                        creation will FAIL.
-                                                                        Specifying this option
-                                                                        REQUIRES the LEFT and RIGHT
-                                                                        cluster to be LINKED.
-                                                                        See docs:
-                                                                        https://github.com/dstreev/h
-                                                                        ms-mirror#linking-clusters-s
-                                                                        torage-layers
- -cfg,--config <filename>                                               Config with details for the
-                                                                        HMS-Mirror.  Default:
-                                                                        $HOME/.hms-mirror/cfg/defaul
-                                                                        t.yaml
- -cs,--common-storage <storage-path>                                    Common Storage used with
-                                                                        Data Strategy HYBRID, SQL,
-                                                                        EXPORT_IMPORT.  This will
-                                                                        change the way these methods
-                                                                        are implemented by using the
-                                                                        specified storage location
-                                                                        as an 'common' storage point
-                                                                        between two clusters.  In
-                                                                        this case, the cluster do
-                                                                        NOT need to be 'linked'.
-                                                                        Each cluster DOES need to
-                                                                        have access to the location
-                                                                        and authorization to
-                                                                        interact with the location.
-                                                                        This may mean additional
-                                                                        configuration requirements
-                                                                        for 'hdfs' to ensure this
-                                                                        seamless access.
- -d,--data-strategy <strategy>                                          Specify how the data will
-                                                                        follow the schema. [DUMP,
-                                                                        SCHEMA_ONLY, LINKED, SQL,
-                                                                        EXPORT_IMPORT, HYBRID,
-                                                                        CONVERT_LINKED,
-                                                                        STORAGE_MIGRATION, COMMON]
- -da,--downgrade-acid                                                   Downgrade ACID tables to
-                                                                        EXTERNAL tables with purge.
- -db,--database <databases>                                             Comma separated list of
-                                                                        Databases (upto 100).
- -dbo,--database-only                                                   Migrate the Database
-                                                                        definitions as they exist
-                                                                        from LEFT to RIGHT
- -dbp,--db-prefix <prefix>                                              Optional: A prefix to add to
-                                                                        the RIGHT cluster DB Name.
-                                                                        Usually used for testing.
- -ds,--dump-source <source>                                             Specify which 'cluster' is
-                                                                        the source for the DUMP
-                                                                        strategy (LEFT|RIGHT).
- -e,--execute                                                           Execute actions request,
-                                                                        without this flag the
-                                                                        process is a dry-run.
- -ep,--export-partition-count <limit>                                   Set the limit of partitions
-                                                                        that the EXPORT_IMPORT
-                                                                        strategy will work with.
- -f,--flip                                                              Flip the definitions for
-                                                                        LEFT and RIGHT.  Allows the
-                                                                        same config to be used in
-                                                                        reverse.
- -h,--help                                                              Help
- -is,--intermediate-storage <storage-path>                              Intermediate Storage used
-                                                                        with Data Strategy HYBRID,
-                                                                        SQL, EXPORT_IMPORT.  This
-                                                                        will change the way these
-                                                                        methods are implemented by
-                                                                        using the specified storage
-                                                                        location as an intermediate
-                                                                        transfer point between two
-                                                                        clusters.  In this case, the
-                                                                        cluster do NOT need to be
-                                                                        'linked'.  Each cluster DOES
-                                                                        need to have access to the
-                                                                        location and authorization
-                                                                        to interact with the
-                                                                        location.  This may mean
-                                                                        additional configuration
-                                                                        requirements for 'hdfs' to
-                                                                        ensure this seamless access.
- -ma,--migrate-acid <arg>                                               Migrate ACID tables (if
-                                                                        strategy allows). Optional:
-                                                                        ArtificialBucketThreshold
-                                                                        count that will remove the
-                                                                        bucket definition if it's
-                                                                        below this.  Use this as a
-                                                                        way to remove artificial
-                                                                        bucket definitions that were
-                                                                        added 'artificially' in
-                                                                        legacy Hive. (default: 2)
- -mao,--migrate-acid-only <arg>                                         Migrate ACID tables ONLY (if
-                                                                        strategy allows). Optional:
-                                                                        ArtificialBucketThreshold
-                                                                        count that will remove the
-                                                                        bucket definition if it's
-                                                                        below this.  Use this as a
-                                                                        way to remove artificial
-                                                                        bucket definitions that were
-                                                                        added 'artificially' in
-                                                                        legacy Hive. (default: 2)
- -mnn,--migrate-non-native <arg>                                        Migrate Non-Native tables
-                                                                        (if strategy allows). These
-                                                                        include table definitions
-                                                                        that rely on external
-                                                                        connection to systems like:
-                                                                        HBase, Kafka, JDBC
- -mnno,--migrate-non-native-only                                        Migrate Non-Native tables
-                                                                        (if strategy allows). These
-                                                                        include table definitions
-                                                                        that rely on external
-                                                                        connection to systems like:
-                                                                        HBase, Kafka, JDBC
- -o,--output-dir <outputdir>                                            Output Directory (default:
-                                                                        $HOME/.hms-mirror/reports/<y
-                                                                        yyy-MM-dd_HH-mm-ss>
- -p,--password <password>                                               Used this in conjunction
-                                                                        with '-pkey' to generate the
-                                                                        encrypted password that
-                                                                        you'll add to the configs
-                                                                        for the JDBC connections.
- -pkey,--password-key <password-key>                                    The key used to encrypt /
-                                                                        decrypt the cluster jdbc
-                                                                        passwords.  If not present,
-                                                                        the passwords will be
-                                                                        processed as is (clear text)
-                                                                        from the config file.
- -q,--quiet                                                             Reduce screen reporting
-                                                                        output.  Good for background
-                                                                        processes with output
-                                                                        redirects to a file
- -r,--replace                                                           When downgrading an ACID
-                                                                        table as its transferred to
-                                                                        the 'RIGHT' cluster, this
-                                                                        option will replace the
-                                                                        current ACID table on the
-                                                                        LEFT cluster with a
-                                                                        'downgraded' table
-                                                                        (EXTERNAL). The option only
-                                                                        works with options '-da' and
-                                                                        '-cs'.
- -ro,--read-only                                                        For SCHEMA_ONLY, COMMON, and
-                                                                        LINKED data strategies set
-                                                                        RIGHT table to NOT purge on
-                                                                        DROP
- -rr,--reset-right                                                      Use this for testing to
-                                                                        remove the database on the
-                                                                        RIGHT using CASCADE.
- -s,--sync                                                              For SCHEMA_ONLY, COMMON, and
-                                                                        LINKED data strategies.
-                                                                        Drop and Recreate Schema's
-                                                                        when different.  Best to use
-                                                                        with RO to ensure
-                                                                        table/partition drops don't
-                                                                        delete data. When used
-                                                                        WITHOUT `-tf` it will
-                                                                        compare all the tables in a
-                                                                        database and sync
-                                                                        (bi-directional).  Meaning
-                                                                        it will DROP tables on the
-                                                                        RIGHT that aren't in the
-                                                                        LEFT and ADD tables to the
-                                                                        RIGHT that are missing.
-                                                                        When used with `-ro`, table
-                                                                        schemas can be updated by
-                                                                        dropping and recreating.
-                                                                        When used with `-tf`, only
-                                                                        the tables that match the
-                                                                        filter (on both sides) will
-                                                                        be considered.
- -sf,--skip-features                                                    Skip Features evaluation.
- -sms,--storage-migration-strategy <Storage Migration Strategy>         Optional: Used with the
-                                                                        'data strategy'
-                                                                        STORAGE_MIGRATION to specify
-                                                                        the technique used to
-                                                                        migration.  Options are:
-                                                                        [SQL,EXPORT_IMPORT,HYBRID].
-                                                                        Default is SQL
- -smt,--storage-migration-target <Storage Migration Target Namespace>   Optional: Used with the
-                                                                        'data strategy
-                                                                        STORAGE_MIGRATION to specify
-                                                                        the target namespace.
- -sp,--sql-partition-count <limit>                                      Set the limit of partitions
-                                                                        that the SQL strategy will
-                                                                        work with. '-1' means
-                                                                        no-limit.
- -sql,--sql-output                                                      <deprecated>.  This option
-                                                                        is no longer required to get
-                                                                        SQL out in a report.  That
-                                                                        is the default behavior.
- -su,--setup                                                            Setup a default
-                                                                        configuration file through a
-                                                                        series of questions
- -tf,--table-filter <regex>                                             Filter tables (inclusive)
-                                                                        with name matching RegEx.
-                                                                        Comparison done with 'show
-                                                                        tables' results.  Check
-                                                                        case, that's important.
-                                                                        Hive tables are generally
-                                                                        stored in LOWERCASE.
- -v,--views-only                                                        Process VIEWs ONLY
+usage: hms-mirror <options>
 
+Hive Metastore Migration Utility
+ -accept,--accept                                                          Accept ALL confirmations
+                                                                           and silence prompts
+ -ap,--acid-partition-count <limit>                                        Set the limit of
+                                                                           partitions that the ACID
+                                                                           strategy will work with.
+                                                                           '-1' means no-limit.
+ -asm,--avro-schema-migration                                              Migrate AVRO Schema Files
+                                                                           referenced in
+                                                                           TBLPROPERTIES by
+                                                                           'avro.schema.url'.
+                                                                           Without migration it is
+                                                                           expected that the file
+                                                                           will exist on the other
+                                                                           cluster and match the
+                                                                           'url' defined in the
+                                                                           schema DDL.
+                                                                           If it's not present,
+                                                                           schema creation will
+                                                                           FAIL.
+                                                                           Specifying this option
+                                                                           REQUIRES the LEFT and
+                                                                           RIGHT cluster to be
+                                                                           LINKED.
+                                                                           See docs:
+                                                                           https://github.com/dstree
+                                                                           v/hms-mirror#linking-clus
+                                                                           ters-storage-layers
+ -cfg,--config <filename>                                                  Config with details for
+                                                                           the HMS-Mirror.  Default:
+                                                                           $HOME/.hms-mirror/cfg/def
+                                                                           ault.yaml
+ -cs,--common-storage <storage-path>                                       Common Storage used with
+                                                                           Data Strategy HYBRID,
+                                                                           SQL, EXPORT_IMPORT.  This
+                                                                           will change the way these
+                                                                           methods are implemented
+                                                                           by using the specified
+                                                                           storage location as an
+                                                                           'common' storage point
+                                                                           between two clusters.  In
+                                                                           this case, the cluster do
+                                                                           NOT need to be 'linked'.
+                                                                           Each cluster DOES need to
+                                                                           have access to the
+                                                                           location and
+                                                                           authorization to interact
+                                                                           with the location.  This
+                                                                           may mean additional
+                                                                           configuration
+                                                                           requirements for 'hdfs'
+                                                                           to ensure this seamless
+                                                                           access.
+ -d,--data-strategy <strategy>                                             Specify how the data will
+                                                                           follow the schema. [DUMP,
+                                                                           SCHEMA_ONLY, LINKED, SQL,
+                                                                           EXPORT_IMPORT, HYBRID,
+                                                                           CONVERT_LINKED,
+                                                                           STORAGE_MIGRATION,
+                                                                           COMMON]
+ -da,--downgrade-acid                                                      Downgrade ACID tables to
+                                                                           EXTERNAL tables with
+                                                                           purge.
+ -db,--database <databases>                                                Comma separated list of
+                                                                           Databases (upto 100).
+ -dbo,--database-only                                                      Migrate the Database
+                                                                           definitions as they exist
+                                                                           from LEFT to RIGHT
+ -dbp,--db-prefix <prefix>                                                 Optional: A prefix to add
+                                                                           to the RIGHT cluster DB
+                                                                           Name. Usually used for
+                                                                           testing.
+ -ds,--dump-source <source>                                                Specify which 'cluster'
+                                                                           is the source for the
+                                                                           DUMP strategy
+                                                                           (LEFT|RIGHT).
+ -e,--execute                                                              Execute actions request,
+                                                                           without this flag the
+                                                                           process is a dry-run.
+ -ep,--export-partition-count <limit>                                      Set the limit of
+                                                                           partitions that the
+                                                                           EXPORT_IMPORT strategy
+                                                                           will work with.
+ -ewd,--external-warehouse-directory <external-warehouse-path>             The external warehouse
+                                                                           directory path.  Should
+                                                                           not include the namespace
+                                                                           OR the database
+                                                                           directory. This will be
+                                                                           used to set the LOCATION
+                                                                           database option.
+ -f,--flip                                                                 Flip the definitions for
+                                                                           LEFT and RIGHT.  Allows
+                                                                           the same config to be
+                                                                           used in reverse.
+ -h,--help                                                                 Help
+ -is,--intermediate-storage <storage-path>                                 Intermediate Storage used
+                                                                           with Data Strategy
+                                                                           HYBRID, SQL,
+                                                                           EXPORT_IMPORT.  This will
+                                                                           change the way these
+                                                                           methods are implemented
+                                                                           by using the specified
+                                                                           storage location as an
+                                                                           intermediate transfer
+                                                                           point between two
+                                                                           clusters.  In this case,
+                                                                           the cluster do NOT need
+                                                                           to be 'linked'.  Each
+                                                                           cluster DOES need to have
+                                                                           access to the location
+                                                                           and authorization to
+                                                                           interact with the
+                                                                           location.  This may mean
+                                                                           additional configuration
+                                                                           requirements for 'hdfs'
+                                                                           to ensure this seamless
+                                                                           access.
+ -ma,--migrate-acid <arg>                                                  Migrate ACID tables (if
+                                                                           strategy allows).
+                                                                           Optional:
+                                                                           ArtificialBucketThreshold
+                                                                           count that will remove
+                                                                           the bucket definition if
+                                                                           it's below this.  Use
+                                                                           this as a way to remove
+                                                                           artificial bucket
+                                                                           definitions that were
+                                                                           added 'artificially' in
+                                                                           legacy Hive. (default: 2)
+ -mao,--migrate-acid-only <arg>                                            Migrate ACID tables ONLY
+                                                                           (if strategy allows).
+                                                                           Optional:
+                                                                           ArtificialBucketThreshold
+                                                                           count that will remove
+                                                                           the bucket definition if
+                                                                           it's below this.  Use
+                                                                           this as a way to remove
+                                                                           artificial bucket
+                                                                           definitions that were
+                                                                           added 'artificially' in
+                                                                           legacy Hive. (default: 2)
+ -mnn,--migrate-non-native <arg>                                           Migrate Non-Native tables
+                                                                           (if strategy allows).
+                                                                           These include table
+                                                                           definitions that rely on
+                                                                           external connection to
+                                                                           systems like: HBase,
+                                                                           Kafka, JDBC
+ -mnno,--migrate-non-native-only                                           Migrate Non-Native tables
+                                                                           (if strategy allows).
+                                                                           These include table
+                                                                           definitions that rely on
+                                                                           external connection to
+                                                                           systems like: HBase,
+                                                                           Kafka, JDBC
+ -o,--output-dir <outputdir>                                               Output Directory
+                                                                           (default:
+                                                                           $HOME/.hms-mirror/reports
+                                                                           /<yyyy-MM-dd_HH-mm-ss>
+ -p,--password <password>                                                  Used this in conjunction
+                                                                           with '-pkey' to generate
+                                                                           the encrypted password
+                                                                           that you'll add to the
+                                                                           configs for the JDBC
+                                                                           connections.
+ -pkey,--password-key <password-key>                                       The key used to encrypt /
+                                                                           decrypt the cluster jdbc
+                                                                           passwords.  If not
+                                                                           present, the passwords
+                                                                           will be processed as is
+                                                                           (clear text) from the
+                                                                           config file.
+ -q,--quiet                                                                Reduce screen reporting
+                                                                           output.  Good for
+                                                                           background processes with
+                                                                           output redirects to a
+                                                                           file
+ -r,--replace                                                              When downgrading an ACID
+                                                                           table as its transferred
+                                                                           to the 'RIGHT' cluster,
+                                                                           this option will replace
+                                                                           the current ACID table on
+                                                                           the LEFT cluster with a
+                                                                           'downgraded' table
+                                                                           (EXTERNAL). The option
+                                                                           only works with options
+                                                                           '-da' and '-cs'.
+ -rdl,--reset-to-default-location                                          Strip 'LOCATION' from all
+                                                                           target cluster
+                                                                           definitions.  This will
+                                                                           allow the system defaults
+                                                                           to take over and define
+                                                                           the location of the new
+                                                                           datasets.
+ -ro,--read-only                                                           For SCHEMA_ONLY, COMMON,
+                                                                           and LINKED data
+                                                                           strategies set RIGHT
+                                                                           table to NOT purge on
+                                                                           DROP
+ -rr,--reset-right                                                         Use this for testing to
+                                                                           remove the database on
+                                                                           the RIGHT using CASCADE.
+ -s,--sync                                                                 For SCHEMA_ONLY, COMMON,
+                                                                           and LINKED data
+                                                                           strategies.  Drop and
+                                                                           Recreate Schema's when
+                                                                           different.  Best to use
+                                                                           with RO to ensure
+                                                                           table/partition drops
+                                                                           don't delete data. When
+                                                                           used WITHOUT `-tf` it
+                                                                           will compare all the
+                                                                           tables in a database and
+                                                                           sync (bi-directional).
+                                                                           Meaning it will DROP
+                                                                           tables on the RIGHT that
+                                                                           aren't in the LEFT and
+                                                                           ADD tables to the RIGHT
+                                                                           that are missing.  When
+                                                                           used with `-ro`, table
+                                                                           schemas can be updated by
+                                                                           dropping and recreating.
+                                                                           When used with `-tf`,
+                                                                           only the tables that
+                                                                           match the filter (on both
+                                                                           sides) will be
+                                                                           considered.
+ -sf,--skip-features                                                       Skip Features evaluation.
+ -smn,--storage-migration-namespace <Storage Migration Target Namespace>   Optional: Used with the
+                                                                           'data strategy
+                                                                           STORAGE_MIGRATION to
+                                                                           specify the target
+                                                                           namespace.
+ -sp,--sql-partition-count <limit>                                         Set the limit of
+                                                                           partitions that the SQL
+                                                                           strategy will work with.
+                                                                           '-1' means no-limit.
+ -sql,--sql-output                                                         <deprecated>.  This
+                                                                           option is no longer
+                                                                           required to get SQL out
+                                                                           in a report.  That is the
+                                                                           default behavior.
+ -su,--setup                                                               Setup a default
+                                                                           configuration file
+                                                                           through a series of
+                                                                           questions
+ -tf,--table-filter <regex>                                                Filter tables (inclusive)
+                                                                           with name matching RegEx.
+                                                                           Comparison done with
+                                                                           'show tables' results.
+                                                                           Check case, that's
+                                                                           important.  Hive tables
+                                                                           are generally stored in
+                                                                           LOWERCASE.
+ -v,--views-only                                                           Process VIEWs ONLY
+ -wd,--warehouse-directory <warehouse-path>                                The warehouse directory
+                                                                           path.  Should not include
+                                                                           the namespace OR the
+                                                                           database directory. This
+                                                                           will be used to set the
+                                                                           MANAGEDLOCATION database
+                                                                           option.
 ```
 
 ### Running Against a LEGACY (Non-CDP) Kerberized HiveServer2
@@ -1190,9 +1240,16 @@ Schemas are transferred using the same location.
 
 ![common](./images/common.png)
 
+### Storage Migration
+
+See [Storage Migration](./strategy_docs/storage_migration.md)
+
+
 ## Troubleshooting / Issues
 
 ### Failed AVRO Table Creation
+
+
 
 ```
 Error while compiling statement: FAILED: Execution Error, return code 40000 from org.apache.hadoop.hive.ql.ddl.DDLTask. java.lang.RuntimeException: MetaException(message:org.apache.hadoop.hive.serde2.SerDeException Encountered AvroSerdeException determining schema. Returning signal schema to indicate problem: Unable to read schema from given path: /user/dstreev/test.avsc)

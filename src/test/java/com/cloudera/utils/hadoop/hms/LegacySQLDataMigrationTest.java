@@ -235,4 +235,47 @@ public class LegacySQLDataMigrationTest extends MirrorTestBase {
         assertTrue("Return Code Failure", rtn == 0);
     }
 
+    @Test
+    public void test_sql_rdl_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
+                "-sql",
+                "-rdl",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertTrue("Return Code Failure", rtn == 0);
+    }
+
+    @Test
+    public void test_sql_rdl_w_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
+                "-sql",
+                "-rdl",
+                "-wd", "/warehouse/managed",
+                "-ewd", "/warehouse/external",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertTrue("Return Code Failure", rtn == 0);
+    }
+
+
 }
