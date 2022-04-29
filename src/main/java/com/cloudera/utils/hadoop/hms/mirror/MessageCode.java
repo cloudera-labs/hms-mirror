@@ -46,6 +46,8 @@ public enum MessageCode {
             "that definition to be skipped."),
 
     RESET_TO_DEFAULT_LOCATION(22, "'reset-to-default-location' is NOT available for this data strategy."),
+    DISTCP_VALID_STRATEGY(23, "The `distcp` option is only valid with the STORAGE_MIGRATION data strategy."),
+
 
     // WARNINGS
     SYNC_TBL_FILTER(50, "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"

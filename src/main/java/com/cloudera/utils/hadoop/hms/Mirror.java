@@ -957,6 +957,12 @@ public class Mirror {
         flipOption.setRequired(Boolean.FALSE);
         options.addOption(flipOption);
 
+        Option smDistCpOption = new Option("dc", "distcp", false,
+                "Use 'distcp' for STORAGE_MIGRATION.  Only valid for External Tables.");
+        smDistCpOption.setOptionalArg(Boolean.FALSE);
+        smDistCpOption.setRequired(Boolean.FALSE);
+        options.addOption(smDistCpOption);
+
         Option metadataStage = new Option("d", "data-strategy", true,
                 "Specify how the data will follow the schema. " + Arrays.deepToString(DataStrategy.visibleValues()));
         metadataStage.setOptionalArg(Boolean.TRUE);
@@ -970,6 +976,7 @@ public class Mirror {
         dumpSource.setArgName("source");
         dumpSource.setRequired(Boolean.FALSE);
         options.addOption(dumpSource);
+
 
         OptionGroup storageOptionsGroup = new OptionGroup();
         storageOptionsGroup.setRequired(Boolean.FALSE);

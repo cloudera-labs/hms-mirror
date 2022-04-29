@@ -579,6 +579,11 @@ public class Config {
             rtn = Boolean.FALSE;
         }
 
+        if (getTransfer().getStorageMigration().isDistcp() && getDataStrategy() != DataStrategy.STORAGE_MIGRATION) {
+            errors.set(DISTCP_VALID_STRATEGY.getCode());
+            rtn = Boolean.FALSE;
+        }
+
         if (resetToDefaultLocation && (getTransfer().getWarehouse().getExternalDirectory() == null)) {
            warnings.set(RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getCode());
         }
