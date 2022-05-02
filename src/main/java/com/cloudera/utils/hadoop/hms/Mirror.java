@@ -443,6 +443,9 @@ public class Mirror {
                 }
             }
 
+            if (cmd.hasOption("dc")) {
+                config.getTransfer().getStorageMigration().setDistcp(Boolean.TRUE);
+            }
 
             // To keep the connections and remainder of the processing in place, set the env for the cluster
             //   to the abstract name.
