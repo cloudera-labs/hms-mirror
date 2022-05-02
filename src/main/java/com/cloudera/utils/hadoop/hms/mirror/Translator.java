@@ -335,17 +335,23 @@ public class Translator {
 
         LOG.debug("Translate Table Location: " + originalLocation + ": " + dirBuilder.toString());
         // Add Location Map for table to a list.
+        addLocation(database, originalLocation, dirBuilder.toString().trim());
+
+        return dirBuilder.toString().trim();
+    }
+
+    private void addLocation(String database, String originalLocation, String newLocation) {
+        getDbLocationMap(database).put(originalLocation, newLocation);
+    }
+
+    private synchronized Map<String, String> getDbLocationMap(String database) {
         Map<String, String> locationMap = dbLocationMap.get(database);
         if (locationMap == null) {
             locationMap = new HashMap<String, String>();
             getDbLocationMap().put(database, locationMap);
         }
-
-        locationMap.put(originalLocation, dirBuilder.toString().trim());
-
-        return dirBuilder.toString().trim();
+        return locationMap;
     }
-
     /**
      * @param consolidationLevel how far up the directory hierarchy to go to build the distcp list based on the sources
      *                           provided.
