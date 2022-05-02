@@ -47,7 +47,9 @@ public enum MessageCode {
 
     RESET_TO_DEFAULT_LOCATION(22, "'reset-to-default-location' is NOT available for this data strategy."),
     DISTCP_VALID_STRATEGY(23, "The `distcp` option is only valid with the STORAGE_MIGRATION data strategy."),
-
+    STORAGE_MIGRATION_DISTCP_NO_EXECUTE(24, "STORAGE_MIGRATION with 'distcp' requires MANUAL intervention to run to completion.  Therefore, " +
+            "EXECUTE is NOT support in this context.  Use the provided SQL scripts in the output to run the process."),
+    STORAGE_MIGRATION_DISTCP_ACID(25, "STORAGE_MIGRATION with 'distcp' can't support the direct transfer of ACID tables in 'distcp'."),
 
     // WARNINGS
     SYNC_TBL_FILTER(50, "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"

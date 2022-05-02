@@ -584,6 +584,21 @@ public class Config {
             rtn = Boolean.FALSE;
         }
 
+        if (getTransfer().getStorageMigration().isDistcp()
+                && getDataStrategy() == DataStrategy.STORAGE_MIGRATION
+        && isExecute()) {
+            errors.set(STORAGE_MIGRATION_DISTCP_NO_EXECUTE.getCode());
+            rtn = Boolean.FALSE;
+        }
+
+        if (getTransfer().getStorageMigration().isDistcp()
+                && getDataStrategy() == DataStrategy.STORAGE_MIGRATION
+                && getMigrateACID().isOn()) {
+            errors.set(STORAGE_MIGRATION_DISTCP_ACID.getCode());
+            rtn = Boolean.FALSE;
+        }
+
+
         if (resetToDefaultLocation && (getTransfer().getWarehouse().getExternalDirectory() == null)) {
            warnings.set(RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getCode());
         }

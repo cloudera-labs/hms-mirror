@@ -100,6 +100,32 @@ public class ConfigValidationTest extends MirrorTestBase {
     }
 
     @Test
+    public void test_storage_migration_w_ma_distcp_01() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-d", "STORAGE_MIGRATION",
+                "-ma",
+                "--distcp",
+                "-o", outputDir,
+                "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = MessageCode.STORAGE_MIGRATION_DISTCP_ACID.getLong();
+        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_NAMESPACE.getLong();
+        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
+
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+    }
+
+    @Test
     public void test_linked_rdl_leg() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
