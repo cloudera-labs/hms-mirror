@@ -297,6 +297,10 @@ public class Mirror {
 //            }
 //        }
 
+            if (cmd.hasOption("rdl")) {
+                config.setResetToDefaultLocation(Boolean.TRUE);
+            }
+
             if (cmd.hasOption("ap")) {
                 config.getMigrateACID().setPartitionLimit(Integer.valueOf(cmd.getOptionValue("ap")));
             }
@@ -794,57 +798,59 @@ public class Mirror {
         decf.setRoundingMode(RoundingMode.CEILING);
 
         // Output directory maps
-        try {
-            String distcpWorkbookFile = reportOutputDir + System.getProperty("file.separator") + "distcp_workbook.md";
-            FileWriter distcpWorkbookFW = new FileWriter(distcpWorkbookFile);
-            String distcpScriptFile = reportOutputDir + System.getProperty("file.separator") + "distcp_script.sh";
-            FileWriter distcpScriptFW = new FileWriter(distcpScriptFile);
+        if (config.canDeriveDistcpPlan()) {
+            try {
+                String distcpWorkbookFile = reportOutputDir + System.getProperty("file.separator") + "distcp_workbook.md";
+                FileWriter distcpWorkbookFW = new FileWriter(distcpWorkbookFile);
+                String distcpScriptFile = reportOutputDir + System.getProperty("file.separator") + "distcp_script.sh";
+                FileWriter distcpScriptFW = new FileWriter(distcpScriptFile);
 
-            distcpScriptFW.append("\n");
-            distcpScriptFW.append("# 1. Copy the source '*_distcp_source.txt' files to the distributed filesystem.").append("\n");
-            distcpScriptFW.append("# 2. Export an env var 'HCFS_BASE_DIR' that represents where these files where placed.").append("\n");
-            distcpScriptFW.append("#      NOTE: ${HCFS_BASE_DIR} must be available to the user running 'distcp'").append("\n");
-            distcpScriptFW.append("# 3. Export an env var 'DISTCP_OPTS' with any special settings needed to run the job.").append("\n");
-            distcpScriptFW.append("#      For large jobs, you may need to adjust memory settings.").append("\n");
-            distcpScriptFW.append("# 4. Run the following in an order or framework that is appropriate for your environment.").append("\n");
-            distcpScriptFW.append("#       These aren't necessarily expected to run in this shell script as is in production.").append("\n");
-            distcpScriptFW.append("\n");
-            distcpScriptFW.append("\n");
+                distcpScriptFW.append("\n");
+                distcpScriptFW.append("# 1. Copy the source '*_distcp_source.txt' files to the distributed filesystem.").append("\n");
+                distcpScriptFW.append("# 2. Export an env var 'HCFS_BASE_DIR' that represents where these files where placed.").append("\n");
+                distcpScriptFW.append("#      NOTE: ${HCFS_BASE_DIR} must be available to the user running 'distcp'").append("\n");
+                distcpScriptFW.append("# 3. Export an env var 'DISTCP_OPTS' with any special settings needed to run the job.").append("\n");
+                distcpScriptFW.append("#      For large jobs, you may need to adjust memory settings.").append("\n");
+                distcpScriptFW.append("# 4. Run the following in an order or framework that is appropriate for your environment.").append("\n");
+                distcpScriptFW.append("#       These aren't necessarily expected to run in this shell script as is in production.").append("\n");
+                distcpScriptFW.append("\n");
+                distcpScriptFW.append("\n");
 
 
-            distcpWorkbookFW.write("| Database | Target | Sources |\n");
-            distcpWorkbookFW.write("|:---|:---|:---|\n");
+                distcpWorkbookFW.write("| Database | Target | Sources |\n");
+                distcpWorkbookFW.write("|:---|:---|:---|\n");
 
-            FileWriter distcpSourceFW = null;
-            for (Map.Entry<String, Map<String, Set<String>>> entry :
-                    config.getTranslator().buildDistcpList(1).entrySet()) {
+                FileWriter distcpSourceFW = null;
+                for (Map.Entry<String, Map<String, Set<String>>> entry :
+                        config.getTranslator().buildDistcpList(1).entrySet()) {
 
-                distcpWorkbookFW.write("| " + entry.getKey() + " | | |\n");
-                Map<String, Set<String>> value = entry.getValue();
-                int i = 1;
-                for (Map.Entry<String, Set<String>> dbMap : value.entrySet()) {
-                    String distcpSourceFile = entry.getKey() + "_" + i++ + "_distcp_source.txt";
-                    String distcpSourceFileFull = reportOutputDir + System.getProperty("file.separator") + distcpSourceFile;
-                    distcpSourceFW = new FileWriter(distcpSourceFileFull);
+                    distcpWorkbookFW.write("| " + entry.getKey() + " | | |\n");
+                    Map<String, Set<String>> value = entry.getValue();
+                    int i = 1;
+                    for (Map.Entry<String, Set<String>> dbMap : value.entrySet()) {
+                        String distcpSourceFile = entry.getKey() + "_" + i++ + "_distcp_source.txt";
+                        String distcpSourceFileFull = reportOutputDir + System.getProperty("file.separator") + distcpSourceFile;
+                        distcpSourceFW = new FileWriter(distcpSourceFileFull);
 
-                    StringBuilder line = new StringBuilder();
-                    line.append("| | ").append(dbMap.getKey()).append(" | ");
+                        StringBuilder line = new StringBuilder();
+                        line.append("| | ").append(dbMap.getKey()).append(" | ");
 
-                    for (String source : dbMap.getValue()) {
-                        line.append(source).append("<br>");
-                        distcpSourceFW.append(source).append("\n");
+                        for (String source : dbMap.getValue()) {
+                            line.append(source).append("<br>");
+                            distcpSourceFW.append(source).append("\n");
+                        }
+                        line.append(" | ").append("\n");
+                        distcpWorkbookFW.write(line.toString());
+                        distcpScriptFW.append("hadoop distcp ${DISTCP_OPTS} -f ${HCFS_BASE_DIR}/" + distcpSourceFile + " " +
+                                dbMap.getKey() + "\n");
+                        distcpSourceFW.close();
                     }
-                    line.append(" | ").append("\n");
-                    distcpWorkbookFW.write(line.toString());
-                    distcpScriptFW.append("hadoop distcp ${DISTCP_OPTS} -f ${HCFS_BASE_DIR}/" + distcpSourceFile + " " +
-                            dbMap.getKey() + "\n");
-                    distcpSourceFW.close();
                 }
+                distcpScriptFW.close();
+                distcpWorkbookFW.close();
+            } catch (IOException ioe) {
+                LOG.error("Issue writing distcp workbook", ioe);
             }
-            distcpScriptFW.close();
-            distcpWorkbookFW.close();
-        } catch (IOException ioe) {
-            LOG.error("Issue writing distcp workbook", ioe);
         }
 
         LOG.info("HMS-Mirror: Completed in " +
@@ -938,6 +944,12 @@ public class Mirror {
                 "Use this for testing to remove the database on the RIGHT using CASCADE.");
         resetTarget.setRequired(Boolean.FALSE);
         options.addOption(resetTarget);
+
+        Option resetToDefaultLocation = new Option("rdl", "reset-to-default-location", false,
+                "Strip 'LOCATION' from all target cluster definitions.  This will allow the system defaults " +
+                        "to take over and define the location of the new datasets.");
+        resetToDefaultLocation.setRequired(Boolean.FALSE);
+        options.addOption(resetToDefaultLocation);
 
         Option flipOption = new Option("f", "flip", false,
                 "Flip the definitions for LEFT and RIGHT.  Allows the same config to be used in reverse.");

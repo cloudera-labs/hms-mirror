@@ -39,6 +39,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -102,6 +103,9 @@ public class Config {
      */
     private Boolean replace = Boolean.FALSE;
     private Boolean resetRight = Boolean.FALSE;
+
+    private Boolean resetToDefaultLocation = Boolean.FALSE;
+
     private Boolean skipFeatures = Boolean.FALSE;
     /*
     Always true.  leaving to ensure config serialization compatibility.
@@ -524,6 +528,14 @@ public class Config {
         this.resetRight = resetRight;
     }
 
+    public Boolean getResetToDefaultLocation() {
+        return resetToDefaultLocation;
+    }
+
+    public void setResetToDefaultLocation(Boolean resetToDefaultLocation) {
+        this.resetToDefaultLocation = resetToDefaultLocation;
+    }
+
     @JsonIgnore
     public Boolean isConnectionKerberized() {
         Boolean rtn = Boolean.FALSE;
@@ -537,6 +549,14 @@ public class Config {
         return rtn;
     }
 
+    public Boolean canDeriveDistcpPlan() {
+        Boolean rtn = Boolean.TRUE;
+        if (resetToDefaultLocation && getTransfer().getWarehouse().getExternalDirectory() == null) {
+            rtn = Boolean.FALSE;
+        }
+        return rtn;
+    }
+
     /*
     Before processing, validate the config for issues and warn.  A valid configuration will return 'null'.  An invalid
     config will return an array of String representing the issues.
@@ -545,6 +565,24 @@ public class Config {
         Boolean rtn = Boolean.TRUE;
 //        errors.clear();
 //        warnings.clear();
+//        if (resetToDefaultLocation && dataStrategy != DataStrategy.STORAGE_MIGRATION) {
+//            errors.set(RESET_TO_DEFAULT_LOCATION.getCode());
+//            rtn = Boolean.FALSE;
+//        }
+        if (resetToDefaultLocation &&
+                !(dataStrategy == DataStrategy.SCHEMA_ONLY ||
+                        dataStrategy == DataStrategy.STORAGE_MIGRATION ||
+                        dataStrategy == DataStrategy.SQL ||
+                        dataStrategy == DataStrategy.EXPORT_IMPORT ||
+                        dataStrategy == DataStrategy.HYBRID)) {
+            errors.set(RESET_TO_DEFAULT_LOCATION.getCode());
+            rtn = Boolean.FALSE;
+        }
+
+        if (resetToDefaultLocation && (getTransfer().getWarehouse().getExternalDirectory() == null)) {
+           warnings.set(RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getCode());
+        }
+
         if (sync && tblRegEx != null) {
             warnings.set(SYNC_TBL_FILTER.getCode());
         }

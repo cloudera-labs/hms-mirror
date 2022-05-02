@@ -45,13 +45,20 @@ public enum MessageCode {
     RIGHT_HS2_DEFINITION_MISSING(21, "The 'RIGHT' HS2 definition is missing.  Only STORAGE_MIGRATION or DUMP strategies allow " +
             "that definition to be skipped."),
 
+    RESET_TO_DEFAULT_LOCATION(22, "'reset-to-default-location' is NOT available for this data strategy."),
+
     // WARNINGS
     SYNC_TBL_FILTER(50, "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"
             + "' ON BOTH SIDES!!!"),
     LINK_TEST_SKIPPED_WITH_IS(51,"Link TEST skipped because you've specified either 'Intermediate Storage' or 'Common Storage' option"),
     DUMP_ENV_FLIP(52,"You've requested DUMP on the RIGHT cluster.  The runtime configuration will " +
             "adjusted to complete this.  The RIGHT configuration will be MOVED to the LEFT to process " +
-            "the DUMP strategy.  LEFT = RIGHT...")
+            "the DUMP strategy.  LEFT = RIGHT..."),
+    RESET_TO_DEFAULT_LOCATION_WARNING(53, "'reset-to-default-location' was specified.  Table definition stripped of " +
+            "LOCATION.  Location will be determined by the database or system warehouse settings."),
+    RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS(54, "When using `-rdl`, you will need specify the " +
+            "warehouse locations (-wd,-ewd) to enable the `distcp` workbooks.  Without them, we can NOT know the " +
+            "default locations to build a plan.")
     ;
 
 

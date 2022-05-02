@@ -303,21 +303,32 @@ public class Translator {
         } else {
             // Feature Off.  Basic translation.
             String newLocation = null;
-
-            switch (config.getDataStrategy()) {
-                case EXPORT_IMPORT:
-                case HYBRID:
-                case SQL:
-                case SCHEMA_ONLY:
-                case DUMP:
-                case STORAGE_MIGRATION:
-                case CONVERT_LINKED:
-                    newLocation = originalLocation.replace(leftNS, rightNS);
-                    break;
-                case LINKED:
-                case COMMON:
-                    newLocation = originalLocation;
-                    break;
+            if (config.getResetToDefaultLocation() && config.getTransfer().getWarehouse().getExternalDirectory() != null) {
+                StringBuilder sbDir = new StringBuilder();
+                if (config.getTransfer().getCommonStorage() != null) {
+                    sbDir.append(config.getTransfer().getCommonStorage());
+                } else {
+                    sbDir.append(rightNS);
+                }
+                sbDir.append(config.getTransfer().getWarehouse().getExternalDirectory()).append("/");
+                sbDir.append(database).append(".db").append("/").append(table);
+                newLocation = sbDir.toString();
+            } else {
+                switch (config.getDataStrategy()) {
+                    case EXPORT_IMPORT:
+                    case HYBRID:
+                    case SQL:
+                    case SCHEMA_ONLY:
+                    case DUMP:
+                    case STORAGE_MIGRATION:
+                    case CONVERT_LINKED:
+                        newLocation = originalLocation.replace(leftNS, rightNS);
+                        break;
+                    case LINKED:
+                    case COMMON:
+                        newLocation = originalLocation;
+                        break;
+                }
             }
             dirBuilder.append(newLocation);
         }

@@ -1256,7 +1256,11 @@ public class TableMirror {
                 importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
             }
         } else {
-            importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
+            if (config.getResetToDefaultLocation()) {
+                importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
+            } else {
+                importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
+            }
         }
         ret.addSql(TableUtils.IMPORT_TABLE, importSql);
 
@@ -1500,16 +1504,20 @@ public class TableMirror {
                 switch (copySpec.getTarget()) {
                     case LEFT:
                     case RIGHT:
-                        if (copySpec.getStripLocation()) {
-                            TableUtils.stripLocation(target);
-                        }
-
                         if (copySpec.getReplaceLocation() && (!TableUtils.isACID(source) || config.getMigrateACID().isDowngrade())) {
                             String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
                             String targetLocation = copySpec.getConfig().getTranslator().
                                     translateTableLocation(this.getDbName(), getName(), sourceLocation, copySpec.getConfig());
                             TableUtils.updateTableLocation(target, targetLocation);
                         }
+                        if (copySpec.getStripLocation()) {
+                            TableUtils.stripLocation(target);
+                        }
+                        if (config.getResetToDefaultLocation()) {
+                            TableUtils.stripLocation(target);
+                            target.addIssue(MessageCode.RESET_TO_DEFAULT_LOCATION_WARNING.getDesc());
+                        }
+
                         break;
                     case SHADOW:
                     case TRANSFER:
