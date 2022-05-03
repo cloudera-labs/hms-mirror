@@ -386,7 +386,7 @@ public class Transfer implements Callable<ReturnStatus> {
         if (rtn)
             rtn = tblMirror.buildoutSql(config, dbMirror);
 
-        if (rtn) {
+        if (rtn && !config.getTransfer().getStorageMigration().isDistcp()) {
             EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
 //            EnvironmentTable tet = tblMirror.getEnvironmentTable(Environment.TRANSFER);
 //            EnvironmentTable set = tblMirror.getEnvironmentTable(Environment.SHADOW);
