@@ -229,7 +229,7 @@ public class ConfigValidationTest extends MirrorTestBase {
 
         String[] args = new String[]{"-d", "HYBRID", "-db", DataState.getInstance().getWorking_db(),
                 "-sql",
-                "-distcp",
+                "--distcp",
                 "-rdl",
                 "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
         args = toExecute(args, execArgs, Boolean.FALSE);

@@ -194,5 +194,29 @@ public class StorageMigrationTest extends MirrorTestBase {
         rtn = mirror.go(args);
     }
 
+    @Test
+    public void test_storage_migration_07() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-d", "STORAGE_MIGRATION",
+                "-smn", common_storage,
+                "-wd", "/warehouse/managed_tables",
+                "-ewd", "/warehouse/external_tables",
+                "--distcp",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + 0l, rtn == 0);
+    }
+
 
 }

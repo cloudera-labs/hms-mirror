@@ -26,6 +26,10 @@ All other table locations will replace the original namespace defined for the cl
 
 Consider the combination of the settings for `-smn`, and `-wd` or `-ewd` carefully.   For protocols like Ozone, the path AFTER the namespace defines the Ozone Volume.  If you have different encryption needs between *MANAGED* and *EXTERNAL* datasets, the second path element, which establishes the _bucket_, could be an essential distinction that enables this requirement.
 
+### Cleanup
+
+After you've run `hms-mirror` for STORAGE_MIGRATION, by either `-e` or _manually_, you'll be left with some artifact tables.  These are the original tables that were renamed to make room for the new table definitions at the new locations.  Each database report will contain a file called `<db_name>_LEFT_CleanUp_execute.sql`.  This `sql` file contains the `DROP TABLE` commands needed to cleanup these artifacts.  Check your work before running this!!!
+
 ### Required Command-Line Elements
 
 #### `-smn|--storage-migration-namespace`
@@ -67,3 +71,28 @@ Select to migrate ACID tables.  Each option accepts an optional argument, `Artif
 #### `-da|--downgrade-acid`
 
 Downgrading ACID tables will convert them into **EXTERNAL/PURGE** tables, and they will no longer be ACID capable. 
+
+#### `-dc|--distcp`
+
+When `-dc|--distcp` is requested, `hms-mirror` will build a `distcp` plan in the report output directory with details to support the requested transfers.  The `distcp` commands are normally run from the LEFT cluster and will require visibility, configuration, and permissions to the target location.  So if the target location is storage in the Cloud, ensure that the LEFT cluster has been configured with the appropriate storage libraries and has the required 'keys' and/or 'shared' secrets required to connect.  If you can not access the target storage area with `hdfs dfs` commands on the LEFT cluster, then the `distcp` command will fail too.
+
+Since `distcp` doesn't convert any files, it just migrates them as is, the option can NOT be used to migrate ACID tables.
+
+The option also requires the `distcp` actions to take place BEFORE the target locations are created on the target Filesystem.  If the schemas are converted before the data is migrated, the tables will be empty.  Hence, the actions need to be performed manually and the `-e|--execute` option isn't supported.
+
+*Action Order Option #1*
+
+- Run `hms-mirror` with `STORAGE_MIGRATION` and `distcp`
+- Using the `distcp` workplan, run the `distcp` process to migrate the data.
+- Run the `LEFT` execute SQL to adjust database and table location details.
+
+Under normal circumstances this process will work fine.  But, if you're moving tables with a massive number of files and partitions, you may run into an issue running the table `CREATE` statements when the data exist (post `distcp`).  Hive's normal behaviour is to 'recursively' validate file permissions for each and every directory/file.  When the counts are high, a `CREATE` operation can take a very long time.  Consider option #2
+
+*Action Order Option #2*
+
+- Run `hms-mirror` with `STORAGE_MIGRATION` and `distcp`
+- Run the `LEFT` execute SQL to adjust database and table location details.
+- Using the `distcp` workplan, run the `distcp` process to migrate the data.
+- If the tables aren't set to `auto-discover` partitions, you will need to run `msck repair table <table_name> SYNC PARTITIONS` after the `distcp` job.
+
+The obvious downside to this is that the tables will be empty, until the `distcp` job is complete.  But it avoids the ACL checks in option #1 and the `CREATE` statements will run quickly.
