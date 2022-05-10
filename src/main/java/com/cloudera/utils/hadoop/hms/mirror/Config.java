@@ -572,9 +572,11 @@ public class Config {
         // Set distcp options.
         canDeriveDistcpPlan();
 
-        if (getCluster(Environment.RIGHT).getLegacyHive() && !getCluster(Environment.LEFT).getLegacyHive()) {
-            errors.set(LEGACY_TO_NON_LEGACY.getCode());
-            rtn = Boolean.FALSE;
+        if (getCluster(Environment.RIGHT).isInitialized()) {
+            if (getCluster(Environment.RIGHT).getLegacyHive() && !getCluster(Environment.LEFT).getLegacyHive()) {
+                errors.set(LEGACY_TO_NON_LEGACY.getCode());
+                rtn = Boolean.FALSE;
+            }
         }
 
         if (resetToDefaultLocation &&
@@ -587,53 +589,91 @@ public class Config {
             rtn = Boolean.FALSE;
         }
 
-        if (resetToDefaultLocation && getTransfer().getStorageMigration().isDistcp() &&
-                (getTransfer().getWarehouse().getManagedDirectory() == null || getTransfer().getWarehouse().getExternalDirectory() == null)) {
-            errors.set(DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION.getCode());
-            rtn = Boolean.FALSE;
+        if (getTransfer().getStorageMigration().isDistcp()) {
+            if (resetToDefaultLocation && (getTransfer().getWarehouse().getManagedDirectory() == null || getTransfer().getWarehouse().getExternalDirectory() == null)) {
+                errors.set(DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION.getCode());
+                rtn = Boolean.FALSE;
+            }
+            if (getDataStrategy() == DataStrategy.EXPORT_IMPORT) {
+                errors.set(DISTCP_VALID_STRATEGY.getCode());
+                rtn = Boolean.FALSE;
+            }
+            if (getDataStrategy() == DataStrategy.STORAGE_MIGRATION
+                    && isExecute()) {
+                errors.set(STORAGE_MIGRATION_DISTCP_NO_EXECUTE.getCode());
+                rtn = Boolean.FALSE;
+            }
+            if (getDataStrategy() == DataStrategy.STORAGE_MIGRATION
+                    && getMigrateACID().isOn()) {
+                errors.set(STORAGE_MIGRATION_DISTCP_ACID.getCode());
+                rtn = Boolean.FALSE;
+            }
+            if (getDataStrategy() == DataStrategy.SQL
+                    && getMigrateACID().isOn()
+                    && getMigrateACID().isDowngrade()
+                    && (getTransfer().getWarehouse().getExternalDirectory() == null)) {
+                errors.set(SQL_ACID_DA_DISTCP_WO_EXT_WAREHOUSE.getCode());
+                rtn = Boolean.FALSE;
+            }
+            if (getDataStrategy() == DataStrategy.SQL) {
+                if (!(getMigrateACID().isOn() && getMigrateACID().isOnly() && getMigrateACID().isDowngrade())) {
+                    errors.set(SQL_DISTCP_ONLY_W_DA_ACID.getCode());
+                    rtn = Boolean.FALSE;
+                }
+                if ((getTransfer().getCommonStorage() != null ||
+                        getTransfer().getIntermediateStorage() != null)) {
+                    errors.set(SQL_DISTCP_ACID_W_STORAGE_OPTS.getCode());
+                    rtn = Boolean.FALSE;
+                }
+            }
         }
+
+//        if (resetToDefaultLocation && getTransfer().getStorageMigration().isDistcp() &&
+//                (getTransfer().getWarehouse().getManagedDirectory() == null || getTransfer().getWarehouse().getExternalDirectory() == null)) {
+//            errors.set(DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION.getCode());
+//            rtn = Boolean.FALSE;
+//        }
 
 //        if (getTransfer().getStorageMigration().isDistcp() && getDataStrategy() != DataStrategy.STORAGE_MIGRATION) {
 //            errors.set(DISTCP_VALID_STRATEGY.getCode());
 //            rtn = Boolean.FALSE;
 //        }
 
-        if (getTransfer().getStorageMigration().isDistcp()
-                && getDataStrategy() == DataStrategy.STORAGE_MIGRATION
-                && isExecute()) {
-            errors.set(STORAGE_MIGRATION_DISTCP_NO_EXECUTE.getCode());
-            rtn = Boolean.FALSE;
-        }
+//        if (getTransfer().getStorageMigration().isDistcp()
+//                && getDataStrategy() == DataStrategy.STORAGE_MIGRATION
+//                && isExecute()) {
+//            errors.set(STORAGE_MIGRATION_DISTCP_NO_EXECUTE.getCode());
+//            rtn = Boolean.FALSE;
+//        }
 
-        if (getTransfer().getStorageMigration().isDistcp()
-                && getDataStrategy() == DataStrategy.STORAGE_MIGRATION
-                && getMigrateACID().isOn()) {
-            errors.set(STORAGE_MIGRATION_DISTCP_ACID.getCode());
-            rtn = Boolean.FALSE;
-        }
+//        if (getTransfer().getStorageMigration().isDistcp()
+//                && getDataStrategy() == DataStrategy.STORAGE_MIGRATION
+//                && getMigrateACID().isOn()) {
+//            errors.set(STORAGE_MIGRATION_DISTCP_ACID.getCode());
+//            rtn = Boolean.FALSE;
+//        }
 
-        if (getTransfer().getStorageMigration().isDistcp()
-                && getDataStrategy() == DataStrategy.SQL
-                && getMigrateACID().isOn()
-                && getMigrateACID().isDowngrade()
-                && (getTransfer().getWarehouse().getExternalDirectory() == null)) {
-            errors.set(SQL_ACID_DA_DISTCP_WO_EXT_WAREHOUSE.getCode());
-            rtn = Boolean.FALSE;
-        }
+//        if (getTransfer().getStorageMigration().isDistcp()
+//                && getDataStrategy() == DataStrategy.SQL
+//                && getMigrateACID().isOn()
+//                && getMigrateACID().isDowngrade()
+//                && (getTransfer().getWarehouse().getExternalDirectory() == null)) {
+//            errors.set(SQL_ACID_DA_DISTCP_WO_EXT_WAREHOUSE.getCode());
+//            rtn = Boolean.FALSE;
+//        }
 
-        if (getTransfer().getStorageMigration().isDistcp()
-                && getDataStrategy() == DataStrategy.SQL
-                && getMigrateACID().isOn()) {
-            if (!(getMigrateACID().isOnly() && getMigrateACID().isDowngrade())) {
-                errors.set(SQL_DISTCP_ONLY_W_DA_ACID.getCode());
-                rtn = Boolean.FALSE;
-            }
-            if ((getTransfer().getCommonStorage() != null ||
-                    getTransfer().getIntermediateStorage() != null)) {
-                errors.set(SQL_DISTCP_ACID_W_STORAGE_OPTS.getCode());
-                rtn = Boolean.FALSE;
-            }
-        }
+//        if (getTransfer().getStorageMigration().isDistcp()
+//                && getDataStrategy() == DataStrategy.SQL) {
+//            if (!(getMigrateACID().isOn() && getMigrateACID().isOnly() && getMigrateACID().isDowngrade())) {
+//                errors.set(SQL_DISTCP_ONLY_W_DA_ACID.getCode());
+//                rtn = Boolean.FALSE;
+//            }
+//            if ((getTransfer().getCommonStorage() != null ||
+//                    getTransfer().getIntermediateStorage() != null)) {
+//                errors.set(SQL_DISTCP_ACID_W_STORAGE_OPTS.getCode());
+//                rtn = Boolean.FALSE;
+//            }
+//        }
 
         // Because the ACID downgrade requires some SQL transformation, we can't do this via SCHEMA_ONLY.
         if (getDataStrategy() == DataStrategy.SCHEMA_ONLY && getMigrateACID().isOn() && getMigrateACID().isDowngrade()) {

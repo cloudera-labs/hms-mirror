@@ -35,6 +35,8 @@ public class Cluster implements Comparable<Cluster> {
     private ConnectionPools pools = null;
 
     @JsonIgnore
+    private Boolean initialized = Boolean.FALSE;
+    @JsonIgnore
     private Config config = null;
 
     private Environment environment = null;
@@ -52,6 +54,10 @@ public class Cluster implements Comparable<Cluster> {
 
     public void setConfig(Config config) {
         this.config = config;
+    }
+
+    public Boolean isInitialized() {
+        return initialized;
     }
 
     public Config getConfig() {
@@ -86,6 +92,7 @@ public class Cluster implements Comparable<Cluster> {
 
     public void setHiveServer2(HiveServer2Config hiveServer2) {
         this.hiveServer2 = hiveServer2;
+        this.initialized = Boolean.TRUE;
     }
 
     public PartitionDiscovery getPartitionDiscovery() {
