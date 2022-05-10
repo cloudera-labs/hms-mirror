@@ -107,8 +107,14 @@ public class Cluster implements Comparable<Cluster> {
     @JsonIgnore
     public Connection getConnection() throws SQLException {
         Connection conn = null;
-        if (pools != null)
-            conn = pools.getEnvironmentConnection(getEnvironment());
+        if (pools != null) {
+            try {
+                conn = pools.getEnvironmentConnection(getEnvironment());
+            } catch (RuntimeException rte) {
+                config.getErrors().set(MessageCode.CONNECTION_ISSUE.getCode());
+                throw rte;
+            }
+        }
         return conn;
     }
 

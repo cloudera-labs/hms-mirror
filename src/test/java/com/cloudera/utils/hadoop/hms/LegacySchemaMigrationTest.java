@@ -36,39 +36,13 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         dataCleanup(Boolean.FALSE);
     }
 
-    public Boolean dataSetup01() {
-        if (!DataState.getInstance().isDataCreated()) {
-            String nameofCurrMethod = new Throwable()
-                    .getStackTrace()[0]
-                    .getMethodName();
-
-            String outputDir = outputDirBase + nameofCurrMethod;
-
-            String[] args = new String[]{"-d", "STORAGE_MIGRATION", "-smn", "s3a://something_not_relevant",
-                    "-wd", "/hello", "-ewd", "/hello-ext",
-                    "-db", DataState.getInstance().getWorking_db(), "-o", outputDir,
-                    "-cfg", DataState.getInstance().getConfiguration()};
-            args = toExecute(args, execArgs, Boolean.TRUE);
-
-            List<Pair> leftSql = new ArrayList<Pair>();
-            build_use_db(leftSql);
-
-            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, "acid_01", 2, TBL_INSERT, null, leftSql);
-            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, "acid_02", 6, TBL_INSERT, null, leftSql);
-            build_n_populate(CREATE_EXTERNAL_TBL_PARTITIONED, "ext_part_01", null, TBL_INSERT_PARTITIONED, null, leftSql);
-            build_n_populate(CREATE_EXTERNAL_TBL, "ext_part_02", null, TBL_INSERT, null, leftSql);
-
-            Mirror cfgMirror = new Mirror();
-            long rtn = cfgMirror.setupSql(args, leftSql, null);
-            DataState.getInstance().setDataCreated(Boolean.TRUE);
-        }
-        return Boolean.TRUE;
-    }
-
     @Before
     public void setUp() throws Exception {
         super.setUp();
         DataState.getInstance().setConfiguration(HDP2_CDP);
+        if (DataState.getInstance().getPopulate() == null) {
+            DataState.getInstance().setPopulate(Boolean.FALSE);
+        }
         dataSetup01();
     }
 
@@ -217,6 +191,83 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         assertTrue("Return Code Failure", rtn == 0);
+    }
+
+    @Test
+    public void test_so_distcp_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "--distcp",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertTrue("Return Code Failure", rtn == 0);
+    }
+
+    @Test
+    public void test_so_is_distcp_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-is", "s3a://my_intermediate_bucket",
+                "--distcp",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertTrue("Return Code Failure", rtn == 0);
+    }
+
+    @Test
+    public void test_so_cs_distcp_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-cs", "s3a://my_common_bucket",
+                "--distcp",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertTrue("Return Code Failure", rtn == 0);
+    }
+
+    @Test
+    public void test_so_existing_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertTrue("Return Code Failure", rtn == 0);
 
         // Testing for existing schemas.
         outputDir = outputDir + "/2";
@@ -229,6 +280,68 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         rtn = mirror.go(args);
         assertTrue("Return Code Failure", rtn == 0);
 
+    }
+
+    @Test
+    public void test_so_is_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-is", "s3a://my_intermediate_storage",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertTrue("Return Code Failure", rtn == 0);
+    }
+
+    @Test
+    public void test_so_cs_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-cs", "s3a://my_common_storage",
+                "--distcp",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertTrue("Return Code Failure", rtn == 0);
+    }
+
+    @Test
+    public void test_so_cs_rdl_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-cs", "s3a://my_common_storage",
+                "-rdl",
+                "--distcp",
+                "-wd","/warehouse/managed",
+                "-ewd","/warehouse/external",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertTrue("Return Code Failure", rtn == 0);
     }
 
     @Test
@@ -252,6 +365,27 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
     }
 
     @Test
+    public void test_so_rdl_dc_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-rdl",
+                "-dc",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertTrue("Return Code Failure", rtn == 0);
+
+    }
+
+    @Test
     public void test_so_rdl_w_leg() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
@@ -261,6 +395,29 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
 
         String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
                 "-rdl",
+                "-wd", "/warehouse/managed",
+                "-ewd", "/warehouse/external",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertTrue("Return Code Failure", rtn == 0);
+
+    }
+
+    @Test
+    public void test_so_rdl_w_dc_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-rdl",
+                "-dc",
                 "-wd", "/warehouse/managed",
                 "-ewd", "/warehouse/external",
                 "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};

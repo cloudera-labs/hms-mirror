@@ -402,6 +402,16 @@ public class Conversion {
                         sb.append("</td>\n");
                         sb.append("</tr>\n");
                     }
+                    for (Pair pair : entry.getValue().getCleanUpSql()) {
+                        sb.append("<tr>\n");
+                        sb.append("<td>");
+                        sb.append(pair.getDescription());
+                        sb.append("</td>\n");
+                        sb.append("<td>");
+                        sb.append(pair.getAction());
+                        sb.append("</td>\n");
+                        sb.append("</tr>\n");
+                    }
                 }
             }
             sb.append("</table>");

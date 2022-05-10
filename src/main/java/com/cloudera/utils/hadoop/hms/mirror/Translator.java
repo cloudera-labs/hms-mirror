@@ -34,7 +34,7 @@ public class Translator {
     private boolean on = Boolean.FALSE;
 
     @JsonIgnore
-    private Map<String, Map<String, String>> dbLocationMap = new TreeMap<String, Map<String, String>>();
+    private Map<String, EnvironmentMap> dbLocationMap = new TreeMap<String, EnvironmentMap>();
 
     /**
      * When distcpCompatible mode is set, there are rules between the rename, consolidation, and location
@@ -70,10 +70,6 @@ public class Translator {
 
     public void setDistcpCompatible(Boolean distcpCompatible) {
         this.distcpCompatible = distcpCompatible;
-    }
-
-    public Map<String, Map<String, String>> getDbLocationMap() {
-        return dbLocationMap;
     }
 
     public Boolean validate() {
@@ -335,40 +331,48 @@ public class Translator {
 
         LOG.debug("Translate Table Location: " + originalLocation + ": " + dirBuilder.toString());
         // Add Location Map for table to a list.
-        addLocation(database, originalLocation, dirBuilder.toString().trim());
+        // TODO: Need to handle RIGHT locations.
+        if (config.getTransfer().getStorageMigration().isDistcp() && config.getDataStrategy() != DataStrategy.SQL) {
+            if (config.getTransfer().getStorageMigration().getDataFlow() == DistcpFlow.PULL) {
+                addLocation(database, Environment.RIGHT, originalLocation, dirBuilder.toString().trim());
+            } else {
+                addLocation(database, Environment.LEFT, originalLocation, dirBuilder.toString().trim());
+            }
+        }
 
         return dirBuilder.toString().trim();
     }
 
-    private void addLocation(String database, String originalLocation, String newLocation) {
-        getDbLocationMap(database).put(originalLocation, newLocation);
+    public void addLocation(String database, Environment environment, String originalLocation, String newLocation) {
+        getDbLocationMap(database, environment).put(originalLocation, newLocation);
     }
 
-    private synchronized Map<String, String> getDbLocationMap(String database) {
-        Map<String, String> locationMap = dbLocationMap.get(database);
-        if (locationMap == null) {
-            locationMap = new HashMap<String, String>();
-            getDbLocationMap().put(database, locationMap);
+    private synchronized Map<String, String> getDbLocationMap(String database, Environment environment) {
+        EnvironmentMap envMap = dbLocationMap.get(database);
+        if (envMap == null) {
+            envMap = new EnvironmentMap(database);
+            dbLocationMap.put(database, envMap);
         }
-        return locationMap;
+        return envMap.getLocationMap(environment);
     }
+
     /**
      * @param consolidationLevel how far up the directory hierarchy to go to build the distcp list based on the sources
      *                           provided.
      * @return A map of databases.  Each database will have a map that has 1 or more 'targets' and 'x' sources for each
      * target.
      */
-    public Map<String, Map<String, Set<String>>> buildDistcpList(int consolidationLevel) {
-        Map<String, Map<String, Set<String>>> rtn = new TreeMap<String, Map<String, Set<String>>>();
+    public Map<String, Map<String, Set<String>>> buildDistcpList(String database, Environment environment, int consolidationLevel) {
+        Map<String, Map<String, Set<String>>> rtn = new TreeMap<>();
         // dbLocationMap Map<String, Map<String, String>>
 
         // get the map for a db.
         Set<String> databases = dbLocationMap.keySet();
 
-        for (String database: databases) {
+//        for (String database: databases) {
             // get the map.entry
             Map<String, Set<String>> reverseMap = new TreeMap<String, Set<String>>();
-            Map<String, String> dbMap = dbLocationMap.get(database);
+            Map<String, String> dbMap = getDbLocationMap(database, environment);//dbLocationMap.get(database);
             for (Map.Entry<String, String> entry : dbMap.entrySet()) {
                 // reduce folder level by 'consolidationLevel' for key and value.
                 // Source
@@ -386,7 +390,7 @@ public class Translator {
 
             }
             rtn.put(database, reverseMap);
-        }
+//        }
         return rtn;
     }
 

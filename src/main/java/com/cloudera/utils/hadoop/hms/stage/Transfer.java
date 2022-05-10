@@ -62,6 +62,9 @@ public class Transfer implements Callable<ReturnStatus> {
             LOG.info("Migrating " + dbMirror.getName() + "." + tblMirror.getName());
 
             EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
+            EnvironmentTable tet = tblMirror.getEnvironmentTable(Environment.TRANSFER);
+            EnvironmentTable set = tblMirror.getEnvironmentTable(Environment.SHADOW);
+            EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
 
             // Set Database to Transfer DB.
             tblMirror.setPhaseState(PhaseState.STARTED);
@@ -95,6 +98,65 @@ public class Transfer implements Callable<ReturnStatus> {
                         successful = doStorageMigrationTransfer();
                         break;
                 }
+                if (successful && config.getTransfer().getStorageMigration().isDistcp()) {
+                    // Build distcp reports.
+//                    if (config.getTransfer().getStorageMigration().isDistcp()) {
+//                EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
+                    if (config.getTransfer().getIntermediateStorage() != null) {
+                        // LEFT PUSH INTERMEDIATE
+                        // The Transfer Table should be available.
+                        String isLoc = TableUtils.getLocation(let.getName(), tet.getDefinition());
+//                    String isLoc = config.getTransfer().getIntermediateStorage();
+//                    // Deal with extra '/'
+//                    isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
+//                    isLoc = isLoc + "/" + config.getTransfer().getRemoteWorkingDirectory() + "/" +
+//                            config.getRunMarker() + "/" +
+//                            dbMirror.getName() + "/" +
+//                            tblMirror.getName();
+
+                        config.getTranslator().addLocation(dbMirror.getName(), Environment.LEFT,
+                                TableUtils.getLocation(tblMirror.getName(), let.getDefinition()),
+                                isLoc);
+                        // RIGHT PULL from INTERMEDIATE
+                        String fnlLoc = null;
+                        if (set.getDefinition().size() > 0) {
+                            fnlLoc = TableUtils.getLocation(ret.getName(), set.getDefinition());
+                        } else {
+                            fnlLoc = TableUtils.getLocation(ret.getName(), ret.getDefinition());
+                        }
+                        config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
+                                isLoc,
+                                fnlLoc);
+                    } else if (config.getTransfer().getCommonStorage() != null) {
+                        // LEFT PUSH COMMON
+                        String origLoc = TableUtils.isACID(let) ?
+                                TableUtils.getLocation(let.getName(), tet.getDefinition()) :
+                                TableUtils.getLocation(let.getName(), let.getDefinition());
+                        String newLoc = null;
+                        if (TableUtils.isACID(let)) {
+                            if (config.getMigrateACID().isDowngrade()) {
+                                newLoc = TableUtils.getLocation(ret.getName(), ret.getDefinition());
+                            } else {
+                                newLoc = TableUtils.getLocation(ret.getName(), set.getDefinition());
+                            }
+                        } else {
+                            newLoc = TableUtils.getLocation(ret.getName(), ret.getDefinition());
+                        }
+                        config.getTranslator().addLocation(dbMirror.getName(), Environment.LEFT,
+                                origLoc, newLoc);
+                    } else {
+                        // RIGHT PULL
+                        if (TableUtils.isACID(let)) {
+                            tblMirror.addIssue(Environment.RIGHT, "`distcp` not needed with linked clusters for ACID " +
+                                    "transfers.");
+                        } else {
+                            config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
+                                    TableUtils.getLocation(tblMirror.getName(), let.getDefinition()),
+                                    TableUtils.getLocation(tblMirror.getName(), ret.getDefinition()));
+                        }
+                    }
+                }
+
                 if (successful)
                     tblMirror.setPhaseState(PhaseState.SUCCESS);
                 else
@@ -186,8 +248,10 @@ public class Transfer implements Callable<ReturnStatus> {
 
 
                 // Clean up shadow table.
-                String dropShadowSql = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
-                ret.getSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropShadowSql));
+                if (config.getTransfer().getStorageMigration().isDistcp()) {
+                    String dropShadowSql = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
+                    ret.getSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropShadowSql));
+                }
 
                 // Execute the RIGHT sql if config.execute.
                 if (rtn) {
@@ -206,12 +270,12 @@ public class Transfer implements Callable<ReturnStatus> {
         if (rtn)
             rtn = tblMirror.buildoutSql(config, dbMirror);
 
-        if (rtn) {
-            EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
-            EnvironmentTable tet = tblMirror.getEnvironmentTable(Environment.TRANSFER);
-            EnvironmentTable set = tblMirror.getEnvironmentTable(Environment.SHADOW);
-            EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
+        EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable tet = tblMirror.getEnvironmentTable(Environment.TRANSFER);
+        EnvironmentTable set = tblMirror.getEnvironmentTable(Environment.SHADOW);
+        EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
 
+        if (rtn) {
             // Construct Transfer SQL
             if (config.getCluster(Environment.LEFT).getLegacyHive()) {
                 // We need to ensure that 'tez' is the execution engine.
@@ -309,15 +373,16 @@ public class Transfer implements Callable<ReturnStatus> {
 
             // Cleanup, POST creation and TRANSFERS.
             // LEFT TRANSFER table
-            List<Pair> leftCleanup = new ArrayList<Pair>();
+//            List<Pair> leftCleanup = new ArrayList<Pair>();
 
             Pair cleanUp = new Pair("Post Migration Cleanup", "-- To be run AFTER final RIGHT SQL statements.");
-            let.addSql(cleanUp);
+            let.addCleanUpSql(cleanUp);
 
             String useLeftDb = MessageFormat.format(MirrorConf.USE, dbMirror.getName());
             Pair leftUsePair = new Pair(TableUtils.USE_DESC, useLeftDb);
-            leftCleanup.add(leftUsePair);
-            let.addSql(leftUsePair);
+            let.addCleanUpSql(leftUsePair);
+//            leftCleanup.add(leftUsePair);
+//            let.addSql(leftUsePair);
 
             if (config.isReplace() && TableUtils.isACID(let)) {
                 // If 'replace' option is specified (along with -da and -cs), we change out the ACID table.
@@ -325,57 +390,72 @@ public class Transfer implements Callable<ReturnStatus> {
                 String archiveOrigStmt = MessageFormat.format(MirrorConf.RENAME_TABLE, let.getName(),
                         MirrorConf.ARCHIVE + "_" + let.getName() + "_" + tblMirror.getUnique());
                 Pair renamePairDesc = new Pair(MirrorConf.RENAME_TABLE_DESC, archiveOrigStmt);
-                leftCleanup.add(renamePairDesc);
+//                leftCleanup.add(renamePairDesc);
+                let.addCleanUpSql(renamePairDesc);
                 let.addSql(renamePairDesc);
                 // alter 'tet' and rename to original table name.
                 String renameStmt = MessageFormat.format(MirrorConf.RENAME_TABLE, tet.getName(), let.getName());
                 Pair renamePair = new Pair(MirrorConf.RENAME_TABLE_DESC, renameStmt);
-                leftCleanup.add(renamePair);
+//                leftCleanup.add(renamePair);
+//                let.addCleanUpSql(renamePair);
                 let.addSql(renamePair);
 
                 String dropOriginalTable = MessageFormat.format(MirrorConf.DROP_TABLE,
                         MirrorConf.ARCHIVE + "_" + let.getName() + "_" + tblMirror.getUnique());
                 let.addCleanUpSql(MirrorConf.DROP_TABLE_DESC, dropOriginalTable);
-                tblMirror.addIssue(Environment.LEFT,"Run the LEFT Cleanup Script to remove the archive table after validation.");
+                tblMirror.addIssue(Environment.LEFT, "Run the LEFT Cleanup Script to remove the archive table after validation.");
                 dbMirror.addIssue("The original table: " + let.getName() + " was renamed to: " + MirrorConf.ARCHIVE + "_" + let.getName() + "_" + tblMirror.getUnique() +
                         ", it can be removed by running the LEFT Cleanup Script.");
             } else {
                 //
                 String dropTransfer = MessageFormat.format(MirrorConf.DROP_TABLE, tet.getName());
                 Pair leftDropPair = new Pair(TableUtils.DROP_TRANSFER_TABLE, dropTransfer);
-                leftCleanup.add(leftDropPair);
-                let.addSql(leftDropPair);
+//                leftCleanup.add(leftDropPair);
+                let.addCleanUpSql(leftDropPair);
+//                let.addSql(leftDropPair);
                 tblMirror.addStep("LEFT ACID Transfer/Shadow SQL Cleanup", "Built");
             }
 
             if (rtn) {
                 // Run the Cleanup Scripts
-                config.getCluster(Environment.LEFT).runTableSql(leftCleanup, tblMirror, Environment.LEFT);
+                config.getCluster(Environment.LEFT).runTableSql(let.getCleanUpSql(), tblMirror, Environment.LEFT);
             }
 
             // RIGHT Shadow table
-            if (config.getTransfer().getCommonStorage() == null) {
+            if (set.getDefinition().size() > 0) {
                 List<Pair> rightCleanup = new ArrayList<Pair>();
 
                 String useRightDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(dbMirror.getName()));
                 Pair rightUsePair = new Pair(TableUtils.USE_DESC, useRightDb);
-                rightCleanup.add(rightUsePair);
-                ret.addSql(rightUsePair);
+//                rightCleanup.add(rightUsePair);
+                ret.addCleanUpSql(rightUsePair);
+//                ret.addSql(rightUsePair);
 
                 String rightDropShadow = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
 
                 Pair rightDropPair = new Pair(TableUtils.DROP_SHADOW_TABLE, rightDropShadow);
 
-                rightCleanup.add(rightDropPair);
-                ret.addSql(rightDropPair);
+//                rightCleanup.add(rightDropPair);
+                ret.addCleanUpSql(rightDropPair);
+//                ret.addSql(rightDropPair);
                 tblMirror.addStep("RIGHT ACID Shadow SQL Cleanup", "Built");
 
                 if (rtn) {
                     // Run the Cleanup Scripts
-                    config.getCluster(Environment.RIGHT).runTableSql(rightCleanup, tblMirror, Environment.RIGHT);
+                    config.getCluster(Environment.RIGHT).runTableSql(ret.getCleanUpSql(), tblMirror, Environment.RIGHT);
                 }
             }
         }
+
+//        if (rtn && config.getTransfer().getStorageMigration().isDistcp()) {
+//            System.out.println("Hello");
+//            // Build distcp Report.
+//            // distcp source: transfer location destination: external location + db and table.
+//            String transferLocation = TableUtils.getLocation(tet.getName(), tet.getDefinition());
+//            String targetLocation = TableUtils.getLocation(ret.getName(), ret.getDefinition());
+//            config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT, transferLocation, targetLocation);
+//
+//        }
         return rtn;
     }
 
@@ -499,6 +579,9 @@ public class Transfer implements Callable<ReturnStatus> {
         Boolean rtn = Boolean.FALSE;
 
         EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable tet = tblMirror.getEnvironmentTable(Environment.TRANSFER);
+        EnvironmentTable set = tblMirror.getEnvironmentTable(Environment.SHADOW);
+        EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
 
         if (TableUtils.isACID(let.getName(), let.getDefinition()) &&
                 !(config.getDataStrategy() == DataStrategy.DUMP
@@ -554,6 +637,8 @@ public class Transfer implements Callable<ReturnStatus> {
             if (rtn) {
                 rtn = config.getCluster(Environment.RIGHT).runTableSql(tblMirror);
             }
+
+
         }
         return rtn;
     }

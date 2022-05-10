@@ -52,9 +52,9 @@ public class Messages {
         List<String> messageList = new ArrayList<String>();
         for (MessageCode messageCode : MessageCode.getCodes(bitSet)) {
             if (argMap.containsKey(messageCode.getCode())) {
-                messageList.add(messageCode.getDesc());
+                messageList.add(messageCode.getCode()+":"+messageCode.getDesc());
             } else {
-                messageList.add(MessageFormat.format(messageCode.getDesc(), argMap.get(messageCode.getCode())));
+                messageList.add(messageCode.getCode()+":"+MessageFormat.format(messageCode.getDesc(), argMap.get(messageCode.getCode())));
             }
         }
         String[] rtn = messageList.toArray(new String[0]);

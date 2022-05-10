@@ -65,6 +65,7 @@ public class Mirror {
     private String leftExecuteFile = null;
     private String leftCleanUpFile = null;
     private String rightExecuteFile = null;
+    private String rightCleanUpFile = null;
     private String leftActionFile = null;
     private String rightActionFile = null;
     private Boolean retry = Boolean.FALSE;
@@ -443,10 +444,6 @@ public class Mirror {
                 }
             }
 
-            if (cmd.hasOption("dc")) {
-                config.getTransfer().getStorageMigration().setDistcp(Boolean.TRUE);
-            }
-
             // To keep the connections and remainder of the processing in place, set the env for the cluster
             //   to the abstract name.
             Set<Environment> environmentSet = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
@@ -457,11 +454,31 @@ public class Mirror {
             // Get intermediate Storage Location
             if (cmd.hasOption("is")) {
                 config.getTransfer().setIntermediateStorage(cmd.getOptionValue("is"));
+                // This usually means an on-prem to cloud migration, which should be a PUSH data flow for distcp from the
+                // LEFT and PULL from the RIGHT.
+                config.getTransfer().getStorageMigration().setDataFlow(DistcpFlow.PUSH_PULL);
             }
 
             // Get intermediate Storage Location
             if (cmd.hasOption("cs")) {
                 config.getTransfer().setCommonStorage(cmd.getOptionValue("cs"));
+                // This usually means an on-prem to cloud migration, which should be a PUSH data flow for distcp.
+                config.getTransfer().getStorageMigration().setDataFlow(DistcpFlow.PUSH);
+            }
+
+            // Set this after the is and cd checks.  Those will set default movement, but you can override here.
+            if (cmd.hasOption("dc")) {
+                config.getTransfer().getStorageMigration().setDistcp(Boolean.TRUE);
+                String flowStr = cmd.getOptionValue("dc");
+                if (flowStr != null) {
+                    try {
+                        DistcpFlow flow = DistcpFlow.valueOf(flowStr.toUpperCase(Locale.ROOT));
+                        config.getTransfer().getStorageMigration().setDataFlow(flow);
+                    } catch (IllegalArgumentException iae) {
+                        throw new RuntimeException("Optional argument for `distcp` is invalid. Valid values: " +
+                                Arrays.toString(DistcpFlow.values()), iae);
+                    }
+                }
             }
 
             if (cmd.hasOption("ro")) {
@@ -504,8 +521,9 @@ public class Mirror {
         leftExecuteFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_execute.sql";
         leftCleanUpFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_CleanUp_execute.sql";
         rightExecuteFile = reportOutputDir + System.getProperty("file.separator") + "<db>_RIGHT_execute.sql";
-        leftActionFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_action.sql";
-        rightActionFile = reportOutputDir + System.getProperty("file.separator") + "<db>_RIGHT_action.sql";
+        rightCleanUpFile = reportOutputDir + System.getProperty("file.separator") + "<db>_RIGHT_CleanUp_execute.sql";
+//        leftActionFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_action.sql";
+//        rightActionFile = reportOutputDir + System.getProperty("file.separator") + "<db>_RIGHT_action.sql";
 
         try {
             File reportPathDir = new File(reportOutputDir);
@@ -688,8 +706,9 @@ public class Mirror {
         reporter.setVariable("left.execute.file", leftExecuteFile);
         reporter.setVariable("left.cleanup.file", leftCleanUpFile);
         reporter.setVariable("right.execute.file", rightExecuteFile);
-        reporter.setVariable("left.action.file", leftActionFile);
-        reporter.setVariable("right.action.file", rightActionFile);
+        reporter.setVariable("right.cleanup.file", rightCleanUpFile);
+//        reporter.setVariable("left.action.file", leftActionFile);
+//        reporter.setVariable("right.action.file", rightActionFile);
         reporter.setRetry(this.retry);
         reporter.start();
 
@@ -744,11 +763,12 @@ public class Mirror {
         for (String database : config.getDatabases()) {
 
             String dbReportOutputFile = reportOutputDir + System.getProperty("file.separator") + database + "_hms-mirror";
+//            String dbLeftActionFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_action.sql";
             String dbLeftExecuteFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_execute.sql";
             String dbLeftCleanUpFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_CleanUp_execute.sql";
             String dbRightExecuteFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_execute.sql";
-            String dbLeftActionFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_action.sql";
-            String dbRightActionFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_action.sql";
+            String dbRightCleanUpFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_CleanUp_execute.sql";
+//            String dbRightActionFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_action.sql";
 
             try {
                 FileWriter reportFile = new FileWriter(dbReportOutputFile + ".md");
@@ -783,15 +803,20 @@ public class Mirror {
                 rightExecOutput.close();
                 LOG.info("RIGHT Execution Script is here: " + dbRightExecuteFile.toString());
 
-                FileWriter leftActionOutput = new FileWriter(dbLeftActionFile);
-                leftActionOutput.write(conversion.actionsSql(Environment.LEFT, database));
-                leftActionOutput.close();
-                LOG.info("LEFT action SQL script is here: " + dbLeftActionFile.toString());
+                FileWriter rightCleanUpOutput = new FileWriter(dbRightCleanUpFile);
+                rightCleanUpOutput.write(conversion.executeCleanUpSql(Environment.RIGHT, database));
+                rightCleanUpOutput.close();
+                LOG.info("RIGHT CleanUp Execution Script is here: " + dbRightCleanUpFile.toString());
 
-                FileWriter rightActionOutput = new FileWriter(dbRightActionFile);
-                rightActionOutput.write(conversion.actionsSql(Environment.RIGHT, database));
-                rightActionOutput.close();
-                LOG.info("RIGHT action SQL script is here: " + dbRightActionFile.toString());
+//                FileWriter leftActionOutput = new FileWriter(dbLeftActionFile);
+//                leftActionOutput.write(conversion.actionsSql(Environment.LEFT, database));
+//                leftActionOutput.close();
+//                LOG.info("LEFT action SQL script is here: " + dbLeftActionFile.toString());
+//
+//                FileWriter rightActionOutput = new FileWriter(dbRightActionFile);
+//                rightActionOutput.write(conversion.actionsSql(Environment.RIGHT, database));
+//                rightActionOutput.close();
+//                LOG.info("RIGHT action SQL script is here: " + dbRightActionFile.toString());
             } catch (IOException ioe) {
                 LOG.error("Issue writing report for: " + database, ioe);
             }
@@ -803,54 +828,62 @@ public class Mirror {
         // Output directory maps
         if (config.canDeriveDistcpPlan()) {
             try {
-                String distcpWorkbookFile = reportOutputDir + System.getProperty("file.separator") + "distcp_workbook.md";
-                FileWriter distcpWorkbookFW = new FileWriter(distcpWorkbookFile);
-                String distcpScriptFile = reportOutputDir + System.getProperty("file.separator") + "distcp_script.sh";
-                FileWriter distcpScriptFW = new FileWriter(distcpScriptFile);
+                Environment[] environments = new Environment[]{Environment.LEFT, Environment.RIGHT};
+                for (String database : config.getDatabases()) {
 
-                distcpScriptFW.append("\n");
-                distcpScriptFW.append("# 1. Copy the source '*_distcp_source.txt' files to the distributed filesystem.").append("\n");
-                distcpScriptFW.append("# 2. Export an env var 'HCFS_BASE_DIR' that represents where these files where placed.").append("\n");
-                distcpScriptFW.append("#      NOTE: ${HCFS_BASE_DIR} must be available to the user running 'distcp'").append("\n");
-                distcpScriptFW.append("# 3. Export an env var 'DISTCP_OPTS' with any special settings needed to run the job.").append("\n");
-                distcpScriptFW.append("#      For large jobs, you may need to adjust memory settings.").append("\n");
-                distcpScriptFW.append("# 4. Run the following in an order or framework that is appropriate for your environment.").append("\n");
-                distcpScriptFW.append("#       These aren't necessarily expected to run in this shell script as is in production.").append("\n");
-                distcpScriptFW.append("\n");
-                distcpScriptFW.append("\n");
+                    for (Environment distcpEnv : environments) {
+                        String distcpWorkbookFile = reportOutputDir + System.getProperty("file.separator") + database +
+                                "_" + distcpEnv.toString() + "_distcp_workbook.md";
+                        FileWriter distcpWorkbookFW = new FileWriter(distcpWorkbookFile);
+                        String distcpScriptFile = reportOutputDir + System.getProperty("file.separator") + database +
+                                "_" + distcpEnv.toString() + "_distcp_script.sh";
+                        FileWriter distcpScriptFW = new FileWriter(distcpScriptFile);
+
+                        distcpScriptFW.append("\n");
+                        distcpScriptFW.append("# 1. Copy the source '*_distcp_source.txt' files to the distributed filesystem.").append("\n");
+                        distcpScriptFW.append("# 2. Export an env var 'HCFS_BASE_DIR' that represents where these files where placed.").append("\n");
+                        distcpScriptFW.append("#      NOTE: ${HCFS_BASE_DIR} must be available to the user running 'distcp'").append("\n");
+                        distcpScriptFW.append("# 3. Export an env var 'DISTCP_OPTS' with any special settings needed to run the job.").append("\n");
+                        distcpScriptFW.append("#      For large jobs, you may need to adjust memory settings.").append("\n");
+                        distcpScriptFW.append("# 4. Run the following in an order or framework that is appropriate for your environment.").append("\n");
+                        distcpScriptFW.append("#       These aren't necessarily expected to run in this shell script as is in production.").append("\n");
+                        distcpScriptFW.append("\n");
+                        distcpScriptFW.append("\n");
 
 
-                distcpWorkbookFW.write("| Database | Target | Sources |\n");
-                distcpWorkbookFW.write("|:---|:---|:---|\n");
+                        distcpWorkbookFW.write("| Database | Target | Sources |\n");
+                        distcpWorkbookFW.write("|:---|:---|:---|\n");
 
-                FileWriter distcpSourceFW = null;
-                for (Map.Entry<String, Map<String, Set<String>>> entry :
-                        config.getTranslator().buildDistcpList(1).entrySet()) {
+                        FileWriter distcpSourceFW = null;
+                        for (Map.Entry<String, Map<String, Set<String>>> entry :
+                                config.getTranslator().buildDistcpList(database, distcpEnv, 1).entrySet()) {
 
-                    distcpWorkbookFW.write("| " + entry.getKey() + " | | |\n");
-                    Map<String, Set<String>> value = entry.getValue();
-                    int i = 1;
-                    for (Map.Entry<String, Set<String>> dbMap : value.entrySet()) {
-                        String distcpSourceFile = entry.getKey() + "_" + i++ + "_distcp_source.txt";
-                        String distcpSourceFileFull = reportOutputDir + System.getProperty("file.separator") + distcpSourceFile;
-                        distcpSourceFW = new FileWriter(distcpSourceFileFull);
+                            distcpWorkbookFW.write("| " + entry.getKey() + " | | |\n");
+                            Map<String, Set<String>> value = entry.getValue();
+                            int i = 1;
+                            for (Map.Entry<String, Set<String>> dbMap : value.entrySet()) {
+                                String distcpSourceFile = entry.getKey() + "_" + distcpEnv.toString() + "_" + i++ + "_distcp_source.txt";
+                                String distcpSourceFileFull = reportOutputDir + System.getProperty("file.separator") + distcpSourceFile;
+                                distcpSourceFW = new FileWriter(distcpSourceFileFull);
 
-                        StringBuilder line = new StringBuilder();
-                        line.append("| | ").append(dbMap.getKey()).append(" | ");
+                                StringBuilder line = new StringBuilder();
+                                line.append("| | ").append(dbMap.getKey()).append(" | ");
 
-                        for (String source : dbMap.getValue()) {
-                            line.append(source).append("<br>");
-                            distcpSourceFW.append(source).append("\n");
+                                for (String source : dbMap.getValue()) {
+                                    line.append(source).append("<br>");
+                                    distcpSourceFW.append(source).append("\n");
+                                }
+                                line.append(" | ").append("\n");
+                                distcpWorkbookFW.write(line.toString());
+                                distcpScriptFW.append("hadoop distcp ${DISTCP_OPTS} -f ${HCFS_BASE_DIR}/" + distcpSourceFile + " " +
+                                        dbMap.getKey() + "\n");
+                                distcpSourceFW.close();
+                            }
                         }
-                        line.append(" | ").append("\n");
-                        distcpWorkbookFW.write(line.toString());
-                        distcpScriptFW.append("hadoop distcp ${DISTCP_OPTS} -f ${HCFS_BASE_DIR}/" + distcpSourceFile + " " +
-                                dbMap.getKey() + "\n");
-                        distcpSourceFW.close();
+                        distcpScriptFW.close();
+                        distcpWorkbookFW.close();
                     }
                 }
-                distcpScriptFW.close();
-                distcpWorkbookFW.close();
             } catch (IOException ioe) {
                 LOG.error("Issue writing distcp workbook", ioe);
             }
@@ -961,8 +994,11 @@ public class Mirror {
         options.addOption(flipOption);
 
         Option smDistCpOption = new Option("dc", "distcp", false,
-                "Use 'distcp' for STORAGE_MIGRATION.  Only valid for External Tables.");
-        smDistCpOption.setOptionalArg(Boolean.FALSE);
+                "Build the 'distcp' workplans.  Optional argument (PULL, PUSH) to define which cluster is running " +
+                        "the distcp commands.  Default is PULL.");
+        smDistCpOption.setArgs(1);
+        smDistCpOption.setOptionalArg(Boolean.TRUE);
+        smDistCpOption.setArgName("flow-direction default:PULL");
         smDistCpOption.setRequired(Boolean.FALSE);
         options.addOption(smDistCpOption);
 
@@ -1043,6 +1079,7 @@ public class Mirror {
                         "were added 'artificially' in legacy Hive. (default: 2)");
         maoOption.setArgs(1);
         maoOption.setOptionalArg(Boolean.TRUE);
+        maoOption.setArgName("artificial-bucket-threshold default:2");
         maoOption.setRequired(Boolean.FALSE);
         migrationOptionsGroup.addOption(maoOption);
 
@@ -1065,6 +1102,7 @@ public class Mirror {
                         "were added 'artificially' in legacy Hive. (default: 2)");
         maOption.setArgs(1);
         maOption.setOptionalArg(Boolean.TRUE);
+        maOption.setArgName("artificial-bucket-threshold default:2");
         maOption.setRequired(Boolean.FALSE);
         options.addOption(maOption);
 

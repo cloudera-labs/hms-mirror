@@ -550,8 +550,13 @@ public class Config {
     }
 
     public Boolean canDeriveDistcpPlan() {
-        Boolean rtn = Boolean.TRUE;
-        if (resetToDefaultLocation && getTransfer().getWarehouse().getExternalDirectory() == null) {
+        Boolean rtn = Boolean.FALSE;
+        if (getTransfer().getStorageMigration().isDistcp()) {
+            rtn = Boolean.TRUE;
+        } else {
+            warnings.set(DISTCP_OUTPUT_NOT_REQUESTED.getCode());
+        }
+        if (rtn && resetToDefaultLocation && getTransfer().getWarehouse().getExternalDirectory() == null) {
             rtn = Boolean.FALSE;
         }
         return rtn;
@@ -563,12 +568,15 @@ public class Config {
      */
     public Boolean validate() {
         Boolean rtn = Boolean.TRUE;
-//        errors.clear();
-//        warnings.clear();
-//        if (resetToDefaultLocation && dataStrategy != DataStrategy.STORAGE_MIGRATION) {
-//            errors.set(RESET_TO_DEFAULT_LOCATION.getCode());
-//            rtn = Boolean.FALSE;
-//        }
+
+        // Set distcp options.
+        canDeriveDistcpPlan();
+
+        if (getCluster(Environment.RIGHT).getLegacyHive() && !getCluster(Environment.LEFT).getLegacyHive()) {
+            errors.set(LEGACY_TO_NON_LEGACY.getCode());
+            rtn = Boolean.FALSE;
+        }
+
         if (resetToDefaultLocation &&
                 !(dataStrategy == DataStrategy.SCHEMA_ONLY ||
                         dataStrategy == DataStrategy.STORAGE_MIGRATION ||
@@ -579,14 +587,20 @@ public class Config {
             rtn = Boolean.FALSE;
         }
 
-        if (getTransfer().getStorageMigration().isDistcp() && getDataStrategy() != DataStrategy.STORAGE_MIGRATION) {
-            errors.set(DISTCP_VALID_STRATEGY.getCode());
+        if (resetToDefaultLocation && getTransfer().getStorageMigration().isDistcp() &&
+                (getTransfer().getWarehouse().getManagedDirectory() == null || getTransfer().getWarehouse().getExternalDirectory() == null)) {
+            errors.set(DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION.getCode());
             rtn = Boolean.FALSE;
         }
 
+//        if (getTransfer().getStorageMigration().isDistcp() && getDataStrategy() != DataStrategy.STORAGE_MIGRATION) {
+//            errors.set(DISTCP_VALID_STRATEGY.getCode());
+//            rtn = Boolean.FALSE;
+//        }
+
         if (getTransfer().getStorageMigration().isDistcp()
                 && getDataStrategy() == DataStrategy.STORAGE_MIGRATION
-        && isExecute()) {
+                && isExecute()) {
             errors.set(STORAGE_MIGRATION_DISTCP_NO_EXECUTE.getCode());
             rtn = Boolean.FALSE;
         }
@@ -598,9 +612,37 @@ public class Config {
             rtn = Boolean.FALSE;
         }
 
+        if (getTransfer().getStorageMigration().isDistcp()
+                && getDataStrategy() == DataStrategy.SQL
+                && getMigrateACID().isOn()
+                && getMigrateACID().isDowngrade()
+                && (getTransfer().getWarehouse().getExternalDirectory() == null)) {
+            errors.set(SQL_ACID_DA_DISTCP_WO_EXT_WAREHOUSE.getCode());
+            rtn = Boolean.FALSE;
+        }
+
+        if (getTransfer().getStorageMigration().isDistcp()
+                && getDataStrategy() == DataStrategy.SQL
+                && getMigrateACID().isOn()) {
+            if (!(getMigrateACID().isOnly() && getMigrateACID().isDowngrade())) {
+                errors.set(SQL_DISTCP_ONLY_W_DA_ACID.getCode());
+                rtn = Boolean.FALSE;
+            }
+            if ((getTransfer().getCommonStorage() != null ||
+                    getTransfer().getIntermediateStorage() != null)) {
+                errors.set(SQL_DISTCP_ACID_W_STORAGE_OPTS.getCode());
+                rtn = Boolean.FALSE;
+            }
+        }
+
+        // Because the ACID downgrade requires some SQL transformation, we can't do this via SCHEMA_ONLY.
+        if (getDataStrategy() == DataStrategy.SCHEMA_ONLY && getMigrateACID().isOn() && getMigrateACID().isDowngrade()) {
+            errors.set(ACID_DOWNGRADE_SCHEMA_ONLY.getCode());
+            rtn = Boolean.FALSE;
+        }
 
         if (resetToDefaultLocation && (getTransfer().getWarehouse().getExternalDirectory() == null)) {
-           warnings.set(RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getCode());
+            warnings.set(RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getCode());
         }
 
         if (sync && tblRegEx != null) {

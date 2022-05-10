@@ -34,6 +34,9 @@ public class ConfigValidationTest extends MirrorTestBase {
     public void setUp() throws Exception {
         super.setUp();
         DataState.getInstance().setConfiguration(CDP_CDP);
+        if (DataState.getInstance().getPopulate() == null) {
+            DataState.getInstance().setPopulate(Boolean.FALSE);
+        }
         dataSetup01();
     }
 
@@ -45,35 +48,6 @@ public class ConfigValidationTest extends MirrorTestBase {
     @AfterClass
     public static void tearDownClass() throws Exception {
         dataCleanup(Boolean.FALSE);
-    }
-
-    public Boolean dataSetup01() {
-        if (!DataState.getInstance().isDataCreated()) {
-            String nameofCurrMethod = new Throwable()
-                    .getStackTrace()[0]
-                    .getMethodName();
-
-            String outputDir = outputDirBase + nameofCurrMethod;
-
-            String[] args = new String[]{"-d", "STORAGE_MIGRATION", "-smn", "s3a://something_not_relevant",
-                    "-wd", "/hello", "-ewd", "/hello-ext",
-                    "-db", DataState.getInstance().getWorking_db(), "-o", outputDir,
-                    "-cfg", DataState.getInstance().getConfiguration()};
-            args = toExecute(args, execArgs, Boolean.TRUE);
-
-            List<Pair> leftSql = new ArrayList<Pair>();
-            build_use_db(leftSql);
-
-            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, "acid_01", 2, TBL_INSERT, null, leftSql);
-            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, "acid_02", 6, TBL_INSERT, null, leftSql);
-            build_n_populate(CREATE_EXTERNAL_TBL_PARTITIONED, "ext_part_01", null, TBL_INSERT_PARTITIONED, null, leftSql);
-            build_n_populate(CREATE_EXTERNAL_TBL, "ext_part_02", null, TBL_INSERT, null, leftSql);
-
-            Mirror cfgMirror = new Mirror();
-            long rtn = cfgMirror.setupSql(args, leftSql, null);
-            DataState.getInstance().setDataCreated(Boolean.TRUE);
-        }
-        return Boolean.TRUE;
     }
 
     @Test
@@ -172,6 +146,31 @@ public class ConfigValidationTest extends MirrorTestBase {
     }
 
     @Test
+    public void test_so_cs_rdl_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-cs", "s3a://my_common_storage",
+                "-rdl",
+                "--distcp",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        long check = MessageCode.DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION.getLong();
+
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+    }
+
+
+    @Test
     public void test_so_distcp_leg() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
@@ -181,7 +180,7 @@ public class ConfigValidationTest extends MirrorTestBase {
 
         String[] args = new String[]{"-d", "SCHEMA_ONLY", "-db", DataState.getInstance().getWorking_db(),
                 "-sql",
-                "-distcp",
+                "--distcp",
                 "-rdl",
                 "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
         args = toExecute(args, execArgs, Boolean.FALSE);
@@ -196,6 +195,30 @@ public class ConfigValidationTest extends MirrorTestBase {
     }
 
     @Test
+    public void test_sql_rdl_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
+                "-sql",
+                "--distcp",
+                "-rdl",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        long check = MessageCode.DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION.getLong();
+
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+    }
+
+    @Test
     public void test_sql_distcp_leg() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
@@ -205,8 +228,7 @@ public class ConfigValidationTest extends MirrorTestBase {
 
         String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
                 "-sql",
-                "-distcp",
-                "-rdl",
+                "--distcp",
                 "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
         args = toExecute(args, execArgs, Boolean.FALSE);
 
@@ -214,10 +236,37 @@ public class ConfigValidationTest extends MirrorTestBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
 
-        long check = MessageCode.DISTCP_VALID_STRATEGY.getLong();
+        long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
 
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
+
+    @Test
+    public void test_sql_acid_distcp_cs_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
+                "-sql",
+                "-ma",
+                "--distcp",
+                "-cs", "s3a://my_common_bucket",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
+        check = check | MessageCode.SQL_DISTCP_ACID_W_STORAGE_OPTS.getLong();
+
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+    }
+
 
     @Test
     public void test_hybrid_distcp_leg() {

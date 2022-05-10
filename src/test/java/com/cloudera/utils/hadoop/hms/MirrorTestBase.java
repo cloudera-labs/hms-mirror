@@ -11,11 +11,15 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import static com.cloudera.utils.hadoop.hms.TestSQL.*;
+import static com.cloudera.utils.hadoop.hms.TestSQL.TBL_INSERT;
+
 public class MirrorTestBase {
 
     protected static final String HDP2_CDP = "default.yaml.hdp2-cdp";
     protected static final String CDP_CDP = "default.yaml.cdp-cdp";
     protected static final String CDP = "default.yaml.cdp";
+    protected static final String CDP_HDP2 = "default.yaml.cdp-hdp2";
 
     protected static final String[] execArgs = {"-e", "--accept"};
 
@@ -43,6 +47,48 @@ public class MirrorTestBase {
             rtn = tfRtn;
         }
         return rtn;
+    }
+
+    public Boolean dataSetup01() {
+        if (!DataState.getInstance().isDataCreated()) {
+            String nameofCurrMethod = new Throwable()
+                    .getStackTrace()[0]
+                    .getMethodName();
+
+            String outputDir = outputDirBase + nameofCurrMethod;
+
+            String[] args = new String[]{"-d", "STORAGE_MIGRATION", "-smn", "s3a://something_not_relevant",
+                    "-wd", "/hello", "-ewd", "/hello-ext",
+                    "-db", DataState.getInstance().getWorking_db(), "-o", outputDir,
+                    "-cfg", DataState.getInstance().getConfiguration()};
+            args = toExecute(args, execArgs, Boolean.TRUE);
+
+            List<Pair> leftSql = new ArrayList<Pair>();
+            build_use_db(leftSql);
+
+            List<String[]> dataset = null;
+            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+                dataset = getDataset(2, 200, null);
+            }
+            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, "acid_01", 2, TBL_INSERT, dataset, leftSql);
+            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+                dataset = getDataset(2, 400, null);
+            }
+            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, "acid_02", 6, TBL_INSERT, dataset, leftSql);
+            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+                dataset = getDataset(2, 2000, 500);
+            }
+            build_n_populate(CREATE_EXTERNAL_TBL_PARTITIONED, "ext_part_01", null, TBL_INSERT_PARTITIONED, dataset, leftSql);
+            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+                dataset = getDataset(2, 2000, null);
+            }
+            build_n_populate(CREATE_EXTERNAL_TBL, "ext_part_02", null, TBL_INSERT, dataset, leftSql);
+
+            Mirror cfgMirror = new Mirror();
+            long rtn = cfgMirror.setupSql(args, leftSql, null);
+            DataState.getInstance().setDataCreated(Boolean.TRUE);
+        }
+        return Boolean.TRUE;
     }
 
     protected static Boolean dataCleanup(Boolean rightOnly) {
@@ -190,6 +236,13 @@ public class MirrorTestBase {
         if (smn_storage != null) {
             common_storage = smn_storage;
         }
+
+        // Override storage migration location for test run.
+        String populate_data = System.getenv("PD");
+        if (populate_data != null) {
+            DataState.getInstance().setPopulate(Boolean.valueOf(populate_data));
+        }
+
 
         String cfg = System.getenv("CFG");
         if (cfg != null) {
