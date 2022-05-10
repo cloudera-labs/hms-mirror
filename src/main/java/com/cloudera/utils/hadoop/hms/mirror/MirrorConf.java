@@ -24,6 +24,7 @@ public class MirrorConf {
     public static final String SHOW_CREATE_TABLE = "SHOW CREATE TABLE {0}";
     public static final String SHOW_PARTITIONS = "SHOW PARTITIONS {0}.{1}";
     public static final String MSCK_REPAIR_TABLE = "MSCK REPAIR TABLE {0}";
+    public static final String MSCK_REPAIR_TABLE_DESC = "MSCK Repair Table";
     public static final String CREATE_DB =
             "CREATE DATABASE IF NOT EXISTS {0}";
     public static final String CREATE_DB_DESC = "Create Database";

@@ -1111,6 +1111,11 @@ public class Mirror {
         daOption.setRequired(Boolean.FALSE);
         options.addOption(daOption);
 
+        Option ipOption = new Option("ip", "in-place", false,
+                "Downgrade ACID tables to EXTERNAL tables with purge.");
+        ipOption.setRequired(Boolean.FALSE);
+        options.addOption(daOption);
+
         // Non Native Migrations
         Option mnnOption = new Option("mnn", "migrate-non-native", false,
                 "Migrate Non-Native tables (if strategy allows). These include table definitions that rely on " +

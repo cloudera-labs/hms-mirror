@@ -76,6 +76,10 @@ public class MirrorTestBase {
             }
             build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, "acid_02", 6, TBL_INSERT, dataset, leftSql);
             if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+                dataset = getDataset(3, 400, null);
+            }
+            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS_PARTITIONED, "acid_03", 6, TBL_INSERT_PARTITIONED, dataset, leftSql);
+            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
                 dataset = getDataset(2, 2000, 500);
             }
             build_n_populate(CREATE_EXTERNAL_TBL_PARTITIONED, "ext_part_01", null, TBL_INSERT_PARTITIONED, dataset, leftSql);
