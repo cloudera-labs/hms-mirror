@@ -118,6 +118,7 @@ public class ConfigValidationTest extends MirrorTestBase {
         rtn = mirror.go(args);
 
         long check = MessageCode.RESET_TO_DEFAULT_LOCATION.getLong();
+        check = check | MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
@@ -141,6 +142,7 @@ public class ConfigValidationTest extends MirrorTestBase {
         rtn = mirror.go(args);
 
         long check = MessageCode.RESET_TO_DEFAULT_LOCATION.getLong();
+        check = check | MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
@@ -164,7 +166,7 @@ public class ConfigValidationTest extends MirrorTestBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
 
-        long check = MessageCode.DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION.getLong();
+        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
@@ -189,7 +191,7 @@ public class ConfigValidationTest extends MirrorTestBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
 
-        long check = MessageCode.DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION.getLong();
+        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
@@ -213,7 +215,8 @@ public class ConfigValidationTest extends MirrorTestBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
 
-        long check = MessageCode.DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION.getLong();
+        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
+        check = check | MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
 
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
@@ -287,7 +290,8 @@ public class ConfigValidationTest extends MirrorTestBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
 
-        long check = MessageCode.DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION.getLong();
+        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
+        check = check | MessageCode.DISTCP_VALID_STRATEGY.getLong();
 
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
@@ -312,6 +316,7 @@ public class ConfigValidationTest extends MirrorTestBase {
         rtn = mirror.go(args);
 
         long check = MessageCode.DISTCP_VALID_STRATEGY.getLong();
+        check = check | MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
@@ -333,10 +338,33 @@ public class ConfigValidationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        long check = MessageCode.DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION.getLong();
+        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
 
+    }
+    @Test
+    public void test_exp_imp_rdl() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "EXPORT_IMPORT", "-db", DataState.getInstance().getWorking_db(),
+                "-sql",
+                "-rdl",
+                "-o", outputDir,
+                "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
+
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
 }

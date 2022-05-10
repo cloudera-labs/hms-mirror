@@ -146,9 +146,13 @@ public class Transfer implements Callable<ReturnStatus> {
                                 origLoc, newLoc);
                     } else {
                         // RIGHT PULL
-                        if (TableUtils.isACID(let)) {
+                        if (TableUtils.isACID(let) && !config.getMigrateACID().isDowngrade()) {
                             tblMirror.addIssue(Environment.RIGHT, "`distcp` not needed with linked clusters for ACID " +
                                     "transfers.");
+                        } else if (TableUtils.isACID(let) && config.getMigrateACID().isDowngrade()) {
+                            config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
+                                    TableUtils.getLocation(tblMirror.getName(), tet.getDefinition()),
+                                    TableUtils.getLocation(tblMirror.getName(), ret.getDefinition()));
                         } else {
                             config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
                                     TableUtils.getLocation(tblMirror.getName(), let.getDefinition()),

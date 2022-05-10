@@ -46,7 +46,7 @@ public enum MessageCode {
             "that definition to be skipped."),
 
     RESET_TO_DEFAULT_LOCATION(22, "'reset-to-default-location' is NOT available for this data strategy."),
-    DISTCP_VALID_STRATEGY(23, "The `distcp` option is only valid with the STORAGE_MIGRATION data strategy."),
+    DISTCP_VALID_STRATEGY(23, "The `distcp` option is not valid for this strategy and configuration."),
     STORAGE_MIGRATION_DISTCP_NO_EXECUTE(24, "STORAGE_MIGRATION with 'distcp' requires MANUAL intervention to run to completion.  Therefore, " +
             "EXECUTE is NOT support in this context.  Use the provided SQL scripts in the output to run the process."),
     STORAGE_MIGRATION_DISTCP_ACID(25, "STORAGE_MIGRATION with 'distcp' can't support the direct transfer of ACID tables."),
@@ -54,7 +54,11 @@ public enum MessageCode {
     OPTIONAL_ARG_ISSUE(27, "Bad optional argument"),
     CONNECTION_ISSUE(28, "JDBC connection issue.  Check environment, jdbc urls, libraries, etc."),
     LEGACY_TO_NON_LEGACY(29, "`hms-mirror` does NOT support migrations from Hive 3 to Hive 1/2."),
-    DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION(30, "You must specify `-wd` and `-ewd` when using `-rdl` with `--distcp`."),
+//    DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION(30, "You must specify `-wd` and `-ewd` when using `-rdl` with `--distcp`."),
+    RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS(30, "When using `-rdl`, you will need specify the " +
+        "warehouse locations (-wd,-ewd) to enable the `distcp` workbooks.  Without them, we can NOT know the " +
+        "default locations to build a plan."),
+
     SQL_ACID_DA_DISTCP_WO_EXT_WAREHOUSE (31, "You need to specify `-ewd` when using `distcp`, `da`, and `SQL`"),
     SQL_DISTCP_ONLY_W_DA_ACID (32, "SQL Strategy with `distcp` is only valid for Downgraded (-da) ACID table transfers.  " +
             "Use SCHEMA_ONLY from External and Legacy Managed (Non-Transactional) tables."),
@@ -73,11 +77,8 @@ public enum MessageCode {
             "the DUMP strategy.  LEFT = RIGHT..."),
     RESET_TO_DEFAULT_LOCATION_WARNING(53, "'reset-to-default-location' was specified.  Table definition stripped of " +
             "LOCATION.  Location will be determined by the database or system warehouse settings."),
-    RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS(54, "When using `-rdl`, you will need specify the " +
-            "warehouse locations (-wd,-ewd) to enable the `distcp` workbooks.  Without them, we can NOT know the " +
-            "default locations to build a plan."),
-    DISTCP_OUTPUT_NOT_REQUESTED(55, "To get the `distcp` workplans add `-dc|--distcp` to commandline."),
-    DISTCP_RDL_WO_WAREHOUSE_DIR(56, "When using `-rdl|--reset-to-default-location` you must also specify " +
+    DISTCP_OUTPUT_NOT_REQUESTED(54, "To get the `distcp` workplans add `-dc|--distcp` to commandline."),
+    DISTCP_RDL_WO_WAREHOUSE_DIR(55, "When using `-rdl|--reset-to-default-location` you must also specify " +
             "warehouse locations `-wd|-ewd` to build the `distcp` workplans.")
     ;
 

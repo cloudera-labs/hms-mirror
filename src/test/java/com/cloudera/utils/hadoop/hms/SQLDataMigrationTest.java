@@ -35,41 +35,6 @@ public class SQLDataMigrationTest extends MirrorTestBase {
         dataCleanup(Boolean.FALSE);
     }
 
-    public Boolean dataSetup01() {
-        if (!DataState.getInstance().isDataCreated()) {
-            String nameofCurrMethod = new Throwable()
-                    .getStackTrace()[0]
-                    .getMethodName();
-
-            String outputDir = outputDirBase + nameofCurrMethod;
-
-            String[] args = new String[]{"-d", "STORAGE_MIGRATION", "-smn", "s3a://something_not_relevant",
-                    "-wd", "/hello", "-ewd", "/hello-ext",
-                    "-db", DataState.getInstance().getWorking_db(), "-o", outputDir,
-                    "-cfg", DataState.getInstance().getConfiguration()};
-            args = toExecute(args, execArgs, Boolean.TRUE);
-
-            List<Pair> leftSql = new ArrayList<Pair>();
-            build_use_db(leftSql);
-
-            List<String[]> dataset = getDataset(2, 200, null);
-            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, "acid_01", 2, TBL_INSERT, dataset, leftSql);
-            dataset = getDataset(2, 400, null);
-            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, "acid_02", 6, TBL_INSERT, dataset, leftSql);
-
-            dataset = getDataset(2, 2000, 500);
-            build_n_populate(CREATE_EXTERNAL_TBL_PARTITIONED, "ext_part_01", null, TBL_INSERT_PARTITIONED, dataset, leftSql);
-
-            dataset = getDataset(2, 2000, null);
-            build_n_populate(CREATE_EXTERNAL_TBL, "ext_part_02", null, TBL_INSERT, dataset, leftSql);
-
-            Mirror cfgMirror = new Mirror();
-            long rtn = cfgMirror.setupSql(args, leftSql, null);
-            DataState.getInstance().setDataCreated(Boolean.TRUE);
-        }
-        return Boolean.TRUE;
-    }
-
     @Before
     public void setUp() throws Exception {
         super.setUp();
