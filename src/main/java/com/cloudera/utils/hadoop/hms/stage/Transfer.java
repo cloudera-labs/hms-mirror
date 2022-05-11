@@ -191,9 +191,21 @@ public class Transfer implements Callable<ReturnStatus> {
                                     TableUtils.getLocation(tblMirror.getName(), tet.getDefinition()),
                                     rLoc);
                         } else {
+                            String rLoc = TableUtils.getLocation(tblMirror.getName(), ret.getDefinition());
+                            if (rLoc == null && config.getResetToDefaultLocation()) {
+                                StringBuilder sbDir = new StringBuilder();
+                                if (config.getTransfer().getCommonStorage() != null) {
+                                    sbDir.append(config.getTransfer().getCommonStorage());
+                                } else {
+                                    sbDir.append(config.getCluster(Environment.RIGHT).getHcfsNamespace());
+                                }
+                                sbDir.append(config.getTransfer().getWarehouse().getExternalDirectory()).append("/");
+                                sbDir.append(dbMirror.getName()).append(".db").append("/").append(tblMirror.getName());
+                                rLoc = sbDir.toString();
+                            }
                             config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
-                                    TableUtils.getLocation(tblMirror.getName(), let.getDefinition()),
-                                    TableUtils.getLocation(tblMirror.getName(), ret.getDefinition()));
+                                    TableUtils.getLocation(tblMirror.getName(), let.getDefinition())
+                                    , rLoc);
                         }
                     }
                 }
