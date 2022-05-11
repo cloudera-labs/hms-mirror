@@ -1430,7 +1430,7 @@ public class Mirror {
             } catch (RuntimeException rte) {
                 System.out.println(rte.getMessage());
                 rte.printStackTrace();
-                if (config != null) {
+                if (config != null && config.getErrors().getReturnCode() > 0) {
                     returnCode = config.getErrors().getReturnCode(); //MessageCode.returnCode(config.getErrors());
                 } else {
                     returnCode = -1;
