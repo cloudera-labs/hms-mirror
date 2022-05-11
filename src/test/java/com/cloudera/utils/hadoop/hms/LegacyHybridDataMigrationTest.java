@@ -63,7 +63,8 @@ public class LegacyHybridDataMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -82,7 +83,8 @@ public class LegacyHybridDataMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -101,7 +103,8 @@ public class LegacyHybridDataMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -120,7 +123,8 @@ public class LegacyHybridDataMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -139,7 +143,8 @@ public class LegacyHybridDataMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -158,8 +163,8 @@ public class LegacyHybridDataMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
-
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -179,8 +184,8 @@ public class LegacyHybridDataMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -199,7 +204,8 @@ public class LegacyHybridDataMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -218,6 +224,7 @@ public class LegacyHybridDataMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 }

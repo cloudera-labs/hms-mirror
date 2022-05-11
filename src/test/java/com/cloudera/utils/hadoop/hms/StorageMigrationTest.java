@@ -70,8 +70,8 @@ public class StorageMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-
-        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + 0l, rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -93,6 +93,9 @@ public class StorageMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+
     }
 
     @Test
@@ -114,6 +117,8 @@ public class StorageMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -135,6 +140,8 @@ public class StorageMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -157,6 +164,8 @@ public class StorageMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -179,9 +188,7 @@ public class StorageMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-
-        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + 0l, rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
-
-
 }

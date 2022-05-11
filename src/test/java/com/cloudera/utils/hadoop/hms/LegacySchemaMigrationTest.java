@@ -67,7 +67,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -86,7 +87,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -105,7 +107,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -124,10 +127,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
-
-        // We can do deeper testing on results here.
-        // Conversion conversion = mirror.getConversion();
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
 
     }
 
@@ -147,7 +148,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -166,7 +168,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
 
@@ -190,7 +193,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -209,7 +213,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -227,7 +232,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
 
         // Testing for existing schemas.
         outputDir = outputDir + "/2";
@@ -238,7 +244,7 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         rtn = 0;
         mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
 
     }
 
@@ -258,7 +264,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -278,7 +285,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -301,7 +309,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -322,8 +331,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
-
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -345,8 +354,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
-
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -366,8 +375,7 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
-
-        assertTrue("Return Code Failure", rtn == check);
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -386,11 +394,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
-
-        // We can do deeper testing on results here.
-        // Conversion conversion = mirror.getConversion();
-
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
     @Test
@@ -409,7 +414,8 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
 }

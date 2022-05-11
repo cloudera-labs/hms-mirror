@@ -160,6 +160,13 @@ public class Transfer implements Callable<ReturnStatus> {
                         } else {
                             newLoc = TableUtils.getLocation(ret.getName(), ret.getDefinition());
                         }
+                        if (newLoc == null && config.getResetToDefaultLocation()) {
+                            StringBuilder sbDir = new StringBuilder();
+                            sbDir.append(config.getTransfer().getCommonStorage());
+                            sbDir.append(config.getTransfer().getWarehouse().getExternalDirectory()).append("/");
+                            sbDir.append(dbMirror.getName()).append(".db").append("/").append(tblMirror.getName());
+                            newLoc = sbDir.toString();
+                        }
                         config.getTranslator().addLocation(dbMirror.getName(), Environment.LEFT,
                                 origLoc, newLoc);
                     } else {
