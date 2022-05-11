@@ -56,7 +56,7 @@ public enum MessageCode {
     LEGACY_TO_NON_LEGACY(29, "`hms-mirror` does NOT support migrations from Hive 3 to Hive 1/2."),
 //    DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION(30, "You must specify `-wd` and `-ewd` when using `-rdl` with `--distcp`."),
     RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS(30, "When using `-rdl`, you will need specify the " +
-        "warehouse locations (-wd,-ewd) to enable the `distcp` workbooks.  Without them, we can NOT know the " +
+        "warehouse locations (-wd,-ewd) to enable the `distcp` workbooks and/or resetting locations.  Without them, we can NOT know the " +
         "default locations to build a plan."),
 
     SQL_ACID_DA_DISTCP_WO_EXT_WAREHOUSE (31, "You need to specify `-ewd` when using `distcp`, `da`, and `SQL`"),

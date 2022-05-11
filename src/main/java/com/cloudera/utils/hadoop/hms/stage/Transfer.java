@@ -111,7 +111,16 @@ public class Transfer implements Callable<ReturnStatus> {
                     if (config.getTransfer().getIntermediateStorage() != null) {
                         // LEFT PUSH INTERMEDIATE
                         // The Transfer Table should be available.
-                        String isLoc = TableUtils.getLocation(let.getName(), tet.getDefinition());
+//                        String isLoc = null;
+                        String isLoc = config.getTransfer().getIntermediateStorage();
+                        // Deal with extra '/'
+                        isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
+                        isLoc = isLoc + "/" +
+                                config.getTransfer().getRemoteWorkingDirectory() + "/" +
+                                config.getRunMarker() + "/" +
+                                dbMirror.getName() + "/" +
+                                tblMirror.getName();
+
                         config.getTranslator().addLocation(dbMirror.getName(), Environment.LEFT,
                                 TableUtils.getLocation(tblMirror.getName(), let.getDefinition()),
                                 isLoc);
@@ -120,7 +129,18 @@ public class Transfer implements Callable<ReturnStatus> {
                         if (set.getDefinition().size() > 0) {
                             fnlLoc = TableUtils.getLocation(ret.getName(), set.getDefinition());
                         } else {
-                            fnlLoc = TableUtils.getLocation(ret.getName(), ret.getDefinition());
+                            fnlLoc = TableUtils.getLocation(tblMirror.getName(), ret.getDefinition());
+                            if (fnlLoc == null && config.getResetToDefaultLocation()) {
+                                StringBuilder sbDir = new StringBuilder();
+                                if (config.getTransfer().getCommonStorage() != null) {
+                                    sbDir.append(config.getTransfer().getCommonStorage());
+                                } else {
+                                    sbDir.append(config.getCluster(Environment.RIGHT).getHcfsNamespace());
+                                }
+                                sbDir.append(config.getTransfer().getWarehouse().getExternalDirectory()).append("/");
+                                sbDir.append(dbMirror.getName()).append(".db").append("/").append(tblMirror.getName());
+                                fnlLoc = sbDir.toString();
+                            }
                         }
                         config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
                                 isLoc,
@@ -148,9 +168,21 @@ public class Transfer implements Callable<ReturnStatus> {
                             tblMirror.addIssue(Environment.RIGHT, "`distcp` not needed with linked clusters for ACID " +
                                     "transfers.");
                         } else if (TableUtils.isACID(let) && config.getMigrateACID().isDowngrade()) {
+                            String rLoc = TableUtils.getLocation(tblMirror.getName(), ret.getDefinition());
+                            if (rLoc == null && config.getResetToDefaultLocation()) {
+                                StringBuilder sbDir = new StringBuilder();
+                                if (config.getTransfer().getCommonStorage() != null) {
+                                    sbDir.append(config.getTransfer().getCommonStorage());
+                                } else {
+                                    sbDir.append(config.getCluster(Environment.RIGHT).getHcfsNamespace());
+                                }
+                                sbDir.append(config.getTransfer().getWarehouse().getExternalDirectory()).append("/");
+                                sbDir.append(dbMirror.getName()).append(".db").append("/").append(tblMirror.getName());
+                                rLoc = sbDir.toString();
+                            }
                             config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
                                     TableUtils.getLocation(tblMirror.getName(), tet.getDefinition()),
-                                    TableUtils.getLocation(tblMirror.getName(), ret.getDefinition()));
+                                    rLoc);
                         } else {
                             config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
                                     TableUtils.getLocation(tblMirror.getName(), let.getDefinition()),

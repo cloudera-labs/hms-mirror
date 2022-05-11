@@ -213,46 +213,6 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
     }
 
     @Test
-    public void test_so_is_distcp_leg() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = outputDirBase + nameofCurrMethod;
-
-        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
-                "-is", "s3a://my_intermediate_bucket",
-                "--distcp",
-                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-        args = toExecute(args, execArgs, Boolean.FALSE);
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
-    }
-
-    @Test
-    public void test_so_cs_distcp_leg() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = outputDirBase + nameofCurrMethod;
-
-        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
-                "-cs", "s3a://my_common_bucket",
-                "--distcp",
-                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-        args = toExecute(args, execArgs, Boolean.FALSE);
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
-    }
-
-    @Test
     public void test_so_existing_leg() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
@@ -343,27 +303,6 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         rtn = mirror.go(args);
         assertTrue("Return Code Failure", rtn == 0);
     }
-
-    @Test
-    public void test_so_rdl_leg() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = outputDirBase + nameofCurrMethod;
-
-        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
-                "-rdl",
-                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-        args = toExecute(args, execArgs, Boolean.FALSE);
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        assertTrue("Return Code Failure", rtn == 0);
-
-    }
-
 
     @Test
     public void test_so_rdl_w_leg() {

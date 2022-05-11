@@ -630,8 +630,9 @@ public class Config {
                     errors.set(SQL_DISTCP_ONLY_W_DA_ACID.getCode());
                     rtn = Boolean.FALSE;
                 }
-                if ((getTransfer().getCommonStorage() != null ||
-                        getTransfer().getIntermediateStorage() != null)) {
+                if (getTransfer().getCommonStorage() != null
+//                        || getTransfer().getIntermediateStorage() != null)
+                ) {
                     errors.set(SQL_DISTCP_ACID_W_STORAGE_OPTS.getCode());
                     rtn = Boolean.FALSE;
                 }

@@ -74,6 +74,7 @@ public class Conversion {
 
     public String executeSql(Environment environment, String database) {
         StringBuilder sb = new StringBuilder();
+        Boolean found = Boolean.FALSE;
         sb.append("-- EXECUTION script for ").append(database).append(" on ").append(environment).append(" cluster\n\n");
         sb.append("-- ").append(new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date()));
         sb.append("-- These are the command run on the " + environment + " cluster when `-e` is used.\n");
@@ -94,16 +95,21 @@ public class Conversion {
             if (tblMirror.isThereSql(environment)) {
                 for (Pair pair : tblMirror.getSql(environment)) {
                     sb.append(pair.getAction()).append(";\n");
+                    found = Boolean.TRUE;
                 }
             } else {
                 sb.append("\n");
             }
         }
-        return sb.toString();
+        if (found)
+            return sb.toString();
+        else
+            return null;
     }
 
     public String executeCleanUpSql(Environment environment, String database) {
         StringBuilder sb = new StringBuilder();
+        Boolean found = Boolean.FALSE;
         sb.append("-- EXECUTION CLEANUP script for ").append(database).append(" on ").append(environment).append(" cluster\n\n");
         sb.append("-- ").append(new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date())).append("\n\n");
 //        sb.append("-- These are the command run on the " + environment + " cluster when `-e` is used.\n");
@@ -118,12 +124,16 @@ public class Conversion {
             if (tblMirror.isThereSql(environment)) {
                 for (Pair pair : tblMirror.getCleanUpSql(environment)) {
                     sb.append(pair.getAction()).append(";\n");
+                    found = Boolean.TRUE;
                 }
             } else {
                 sb.append("\n");
             }
         }
-        return sb.toString();
+        if (found)
+            return sb.toString();
+        else
+            return null;
     }
 
 
