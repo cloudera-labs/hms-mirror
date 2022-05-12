@@ -9,12 +9,16 @@ public class WarehouseConfig {
     }
 
     public void setManagedDirectory(String managedDirectory) {
-        this.managedDirectory = managedDirectory.trim();
-        if (!this.managedDirectory.startsWith("/")) {
-            this.managedDirectory = "/" + this.managedDirectory;
-        }
-        if (this.managedDirectory.endsWith("/")) {
-            this.managedDirectory = this.managedDirectory.substring(0, this.managedDirectory.length()-1);
+        if (managedDirectory != null) {
+            this.managedDirectory = managedDirectory.trim();
+            if (!this.managedDirectory.startsWith("/")) {
+                this.managedDirectory = "/" + this.managedDirectory;
+            }
+            if (this.managedDirectory.endsWith("/")) {
+                this.managedDirectory = this.managedDirectory.substring(0, this.managedDirectory.length() - 1);
+            }
+        } else {
+            this.managedDirectory = managedDirectory;
         }
     }
 
@@ -23,12 +27,16 @@ public class WarehouseConfig {
     }
 
     public void setExternalDirectory(String externalDirectory) {
-        this.externalDirectory = externalDirectory.trim();
-        if (!this.externalDirectory.startsWith("/")) {
-            this.externalDirectory = "/" + this.externalDirectory;
-        }
-        if (this.externalDirectory.endsWith("/")) {
-            this.externalDirectory = this.externalDirectory.substring(0, this.externalDirectory.length()-1);
+        if (externalDirectory != null) {
+            this.externalDirectory = externalDirectory.trim();
+            if (!this.externalDirectory.startsWith("/")) {
+                this.externalDirectory = "/" + this.externalDirectory;
+            }
+            if (this.externalDirectory.endsWith("/")) {
+                this.externalDirectory = this.externalDirectory.substring(0, this.externalDirectory.length() - 1);
+            }
+        } else {
+            this.externalDirectory = externalDirectory;
         }
     }
 }

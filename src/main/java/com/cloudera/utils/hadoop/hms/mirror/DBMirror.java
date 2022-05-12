@@ -288,14 +288,17 @@ public class DBMirror {
                             if (dbDef.get(MirrorConf.COMMENT) != null && dbDef.get(MirrorConf.COMMENT).trim().length() > 0) {
                                 sbL.append(MirrorConf.COMMENT).append(" \"").append(dbDef.get(MirrorConf.COMMENT)).append("\"\n");
                             }
-                            if (location != null) {
-                                sbL.append(MirrorConf.DB_LOCATION).append(" \"").append(location).append("\"\n");
-                            }
-                            if (managedLocation != null) {
-                                sbL.append(MirrorConf.DB_MANAGED_LOCATION).append(" \"").append(managedLocation).append("\"\n");
-                            }
                             // TODO: DB Properties.
                             this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.CREATE_DB_DESC, sbL.toString()));
+
+                            if (location != null) {
+                                String alterDbLoc = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, location);
+                                this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDbLoc));
+                            }
+                            if (managedLocation != null) {
+                                String alterDbMngdLoc = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, managedLocation);
+                                this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
+                            }
 
                             break;
                         case DUMP:

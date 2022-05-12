@@ -628,7 +628,7 @@ public class TableUtils {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Checking if table '" + tableName + "' is 'Partitioned'");
         if (tableDefinition == null) {
-            throw new RuntimeException("Table definition for " + tableName + " is null.");
+            return rtn;
         }
         for (String line : tableDefinition) {
             if (line != null && line.startsWith(PARTITIONED_BY)) {

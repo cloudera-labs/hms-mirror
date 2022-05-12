@@ -4,6 +4,7 @@ public class StorageMigration {
 
     private DataStrategy strategy = DataStrategy.SQL;
     private Boolean distcp = Boolean.FALSE;
+    private DistcpFlow dataFlow = DistcpFlow.PULL;
 
     public DataStrategy getStrategy() {
         return strategy;
@@ -19,6 +20,14 @@ public class StorageMigration {
             default:
                 throw new RuntimeException("Invalid strategy for STORAGE_MIGRATION");
         }
+    }
+
+    public DistcpFlow getDataFlow() {
+        return dataFlow;
+    }
+
+    public void setDataFlow(DistcpFlow dataFlow) {
+        this.dataFlow = dataFlow;
     }
 
     public Boolean isDistcp() {

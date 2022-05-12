@@ -84,10 +84,14 @@ public class TransferConfig {
     }
 
     public void setCommonStorage(String commonStorage) {
-        this.commonStorage = commonStorage.trim();
-        if (this.commonStorage.endsWith("/")) {
-            // Remove trailing slash.
-            this.commonStorage = this.commonStorage.substring(0,this.commonStorage.length()-1);
+        if (commonStorage != null) {
+            this.commonStorage = commonStorage.trim();
+            if (this.commonStorage.endsWith("/")) {
+                // Remove trailing slash.
+                this.commonStorage = this.commonStorage.substring(0, this.commonStorage.length() - 1);
+            }
+        } else {
+            this.commonStorage = null;
         }
     }
 

@@ -67,7 +67,13 @@ public class EnvironmentTable {
     }
 
     public Boolean getPartitioned() {
-        return partitions.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
+        Boolean rtn = Boolean.FALSE;
+        rtn = partitions.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
+        if (!rtn) {
+            // Check the definition incase the partitions are empty.
+            rtn = TableUtils.isPartitioned(getName(), getDefinition());
+        }
+        return rtn;
     }
 
     public List<String> getPartitions() {

@@ -559,7 +559,6 @@ public class TableMirror {
         EnvironmentTable let = null;
         EnvironmentTable ret = null;
         EnvironmentTable set = null;
-        CopySpec copySpec = null;
 
         let = getEnvironmentTable(Environment.LEFT);
         ret = getEnvironmentTable(Environment.RIGHT);
@@ -574,50 +573,54 @@ public class TableMirror {
             return Boolean.FALSE;
         }
 
-        // Create a 'shadow' table definition on right cluster pointing to the left data.
-        copySpec = new CopySpec(config, Environment.LEFT, Environment.SHADOW);
+        if (config.getTransfer().getCommonStorage() == null) {
+            CopySpec shadowSpec = null;
 
-        if (config.convertManaged())
-            copySpec.setUpgrade(Boolean.TRUE);
+            // Create a 'shadow' table definition on right cluster pointing to the left data.
+            shadowSpec = new CopySpec(config, Environment.LEFT, Environment.SHADOW);
 
-        // Don't claim data.  It will be in the LEFT cluster, so the LEFT owns it.
-        copySpec.setTakeOwnership(Boolean.FALSE);
+            if (config.convertManaged())
+                shadowSpec.setUpgrade(Boolean.TRUE);
 
-        // Create table with alter name in RIGHT cluster.
-        copySpec.setTableNamePrefix(config.getTransfer().getTransferPrefix());
+            // Don't claim data.  It will be in the LEFT cluster, so the LEFT owns it.
+            shadowSpec.setTakeOwnership(Boolean.FALSE);
 
-        if (ret.getExists()) {
-            // Already exists, no action.
-            ret.addIssue("Schema exists already, no action.  If you wish to rebuild the schema, " +
-                    "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
-            ret.setCreateStrategy(CreateStrategy.LEAVE);
-            return Boolean.FALSE;
-        } else {
-            ret.addIssue("Schema will be created");
-            ret.setCreateStrategy(CreateStrategy.CREATE);
+            // Create table with alter name in RIGHT cluster.
+            shadowSpec.setTableNamePrefix(config.getTransfer().getShadowPrefix());
+
+            if (ret.getExists()) {
+                // Already exists, no action.
+                ret.addIssue("Schema exists already, no action.  If you wish to rebuild the schema, " +
+                        "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
+                ret.setCreateStrategy(CreateStrategy.LEAVE);
+                return Boolean.FALSE;
+            } else {
+                ret.addIssue("Schema will be created");
+                ret.setCreateStrategy(CreateStrategy.CREATE);
+            }
+
+            // Build Shadow from Source.
+            rtn = buildTableSchema(shadowSpec);
         }
-
-        // Build Shadow from Source.
-        rtn = buildTableSchema(copySpec);
 
         // Create final table in right.
-        copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
+        CopySpec rightSpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
 
         // Swap out the namespace of the LEFT with the RIGHT.
-        copySpec.setReplaceLocation(Boolean.TRUE);
+        rightSpec.setReplaceLocation(Boolean.TRUE);
         if (TableUtils.isManaged(let) && config.convertManaged()) {
-            copySpec.setUpgrade(Boolean.TRUE);
+            rightSpec.setUpgrade(Boolean.TRUE);
         } else {
-            copySpec.setMakeExternal(Boolean.TRUE);
+            rightSpec.setMakeExternal(Boolean.TRUE);
         }
         if (config.isReadOnly()) {
-            copySpec.setTakeOwnership(Boolean.FALSE);
+            rightSpec.setTakeOwnership(Boolean.FALSE);
         } else if (TableUtils.isManaged(let)){
-            copySpec.setTakeOwnership(Boolean.TRUE);
+            rightSpec.setTakeOwnership(Boolean.TRUE);
         }
 
         // Rebuild Target from Source.
-        rtn = buildTableSchema(copySpec);
+        rtn = buildTableSchema(rightSpec);
 
         return rtn;
     }
@@ -705,7 +708,11 @@ public class TableMirror {
             // ACID
             if (config.getMigrateACID().isDowngrade()) {
                 if (config.getTransfer().getCommonStorage() == null) {
-                    rightSpec.setStripLocation(Boolean.TRUE);
+                    if (config.getTransfer().getStorageMigration().isDistcp()) {
+                        rightSpec.setReplaceLocation(Boolean.TRUE);
+                    } else {
+                        rightSpec.setStripLocation(Boolean.TRUE);
+                    }
                 } else {
                     rightSpec.setReplaceLocation(Boolean.TRUE);
                 }
@@ -793,16 +800,24 @@ public class TableMirror {
             rtn = buildTableSchema(transferSpec);
 
         // Build Shadow Spec (don't build when using commonStorage)
-        CopySpec shadowSpec = new CopySpec(config, Environment.LEFT, Environment.SHADOW);
-        shadowSpec.setUpgrade(Boolean.TRUE);
-        shadowSpec.setMakeExternal(Boolean.TRUE);
-        shadowSpec.setTakeOwnership(Boolean.FALSE);
-        shadowSpec.setReplaceLocation(Boolean.TRUE);
-        shadowSpec.setTableNamePrefix(config.getTransfer().getShadowPrefix());
+        // If acid and ma.isOn
+            // if not downgrade
+        if (TableUtils.isACID(let) && config.getMigrateACID().isOn()) {
+            if (!config.getMigrateACID().isDowngrade()) {
+//        if (!config.getTransfer().getStorageMigration().isDistcp() ||
+//                (config.getMigrateACID().isOn() && TableUtils.isACID(let)
+//                        && !config.getMigrateACID().isDowngrade())) {
+                CopySpec shadowSpec = new CopySpec(config, Environment.LEFT, Environment.SHADOW);
+                shadowSpec.setUpgrade(Boolean.TRUE);
+                shadowSpec.setMakeExternal(Boolean.TRUE);
+                shadowSpec.setTakeOwnership(Boolean.FALSE);
+                shadowSpec.setReplaceLocation(Boolean.TRUE);
+                shadowSpec.setTableNamePrefix(config.getTransfer().getShadowPrefix());
 
-        if (rtn)
-            rtn = buildTableSchema(shadowSpec);
-
+                if (rtn)
+                    rtn = buildTableSchema(shadowSpec);
+            }
+        }
         return rtn;
     }
 
@@ -1027,22 +1042,25 @@ public class TableMirror {
 
         ret.getSql().clear();
 
-        // RIGHT SHADOW Table
         database = config.getResolvedDB(dbMirror.getName());
         useDb = MessageFormat.format(MirrorConf.USE, database);
 
         ret.addSql(TableUtils.USE_DESC, useDb);
-        // Drop any previous SHADOW table, if it exists.
-        String dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
-        ret.addSql(TableUtils.DROP_DESC, dropStmt);
 
-        // Create Shadow Table
-        String shadowCreateStmt = getCreateStatement(Environment.SHADOW);
-        ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
-        // Repair Partitions
-        if (let.getPartitioned()) {
-            String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
-            ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
+        String dropStmt = null;
+        // Create RIGHT Shadow Table
+        if (set.getDefinition().size() > 0) {
+            // Drop any previous SHADOW table, if it exists.
+            dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
+            ret.addSql(TableUtils.DROP_DESC, dropStmt);
+
+            String shadowCreateStmt = getCreateStatement(Environment.SHADOW);
+            ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
+            // Repair Partitions
+            if (let.getPartitioned()) {
+                String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
+                ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
+            }
         }
 
         // RIGHT Final Table
@@ -1135,13 +1153,13 @@ public class TableMirror {
         String transferCreateStmt = getCreateStatement(Environment.TRANSFER);
         let.addSql(TableUtils.CREATE_TRANSFER_DESC, transferCreateStmt);
 
+        database = config.getResolvedDB(dbMirror.getName());
+        useDb = MessageFormat.format(MirrorConf.USE, database);
+        ret.addSql(TableUtils.USE_DESC, useDb);
 
         // RIGHT SHADOW Table
-        if (config.getTransfer().getCommonStorage() == null || !config.getMigrateACID().isDowngrade()) {
-            database = config.getResolvedDB(dbMirror.getName());
-            useDb = MessageFormat.format(MirrorConf.USE, database);
+        if (set.getDefinition().size() > 0) { //config.getTransfer().getCommonStorage() == null || !config.getMigrateACID().isDowngrade()) {
 
-            ret.addSql(TableUtils.USE_DESC, useDb);
             // Drop any previous SHADOW table, if it exists.
             String dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
             ret.addSql(TableUtils.DROP_DESC, dropStmt);

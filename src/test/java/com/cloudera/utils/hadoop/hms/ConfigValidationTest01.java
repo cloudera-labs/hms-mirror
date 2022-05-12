@@ -16,6 +16,7 @@
 
 package com.cloudera.utils.hadoop.hms;
 
+import com.cloudera.utils.hadoop.hms.mirror.MessageCode;
 import com.cloudera.utils.hadoop.hms.mirror.Pair;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -28,17 +29,14 @@ import java.util.List;
 import static com.cloudera.utils.hadoop.hms.TestSQL.*;
 import static org.junit.Assert.assertTrue;
 
-public class LegacyExpImpDataMigrationTest extends MirrorTestBase {
-
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-        dataCleanup(Boolean.FALSE);
-    }
-
+public class ConfigValidationTest01 extends MirrorTestBase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
         DataState.getInstance().setConfiguration(HDP2_CDP);
+        if (DataState.getInstance().getPopulate() == null) {
+            DataState.getInstance().setPopulate(Boolean.FALSE);
+        }
         dataSetup01();
     }
 
@@ -47,103 +45,87 @@ public class LegacyExpImpDataMigrationTest extends MirrorTestBase {
         dataCleanup(Boolean.TRUE);
     }
 
+    @AfterClass
+    public static void tearDownClass() throws Exception {
+        dataCleanup(Boolean.FALSE);
+    }
+
     @Test
-    public void test_acid_exp_imp() {
+    public void test_so() {
+        DataState.getInstance().setConfiguration(HDP2_CDP);
+
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = outputDirBase + nameofCurrMethod;
 
-        String[] args = new String[]{"-d", "EXPORT_IMPORT", "-db", DataState.getInstance().getWorking_db(),
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-d", "SCHEMA_ONLY",
+                "-f",
+                "-o", outputDir,
+                "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = MessageCode.LEGACY_TO_NON_LEGACY.getLong();
+//        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_STRATEGY.getLong();
+//        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
+
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+    }
+
+    @Test
+    public void test_acid_sql_da_distcp_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
                 "-mao",
+                "-da",
+                "--distcp",
                 "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
         args = toExecute(args, execArgs, Boolean.FALSE);
 
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        long check = MessageCode.SQL_ACID_DA_DISTCP_WO_EXT_WAREHOUSE.getLong();
+//        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_STRATEGY.getLong();
+//        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
+
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+
     }
 
     @Test
-    public void test_acid_exp_imp_da() {
+    public void test_acid_sql_distcp_leg() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = outputDirBase + nameofCurrMethod;
 
-        String[] args = new String[]{"-d", "EXPORT_IMPORT", "-db", DataState.getInstance().getWorking_db(),
-                "-mao", "-da",
+        String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
+                "-mao",
+                "--distcp",
+                "-ewd", "/warehouse/external",
                 "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
         args = toExecute(args, execArgs, Boolean.FALSE);
 
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
-        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
-    }
 
-    @Test
-    public void test_acid_exp_imp_da_is() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
+        long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
+//        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_STRATEGY.getLong();
+//        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
 
-        String outputDir = outputDirBase + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "EXPORT_IMPORT", "-db", DataState.getInstance().getWorking_db(),
-                "-mao", "-da", "-is", intermediate_storage,
-                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-        args = toExecute(args, execArgs, Boolean.FALSE);
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        int check = 0;
-        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
-    }
-
-    @Test
-    public void test_exp_imp() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = outputDirBase + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "EXPORT_IMPORT", "-db", DataState.getInstance().getWorking_db(),
-                "-sql", "-o", outputDir,
-                "-cfg", DataState.getInstance().getConfiguration()};
-        args = toExecute(args, execArgs, Boolean.FALSE);
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        int check = 0;
-        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
-    }
-
-    @Test
-    public void test_exp_imp_is() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = outputDirBase + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "EXPORT_IMPORT", "-db", DataState.getInstance().getWorking_db(),
-                "-sql", "-is", intermediate_storage, "-o", outputDir,
-                "-cfg", DataState.getInstance().getConfiguration()};
-        args = toExecute(args, execArgs, Boolean.FALSE);
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        int check = 0;
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 

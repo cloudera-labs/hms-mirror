@@ -12,6 +12,7 @@ public class DataState {
     protected Boolean dataCreated = Boolean.FALSE;
     protected Boolean execute = Boolean.FALSE;
     protected Boolean cleanUp = Boolean.TRUE;
+    protected Boolean populate = null;
 
     protected String working_db = null;
     protected String table_filter = null;
@@ -65,6 +66,14 @@ public class DataState {
 
     public Boolean isCleanUp() {
         return cleanUp;
+    }
+
+    public Boolean getPopulate() {
+        return populate;
+    }
+
+    public void setPopulate(Boolean populate) {
+        this.populate = populate;
     }
 
     public Boolean isDataCreated() {

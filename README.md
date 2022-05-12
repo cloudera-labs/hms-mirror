@@ -177,6 +177,61 @@ We use a cross-cluster technique to back metadata in the RIGHT cluster with data
 
 See [Linking Clusters Storage Layers](#linking-clusters-storage-layers) for details on configuring this state.
 
+## Where to Run `hms-mirror`
+
+While each scenario is a bit different, `hms-mirror` and the workflow produced by it expects a few things to be in place in order for it to execute.
+
+First, check the section on [Connections](#connections) for details about the type of connections needed.
+
+The general pattern for 'On-Prem' side-car migrations is to run `hms-mirror` on an 'upstream' (RIGHT) clusters edge-node.  For scenarios that don't use `-is|--intermediate-storage` or `-cs|common-storage` it is expected that the clusters have:
+
+- Line of Site
+- Participate in the Same Security Realm
+- Permissions for the RIGHT clusters running user has the necessary access to the LEFT clusters Hive tables and Storage platform.
+
+And some scenarios like: LINKED, HYBRID, SQL, and EXPORT_IMPORT will need to clusters to [Linking Clusters Storage Layers](#linking-clusters-storage-layers).
+
+For 'On-Prem' to Cloud Migrations, `hms-mirror` is run on the LEFT On-prem Cluster.  Cloud environments typically do NOT have access 'down' into private corporate networks and can't establish line of site.  But the 'on-prem' cluster can be configured (networking) to have line of site to the Cloud environment.
+
+It is also common that the 'on-prem' cluster will NOT have access to the Cloud environments final storage location.  But we do require that `hms-mirror` be able to reach and communicate with the Cloud environments JDBC endpoint.
+
+In these scenarios the options for `-s|--intermediate-storage` and `-cs|common-storage` provide a path and workflow to transition the data.
+
+`hms-mirror` does have the ability to move data through the Hive interface.  It does NOT have the ability to move data between filesystems directly.  But it will build out `distcp` workplans that you'll run to handle the data movement.  As we mentioned earlier, `hms-mirror` and it's workflows general work from the 'upstream' (RIGHT) cluster.  When `distcp` is used, we would call this plan a `PULL` model.  `distcp` is run from the RIGHT cluster and the data is `PULL`ed from the LEFT.
+
+For On-Prem to Cloud migrations, we typically use a `PUSH` model because that is the only avenue to establish line of site.
+
+### Default Workflow Patterns and Where to Run From
+
+#### Run On - Dataflow Model
+
+| <br/>LEFT   | RIGHT<br/>.    | On-Prem<br/>Legacy | <br/>Non-Legacy | Cloud<br/>PaaS/SaaS |
+|:------------|:---------------|:------------------:|:---------------:|:-------------------:|
+| **On-Prem** | **Legacy**     |    RIGHT - PULL    |  RIGHT - PULL   |     LEFT - PUSH     |
+|             | **Non-Legacy** |      INVALID       |  RIGHT - PULL   |     LEFT - PUSH     |
+| **Cloud**   | **PaaS/SaaS**  |      INVALID       |  RIGHT - PULL   |    RIGHT - PULL     |
+
+### `--intermediate-storage` Workflow Patterns and Where to Run From
+
+#### Run On - Dataflow Model
+
+| <br/>LEFT   | RIGHT<br/>.    | On-Prem<br/>Legacy  |   <br/>Non-Legacy   | Cloud<br/>PaaS/SaaS |
+|:------------|:---------------|:-------------------:|:-------------------:|:-------------------:|
+| **On-Prem** | **Legacy**     | RIGHT - PUSH / PULL | RIGHT - PUSH / PULL | LEFT - PUSH / PULL  |
+|             | **Non-Legacy** |       INVALID       | RIGHT - PUSH / PULL | LEFT - PUSH / PULL  |
+| **Cloud**   | **PaaS/SaaS**  |       INVALID       | RIGHT - PUSH / PULL | RIGHT - PUSH / PULL |
+
+### `--common-storage` Workflow Patterns and Where to Run From
+
+#### Run On - Dataflow Model
+
+| <br/>LEFT   | RIGHT<br/>.    | On-Prem<br/>Legacy  |   <br/>Non-Legacy   | Cloud<br/>PaaS/SaaS |
+|:------------|:---------------|:-------------------:|:-------------------:|:-------------------:|
+| **On-Prem** | **Legacy**     | RIGHT - PUSH / PULL | RIGHT - PUSH / PULL | LEFT - PUSH / PULL  |
+|             | **Non-Legacy** |       INVALID       | RIGHT - PUSH / PULL | LEFT - PUSH / PULL  |
+| **Cloud**   | **PaaS/SaaS**  |       INVALID       | RIGHT - PUSH / PULL | RIGHT - PUSH / PULL |
+
+
 ## Features
 
 `hms-mirror` is designed to migrate schema definitions from one cluster to another or simply provide an extract of the schemas via `-d DUMP`.
@@ -198,7 +253,7 @@ This flag is an `OR` for processing VIEW's `OR` TABLE's.  They are NOT processed
 
 ### ACID Tables
 
-`hms-mirror` supports the migration of ACID tables using the `-d HYBRID` data strategy in combination with the `-ma|--migrate-acid` or `-mao|--migrate-acid-only` flag.   You can also simply 'replay' the schema definition (without data) using `-d SCHEMA_ONLY -ma|-mao`.  The `-ma|-mao` flag takes an *optional* integer value that sets an 'Artificial Bucket Threshold'.  When no parameter is specified, the default is `2`.
+`hms-mirror` supports the migration of ACID tables using the `-d HYBRID|SQL|EXPORT_IMPORT` data strategy in combination with the `-ma|--migrate-acid` or `-mao|--migrate-acid-only` flag.   You can also simply 'replay' the schema definition (without data) using `-d SCHEMA_ONLY -ma|-mao`.  The `-ma|-mao` flag takes an *optional* integer value that sets an 'Artificial Bucket Threshold'.  When no parameter is specified, the default is `2`.
 
 Use this value to set a bucket limit where we'll *remove* the bucket definition during the translation.  This is helpful for legacy ACID tables which *required* a bucket definition but weren't a part of the intended design.  The migration provides an opportunity to correct this artificial design element.
 

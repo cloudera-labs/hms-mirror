@@ -34,8 +34,8 @@ public enum Environment {
     /*
     Abstractions from LEFT and RIGHT for use internally.
      */
-    LEFT(Boolean.FALSE),
-    RIGHT(Boolean.FALSE);
+    LEFT(Boolean.TRUE),
+    RIGHT(Boolean.TRUE);
 
     private Boolean visible;
 
