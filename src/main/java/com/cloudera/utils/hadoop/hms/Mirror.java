@@ -790,6 +790,7 @@ public class Mirror {
                             StringBuilder distcpWorkbookSb = new StringBuilder();
                             StringBuilder distcpScriptSb = new StringBuilder();
 
+                            distcpScriptSb.append("#!/usr/bin/env sh").append("\n");
                             distcpScriptSb.append("\n");
                             distcpScriptSb.append("# 1. Copy the source '*_distcp_source.txt' files to the distributed filesystem.").append("\n");
                             distcpScriptSb.append("# 2. Export an env var 'HCFS_BASE_DIR' that represents where these files where placed.").append("\n");
@@ -800,7 +801,18 @@ public class Mirror {
                             distcpScriptSb.append("#       These aren't necessarily expected to run in this shell script as is in production.").append("\n");
                             distcpScriptSb.append("\n");
                             distcpScriptSb.append("\n");
-
+                            distcpScriptSb.append("if [ -z ${HCFS_BASE_DIR+x} ]; then").append("\n");
+                            distcpScriptSb.append("  echo \"HCFS_BASE_DIR is unset\"").append("\n");
+                            distcpScriptSb.append("  echo \"What is the 'HCFS_BASE_DIR':\"").append("\n");
+                            distcpScriptSb.append("  read HCFS_BASE_DIR").append("\n");
+                            distcpScriptSb.append("  echo \"HCFS_BASE_DIR is set to '$HCFS_BASE_DIR'\"").append("\n");
+                            distcpScriptSb.append("else").append("\n");
+                            distcpScriptSb.append("  echo \"HCFS_BASE_DIR is set to '$HCFS_BASE_DIR'\"").append("\n");
+                            distcpScriptSb.append("fi").append("\n");
+                            distcpScriptSb.append("\n");
+                            distcpScriptSb.append("echo \"Creating HCFS directory: $HCFS_BASE_DIR\"").append("\n");
+                            distcpScriptSb.append("hdfs dfs -mkdir -p $HCFS_BASE_DIR").append("\n");
+                            distcpScriptSb.append("\n");
 
                             distcpWorkbookSb.append("| Database | Target | Sources |\n");
                             distcpWorkbookSb.append("|:---|:---|:---|\n");
@@ -826,9 +838,19 @@ public class Mirror {
                                     }
                                     line.append(" | ").append("\n");
                                     distcpWorkbookSb.append(line.toString());
+
+                                    distcpScriptSb.append("\n");
+                                    distcpScriptSb.append("echo \"Copying 'distcp' source file to $HCFS_BASE_DIR\"").append("\n");
+                                    distcpScriptSb.append("hdfs dfs -copyFromLocal -f merge_files_migrate_RIGHT_1_distcp_source.txt $HCFS_BASE_DIR").append("\n");
+                                    distcpScriptSb.append("\n");
+                                    distcpScriptSb.append("hdfs dfs -copyFromLocal -f " + distcpSourceFile + " ${HCFS_BASE_DIR}").append("\n");
+                                    distcpScriptSb.append("\n");
+                                    distcpScriptSb.append("echo \"Running 'distcp'\"").append("\n");
                                     distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} -f ${HCFS_BASE_DIR}/" + distcpSourceFile + " " +
-                                            dbMap.getKey() + "\n");
+                                            dbMap.getKey() + "\n").append("\n");
+
                                     distcpSourceFW.close();
+
                                     dcFound = Boolean.TRUE;
                                 }
                             }

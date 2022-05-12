@@ -392,7 +392,7 @@ public class Config {
 
     public void setDataStrategy(DataStrategy dataStrategy) {
         this.dataStrategy = dataStrategy;
-        if (this.dataStrategy == DataStrategy.DUMP) {
+        if (this.dataStrategy != null && this.dataStrategy == DataStrategy.DUMP) {
             this.getMigrateACID().setOn(Boolean.TRUE);
             this.getMigrateVIEW().setOn(Boolean.TRUE);
             this.setMigratedNonNative(Boolean.TRUE);
