@@ -2,6 +2,8 @@
 
 ### SQL
 
+The **SQL** data strategy will use Hive SQL to move data between clusters.  When the cluster don't have direct line of sight to each other and can NOT be [linked](../README.md#linking-clusters-storage-layers), you can use options like `-cs` or `-is` to bridge the gap.
+
 #### Options
 
 ##### `-ma|--migrate-acid` or `-mao|--migrate-acid-only`
@@ -36,7 +38,7 @@ Are used to set the *databases* default locations for managed and external table
 
 ##### `-rdl|--reset-to-default-location`
 
-Regardless of where the source data _relative_ location is on the filesystem, this will reset it to the default location.
+Regardless of where the source data _relative_ location was on the filesystem, this will reset it to the default location on the new cluster.
 
 If `-dc|--distcp` is used, then the `warehouse` options are required in order for `hms-mirror` to build the `distcp` workplan.
 

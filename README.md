@@ -1225,12 +1225,6 @@ The process is complete with a markdown report location at the bottom of the out
 
 The report location is displayed at the bottom of the application window when it's complete.
 
-### Action Report for LEFT and RIGHT Clusters
-
-Under certain conditions, additional actions may be required to achieve the desired 'mirror' state.  An output script for each cluster is created with these actions.  These actions are NOT run by `hms-mirror.`  They should be reviewed and understood by the owner of the dataset being `mirrored` and run when appropriate.
-
-The locations are displayed at the bottom of the application window when it's complete.
-
 ### SQL Execution Output
 
 A SQL script of all the actions taken will be written to the local output directory.

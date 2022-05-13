@@ -269,10 +269,11 @@ public class Transfer implements Callable<ReturnStatus> {
                         String transferDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, let.getPartitions().size());
                         ret.addSql(new Pair(transferDesc, transferSql));
                     } else {
-                        if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
-                            ret.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=false");
-                            ret.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
-                        }
+                        // Don't set, use system values.  May cause issues in some configs and older Hive 3.
+//                        if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
+//                            ret.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=false");
+//                            ret.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+//                        }
                         String partElement = TableUtils.getPartitionElements(let);
                         String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
                                 set.getName(), ret.getName(), partElement);
@@ -351,10 +352,11 @@ public class Transfer implements Callable<ReturnStatus> {
                     String transferDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, let.getPartitions().size());
                     let.addSql(new Pair(transferDesc, transferSql));
                 } else {
-                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
-                        let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=false");
-                        let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
-                    }
+                    // Don't set this.  Allow for system values.  And old Hive 3 has issues setting this and may cause error.
+//                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+//                        let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=false");
+//                        let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+//                    }
                     String partElement = TableUtils.getPartitionElements(let);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
                             let.getName(), tet.getName(), partElement);
@@ -408,10 +410,11 @@ public class Transfer implements Callable<ReturnStatus> {
                             String transferDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, let.getPartitions().size());
                             ret.addSql(new Pair(transferDesc, shadowTransferSql));
                         } else {
-                            if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
-                                ret.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=false");
-                                ret.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
-                            }
+                            // Don't set, use system settings.  Setting values may cause exception in some environments.
+//                            if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
+//                                ret.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=false");
+//                                ret.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+//                            }
                             String partElement = TableUtils.getPartitionElements(let);
                             String shadowTransferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
                                     set.getName(), ret.getName(), partElement);
@@ -560,10 +563,11 @@ public class Transfer implements Callable<ReturnStatus> {
                     String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
                     ret.addSql(new Pair(transferDesc, transferSql));
                 } else {
-                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
-                        let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=false");
-                        let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
-                    }
+                    // Don't set, causes issues in older Hive 3.
+//                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+//                        let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=false");
+//                        let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+//                    }
                     String partElement = TableUtils.getPartitionElements(let);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
                             let.getName(), ret.getName(), partElement);
