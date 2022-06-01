@@ -65,6 +65,7 @@ public enum MessageCode {
     SQL_DISTCP_ACID_W_STORAGE_OPTS (33, "SQL Strategy with `distcp` is only valid for ACID table transfers NOT using " +
             "storage options `-is` or `-cs`.  `distcp` is NOT required since the data has already been moved while preparing " +
             "the ACID table."),
+    PASSWORD_DECRYPT_ISSUE(34, "Password Decrypt Issue."),
 //    SQL_DISTCP_ONLY_W_DA_ACID (34, "SQL Strategy with `distcp` is only valid for ACID table transfers.  " +
 //            "Use SCHEMA_ONLY from External and Legacy Managed (Non-Transactional) tables."),
 

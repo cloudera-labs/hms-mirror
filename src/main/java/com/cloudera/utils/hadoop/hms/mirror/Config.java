@@ -813,6 +813,13 @@ public class Config {
             }
 
         }
+
+        if (rtn) {
+            // Last check for errors.
+            if (errors.getReturnCode() != 0) {
+                rtn = Boolean.FALSE;
+            }
+        }
         return rtn;
     }
 

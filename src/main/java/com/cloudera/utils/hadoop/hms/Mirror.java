@@ -432,16 +432,20 @@ public class Mirror {
                     Cluster cluster = config.getCluster(env);
                     if (cluster != null) {
                         HiveServer2Config hiveServer2Config = cluster.getHiveServer2();
-                        Properties props = hiveServer2Config.getConnectionProperties();
-                        String password = props.getProperty("password");
-                        if (password != null) {
-                            try {
-                                String decryptedPassword = protect.decrypt(password);
-                                props.put("password", decryptedPassword);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                System.err.println("Issue decrypting password");
-                                System.exit(-1);
+                        // Don't process shadow, transfer clusters.
+                        if (hiveServer2Config != null) {
+                            Properties props = hiveServer2Config.getConnectionProperties();
+                            String password = props.getProperty("password");
+                            if (password != null) {
+                                try {
+                                    String decryptedPassword = protect.decrypt(password);
+                                    props.put("password", decryptedPassword);
+                                } catch (Exception e) {
+                                    config.getErrors().set(MessageCode.PASSWORD_DECRYPT_ISSUE.getCode());
+//                                    e.printStackTrace();
+                                    System.err.println("Issue decrypting password");
+//                                    System.exit(-1);
+                                }
                             }
                         }
                     }
@@ -1321,7 +1325,7 @@ public class Mirror {
                 "Used this in conjunction with '-pkey' to generate the encrypted password that you'll add to the configs for the JDBC connections.");
         pwOption.setRequired(Boolean.FALSE);
         pwOption.setArgName("password");
-        options.addOption(pwOption);
+//        options.addOption(pwOption);
 
         Option setupOption = new Option("su", "setup", false,
                 "Setup a default configuration file through a series of questions");
@@ -1331,13 +1335,13 @@ public class Mirror {
                 "The key used to encrypt / decrypt the cluster jdbc passwords.  If not present, the passwords will be processed as is (clear text) from the config file.");
         pKeyOption.setRequired(false);
         pKeyOption.setArgName("password-key");
-//        options.addOption(pKeyOption);
+        options.addOption(pKeyOption);
 
         OptionGroup dbGroup = new OptionGroup();
         dbGroup.addOption(dbOption);
         dbGroup.addOption(helpOption);
         dbGroup.addOption(setupOption);
-        dbGroup.addOption(pKeyOption);
+        dbGroup.addOption(pwOption);
         dbGroup.setRequired(Boolean.TRUE);
         options.addOptionGroup(dbGroup);
 

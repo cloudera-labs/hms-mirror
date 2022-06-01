@@ -388,5 +388,4 @@ public class ConfigValidationTest extends MirrorTestBase {
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
-
 }

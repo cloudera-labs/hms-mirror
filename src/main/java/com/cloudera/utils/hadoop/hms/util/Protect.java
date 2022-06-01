@@ -101,7 +101,7 @@ public class Protect {
      * @param text
      * @return plainText
      */
-    public String decrypt(String text)  {
+    public String decrypt(String text) throws RuntimeException {
         String plainText = null;
         byte[] ciphertext = DatatypeConverter.parseBase64Binary(text);
 
@@ -117,9 +117,9 @@ public class Protect {
         try {
             message = cipher.doFinal(ciphertext);
         } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         } catch (BadPaddingException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         plainText = new String(message);
 

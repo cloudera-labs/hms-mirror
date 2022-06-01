@@ -19,6 +19,7 @@ public class MirrorTestBase {
     protected static final String HDP2_CDP = "default.yaml.hdp2-cdp";
     protected static final String CDP_CDP = "default.yaml.cdp-cdp";
     protected static final String CDP = "default.yaml.cdp";
+    protected static final String CDP_ENCRYPT = "default.yaml.cdp.encrypted";
     protected static final String CDP_HDP2 = "default.yaml.cdp-hdp2";
 
     protected static final String[] execArgs = {"-e", "--accept"};
