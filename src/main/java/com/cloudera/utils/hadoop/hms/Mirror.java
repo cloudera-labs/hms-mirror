@@ -1327,10 +1327,17 @@ public class Mirror {
                 "Setup a default configuration file through a series of questions");
         setupOption.setRequired(Boolean.FALSE);
 
+        Option pKeyOption = new Option("pkey", "password-key", true,
+                "The key used to encrypt / decrypt the cluster jdbc passwords.  If not present, the passwords will be processed as is (clear text) from the config file.");
+        pKeyOption.setRequired(false);
+        pKeyOption.setArgName("password-key");
+//        options.addOption(pKeyOption);
+
         OptionGroup dbGroup = new OptionGroup();
         dbGroup.addOption(dbOption);
         dbGroup.addOption(helpOption);
         dbGroup.addOption(setupOption);
+        dbGroup.addOption(pKeyOption);
         dbGroup.setRequired(Boolean.TRUE);
         options.addOptionGroup(dbGroup);
 
@@ -1369,13 +1376,6 @@ public class Mirror {
         cfgOption.setRequired(false);
         cfgOption.setArgName("filename");
         options.addOption(cfgOption);
-
-        Option pKeyOption = new Option("pkey", "password-key", true,
-                "The key used to encrypt / decrypt the cluster jdbc passwords.  If not present, the passwords will be processed as is (clear text) from the config file.");
-        pKeyOption.setRequired(false);
-        pKeyOption.setArgName("password-key");
-        options.addOption(pKeyOption);
-
 
         return options;
     }
