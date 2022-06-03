@@ -845,7 +845,6 @@ public class Mirror {
 
                                     distcpScriptSb.append("\n");
                                     distcpScriptSb.append("echo \"Copying 'distcp' source file to $HCFS_BASE_DIR\"").append("\n");
-                                    distcpScriptSb.append("hdfs dfs -copyFromLocal -f merge_files_migrate_RIGHT_1_distcp_source.txt $HCFS_BASE_DIR").append("\n");
                                     distcpScriptSb.append("\n");
                                     distcpScriptSb.append("hdfs dfs -copyFromLocal -f " + distcpSourceFile + " ${HCFS_BASE_DIR}").append("\n");
                                     distcpScriptSb.append("\n");
