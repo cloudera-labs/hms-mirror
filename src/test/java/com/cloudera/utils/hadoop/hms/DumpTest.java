@@ -16,7 +16,6 @@
 
 package com.cloudera.utils.hadoop.hms;
 
-import com.cloudera.utils.hadoop.hms.mirror.MessageCode;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -24,11 +23,11 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
-public class ConfigValidationFromLegacyTest extends MirrorTestBase {
+public class DumpTest extends MirrorTestBase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        DataState.getInstance().setConfiguration(HDP2_CDP);
+        DataState.getInstance().setConfiguration(CDP);
         if (DataState.getInstance().getPopulate() == null) {
             DataState.getInstance().setPopulate(Boolean.FALSE);
         }
@@ -46,7 +45,7 @@ public class ConfigValidationFromLegacyTest extends MirrorTestBase {
     }
 
     @Test
-    public void test_dump_flip_01() {
+    public void test_dump_01() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -55,7 +54,6 @@ public class ConfigValidationFromLegacyTest extends MirrorTestBase {
 
         String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
                 "-d", "DUMP", "-o", outputDir,
-                "-f",
                 "-cfg", DataState.getInstance().getConfiguration()};
         args = toExecute(args, execArgs, Boolean.FALSE);
 
@@ -67,5 +65,5 @@ public class ConfigValidationFromLegacyTest extends MirrorTestBase {
 
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
-    
+
 }

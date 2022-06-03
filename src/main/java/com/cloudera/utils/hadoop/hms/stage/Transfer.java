@@ -709,7 +709,7 @@ public class Transfer implements Callable<ReturnStatus> {
             }
 
             // Execute the RIGHT sql if config.execute.
-            if (rtn) {
+            if (rtn && tblMirror.getStrategy() != DataStrategy.DUMP) {
                 rtn = config.getCluster(Environment.RIGHT).runTableSql(tblMirror);
             }
 
