@@ -785,8 +785,17 @@ public class Mirror {
 
                 if (config.canDeriveDistcpPlan()) {
                     try {
-                        Environment[] environments = new Environment[]{Environment.LEFT, Environment.RIGHT};
-//                        for (String database : config.getDatabases()) {
+                        Environment[] environments = null;
+                        switch (config.getDataStrategy()) {
+
+                            case DUMP:
+                            case STORAGE_MIGRATION:
+                                environments = new Environment[]{Environment.LEFT};
+                                break;
+                            default:
+                                environments = new Environment[]{Environment.LEFT, Environment.RIGHT};
+                                break;
+                        }
 
                         for (Environment distcpEnv : environments) {
                             Boolean dcFound = Boolean.FALSE;
