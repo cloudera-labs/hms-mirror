@@ -397,25 +397,4 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         int check = 0;
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
-
-    @Test
-    public void test_sql_leg() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = outputDirBase + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
-                "-sql",
-                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-        args = toExecute(args, execArgs, Boolean.FALSE);
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        int check = 0;
-        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
-    }
-
 }

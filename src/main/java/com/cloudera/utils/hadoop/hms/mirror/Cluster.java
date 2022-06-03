@@ -299,7 +299,7 @@ public class Cluster implements Comparable<Cluster> {
                     resultSet = stmt.executeQuery(showStatement);
                     List<String> tblDef = new ArrayList<String>();
                     while (resultSet.next()) {
-                        tblDef.add(resultSet.getString(1));
+                        tblDef.add(resultSet.getString(1).trim());
                     }
 
                     et.setDefinition(tblDef);
