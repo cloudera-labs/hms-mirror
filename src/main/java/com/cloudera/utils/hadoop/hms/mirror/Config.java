@@ -278,7 +278,7 @@ public class Config {
         return runMarker;
     }
 
-    public Boolean getFlip() {
+    public Boolean isFlip() {
         return flip;
     }
 
@@ -572,7 +572,7 @@ public class Config {
         // Set distcp options.
         canDeriveDistcpPlan();
 
-        if (getCluster(Environment.RIGHT).isInitialized()) {
+        if (getDataStrategy() != DataStrategy.DUMP && getCluster(Environment.RIGHT).isInitialized()) {
             if (getCluster(Environment.RIGHT).getLegacyHive() && !getCluster(Environment.LEFT).getLegacyHive()) {
                 errors.set(LEGACY_TO_NON_LEGACY.getCode());
                 rtn = Boolean.FALSE;
