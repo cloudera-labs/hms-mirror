@@ -69,6 +69,12 @@ public enum MessageCode {
 //    SQL_DISTCP_ONLY_W_DA_ACID (34, "SQL Strategy with `distcp` is only valid for ACID table transfers.  " +
 //            "Use SCHEMA_ONLY from External and Legacy Managed (Non-Transactional) tables."),
 
+    ENCRYPT_PASSWORD_ISSUE(35, "Issue Encrypting Password"),
+    DECRYPTING_PASSWORD_ISSUE(36, "Issue decrypting password"),
+    PKEY_PASSWORD_CFG(37, "Need to include '-pkey' with '-p'."),
+    PASSWORD_CFG(38, "Password en/de crypt"),
+
+
     // WARNINGS
     SYNC_TBL_FILTER(50, "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"
             + "' ON BOTH SIDES!!!"),
@@ -80,7 +86,10 @@ public enum MessageCode {
             "LOCATION.  Location will be determined by the database or system warehouse settings."),
     DISTCP_OUTPUT_NOT_REQUESTED(54, "To get the `distcp` workplans add `-dc|--distcp` to commandline."),
     DISTCP_RDL_WO_WAREHOUSE_DIR(55, "When using `-rdl|--reset-to-default-location` you must also specify " +
-            "warehouse locations `-wd|-ewd` to build the `distcp` workplans.")
+            "warehouse locations `-wd|-ewd` to build the `distcp` workplans."),
+    ENCRYPT_PASSWORD(56, "Encrypted Password {0}"),
+    DECRYPT_PASSWORD(57, "Decrypted Password {0}")
+
     ;
 
 

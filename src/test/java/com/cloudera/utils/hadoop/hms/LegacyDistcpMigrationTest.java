@@ -28,7 +28,7 @@ public class LegacyDistcpMigrationTest extends MirrorTestBase {
 
     @AfterClass
     public static void tearDownClass() throws Exception {
-        dataCleanup(Boolean.FALSE);
+        dataCleanup(DATACLEANUP.BOTH);
     }
 
     @Before
@@ -43,7 +43,7 @@ public class LegacyDistcpMigrationTest extends MirrorTestBase {
 
     @After
     public void tearDown() throws Exception {
-        dataCleanup(Boolean.TRUE);
+        dataCleanup(DATACLEANUP.RIGHT);
     }
 
     @Test

@@ -36,12 +36,12 @@ public class DumpTest extends MirrorTestBase {
 
     @After
     public void tearDown() throws Exception {
-        dataCleanup(Boolean.TRUE);
+        dataCleanup(DATACLEANUP.RIGHT);
     }
 
     @AfterClass
     public static void tearDownClass() throws Exception {
-        dataCleanup(Boolean.FALSE);
+        dataCleanup(DATACLEANUP.BOTH);
     }
 
     @Test

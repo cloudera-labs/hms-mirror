@@ -44,8 +44,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -147,7 +145,8 @@ public class Mirror {
         }
     }
 
-    public void init(String[] args) {
+    public long init(String[] args) {
+        long rtn = 0l;
 
         Options options = getOptions();
 
@@ -191,26 +190,6 @@ public class Mirror {
             }
         }
 
-        if (cmd.hasOption("p")) {
-            // Used to generate encrypted password.
-            if (cmd.hasOption("pkey")) {
-                Protect protect = new Protect(cmd.getOptionValue("pkey"));
-                String epassword = null;
-                try {
-                    epassword = protect.encrypt(cmd.getOptionValue("p"));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.exit(-1);
-                }
-                System.out.println("Encrypted password: " + epassword);
-            } else {
-                System.err.println("Need to include '-pkey' with '-p'.");
-                System.exit(-1);
-            }
-
-            System.exit(0);
-        }
-
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
@@ -252,6 +231,39 @@ public class Mirror {
         }
 
         config.setCommandLineOptions(args);
+
+        if (cmd.hasOption("p") || cmd.hasOption("dp")) {
+            // Used to generate encrypted password.
+            if (cmd.hasOption("pkey")) {
+                Protect protect = new Protect(cmd.getOptionValue("pkey"));
+                // Set to control execution flow.
+                config.getErrors().set(MessageCode.PASSWORD_CFG.getCode());
+                if (cmd.hasOption("p")) {
+                    String epassword = null;
+                    try {
+                        epassword = protect.encrypt(cmd.getOptionValue("p"));
+                        config.getWarnings().set(MessageCode.ENCRYPT_PASSWORD.getCode(), epassword);
+                    } catch (Exception e) {
+                        config.getErrors().set(MessageCode.ENCRYPT_PASSWORD_ISSUE.getCode());
+//                        e.printStackTrace();
+//                        System.exit(-1);
+                    }
+//                    System.out.println("Encrypted password: " + epassword);
+                } else {
+                    String password = null;
+                    try {
+                        password = protect.decrypt(cmd.getOptionValue("dp"));
+                        config.getWarnings().set(MessageCode.DECRYPT_PASSWORD.getCode(), password);
+                    } catch (Exception e) {
+                        config.getErrors().set(MessageCode.DECRYPTING_PASSWORD_ISSUE.getCode());
+                    }
+//                    System.out.println("Original password (decrypted): " + password);
+                }
+            } else {
+                config.getErrors().set(MessageCode.PKEY_PASSWORD_CFG.getCode());
+            }
+            return config.getErrors().getReturnCode();
+        }
 
         if (cmd.hasOption("reset-right")) {
             config.setResetRight(Boolean.TRUE);
@@ -442,14 +454,13 @@ public class Mirror {
                                     props.put("password", decryptedPassword);
                                 } catch (Exception e) {
                                     config.getErrors().set(MessageCode.PASSWORD_DECRYPT_ISSUE.getCode());
-//                                    e.printStackTrace();
-                                    System.err.println("Issue decrypting password");
-//                                    System.exit(-1);
                                 }
                             }
                         }
                     }
                 }
+                if (config.getErrors().getReturnCode() > 0)
+                    return config.getErrors().getReturnCode();
             }
 
             // To keep the connections and remainder of the processing in place, set the env for the cluster
@@ -674,6 +685,7 @@ public class Mirror {
             }
             throw new RuntimeException("Check Hive Connections Failed.  Check Logs.");
         }
+        return rtn;
     }
 
     public void doit() {
@@ -1333,7 +1345,11 @@ public class Mirror {
                 "Used this in conjunction with '-pkey' to generate the encrypted password that you'll add to the configs for the JDBC connections.");
         pwOption.setRequired(Boolean.FALSE);
         pwOption.setArgName("password");
-//        options.addOption(pwOption);
+
+        Option decryptPWOption = new Option("dp", "decrypt-password", true,
+                "Used this in conjunction with '-pkey' to decrypt the generated passcode from `-p`.");
+        decryptPWOption.setRequired(Boolean.FALSE);
+        decryptPWOption.setArgName("encrypted-password");
 
         Option setupOption = new Option("su", "setup", false,
                 "Setup a default configuration file through a series of questions");
@@ -1350,6 +1366,7 @@ public class Mirror {
         dbGroup.addOption(helpOption);
         dbGroup.addOption(setupOption);
         dbGroup.addOption(pwOption);
+        dbGroup.addOption(decryptPWOption);
         dbGroup.setRequired(Boolean.TRUE);
         options.addOptionGroup(dbGroup);
 
@@ -1398,6 +1415,18 @@ public class Mirror {
         return rtn;
     }
 
+    protected long setupSqlLeft(String[] args, List<Pair> sqlPairList) {
+        long rtn = 0l;
+        rtn = setupSql(args, sqlPairList, null);
+        return rtn;
+    }
+
+    protected long setupSqlRight(String[] args, List<Pair> sqlPairList) {
+        long rtn = 0l;
+        rtn = setupSql(args, null, sqlPairList);
+        return rtn;
+    }
+
     public long setupSql(String[] args, List<Pair> leftSql, List<Pair> rightSql) {
         long returnCode = 0;
         LOG.info("===================================================");
@@ -1407,7 +1436,7 @@ public class Mirror {
         LOG.info("");
         LOG.info("======  SQL Setup ======");
         try {
-            init(args);
+            returnCode = init(args);
             try {
                 if (leftSql != null && leftSql.size() > 0) {
                     if (!setupSql(Environment.LEFT, leftSql)) {
@@ -1448,7 +1477,6 @@ public class Mirror {
             System.err.println("\nSee log for stack trace ($HOME/.hms-mirror/logs)");
         }
         return returnCode;
-
     }
 
     public long go(String[] args) {
@@ -1458,9 +1486,10 @@ public class Mirror {
         LOG.info(" with commandline parameters: " + String.join(",", args));
         LOG.info("===================================================");
         try {
-            init(args);
+            returnCode = init(args);
             try {
-                doit();
+                if (returnCode == 0)
+                    doit();
             } catch (RuntimeException rte) {
                 System.out.println(rte.getMessage());
                 rte.printStackTrace();
@@ -1477,10 +1506,6 @@ public class Mirror {
             System.err.println("");
             LOG.error("Commandline args: " + Arrays.toString(args));
             if (config != null) {
-                for (String error : config.getErrors().getMessages()) {
-                    LOG.error(error);
-                    System.err.println(error);
-                }
                 returnCode = config.getErrors().getReturnCode();
             } else {
                 returnCode = -1;
@@ -1488,6 +1513,17 @@ public class Mirror {
             System.err.println(e.getMessage());
             e.printStackTrace();
             System.err.println("\nSee log for stack trace ($HOME/.hms-mirror/logs)");
+        } finally {
+            if (config != null) {
+                for (String error : config.getErrors().getMessages()) {
+                    LOG.error(error);
+                    System.err.println(error);
+                }
+                for (String warning : config.getWarnings().getMessages()) {
+                    LOG.warn(warning);
+                    System.err.println(warning);
+                }
+            }
         }
         return returnCode;
     }

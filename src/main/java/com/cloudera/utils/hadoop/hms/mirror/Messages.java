@@ -51,7 +51,7 @@ public class Messages {
     public String[] getMessages() {
         List<String> messageList = new ArrayList<String>();
         for (MessageCode messageCode : MessageCode.getCodes(bitSet)) {
-            if (argMap.containsKey(messageCode.getCode())) {
+            if (!argMap.containsKey(messageCode.getCode())) {
                 messageList.add(messageCode.getCode()+":"+messageCode.getDesc());
             } else {
                 messageList.add(messageCode.getCode()+":"+MessageFormat.format(messageCode.getDesc(), argMap.get(messageCode.getCode())));

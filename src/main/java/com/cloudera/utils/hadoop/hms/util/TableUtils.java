@@ -75,6 +75,30 @@ public class TableUtils {
         return location;
     }
 
+    public static String getSerdePath(String tableName, List<String> tableDefinition) {
+        LOG.trace("Getting table serde path (if available) data for: " + tableName);
+        String location = null;
+
+        int wspIdx = tableDefinition.indexOf(WITH_SERDEPROPERTIES);
+        if (wspIdx > 0) {
+            for (int i = wspIdx + 1; i < tableDefinition.size(); i++) {
+                String sprop = tableDefinition.get(i);
+                if (sprop.trim().startsWith(PATH)) {
+                    String[] pathLine = sprop.split("=");
+                    if (pathLine.length == 2) {
+                        if (pathLine[1].startsWith("'")) {
+                            location = pathLine[1].substring(1, pathLine[1].length()-2);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        return location;
+    }
+
+
     public static String prefixTableNameLocation(EnvironmentTable envTable, String prefix) {
         return prefixTableNameLocation(envTable.getName(), envTable.getDefinition(), prefix);
     }

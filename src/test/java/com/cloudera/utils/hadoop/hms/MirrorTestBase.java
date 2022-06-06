@@ -1,5 +1,6 @@
 package com.cloudera.utils.hadoop.hms;
 
+import com.cloudera.utils.hadoop.hms.mirror.Environment;
 import com.cloudera.utils.hadoop.hms.mirror.MirrorConf;
 import com.cloudera.utils.hadoop.hms.mirror.Pair;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -90,13 +91,17 @@ public class MirrorTestBase {
             build_n_populate(CREATE_EXTERNAL_TBL, "ext_part_02", null, TBL_INSERT, dataset, leftSql);
 
             Mirror cfgMirror = new Mirror();
-            long rtn = cfgMirror.setupSql(args, leftSql, null);
+            long rtn = cfgMirror.setupSqlLeft(args, leftSql);
             DataState.getInstance().setDataCreated(Boolean.TRUE);
         }
         return Boolean.TRUE;
     }
 
-    protected static Boolean dataCleanup(Boolean rightOnly) {
+    public enum DATACLEANUP {
+        LEFT, RIGHT, BOTH;
+    }
+
+    protected static Boolean dataCleanup(DATACLEANUP datacleanup) {
         if (DataState.getInstance().isCleanUp()) {
             String nameofCurrMethod = new Throwable()
                     .getStackTrace()[0]
@@ -106,6 +111,7 @@ public class MirrorTestBase {
                     separator + nameofCurrMethod;
 
             String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                    "-d", "DUMP",
                     "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
             args = toExecute(args, execArgs, Boolean.TRUE);
 
@@ -121,15 +127,20 @@ public class MirrorTestBase {
 
             Mirror cfgMirror = new Mirror();
 
-            if (rightOnly) {
-                long rtn = cfgMirror.setupSql(args, null, rightSql);
-            } else {
-                long rtn = cfgMirror.setupSql(args, leftSql, rightSql);
-                DataState.getInstance().setDataCreated(Boolean.FALSE);
+            long rtn = 0l;
+            switch (datacleanup) {
+                case LEFT:
+                    rtn = cfgMirror.setupSqlLeft(args, leftSql);
+                    break;
+                case RIGHT:
+                    rtn = cfgMirror.setupSqlRight(args, rightSql);
+                    break;
+                case BOTH:
+                    rtn = cfgMirror.setupSql(args, leftSql, rightSql);
+                    break;
             }
         }
         return Boolean.TRUE;
-
     }
 
     protected void build_n_populate(String tableDefTemplate, String tableName, Integer buckets, String insertTemplate,

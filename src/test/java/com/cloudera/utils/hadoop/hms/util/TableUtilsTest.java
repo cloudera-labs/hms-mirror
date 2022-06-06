@@ -33,6 +33,7 @@ public class TableUtilsTest {
     private final List<String> table_02 = new ArrayList<String>();
     private final List<String> table_03 = new ArrayList<String>();
     private final List<String> table_04 = new ArrayList<String>();
+    private final List<String> table_05 = new ArrayList<String>();
 
     @Test
     public void changeTableName() {
@@ -42,6 +43,23 @@ public class TableUtilsTest {
         System.out.println("Def: ");
     }
 
+    @Test
+    public void testUpdateTableLocation() {
+        List<String> working = fromStatic(table_05);
+        String REPLACEMENT_TEST_LOCATION = "hdfs://HOME90/mynew/location";
+        Boolean rtn = TableUtils.updateTableLocation("hello_manager", working, REPLACEMENT_TEST_LOCATION);
+        assertTrue("Location mismatch: ", TableUtils.getSerdePath("hello_manager", working).equals(REPLACEMENT_TEST_LOCATION));
+        System.out.println("Def: ");
+
+    }
+
+    public List<String> fromStatic(List<String> source) {
+        List<String> rtn = new ArrayList<String>();
+        for (String line: source) {
+            rtn.add(line.trim());
+        }
+        return rtn;
+    }
     @Test
     public void getLocation() {
     }
@@ -300,6 +318,35 @@ public class TableUtilsTest {
                 , "  'transient_lastDdlTime'='1606919590')"
         };
         table_04.addAll(Arrays.asList(strTable_04));
+
+        String[] strTable_05 = new String[]{
+                "CREATE EXTERNAL TABLE `hello_manager`( "
+                , "  `id` bigint) "
+                , "ROW FORMAT SERDE  "
+                , "  'org.apache.hadoop.hive.ql.io.orc.OrcSerde'  "
+                , "WITH SERDEPROPERTIES (  "
+                , "  'path'='hdfs://HDP50/apps/warehouse/hive/merge_files_migrate.db/hello_manager')  "
+                , "STORED AS INPUTFORMAT  "
+                , "  'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'  "
+                , "OUTPUTFORMAT  "
+                , "  'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat' "
+                , "LOCATION "
+                , "'hdfs://HDP50/apps/warehouse/hive/merge_files_migrate.db/hello_manager' "
+                , "TBLPROPERTIES ( "
+                , "'hmsMirror_Metadata_Stage1'='2022-05-26 00:55:38', "
+                , "'hmsMirror_LegacyManaged'='true', "
+                , "'hmsMirror_Converted'='true', "
+                , "'external.table.purge'='true', "
+                , "  'spark.sql.create.version'='2.3.0.2.6.5.0-292',  "
+                , "  'spark.sql.sources.provider'='orc',  "
+                , "  'spark.sql.sources.schema.numParts'='1',  "
+                , "  'spark.sql.sources.schema.part.0'='{\"type\":\"struct\",\"fields\":[{\"name\":\"id\",\"type\":\"long,\",\"nullable\":true,\"metadata\":{}}]}',  "
+                , "  'spark.sql.statistics.numRows'='9',  "
+                , "'spark.sql.statistics.totalSize'='188' "
+                , "); "
+        };
+        table_05.addAll(Arrays.asList(strTable_05));
+
 
     }
 
