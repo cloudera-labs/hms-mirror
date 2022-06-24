@@ -351,7 +351,7 @@ These workbooks will NOT include elements for ACID/Transactional tables.  Simply
 ### Binary Package
 
 #### Don't Build. Download the LATEST binary here!!!
-[![Download the LATEST Binary](./images/download.png)](https://github.com/dstreev/hms-mirror/releases)
+[![Download the LATEST Binary](./images/download.png)](https://github.com/cloudera-labs/hms-mirror/releases)
 
 ### HMS-Mirror Setup from Binary Distribution
 
