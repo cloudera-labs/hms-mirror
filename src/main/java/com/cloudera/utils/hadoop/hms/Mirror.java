@@ -525,6 +525,10 @@ public class Mirror {
                 config.setTblRegEx(cmd.getOptionValue("tf"));
             }
 
+            if (cmd.hasOption("tef")) {
+                config.setTblExcludeRegEx(cmd.getOptionValue("tef"));
+            }
+
         }
         if (cmd.hasOption("o")) {
             reportOutputDir = cmd.getOptionValue("o");
@@ -1393,12 +1397,26 @@ public class Mirror {
         expImpPartCountOption.setArgName("limit");
         options.addOption(expImpPartCountOption);
 
+        OptionGroup filterGroup = new OptionGroup();
+        filterGroup.setRequired(Boolean.FALSE);
+
         Option tableFilterOption = new Option("tf", "table-filter", true,
                 "Filter tables (inclusive) with name matching RegEx. Comparison done with 'show tables' " +
-                        "results.  Check case, that's important.  Hive tables are generally stored in LOWERCASE.");
+                        "results.  Check case, that's important.  Hive tables are generally stored in LOWERCASE. " +
+                        "Make sure you double-quote the expression on the commandline.");
         tableFilterOption.setRequired(Boolean.FALSE);
         tableFilterOption.setArgName("regex");
-        options.addOption(tableFilterOption);
+        filterGroup.addOption(tableFilterOption);
+
+        Option excludeTableFilterOption = new Option("tef", "table-exclude-filter", true,
+                "Filter tables (excludes) with name matching RegEx. Comparison done with 'show tables' " +
+                        "results.  Check case, that's important.  Hive tables are generally stored in LOWERCASE. " +
+                        "Make sure you double-quote the expression on the commandline.");
+        excludeTableFilterOption.setRequired(Boolean.FALSE);
+        excludeTableFilterOption.setArgName("regex");
+        filterGroup.addOption(excludeTableFilterOption);
+
+        options.addOptionGroup(filterGroup);
 
         Option cfgOption = new Option("cfg", "config", true,
                 "Config with details for the HMS-Mirror.  Default: $HOME/.hms-mirror/cfg/default.yaml");

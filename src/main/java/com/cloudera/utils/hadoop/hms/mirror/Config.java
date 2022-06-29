@@ -130,7 +130,12 @@ public class Config {
     private boolean sync = Boolean.FALSE;
     @JsonIgnore
     private Pattern tblFilterPattern = null;
+    @JsonIgnore
+    private Pattern tblExcludeFilterPattern = null;
     private String tblRegEx = null;
+
+    private String tblExcludeRegEx = null;
+
     private TransferConfig transfer = new TransferConfig();
     @JsonIgnore
     private ScheduledExecutorService transferThreadPool;
@@ -508,6 +513,19 @@ public class Config {
             tblFilterPattern = null;
     }
 
+    public String getTblExcludeRegEx() {
+        return tblExcludeRegEx;
+    }
+
+    public void setTblExcludeRegEx(String tblExcludeRegEx) {
+        this.tblExcludeRegEx = tblExcludeRegEx;
+        if (this.tblExcludeRegEx != null)
+            tblExcludeFilterPattern = Pattern.compile(tblExcludeRegEx);
+        else
+            tblExcludeFilterPattern = null;
+
+    }
+
     public Boolean getSkipFeatures() {
         return skipFeatures;
     }
@@ -518,6 +536,10 @@ public class Config {
 
     public Pattern getTblFilterPattern() {
         return tblFilterPattern;
+    }
+
+    public Pattern getTblExcludeFilterPattern() {
+        return tblExcludeFilterPattern;
     }
 
     public Boolean getResetRight() {

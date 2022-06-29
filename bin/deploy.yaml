@@ -35,6 +35,11 @@
         dest: /usr/local/hms-mirror/bin
         mode: 0755
 
+    - name: Copy bin
+      copy:
+        src: hms-mirror-cli
+        dest: /usr/local/hms-mirror/bin
+        mode: 0755
 
     - name: Copy lib
       copy:
@@ -54,4 +59,12 @@
         dest: /usr/local/bin/hms-mirror
         mode: 0755
         state: link
+
+    - name: Link executable
+      file:
+        src: /usr/local/hms-mirror/bin/hms-mirror-cli
+        dest: /usr/local/bin/hms-mirror-cli
+        mode: 0755
+        state: link
+
 

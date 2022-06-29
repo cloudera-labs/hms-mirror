@@ -40,24 +40,27 @@ rm -f $BASE_DIR/lib/*.jar
 rm -f $BASE_DIR/bin/*
 
 cp -f hms-mirror $BASE_DIR/bin
+cp -f hms-mirror-cli $BASE_DIR/bin
 
 if [ -f hms-mirror-shaded.jar ]; then
     cp -f hms-mirror-shaded.jar $BASE_DIR/lib
 fi
-if [ -f hms-mirror-shaded-no-hadoop.jar ]; then
+
+f [ -f hms-mirror-shaded-no-hadoop.jar ]; then
     cp -f hms-mirror-shaded-no-hadoop.jar $BASE_DIR/lib
 fi
 
 chmod -R +r $BASE_DIR
 chmod +x $BASE_DIR/bin/hms-mirror
+chmod +x $BASE_DIR/bin/hms-mirror-cli
 
 if (( $EUID == 0 )); then
   echo "Setting up global links"
   ln -sf $BASE_DIR/bin/hms-mirror /usr/local/bin/hms-mirror
+  ln -sf $BASE_DIR/bin/hms-mirror-cli /usr/local/bin/hms-mirror-cli
 else
   mkdir -p $HOME/bin
   ln -sf $BASE_DIR/bin/hms-mirror $HOME/bin/hms-mirror
-  echo "Executable in \$HOME/bin .  Add this to the environment path."
+  ln -sf $BASE_DIR/bin/hms-mirror-cli $HOME/bin/hms-mirror-cli
+  echo "Executable in $HOME/bin .  Add this to the environment path."
 fi
-
-

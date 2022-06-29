@@ -231,14 +231,21 @@ public class Cluster implements Comparable<Cluster> {
                                         "The name matches the transfer prefix and is most likely a remnant of a previous " +
                                         "event. If this is a mistake, change the 'transferPrefix' to something more unique.");
                             } else {
-                                if (config.getTblRegEx() == null) {
+                                if (config.getTblRegEx() == null && config.getTblExcludeRegEx() == null) {
                                     TableMirror tableMirror = dbMirror.addTable(tableName);
                                     tableMirror.setMigrationStageMessage("Added to evaluation inventory");
-                                } else {
+                                } else if (config.getTblRegEx() != null) {
                                     // Filter Tables
                                     assert (config.getTblFilterPattern() != null);
                                     Matcher matcher = config.getTblFilterPattern().matcher(tableName);
                                     if (matcher.matches()) {
+                                        TableMirror tableMirror = dbMirror.addTable(tableName);
+                                        tableMirror.setMigrationStageMessage("Added to evaluation inventory");
+                                    }
+                                } else if (config.getTblExcludeRegEx() != null) {
+                                    assert (config.getTblExcludeFilterPattern() != null);
+                                    Matcher matcher = config.getTblExcludeFilterPattern().matcher(tableName);
+                                    if (!matcher.matches()) { // ANTI-MATCH
                                         TableMirror tableMirror = dbMirror.addTable(tableName);
                                         tableMirror.setMigrationStageMessage("Added to evaluation inventory");
                                     }
