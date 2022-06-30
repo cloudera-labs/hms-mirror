@@ -33,4 +33,29 @@ public interface TestSQL {
             "PARTITIONED BY (num String) " +
             "STORED AS ORC";
 
+    // Escape single quotes with another quote when using MessageFormat.format IE: ' to '' .
+    String CREATE_AVRO_TBL_SHORT = "CREATE TABLE {0} " +
+            "STORED AS AVRO " +
+            "TBLPROPERTIES (" +
+            "''avro.schema.url''=''{1}'')";
+//            "'avro.schema.url'='hdfs://HOME90/user/dstreev/avro/test.avsc')";
+
+    String CREATE_AVRO_TBL_LONG = "CREATE TABLE `{0}` (" +
+            "  `field1` string COMMENT ''," +
+            "  `field2` int COMMENT ''," +
+            "  `field3` bigint COMMENT ''," +
+            "  `field4` boolean COMMENT '')" +
+            "ROW FORMAT SERDE" +
+            "  'org.apache.hadoop.hive.serde2.avro.AvroSerDe'" +
+            "STORED AS INPUTFORMAT" +
+            "  'org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat'" +
+            "OUTPUTFORMAT" +
+            "  'org.apache.hadoop.hive.ql.io.avro.AvroContainerOutputFormat'" +
+            "TBLPROPERTIES (" +
+            "  'bucketing_version'='2'," +
+            "  'transactional'='true'," +
+            "  'transactional_properties'='insert_only'," +
+            "  'transient_lastDdlTime'='1656593901'," +
+            "  'avro.schema.url'='{1}')";
+//            "  'avro.schema.url'='hdfs://HOME90/user/dstreev/avro/test.avsc')";
 }

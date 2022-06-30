@@ -22,7 +22,7 @@
 
     <groupId>com.cloudera.utils.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>1.5.1.8.2-SNAPSHOT</version>
+    <version>1.5.1.8.3-SNAPSHOT</version>
     <name>hms-mirror</name>
 
     <url>https://github.com/dstreev/hms_mirror</url>
@@ -67,7 +67,7 @@
         <commons-text.version>1.9</commons-text.version>
         <junit.version>4.13.1</junit.version>
 
-        <hadoop-cli.version>2.4.0.5.2-SNAPSHOT</hadoop-cli.version>
+        <hadoop-cli.version>2.4.0.5.3-SNAPSHOT</hadoop-cli.version>
 
     </properties>
 

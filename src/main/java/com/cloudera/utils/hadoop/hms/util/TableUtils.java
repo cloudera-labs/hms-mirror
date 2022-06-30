@@ -170,6 +170,9 @@ public class TableUtils {
                     if (parts[1].trim().endsWith(",")) {
                         replacedProperty = replacedProperty + ",";
                     }
+                    if (parts[1].trim().endsWith(")")) {
+                        replacedProperty = replacedProperty + ")";
+                    }
                     tableDefinition.set(lineIdx, replacedProperty);
                     LOG.debug("Replaced AVRO Schema URL Property: " + replacedProperty);
                     rtn = Boolean.TRUE;
