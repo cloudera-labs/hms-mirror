@@ -46,7 +46,7 @@ if [ -f hms-mirror-shaded.jar ]; then
     cp -f hms-mirror-shaded.jar $BASE_DIR/lib
 fi
 
-f [ -f hms-mirror-shaded-no-hadoop.jar ]; then
+if [ -f hms-mirror-shaded-no-hadoop.jar ]; then
     cp -f hms-mirror-shaded-no-hadoop.jar $BASE_DIR/lib
 fi
 
