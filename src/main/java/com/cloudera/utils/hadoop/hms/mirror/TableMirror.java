@@ -615,7 +615,7 @@ public class TableMirror {
         }
         if (config.isReadOnly()) {
             rightSpec.setTakeOwnership(Boolean.FALSE);
-        } else if (TableUtils.isManaged(let)){
+        } else if (TableUtils.isManaged(let)) {
             rightSpec.setTakeOwnership(Boolean.TRUE);
         }
 
@@ -801,9 +801,11 @@ public class TableMirror {
 
         // Build Shadow Spec (don't build when using commonStorage)
         // If acid and ma.isOn
-            // if not downgrade
+        // if not downgrade
         if (TableUtils.isACID(let) && config.getMigrateACID().isOn()) {
-            if (!config.getMigrateACID().isDowngrade()) {
+            if (!config.getMigrateACID().isDowngrade() ||
+                    // Is Downgrade but the downgraded location isn't available to the right.
+                    (config.getMigrateACID().isDowngrade() && config.getTransfer().getCommonStorage() == null)) {
 //        if (!config.getTransfer().getStorageMigration().isDistcp() ||
 //                (config.getMigrateACID().isOn() && TableUtils.isACID(let)
 //                        && !config.getMigrateACID().isDowngrade())) {
@@ -1109,7 +1111,7 @@ public class TableMirror {
         let.addSql(TableUtils.USE_DESC, useDb);
 
         // Alter the current table and rename.
-        let.setName(let.getName()+"_"+getUnique());
+        let.setName(let.getName() + "_" + getUnique());
         String origAlterRename = MessageFormat.format(MirrorConf.RENAME_TABLE, ret.getName(), let.getName());
         let.addSql(MirrorConf.RENAME_TABLE_DESC, origAlterRename);
 
@@ -1423,7 +1425,7 @@ public class TableMirror {
                         }
                         if (copySpec.getTakeOwnership()) {
                             if (TableUtils.isACID(source)) {
-                                if (config.getMigrateACID().isDowngrade()){
+                                if (config.getMigrateACID().isDowngrade()) {
                                     target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true");
                                 }
                             } else {
@@ -1444,7 +1446,7 @@ public class TableMirror {
 
                     if (copySpec.getTakeOwnership()) {
                         if (TableUtils.isACID(source)) {
-                            if (config.getMigrateACID().isDowngrade()){
+                            if (config.getMigrateACID().isDowngrade()) {
                                 target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true");
                             }
                             if (copySpec.getTarget() == Environment.TRANSFER) {
