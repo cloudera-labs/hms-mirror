@@ -1064,7 +1064,11 @@ public class TableMirror {
                 config.getCluster(Environment.RIGHT).getPartitionDiscovery().getInitMSCK() &&
                 (ret.getCreateStrategy() == CreateStrategy.REPLACE || ret.getCreateStrategy() == CreateStrategy.CREATE)) {
             String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, ret.getName());
-            ret.addSql(TableUtils.REPAIR_DESC, msckStmt);
+            if (config.getTransfer().getStorageMigration().isDistcp()) {
+                ret.addCleanUpSql(TableUtils.REPAIR_DESC, msckStmt);
+            } else {
+                ret.addSql(TableUtils.REPAIR_DESC, msckStmt);
+            }
         }
 
         rtn = Boolean.TRUE;
@@ -1626,6 +1630,10 @@ public class TableMirror {
             rtn = buildShadowToFinalSql(config);
         } else {
             getEnvironmentTable(Environment.RIGHT).addSql("distcp specified", "-- Run the Distcp output to migrate data.");
+            if (source.getPartitioned()) {
+                String msckTable = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, target.getName());
+                target.addCleanUpSql(new Pair(MirrorConf.MSCK_REPAIR_TABLE_DESC, msckTable));
+            }
         }
 
         return rtn;

@@ -121,7 +121,7 @@ public class Conversion {
         for (String table : tables) {
             TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
             if (tblMirror.isThereCleanupSql(environment)) {
-                sb.append("\n--    Cleanup Old version of table: ").append(table).append("\n");
+                sb.append("\n--    Cleanup script: ").append(table).append("\n");
                 for (Pair pair : tblMirror.getCleanUpSql(environment)) {
                     sb.append(pair.getAction()).append(";\n");
                     found = Boolean.TRUE;

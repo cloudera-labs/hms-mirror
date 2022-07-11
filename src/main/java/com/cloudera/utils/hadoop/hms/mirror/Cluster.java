@@ -419,10 +419,10 @@ public class Cluster implements Comparable<Cluster> {
 
     public Boolean runTableSql(List<Pair> sqlList, TableMirror tblMirror, Environment environment) {
         Connection conn = null;
-        Boolean rtn = Boolean.FALSE;
+        Boolean rtn = Boolean.TRUE;
 
-//        if (config.isExecute()) {
         try {
+            // conn will be null if config.execute != true.
             conn = getConnection();
 
             if (conn != null) {
@@ -436,7 +436,6 @@ public class Cluster implements Comparable<Cluster> {
                             stmt.execute(pair.getAction());
                         tblMirror.addStep(getEnvironment().toString(), "Sql Run Complete for: " + pair.getDescription());
                     }
-                    rtn = Boolean.TRUE;
                 } catch (SQLException throwables) {
                     LOG.error(throwables);
                     String message = throwables.getMessage();
@@ -448,6 +447,7 @@ public class Cluster implements Comparable<Cluster> {
                                 "Use the `-asm` option and hms-mirror will attempt to copy it to the new cluster.";
                     }
                     tblMirror.getEnvironmentTable(environment).addIssue(message);
+                    rtn = Boolean.FALSE;
                 } finally {
                     if (stmt != null) {
                         try {
@@ -461,6 +461,7 @@ public class Cluster implements Comparable<Cluster> {
         } catch (SQLException throwables) {
             tblMirror.getEnvironmentTable(environment).addIssue("Connecting: " + throwables.getMessage());
             LOG.error(throwables);
+            rtn = Boolean.FALSE;
         } finally {
             try {
                 if (conn != null)
