@@ -212,6 +212,11 @@ public class TableMirror {
         return et.getSql().size() > 0 ? Boolean.TRUE : Boolean.FALSE;
     }
 
+    public boolean isThereCleanupSql(Environment environment) {
+        EnvironmentTable et = getEnvironmentTable(environment);
+        return et.getCleanUpSql().size() > 0 ? Boolean.TRUE : Boolean.FALSE;
+    }
+
     public boolean whereTherePropsAdded(Environment environment) {
         EnvironmentTable et = getEnvironmentTable(environment);
         return et.getAddProperties().size() > 0 ? Boolean.TRUE : Boolean.FALSE;
@@ -274,7 +279,7 @@ public class TableMirror {
         this.name = name;
     }
 
-    private Boolean buildoutDUMPDefinition(Config config, DBMirror dbMirror) {
+    public Boolean buildoutDUMPDefinition(Config config, DBMirror dbMirror) {
 //        Boolean rtn = Boolean.FALSE;
         LOG.debug("Table: " + dbMirror.getName() + " buildout DUMP Definition");
         EnvironmentTable let = null;
@@ -294,7 +299,7 @@ public class TableMirror {
         return Boolean.TRUE;
     }
 
-    private Boolean buildoutSCHEMA_ONLYDefinition(Config config, DBMirror dbMirror) {
+    public Boolean buildoutSCHEMA_ONLYDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Table: " + dbMirror.getName() + " buildout SCHEMA_ONLY Definition");
         EnvironmentTable let = null;
@@ -393,7 +398,7 @@ public class TableMirror {
         return rtn;
     }
 
-    private Boolean buildoutLINKEDDefinition(Config config, DBMirror dbMirror) {
+    public Boolean buildoutLINKEDDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Table: " + dbMirror.getName() + " buildout LINKED Definition");
         EnvironmentTable let = null;
@@ -464,7 +469,7 @@ public class TableMirror {
         return rtn;
     }
 
-    private Boolean buildoutCOMMONDefinition(Config config, DBMirror dbMirror) {
+    public Boolean buildoutCOMMONDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Table: " + dbMirror.getName() + " buildout COMMON Definition");
         EnvironmentTable let = null;
@@ -538,6 +543,93 @@ public class TableMirror {
     }
 
     /*
+    In this case for the inplace downgrade, the 'left' has already been renamed to an
+    'archive' and the 'right' table is the new definition (but will be played on the left).
+    We're using the 'right' as a placeholder in this case, since we're not using a RIGHT
+    environment.
+     */
+    public Boolean buildoutSQLACIDDowngradeInplaceSQL(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+        // Check to see if there are partitions.
+        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
+
+        // Ensure we're in the right database.
+        String database = dbMirror.getName();
+        String useDb = MessageFormat.format(MirrorConf.USE, database);
+
+        let.addSql(TableUtils.USE_DESC, useDb);
+
+        if (let.getPartitioned()) {
+            if (false) {
+                // TODO: Check for Optimization Settings.
+            } else {
+                // Prescriptive Optimization.
+                String partElement = TableUtils.getPartitionElements(let);
+                String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
+                        let.getName(), ret.getName(), partElement);
+                String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
+                let.addSql(new Pair(transferDesc, transferSql));
+            }
+        } else {
+            // Simple FROM .. INSERT OVERWRITE ... SELECT *;
+            String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_OVERWRITE, let.getName(), ret.getName());
+            let.addSql(new Pair(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, transferSql));
+        }
+
+        rtn = Boolean.TRUE;
+
+        return rtn;
+    }
+
+    public Boolean buildoutSQLACIDDowngradeInplaceDefinition(Config config, DBMirror dbMirror) {
+        Boolean rtn = Boolean.FALSE;
+
+        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
+
+        // Use db
+        String useDb = MessageFormat.format(MirrorConf.USE, dbMirror.getName());
+        let.addSql(TableUtils.USE_DESC, useDb);
+
+        // Build Right (to be used as new table on left).
+        CopySpec leftNewTableSpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
+        leftNewTableSpec.setTakeOwnership(Boolean.TRUE);
+        leftNewTableSpec.setMakeExternal(Boolean.TRUE);
+        // Location of converted data will got to default location.
+        leftNewTableSpec.setStripLocation(Boolean.TRUE);
+
+        rtn = buildTableSchema(leftNewTableSpec);
+
+        String origTableName = let.getName();
+
+        // Rename Original Table
+        String newTblName = let.getName() + "_archive";
+        String renameSql = MessageFormat.format(MirrorConf.RENAME_TABLE, origTableName, newTblName);
+        TableUtils.changeTableName(let, newTblName);
+        let.addSql(TableUtils.RENAME_TABLE, renameSql);
+
+        // Check Buckets and Strip.
+        int buckets = TableUtils.numOfBuckets(ret);
+        if (buckets > 0 && buckets <= config.getMigrateACID().getArtificialBucketThreshold()) {
+            // Strip bucket definition.
+            if (TableUtils.removeBuckets(ret, config.getMigrateACID().getArtificialBucketThreshold())) {
+                let.addIssue("Bucket Definition removed (was " + TableUtils.numOfBuckets(ret) + ") because it was EQUAL TO or BELOW " +
+                        "the configured 'artificialBucketThreshold' of " +
+                        config.getMigrateACID().getArtificialBucketThreshold());
+            }
+
+        }
+        // Create New Table.
+        String newCreateTable = this.getCreateStatement(Environment.RIGHT);
+        let.addSql(TableUtils.CREATE_DESC, newCreateTable);
+
+        rtn = Boolean.TRUE;
+
+        return rtn;
+    }
+
+    /*
     The SQL Strategy uses LINKED clusters and is only valid against Legacy Managed and EXTERNAL
     tables.  NO ACID tables.
 
@@ -546,15 +638,10 @@ public class TableMirror {
 
     TODO: buildoutSQLDefinition
      */
-    private Boolean buildoutSQLDefinition(Config config, DBMirror dbMirror) {
+    public Boolean buildoutSQLDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Table: " + dbMirror.getName() + " buildout SQL Definition");
 
-        // Different transfer technique.  Staging location.
-        if (config.getTransfer().getIntermediateStorage() != null ||
-                config.getTransfer().getCommonStorage() != null) {
-            return buildoutIntermediateDefinition(config, dbMirror);
-        }
 
         EnvironmentTable let = null;
         EnvironmentTable ret = null;
@@ -563,9 +650,11 @@ public class TableMirror {
         let = getEnvironmentTable(Environment.LEFT);
         ret = getEnvironmentTable(Environment.RIGHT);
 
-        if (TableUtils.isACID(let)) {
-            let.addIssue("ACID table migration NOT support in this scenario.");
-            return Boolean.FALSE;
+        // Different transfer technique.  Staging location.
+        if (config.getTransfer().getIntermediateStorage() != null ||
+                config.getTransfer().getCommonStorage() != null ||
+                TableUtils.isACID(let)) {
+            return buildoutIntermediateDefinition(config, dbMirror);
         }
 
         if (config.isSync()) {
@@ -627,7 +716,7 @@ public class TableMirror {
 
     /*
      */
-    private Boolean buildoutEXPORT_IMPORTDefinition(Config config, DBMirror dbMirror) {
+    public Boolean buildoutEXPORT_IMPORTDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Table: " + dbMirror.getName() + " buildout EXPORT_IMPORT Definition");
         EnvironmentTable let = null;
@@ -679,7 +768,7 @@ public class TableMirror {
 
     /*
      */
-    private Boolean buildoutIntermediateDefinition(Config config, DBMirror dbMirror) {
+    public Boolean buildoutIntermediateDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Table: " + dbMirror.getName() + " buildout Intermediate Definition");
         EnvironmentTable let = null;
@@ -802,22 +891,24 @@ public class TableMirror {
         // Build Shadow Spec (don't build when using commonStorage)
         // If acid and ma.isOn
         // if not downgrade
-        if (TableUtils.isACID(let) && config.getMigrateACID().isOn()) {
+        if ((config.getTransfer().getIntermediateStorage() != null && !TableUtils.isACID(let)) ||
+                (TableUtils.isACID(let) && config.getMigrateACID().isOn())) {
             if (!config.getMigrateACID().isDowngrade() ||
                     // Is Downgrade but the downgraded location isn't available to the right.
                     (config.getMigrateACID().isDowngrade() && config.getTransfer().getCommonStorage() == null)) {
-//        if (!config.getTransfer().getStorageMigration().isDistcp() ||
+                if (!config.getTransfer().getStorageMigration().isDistcp()) { // ||
 //                (config.getMigrateACID().isOn() && TableUtils.isACID(let)
 //                        && !config.getMigrateACID().isDowngrade())) {
-                CopySpec shadowSpec = new CopySpec(config, Environment.LEFT, Environment.SHADOW);
-                shadowSpec.setUpgrade(Boolean.TRUE);
-                shadowSpec.setMakeExternal(Boolean.TRUE);
-                shadowSpec.setTakeOwnership(Boolean.FALSE);
-                shadowSpec.setReplaceLocation(Boolean.TRUE);
-                shadowSpec.setTableNamePrefix(config.getTransfer().getShadowPrefix());
+                    CopySpec shadowSpec = new CopySpec(config, Environment.LEFT, Environment.SHADOW);
+                    shadowSpec.setUpgrade(Boolean.TRUE);
+                    shadowSpec.setMakeExternal(Boolean.TRUE);
+                    shadowSpec.setTakeOwnership(Boolean.FALSE);
+                    shadowSpec.setReplaceLocation(Boolean.TRUE);
+                    shadowSpec.setTableNamePrefix(config.getTransfer().getShadowPrefix());
 
-                if (rtn)
-                    rtn = buildTableSchema(shadowSpec);
+                    if (rtn)
+                        rtn = buildTableSchema(shadowSpec);
+                }
             }
         }
         return rtn;
@@ -892,7 +983,7 @@ public class TableMirror {
         return rtn;
     }
 
-    private Boolean buildoutDUMPSql(Config config, DBMirror dbMirror) {
+    public Boolean buildoutDUMPSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Table: " + dbMirror.getName() + " buildout DUMP SQL");
 
@@ -923,7 +1014,7 @@ public class TableMirror {
 
     }
 
-    private Boolean buildoutSCHEMA_ONLYSql(Config config, DBMirror dbMirror) {
+    public Boolean buildoutSCHEMA_ONLYSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Table: " + dbMirror.getName() + " buildout SCHEMA_ONLY SQL");
 
@@ -1025,7 +1116,7 @@ public class TableMirror {
     /*
     TODO: buildoutSQLSql
      */
-    private Boolean buildoutSQLSql(Config config, DBMirror dbMirror) {
+    public Boolean buildoutSQLSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Table: " + dbMirror.getName() + " buildout SQL SQL");
 
@@ -1044,50 +1135,57 @@ public class TableMirror {
 
         ret.getSql().clear();
 
-        database = config.getResolvedDB(dbMirror.getName());
-        useDb = MessageFormat.format(MirrorConf.USE, database);
+        if (TableUtils.isACID(let)) {
+            rtn = Boolean.FALSE;
+            // TODO: Hum... Not sure this is right.
+            addIssue(Environment.LEFT, "Shouldn't get an ACID table here.");
+        } else {
+//        if (!isACIDDowngradeInPlace(config, let)) {
+            database = config.getResolvedDB(dbMirror.getName());
+            useDb = MessageFormat.format(MirrorConf.USE, database);
 
-        ret.addSql(TableUtils.USE_DESC, useDb);
+            ret.addSql(TableUtils.USE_DESC, useDb);
 
-        String dropStmt = null;
-        // Create RIGHT Shadow Table
-        if (set.getDefinition().size() > 0) {
-            // Drop any previous SHADOW table, if it exists.
-            dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
-            ret.addSql(TableUtils.DROP_DESC, dropStmt);
+            String dropStmt = null;
+            // Create RIGHT Shadow Table
+            if (set.getDefinition().size() > 0) {
+                // Drop any previous SHADOW table, if it exists.
+                dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
+                ret.addSql(TableUtils.DROP_DESC, dropStmt);
 
-            String shadowCreateStmt = getCreateStatement(Environment.SHADOW);
-            ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
-            // Repair Partitions
-            if (let.getPartitioned()) {
-                String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
-                ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
+                String shadowCreateStmt = getCreateStatement(Environment.SHADOW);
+                ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
+                // Repair Partitions
+//                if (let.getPartitioned()) {
+//                    String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
+//                    ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
+//                }
             }
-        }
 
-        // RIGHT Final Table
-        switch (ret.getCreateStrategy()) {
-            case NOTHING:
-            case LEAVE:
-                // Do Nothing.
-                break;
-            case DROP:
-                dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
-                ret.addSql(TableUtils.DROP_DESC, dropStmt);
-                break;
-            case REPLACE:
-                dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
-                ret.addSql(TableUtils.DROP_DESC, dropStmt);
-                String createStmt = getCreateStatement(Environment.RIGHT);
-                ret.addSql(TableUtils.CREATE_DESC, createStmt);
-                break;
-            case CREATE:
-                String createStmt2 = getCreateStatement(Environment.RIGHT);
-                ret.addSql(TableUtils.CREATE_DESC, createStmt2);
-                break;
-        }
+            // RIGHT Final Table
+            switch (ret.getCreateStrategy()) {
+                case NOTHING:
+                case LEAVE:
+                    // Do Nothing.
+                    break;
+                case DROP:
+                    dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                    ret.addSql(TableUtils.DROP_DESC, dropStmt);
+                    break;
+                case REPLACE:
+                    dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                    ret.addSql(TableUtils.DROP_DESC, dropStmt);
+                    String createStmt = getCreateStatement(Environment.RIGHT);
+                    ret.addSql(TableUtils.CREATE_DESC, createStmt);
+                    break;
+                case CREATE:
+                    String createStmt2 = getCreateStatement(Environment.RIGHT);
+                    ret.addSql(TableUtils.CREATE_DESC, createStmt2);
+                    break;
+            }
 
-        rtn = Boolean.TRUE;
+            rtn = Boolean.TRUE;
+        }
         return rtn;
     }
 
@@ -1127,7 +1225,7 @@ public class TableMirror {
         return rtn;
     }
 
-    private Boolean buildoutIntermediateSql(Config config, DBMirror dbMirror) {
+    public Boolean buildoutIntermediateSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Table: " + dbMirror.getName() + " buildout Intermediate SQL");
 
@@ -1169,10 +1267,10 @@ public class TableMirror {
             String shadowCreateStmt = getCreateStatement(Environment.SHADOW);
             ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
             // Repair Partitions
-            if (let.getPartitioned()) {
-                String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
-                ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
-            }
+//            if (let.getPartitioned()) {
+//                String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
+//                ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
+//            }
         }
 
         // RIGHT Final Table
@@ -1211,10 +1309,18 @@ public class TableMirror {
         return rtn;
     }
 
+    public Boolean isACIDDowngradeInPlace(Config config, EnvironmentTable tbl) {
+        if (TableUtils.isACID(tbl) && config.getMigrateACID().isDowngradeInPlace()) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
+    }
+
     /*
     TODO: buildoutEXPORT_IMPORTSql
      */
-    private Boolean buildoutEXPORT_IMPORTSql(Config config, DBMirror dbMirror) {
+    public Boolean buildoutEXPORT_IMPORTSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Database: " + dbMirror.getName() + " buildout EXPORT_IMPORT SQL");
 
@@ -1252,13 +1358,24 @@ public class TableMirror {
         } else {
             exportLoc = config.getTransfer().getExportBaseDirPrefix() + dbMirror.getName() + "/" + let.getName();
         }
+        String origTableName = let.getName();
+        if (isACIDDowngradeInPlace(config, let)) {
+            // Rename original table.
+            String newTblName = let.getName() + "_archive";
+            String renameSql = MessageFormat.format(MirrorConf.RENAME_TABLE, origTableName, newTblName);
+            TableUtils.changeTableName(let, newTblName);
+            let.addSql(TableUtils.RENAME_TABLE, renameSql);
+        }
 
         String exportSql = MessageFormat.format(MirrorConf.EXPORT_TABLE, let.getName(), exportLoc);
         let.addSql(TableUtils.EXPORT_TABLE, exportSql);
 
         // RIGHT IMPORT from Directory
-        String useRightDb = MessageFormat.format(MirrorConf.USE, dbMirror.getName());
-        ret.addSql(TableUtils.USE_DESC, useRightDb);
+        if (!isACIDDowngradeInPlace(config, let)) {
+            String useRightDb = MessageFormat.format(MirrorConf.USE, dbMirror.getName());
+            ret.addSql(TableUtils.USE_DESC, useRightDb);
+        }
+
         String importLoc = null;
         if (config.getTransfer().getIntermediateStorage() != null || config.getTransfer().getCommonStorage() != null) {
             importLoc = exportLoc;
@@ -1273,7 +1390,11 @@ public class TableMirror {
             if (!config.getMigrateACID().isDowngrade()) {
                 importSql = MessageFormat.format(MirrorConf.IMPORT_TABLE, let.getName(), importLoc);
             } else {
-                importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
+                if (config.getMigrateACID().isDowngradeInPlace()) {
+                    importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, origTableName, importLoc);
+                } else {
+                    importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
+                }
             }
         } else {
             if (config.getResetToDefaultLocation()) {
@@ -1282,9 +1403,24 @@ public class TableMirror {
                 importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
             }
         }
-        ret.addSql(TableUtils.IMPORT_TABLE, importSql);
+        if (isACIDDowngradeInPlace(config, let)) {
+            let.addSql(TableUtils.IMPORT_TABLE, importSql);
+        } else {
+            ret.addSql(TableUtils.IMPORT_TABLE, importSql);
+        }
 
-        rtn = Boolean.TRUE;
+        if (let.getPartitions().size() > config.getHybrid().getExportImportPartitionLimit() &&
+                config.getHybrid().getExportImportPartitionLimit() > 0) {
+            // The partition limit has been exceeded.  The process will need to be done manually.
+            let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
+                    "limit (hybrid->exportImportPartitionLimit) of " + config.getHybrid().getExportImportPartitionLimit() +
+                    ".  This value is used to abort migrations that have a high potential for failure.  " +
+                    "The migration will need to be done manually OR try increasing the limit. Review commandline option '-ep'.");
+            rtn = Boolean.FALSE;
+        } else {
+            rtn = Boolean.TRUE;
+        }
+
         return rtn;
     }
 
@@ -1335,43 +1471,165 @@ public class TableMirror {
         return rtn;
     }
 
-    public Boolean buildoutSql(Config config, DBMirror dbMirror) {
-        Boolean rtn = Boolean.FALSE;
+//    public Boolean buildoutSql(Config config, DBMirror dbMirror) {
+//        Boolean rtn = Boolean.FALSE;
+//
+//        String useDb = null;
+//        String database = null;
+//        String createTbl = null;
+//
+//        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
+//        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
+//        switch (getStrategy()) {
+//            case DUMP:
+//                rtn = buildoutDUMPSql(config, dbMirror);
+//                break;
+//            case COMMON:
+//            case SCHEMA_ONLY:
+//            case LINKED:
+//                rtn = buildoutSCHEMA_ONLYSql(config, dbMirror);
+//                break;
+//            case SQL:
+//                rtn = buildoutSQLSql(config, dbMirror);
+//                break;
+//            case EXPORT_IMPORT:
+//                rtn = buildoutEXPORT_IMPORTSql(config, dbMirror);
+//                break;
+//            case HYBRID:
+//                rtn = buildoutHYBRIDSql(config, dbMirror);
+//                break;
+//            case ACID:
+//                rtn = buildoutIntermediateSql(config, dbMirror);
+//                break;
+//            case STORAGE_MIGRATION:
+//                rtn = buildoutSTORAGEMIGRATIONSql(config, dbMirror);
+//                break;
+//        }
+//        this.addStep("SQL", "Built");
+//
+//        return rtn;
+//    }
 
-        String useDb = null;
-        String database = null;
-        String createTbl = null;
-
-        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
-        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
-        switch (getStrategy()) {
-            case DUMP:
-                rtn = buildoutDUMPSql(config, dbMirror);
-                break;
-            case COMMON:
-            case SCHEMA_ONLY:
-            case LINKED:
-                rtn = buildoutSCHEMA_ONLYSql(config, dbMirror);
-                break;
-            case SQL:
-                rtn = buildoutSQLSql(config, dbMirror);
-                break;
-            case EXPORT_IMPORT:
-                rtn = buildoutEXPORT_IMPORTSql(config, dbMirror);
-                break;
-            case HYBRID:
-                rtn = buildoutHYBRIDSql(config, dbMirror);
-                break;
-            case ACID:
-                rtn = buildoutIntermediateSql(config, dbMirror);
-                break;
-            case STORAGE_MIGRATION:
-                rtn = buildoutSTORAGEMIGRATIONSql(config, dbMirror);
-                break;
+    protected Boolean buildSourceToTransferSql(Config config) {
+        Boolean rtn = Boolean.TRUE;
+        EnvironmentTable source, transfer;
+        source = getEnvironmentTable(Environment.LEFT);
+        transfer = getEnvironmentTable(Environment.TRANSFER);
+        if (TableUtils.isACID(source)) {
+            if (source.getPartitions().size() > config.getMigrateACID().getPartitionLimit() && config.getMigrateACID().getPartitionLimit() > 0) {
+                // The partition limit has been exceeded.  The process will need to be done manually.
+                source.addIssue("The number of partitions: " + source.getPartitions().size() + " exceeds the configuration " +
+                        "limit (migrateACID->partitionLimit) of " + config.getMigrateACID().getPartitionLimit() +
+                        ".  This value is used to abort migrations that have a high potential for failure.  " +
+                        "The migration will need to be done manually OR try increasing the limit. Review commandline option '-ap'.");
+                rtn = Boolean.FALSE;
+            }
+        } else {
+            if (source.getPartitions().size() > config.getHybrid().getSqlPartitionLimit() &&
+                    config.getHybrid().getSqlPartitionLimit() > 0) {
+                // The partition limit has been exceeded.  The process will need to be done manually.
+                source.addIssue("The number of partitions: " + source.getPartitions().size() + " exceeds the configuration " +
+                        "limit (hybrid->sqlPartitionLimit) of " + config.getHybrid().getSqlPartitionLimit() +
+                        ".  This value is used to abort migrations that have a high potential for failure.  " +
+                        "The migration will need to be done manually OR try increasing the limit. Review commandline option '-sp'.");
+                rtn = Boolean.FALSE;
+            }
         }
-        this.addStep("SQL", "Built");
+//        if (rtn) {
+        if (isACIDDowngradeInPlace(config, source)) {
+            String dropOriginalTable = MessageFormat.format(MirrorConf.DROP_TABLE,
+                    source.getName());
+            source.addCleanUpSql(MirrorConf.DROP_TABLE_DESC, dropOriginalTable);
+        }
+
+        if (transfer.isDefined()) {
+            if (source.getPartitioned()) {
+                // TODO: Check Optimizations and Cluster Version
+                if (false) {
+
+                } else {
+                    String partElement = TableUtils.getPartitionElements(source);
+                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
+                            source.getName(), transfer.getName(), partElement);
+                    String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
+                    source.addSql(new Pair(transferDesc, transferSql));
+                }
+            } else {
+                String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_OVERWRITE,
+                        source.getName(), transfer.getName());
+                String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
+                source.addSql(new Pair(transferDesc, transferSql));
+            }
+            // Drop Transfer Table
+            if (!isACIDDowngradeInPlace(config, source)) {
+                String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, transfer.getName());
+                source.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
+            }
+        }
 
         return rtn;
+    }
+
+    protected Boolean buildShadowToFinalSql(Config config) {
+        Boolean rtn = Boolean.TRUE;
+        // if common storage, skip
+        // if inplace, skip
+        EnvironmentTable source = getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable shadow = getEnvironmentTable(Environment.SHADOW);
+        EnvironmentTable target = getEnvironmentTable(Environment.RIGHT);
+        if ((!TableUtils.isACID(source) && config.getTransfer().getCommonStorage() != null) ||
+                isACIDDowngradeInPlace(config, source)) {
+            // Nothing to build.
+            return rtn;
+        } else {
+            if (source.getPartitioned()) {
+                // MSCK repair on Shadow
+                String msckTable = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, shadow.getName());
+                target.addSql(new Pair(MirrorConf.MSCK_REPAIR_TABLE_DESC, msckTable));
+            }
+            if (config.getOptimization().getBuildShadowStatistics()) {
+                // Build Shadow Stats.
+
+            }
+            // Sql from Shadow to Final
+            if (source.getPartitioned()) {
+                if (false) {
+                    // optimizations
+                } else {
+                    String partElement = TableUtils.getPartitionElements(source);
+                    String shadowSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
+                            shadow.getName(), target.getName(), partElement);
+                    String shadowDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, source.getPartitions().size());
+                    target.addSql(new Pair(shadowDesc, shadowSql));
+                }
+            } else {
+                String shadowSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_OVERWRITE,
+                        shadow.getName(), target.getName());
+                String shadowDesc = MessageFormat.format(TableUtils.LOAD_FROM_SHADOW_DESC, "");
+                target.addSql(new Pair(shadowDesc, shadowSql));
+            }
+            // Drop Shadow Table.
+            String dropShadowSql = MessageFormat.format(MirrorConf.DROP_TABLE, shadow.getName());
+            target.getSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropShadowSql));
+
+        }
+        return rtn;
+    }
+
+    public Boolean buildTransferSql(EnvironmentTable source, EnvironmentTable shadow, EnvironmentTable target, Config config) {
+        Boolean rtn = Boolean.TRUE;
+        // Build Source->Transfer SQL
+        rtn = buildSourceToTransferSql(config);
+
+        // Build Shadow->Final SQL
+        if (rtn && !config.getTransfer().getStorageMigration().isDistcp()) {
+            rtn = buildShadowToFinalSql(config);
+        } else {
+            getEnvironmentTable(Environment.RIGHT).addSql("distcp specified", "-- Run the Distcp output to migrate data.");
+        }
+
+        return rtn;
+
     }
 
     /*

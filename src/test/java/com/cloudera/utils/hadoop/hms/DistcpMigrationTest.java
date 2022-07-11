@@ -108,29 +108,6 @@ public class DistcpMigrationTest extends MirrorTestBase {
     }
 
     @Test
-    public void test_acid_sql_da_distcp() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = outputDirBase + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
-                "-mao",
-                "-da",
-                "--distcp",
-                "-ewd", "/warehouse/external",
-                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-        args = toExecute(args, execArgs, Boolean.FALSE);
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        int check = 0;
-        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
-    }
-
-    @Test
     public void test_acid_sql_da_distcp_rdl() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
@@ -156,7 +133,7 @@ public class DistcpMigrationTest extends MirrorTestBase {
     }
 
     @Test
-    public void test_acid_sql_da_w_distcp() {
+    public void test_acid_sql_da_distcp() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -165,9 +142,9 @@ public class DistcpMigrationTest extends MirrorTestBase {
 
         String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
                 "-mao",
-                "-ewd", "/warehouse/external",
                 "-da",
                 "--distcp",
+                "-ewd", "/warehouse/external",
                 "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
         args = toExecute(args, execArgs, Boolean.FALSE);
 

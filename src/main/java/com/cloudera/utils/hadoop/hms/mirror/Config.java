@@ -606,7 +606,7 @@ public class Config {
                     dataStrategy == DataStrategy.STORAGE_MIGRATION ||
                     dataStrategy == DataStrategy.SQL ||
                     dataStrategy == DataStrategy.EXPORT_IMPORT ||
-                    dataStrategy == DataStrategy.HYBRID)){
+                    dataStrategy == DataStrategy.HYBRID)) {
                 errors.set(RESET_TO_DEFAULT_LOCATION.getCode());
                 rtn = Boolean.FALSE;
             }
@@ -685,9 +685,34 @@ public class Config {
             errors.set(VALID_ACID_STRATEGIES.getCode());
             rtn = Boolean.FALSE;
         }
+
         // DUMP does require Execute.
         if (isExecute() && dataStrategy == DataStrategy.DUMP) {
             setExecute(Boolean.FALSE);
+        }
+
+        if (migrateACID.isOn() && migrateACID.isInplace()) {
+            if (!(dataStrategy == DataStrategy.SQL || dataStrategy == DataStrategy.EXPORT_IMPORT ||
+                    dataStrategy == DataStrategy.HYBRID)) {
+                errors.set(VALID_ACID_DA_IP_STRATEGIES.getCode());
+                rtn = Boolean.FALSE;
+            }
+            if (this.getTransfer().getCommonStorage() != null) {
+                errors.set(COMMON_STORAGE_WITH_DA_IP.getCode());
+                rtn = Boolean.FALSE;
+            }
+            if (this.getTransfer().getIntermediateStorage() != null) {
+                errors.set(INTERMEDIATE_STORAGE_WITH_DA_IP.getCode());
+                rtn = Boolean.FALSE;
+            }
+            if (this.getTransfer().getStorageMigration().isDistcp()) {
+                errors.set(DISTCP_W_DA_IP_ACID.getCode());
+                rtn = Boolean.FALSE;
+            }
+            if (getCluster(Environment.LEFT).getLegacyHive()) {
+                errors.set(DA_IP_NON_LEGACY.getCode());
+                rtn = Boolean.FALSE;
+            }
         }
 
         if (dataStrategy == DataStrategy.STORAGE_MIGRATION) {
@@ -985,4 +1010,16 @@ public class Config {
         return cluster;
     }
 
+    /*
+    Legacy is when one of the clusters is legacy.
+     */
+    public Boolean legacyMigration() {
+        Boolean rtn = Boolean.FALSE;
+        if (getCluster(Environment.LEFT).getLegacyHive() && getCluster(Environment.RIGHT).getLegacyHive()) {
+            if (!getCluster(Environment.LEFT).getLegacyHive()) {
+                rtn = Boolean.TRUE;
+            }
+        }
+        return rtn;
+    }
 }

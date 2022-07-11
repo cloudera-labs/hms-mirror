@@ -58,6 +58,14 @@ public class EnvironmentTable {
         this.createStrategy = createStrategy;
     }
 
+    public Boolean isDefined() {
+        if (definition != null && definition.size() > 0) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
+    }
+
     public List<String> getDefinition() {
         return definition;
     }

@@ -88,6 +88,26 @@ public class ExpImpDataMigrationTest extends MirrorTestBase {
     }
 
     @Test
+    public void test_acid_exp_imp_da_ip() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "EXPORT_IMPORT", "-db", DataState.getInstance().getWorking_db(),
+                "-mao", "-da", "-ip",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+    }
+
+    @Test
     public void test_acid_exp_imp_da_is() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]

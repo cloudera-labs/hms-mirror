@@ -22,10 +22,28 @@ import java.util.List;
 public enum DataStrategy {
     /*
     The DUMP strategy will run against the LEFT cluster (attaching to it) and build scripts
-     based on the configuration in that cluster.  You can optionally use the -ds|--dump-source
+     based on the configuration in that cluster.  You can optionally use the -f|--flip
      option to use the RIGHT cluster as the target for the dump.
      */
     DUMP(Boolean.FALSE),
+    /*
+    The DOWNGRADE strategy is intended to downgrade ACID tables to EXTERNAL/PURGE tables on the
+    LEFT cluster.  This process will only run against ACID tables (implies -mao|--migrate-acid-only).
+
+    The process will create an alternate table in the same database with the same structure, but it will
+    be an EXTERNAL/PURGE table.  The location will be omitted from the definition of this table.  Which means
+    the data will be copied to the default location for EXTERNAL tables.  That will either be set by
+    the metastores `hive.metastore.warehouse.external.dir` value or the databases definition for `LOCATION`.
+
+    You can use the `-ewd` setting to set the database `LOCATION`, which will be applied to all following
+    actions.
+
+    You can optionally use the -f|--flip option to use the RIGHT cluster as the target
+    for the DOWNGRADE.
+
+    DOWNGRADE_ACID(Boolean.FALSE),
+    */
+
     /*
     This will transfer the schema only, replace the location with the RIGHT
     clusters location namespace and maintain the relative path.

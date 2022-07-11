@@ -63,6 +63,7 @@ public class TableUtils {
     public static final String LOAD_FROM_PARTITIONED_SHADOW_DESC = "Loading table from Partitioned ({0}) Shadow";
     public static final String EXPORT_TABLE = "EXPORT Table";
     public static final String IMPORT_TABLE = "IMPORT Table";
+    public static final String RENAME_TABLE = "RENAME Table";
     public static final String ACID_NOT_ON = "This is an ACID table.  Turn on ACID migration `-ma|--migrate-acid`.";
 
     public static String getLocation(String tableName, List<String> tableDefinition) {

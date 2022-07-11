@@ -362,6 +362,9 @@ public class Mirror {
                 if (cmd.hasOption("ip")) {
                     // Downgrade ACID tables
                     config.getMigrateACID().setInplace(Boolean.TRUE);
+                    // For 'in-place' downgrade, only applies to ACID tables.
+                    // Implies `-mao`.
+                    config.getMigrateACID().setOn(Boolean.TRUE);
                 }
             }
 
@@ -657,9 +660,16 @@ public class Mirror {
                 // Get Pool
                 connPools.addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
                 break;
+            case SQL:
+            case EXPORT_IMPORT:
+            case HYBRID:
+                // When doing inplace downgrade of ACID tables, we're only dealing with the LEFT cluster.
+                if (!config.getMigrateACID().isInplace()) {
+                    connPools.addHiveServer2(Environment.RIGHT, config.getCluster(Environment.RIGHT).getHiveServer2());
+                }
             default:
                 connPools.addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
-                connPools.addHiveServer2(Environment.RIGHT, config.getCluster(Environment.RIGHT).getHiveServer2());
+                break;
         }
         try {
             connPools.init();
@@ -1245,9 +1255,9 @@ public class Mirror {
         options.addOption(daOption);
 
         Option ipOption = new Option("ip", "in-place", false,
-                "Downgrade ACID tables to EXTERNAL tables with purge. WIP-Tech Preview");
+                "Downgrade ACID tables to EXTERNAL tables with purge.");
         ipOption.setRequired(Boolean.FALSE);
-        options.addOption(daOption);
+        options.addOption(ipOption);
 
         // Non Native Migrations
         Option mnnOption = new Option("mnn", "migrate-non-native", false,

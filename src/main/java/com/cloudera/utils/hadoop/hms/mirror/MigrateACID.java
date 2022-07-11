@@ -55,7 +55,7 @@ public class MigrateACID {
     private Boolean downgrade = Boolean.FALSE;
     /*
     When 'in-place', only the LEFT cluster is used and the ACID tables are downgraded in-place.  In-place means within the
-    same cluster.  SQL will be used to migrate the data out of the ACID table, into an EXTERNAL/PURGE table.  That table
+    same cluster.  SQL/EXPORT_IMPORT will be used to migrate the data out of the ACID table, into an EXTERNAL/PURGE table.  That table
     will be renamed to the original ACID table once this is completed.
      */
     private Boolean inplace = Boolean.FALSE;
@@ -106,12 +106,19 @@ public class MigrateACID {
         this.downgrade = downgrade;
     }
 
-    public Boolean getInplace() {
+    public Boolean isInplace() {
         return inplace;
     }
 
     public void setInplace(Boolean inplace) {
         this.inplace = inplace;
+    }
+
+    public Boolean isDowngradeInPlace() {
+        if (inplace && downgrade)
+            return Boolean.TRUE;
+        else
+            return Boolean.FALSE;
     }
 
     //    public String getTransferPrefix() {
