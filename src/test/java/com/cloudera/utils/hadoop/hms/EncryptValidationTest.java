@@ -35,7 +35,7 @@ import static org.junit.Assert.assertFalse;
 
 public class EncryptValidationTest extends MirrorTestBase {
 
-    private static String PKEY = "test";
+    private static final String PKEY = "test";
 //    private String PW = ""
 
     @Before
@@ -58,52 +58,52 @@ public class EncryptValidationTest extends MirrorTestBase {
         dataCleanup(DATACLEANUP.LEFT);
     }
 
-    public Boolean dataSetup01() {
-        if (!DataState.getInstance().isDataCreated()) {
-            String nameofCurrMethod = new Throwable()
-                    .getStackTrace()[0]
-                    .getMethodName();
-
-            String outputDir = outputDirBase + nameofCurrMethod;
-
-            String[] args = new String[]{"-d", "STORAGE_MIGRATION", "-smn", "s3a://something_not_relevant",
-                    "-pkey", PKEY,
-                    "-wd", "/hello", "-ewd", "/hello-ext",
-                    "-db", DataState.getInstance().getWorking_db(), "-o", outputDir,
-                    "-cfg", DataState.getInstance().getConfiguration()};
-            args = toExecute(args, execArgs, Boolean.TRUE);
-
-            List<Pair> leftSql = new ArrayList<Pair>();
-            build_use_db(leftSql);
-
-            List<String[]> dataset = null;
-            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
-                dataset = getDataset(2, 200, null);
-            }
-            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, TBL_INSERT, dataset, leftSql, new String[]{"acid_01", "2"});
-            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
-                dataset = getDataset(2, 400, null);
-            }
-            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, TBL_INSERT, dataset, leftSql, new String[]{"acid_02", "6"});
-            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
-                dataset = getDataset(3, 400, null);
-            }
-            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS_PARTITIONED, TBL_INSERT_PARTITIONED, dataset, leftSql, new String[]{"acid_03", "6"});
-            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
-                dataset = getDataset(2, 2000, 500);
-            }
-            build_n_populate(CREATE_EXTERNAL_TBL_PARTITIONED, TBL_INSERT_PARTITIONED, dataset, leftSql, new String[]{"ext_part_01"});
-            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
-                dataset = getDataset(2, 2000, null);
-            }
-            build_n_populate(CREATE_EXTERNAL_TBL, TBL_INSERT, dataset, leftSql, new String[]{"ext_part_02"});
-
-            Mirror cfgMirror = new Mirror();
-            long rtn = cfgMirror.setupSql(args, leftSql, null);
-            DataState.getInstance().setDataCreated(Boolean.TRUE);
-        }
-        return Boolean.TRUE;
-    }
+//    public Boolean dataSetup01() {
+//        if (!DataState.getInstance().isDataCreated("set01")) {
+//            String nameofCurrMethod = new Throwable()
+//                    .getStackTrace()[0]
+//                    .getMethodName();
+//
+//            String outputDir = outputDirBase + nameofCurrMethod;
+//
+//            String[] args = new String[]{"-d", "STORAGE_MIGRATION", "-smn", "s3a://something_not_relevant",
+//                    "-pkey", PKEY,
+//                    "-wd", "/hello", "-ewd", "/hello-ext",
+//                    "-db", DataState.getInstance().getWorking_db(), "-o", outputDir,
+//                    "-cfg", DataState.getInstance().getConfiguration()};
+//            args = toExecute(args, execArgs, Boolean.TRUE);
+//
+//            List<Pair> leftSql = new ArrayList<Pair>();
+//            build_use_db(leftSql);
+//
+//            List<String[]> dataset = null;
+//            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+//                dataset = getDataset(2, 200, null);
+//            }
+//            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, TBL_INSERT, dataset, leftSql, new String[]{"acid_01", "2"});
+//            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+//                dataset = getDataset(2, 400, null);
+//            }
+//            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, TBL_INSERT, dataset, leftSql, new String[]{"acid_02", "6"});
+//            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+//                dataset = getDataset(3, 400, null);
+//            }
+//            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS_PARTITIONED, TBL_INSERT_PARTITIONED, dataset, leftSql, new String[]{"acid_03", "6"});
+//            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+//                dataset = getDataset(2, 2000, 500);
+//            }
+//            build_n_populate(CREATE_EXTERNAL_TBL_PARTITIONED, TBL_INSERT_PARTITIONED, dataset, leftSql, new String[]{"ext_part_01"});
+//            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+//                dataset = getDataset(2, 2000, null);
+//            }
+//            build_n_populate(CREATE_EXTERNAL_TBL, TBL_INSERT, dataset, leftSql, new String[]{"ext_part_02"});
+//
+//            Mirror cfgMirror = new Mirror();
+//            long rtn = cfgMirror.setupSql(args, leftSql, null);
+//            DataState.getInstance().setDataCreated("set01", Boolean.TRUE);
+//        }
+//        return Boolean.TRUE;
+//    }
 
     protected static Boolean dataCleanup(DATACLEANUP datacleanup) {
         if (DataState.getInstance().isCleanUp()) {

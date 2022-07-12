@@ -32,19 +32,19 @@ import java.util.*;
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.RO_DB_DOESNT_EXIST;
 
 public class DBMirror {
-    private static Logger LOG = LogManager.getLogger(DBMirror.class);
+    private static final Logger LOG = LogManager.getLogger(DBMirror.class);
 
     private String name;
     private Map<Environment, Map<String, String>> dbDefinitions = new TreeMap<Environment, Map<String, String>>();
-    private List<String> issues = new ArrayList<String>();
+    private final List<String> issues = new ArrayList<String>();
     /*
     table - reason
      */
-    private Map<String, String> filteredOut = new TreeMap<String, String>();
+    private final Map<String, String> filteredOut = new TreeMap<String, String>();
 
-    private Map<String, TableMirror> tableMirrors = new TreeMap<String, TableMirror>();
+    private final Map<String, TableMirror> tableMirrors = new TreeMap<String, TableMirror>();
 
-    private Map<Environment, List<Pair>> sql = new TreeMap<Environment, List<Pair>>();
+    private final Map<Environment, List<Pair>> sql = new TreeMap<Environment, List<Pair>>();
 
     public DBMirror() {
     }

@@ -31,7 +31,7 @@ public class BadParquetDefFeature extends BaseFeature implements Feature {
     private final String INPUT_FORMAT_CLASS = "'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'";
     private final String OUTPUT_FORMAT_CLASS = "'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'";
     private final String STORED_AS_PARQUET = "STORED AS PARQUET";
-    private static Logger LOG = LogManager.getLogger(BadParquetDefFeature.class);
+    private static final Logger LOG = LogManager.getLogger(BadParquetDefFeature.class);
 
     public String getDescription() {
         return "Table schema definitions for Parquet files that don't include include INPUT and " +

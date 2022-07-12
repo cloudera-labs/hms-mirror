@@ -17,8 +17,8 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
 public class Pair {
-    private String description;
-    private String action;
+    private final String description;
+    private final String action;
 
     public Pair(String description, String action) {
         this.description = description;

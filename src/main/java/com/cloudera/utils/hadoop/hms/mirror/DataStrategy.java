@@ -127,7 +127,7 @@ public enum DataStrategy {
      */
     ACID(Boolean.TRUE);
 
-    private boolean hidden;
+    private final boolean hidden;
 
     DataStrategy(boolean hidden) {
         this.hidden = hidden;

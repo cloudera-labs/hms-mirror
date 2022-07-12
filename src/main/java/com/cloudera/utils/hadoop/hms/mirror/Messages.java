@@ -5,8 +5,8 @@ import java.util.*;
 
 public class Messages {
 
-    private BitSet bitSet;
-    private Map<Integer, Object[]> argMap = new TreeMap<Integer, Object[]>();
+    private final BitSet bitSet;
+    private final Map<Integer, Object[]> argMap = new TreeMap<Integer, Object[]>();
 
     public Messages(int size) {
         bitSet = new BitSet(size);

@@ -29,15 +29,15 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class StateMaintenance implements Runnable {
-    private static Logger LOG = LogManager.getLogger(StateMaintenance.class);
-    private String startDateStr = null;
+    private static final Logger LOG = LogManager.getLogger(StateMaintenance.class);
+    private final String startDateStr = null;
     private Thread worker;
     private Conversion conversion;
     private final AtomicBoolean running = new AtomicBoolean(false);
-    private int sleepInterval;
-    private ObjectMapper mapper;
-    private String configFile;
-    private String dateMarker;
+    private final int sleepInterval;
+    private final ObjectMapper mapper;
+    private final String configFile;
+    private final String dateMarker;
 
     public StateMaintenance(int sleepInterval,
                             final String configFile, final String dateMarker) {

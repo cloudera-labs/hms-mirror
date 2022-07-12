@@ -17,5 +17,5 @@ public enum DistcpFlow {
     /*
     Data is 'pushed' from LEFT to transition area.  Then the 'data' is PULL from the 'transition' area by the RIGHT.
      */
-    PUSH_PULL;
+    PUSH_PULL
 }

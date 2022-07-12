@@ -37,7 +37,7 @@ public enum Environment {
     LEFT(Boolean.TRUE),
     RIGHT(Boolean.TRUE);
 
-    private Boolean visible;
+    private final Boolean visible;
 
     Environment(Boolean visible) {
         this.visible = visible;

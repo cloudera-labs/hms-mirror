@@ -28,7 +28,7 @@ import java.sql.SQLException;
 import java.util.concurrent.Callable;
 
 public class GetTableMetadata implements Callable<ReturnStatus> {
-    private static Logger LOG = LogManager.getLogger(GetTableMetadata.class);
+    private static final Logger LOG = LogManager.getLogger(GetTableMetadata.class);
 
     private Config config = null;
     private DBMirror dbMirror = null;

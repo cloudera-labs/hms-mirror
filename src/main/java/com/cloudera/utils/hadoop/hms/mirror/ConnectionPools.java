@@ -34,12 +34,12 @@ import java.util.Set;
 import java.util.TreeMap;
 
 public class ConnectionPools {
-    private static Logger LOG = LogManager.getLogger(ConnectionPools.class);
+    private static final Logger LOG = LogManager.getLogger(ConnectionPools.class);
 
-    private Map<Environment, PoolingDataSource<PoolableConnection>> dataSources =
+    private final Map<Environment, PoolingDataSource<PoolableConnection>> dataSources =
             new TreeMap<Environment, PoolingDataSource<PoolableConnection>>();
-    private Map<Environment, Driver> drivers = new TreeMap<Environment, Driver>();
-    private Map<Environment, HiveServer2Config> hiveServerConfigs = new TreeMap<Environment, HiveServer2Config>();
+    private final Map<Environment, Driver> drivers = new TreeMap<Environment, Driver>();
+    private final Map<Environment, HiveServer2Config> hiveServerConfigs = new TreeMap<Environment, HiveServer2Config>();
 
     public void addHiveServer2(Environment environment, HiveServer2Config hiveServer2) {
         hiveServerConfigs.put(environment, hiveServer2);

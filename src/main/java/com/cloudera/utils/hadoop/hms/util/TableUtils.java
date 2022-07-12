@@ -28,7 +28,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 public class TableUtils {
-    private static Logger LOG = LogManager.getLogger(TableUtils.class);
+    private static final Logger LOG = LogManager.getLogger(TableUtils.class);
 
     public static final String CREATE = "CREATE";
     public static final String CREATE_TABLE = "CREATE TABLE";

@@ -51,7 +51,7 @@ import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.*;
 @JsonIgnoreProperties({"featureList"})
 public class Config {
 
-    private static Logger LOG = LogManager.getLogger(Config.class);
+    private static final Logger LOG = LogManager.getLogger(Config.class);
     private Acceptance acceptance = new Acceptance();
     @JsonIgnore
     private HadoopSessionPool cliPool;
@@ -62,7 +62,7 @@ public class Config {
     private Boolean databaseOnly = Boolean.FALSE;
     private String[] databases = null;
     @JsonIgnore
-    private String runMarker = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+    private final String runMarker = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
     @JsonIgnore
     private Pattern dbFilterPattern = null;
@@ -77,10 +77,10 @@ public class Config {
     private String dbRegEx = null;
     private Environment dumpSource = null;
     @JsonIgnore
-    private Messages errors = new Messages(100);
+    private final Messages errors = new Messages(100);
     private boolean execute = Boolean.FALSE;
     @JsonIgnore
-    private List<String> flags = new LinkedList<String>();
+    private final List<String> flags = new LinkedList<String>();
     /*
     Use 'flip' to switch LEFT and RIGHT cluster definitions.  Allows you to change the direction of the calls.
      */
@@ -142,7 +142,7 @@ public class Config {
     @JsonIgnore
     private Translator translator = new Translator();
     @JsonIgnore
-    private Messages warnings = new Messages(100);
+    private final Messages warnings = new Messages(100);
 
     /*
     Use this to initialize a default config.
@@ -158,14 +158,14 @@ public class Config {
         Boolean kerb = Boolean.FALSE;
         for (Environment env : Environment.values()) {
             if (env.isVisible()) {
-                System.out.println("");
-                System.out.println("Setup " + env.toString() + " cluster....");
-                System.out.println("");
+                System.out.println();
+                System.out.println("Setup " + env + " cluster....");
+                System.out.println();
 
 
                 // get their input as a String
                 // Legacy?
-                System.out.print("Is the " + env.toString() + " hive instance Hive 1 or Hive 2? (Y/N)");
+                System.out.print("Is the " + env + " hive instance Hive 1 or Hive 2? (Y/N)");
                 String response = scanner.next();
                 if (response.equalsIgnoreCase("y")) {
                     config.getCluster(env).setLegacyHive(Boolean.TRUE);
@@ -174,12 +174,12 @@ public class Config {
                 }
 
                 // hcfsNamespace
-                System.out.print("What is the namespace for the " + env.toString() + " cluster? ");
+                System.out.print("What is the namespace for the " + env + " cluster? ");
                 response = scanner.next();
                 config.getCluster(env).setHcfsNamespace(response);
 
                 // HS2 URI
-                System.out.print("What is the JDBC URI for the " + env.toString() + " cluster? ");
+                System.out.print("What is the JDBC URI for the " + env + " cluster? ");
                 response = scanner.next();
                 HiveServer2Config hs2Cfg = config.getCluster(env).getHiveServer2();
                 hs2Cfg.setUri(response);
@@ -667,6 +667,21 @@ public class Config {
             rtn = Boolean.FALSE;
         }
 
+        if (getDataStrategy() == DataStrategy.SCHEMA_ONLY) {
+            if (!getTransfer().getStorageMigration().isDistcp()) {
+                if (resetToDefaultLocation) {
+                    // requires distcp.
+                    errors.set(DISTCP_REQUIRED_FOR_SCHEMA_ONLY_RDL.getCode());
+                    rtn = Boolean.FALSE;
+                }
+                if (getTransfer().getIntermediateStorage() != null) {
+                    // requires distcp.
+                    errors.set(DISTCP_REQUIRED_FOR_SCHEMA_ONLY_IS.getCode());
+                    rtn = Boolean.FALSE;
+                }
+            }
+        }
+
         if (resetToDefaultLocation && (getTransfer().getWarehouse().getExternalDirectory() == null)) {
             warnings.set(RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getCode());
         }
@@ -1015,8 +1030,8 @@ public class Config {
      */
     public Boolean legacyMigration() {
         Boolean rtn = Boolean.FALSE;
-        if (getCluster(Environment.LEFT).getLegacyHive() && getCluster(Environment.RIGHT).getLegacyHive()) {
-            if (!getCluster(Environment.LEFT).getLegacyHive()) {
+        if (getCluster(Environment.LEFT).getLegacyHive() != getCluster(Environment.RIGHT).getLegacyHive()) {
+            if (getCluster(Environment.LEFT).getLegacyHive()) {
                 rtn = Boolean.TRUE;
             }
         }

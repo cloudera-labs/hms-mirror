@@ -26,13 +26,13 @@ public class EnvironmentTable {
     private Boolean exists = Boolean.FALSE;
     private CreateStrategy createStrategy = CreateStrategy.NOTHING;
     private List<String> definition = new ArrayList<String>();
-    private Boolean partitioned = Boolean.FALSE;
+    private final Boolean partitioned = Boolean.FALSE;
     private List<String> partitions = new ArrayList<String>();
     private List<String> actions = new ArrayList<String>();
     private Map<String, String> addProperties = new TreeMap<String, String>();
     private List<String> issues = new ArrayList<String>();
-    private List<Pair> sql = new ArrayList<Pair>();
-    private List<Pair> cleanUpsql = new ArrayList<Pair>();
+    private final List<Pair> sql = new ArrayList<Pair>();
+    private final List<Pair> cleanUpsql = new ArrayList<Pair>();
 
     public String getName() {
         return name;

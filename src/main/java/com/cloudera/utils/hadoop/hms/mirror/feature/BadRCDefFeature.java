@@ -32,7 +32,7 @@ public class BadRCDefFeature extends BaseFeature implements Feature {
     private final String ORC_SERDE = "  'org.apache.hadoop.hive.ql.io.orc.OrcSerde'";
     private final String RC_INPUT_SERDE = "  'org.apache.hadoop.hive.ql.io.RCFileInputFormat'";
     private final String RC_OUTPUT_SERDE = "  'org.apache.hadoop.hive.ql.io.RCFileOutputFormat'";
-    private static Logger LOG = LogManager.getLogger(BadRCDefFeature.class);
+    private static final Logger LOG = LogManager.getLogger(BadRCDefFeature.class);
 
     public String getDescription() {
         return "Table schema definitions for RC files that include ROW FORMAT DELIMITED " +

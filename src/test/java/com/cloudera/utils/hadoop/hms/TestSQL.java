@@ -2,7 +2,7 @@ package com.cloudera.utils.hadoop.hms;
 
 public interface TestSQL {
 
-    String CREATE_LEGACY_ACID_TBL_N_BUCKETS = "CREATE TABLE {0} " +
+    String CREATE_LEGACY_ACID_TBL_N_BUCKETS = "CREATE TABLE IF NOT EXISTS {0} " +
             "(id String" +
             ", checkValue String) " +
             "CLUSTERED BY (id) INTO {1} BUCKETS " +
@@ -12,7 +12,7 @@ public interface TestSQL {
             "VALUES {1}";
     String TBL_INSERT_PARTITIONED = "INSERT INTO TABLE {0} PARTITION (num) " +
             "VALUES {1}";
-    String CREATE_LEGACY_ACID_TBL_N_BUCKETS_PARTITIONED = "CREATE TABLE {0} " +
+    String CREATE_LEGACY_ACID_TBL_N_BUCKETS_PARTITIONED = "CREATE TABLE IF NOT EXISTS {0} " +
             "(id String" +
             ", checkValue String) " +
             "PARTITIONED BY (num String) " +
@@ -20,27 +20,27 @@ public interface TestSQL {
             "STORED AS ORC " +
             "TBLPROPERTIES (\"transactional\"=\"true\")";
 
-    String CREATE_ACID_TBL_N_BUCKETS = "CREATE TABLE {0} " +
+    String CREATE_ACID_TBL_N_BUCKETS = "CREATE TABLE IF NOT EXISTS {0} " +
             "(id String, checkValue String) " +
             "CLUSTERED BY (id) INTO {1} BUCKETS " +
             "STORED AS ORC";
     String CREATE_ACID_TBL = "CREATE TABLE {0} " +
             "(id String, checkValue String)";
-    String CREATE_EXTERNAL_TBL = "CREATE EXTERNAL TABLE {0} " +
+    String CREATE_EXTERNAL_TBL = "CREATE EXTERNAL TABLE IF NOT EXISTS {0} " +
             "(id String, checkValue String)";
-    String CREATE_EXTERNAL_TBL_PARTITIONED = "CREATE EXTERNAL TABLE {0} " +
+    String CREATE_EXTERNAL_TBL_PARTITIONED = "CREATE EXTERNAL TABLE IF NOT EXISTS {0} " +
             "(id String, checkValue String)" +
             "PARTITIONED BY (num String) " +
             "STORED AS ORC";
 
     // Escape single quotes with another quote when using MessageFormat.format IE: ' to '' .
-    String CREATE_AVRO_TBL_SHORT = "CREATE TABLE {0} " +
+    String CREATE_AVRO_TBL_SHORT = "CREATE TABLE {0} IF NOT EXISTS " +
             "STORED AS AVRO " +
             "TBLPROPERTIES (" +
             "''avro.schema.url''=''{1}'')";
 //            "'avro.schema.url'='hdfs://HOME90/user/dstreev/avro/test.avsc')";
 
-    String CREATE_AVRO_TBL_LONG = "CREATE TABLE `{0}` (" +
+    String CREATE_AVRO_TBL_LONG = "CREATE TABLE IF NOT EXISTS `{0}` (" +
             "  `field1` string COMMENT ''," +
             "  `field2` int COMMENT ''," +
             "  `field3` bigint COMMENT ''," +

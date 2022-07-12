@@ -32,7 +32,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class TableMirror {
-    private static Logger LOG = LogManager.getLogger(TableMirror.class);
+    private static final Logger LOG = LogManager.getLogger(TableMirror.class);
 
     private String dbName;
     private String name;
@@ -45,11 +45,11 @@ public class TableMirror {
     @JsonIgnore
     private String removeReason = null;
     @JsonIgnore
-    private String unique = UUID.randomUUID().toString().replaceAll("-", "");
+    private final String unique = UUID.randomUUID().toString().replaceAll("-", "");
 
-    private DateFormat tdf = new SimpleDateFormat("HH:mm:ss.SSS");
+    private final DateFormat tdf = new SimpleDateFormat("HH:mm:ss.SSS");
     @JsonIgnore
-    private List<Marker> steps = new ArrayList<Marker>();
+    private final List<Marker> steps = new ArrayList<Marker>();
 
     private DataStrategy strategy = null;
 
@@ -67,7 +67,7 @@ public class TableMirror {
     @JsonIgnore
     private Long stageDuration = 0l;
 
-    private Map<Environment, EnvironmentTable> environments = new TreeMap<Environment, EnvironmentTable>();
+    private final Map<Environment, EnvironmentTable> environments = new TreeMap<Environment, EnvironmentTable>();
 
     public String getName() {
         return name;
@@ -469,6 +469,10 @@ public class TableMirror {
         return rtn;
     }
 
+    public Boolean buildoutLINKEDSql(Config config, DBMirror dbMirror) {
+        return buildoutSCHEMA_ONLYSql(config, dbMirror);
+    }
+
     public Boolean buildoutCOMMONDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Table: " + dbMirror.getName() + " buildout COMMON Definition");
@@ -636,7 +640,6 @@ public class TableMirror {
     - We create the same schema in the 'target' cluster for the TARGET.
     - We need the create and LINKED a shadow table to the LOWER clusters data.
 
-    TODO: buildoutSQLDefinition
      */
     public Boolean buildoutSQLDefinition(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
@@ -945,44 +948,6 @@ public class TableMirror {
         return rtn;
     }
 
-    public Boolean buildoutDefinitions(Config config, DBMirror dbMirror) {
-        Boolean rtn = Boolean.FALSE;
-        switch (getStrategy()) {
-            case DUMP:
-                rtn = buildoutDUMPDefinition(config, dbMirror);
-                break;
-            case SCHEMA_ONLY:
-                rtn = buildoutSCHEMA_ONLYDefinition(config, dbMirror);
-                break;
-            case LINKED:
-                rtn = buildoutLINKEDDefinition(config, dbMirror);
-                break;
-            case SQL:
-                rtn = buildoutSQLDefinition(config, dbMirror);
-                break;
-            case EXPORT_IMPORT:
-                rtn = buildoutEXPORT_IMPORTDefinition(config, dbMirror);
-                break;
-            case HYBRID:
-                rtn = buildoutHYBRIDDefinition(config, dbMirror);
-                break;
-            case ACID:
-                if (config.getMigrateACID().isOn()) {
-                    rtn = buildoutIntermediateDefinition(config, dbMirror);
-                } else {
-
-                }
-                break;
-            case COMMON:
-                rtn = buildoutCOMMONDefinition(config, dbMirror);
-                break;
-            case STORAGE_MIGRATION:
-                rtn = buildoutSTORAGEMIGRATIONDefinition(config, dbMirror);
-        }
-        this.addStep("Definitions", "Built");
-        return rtn;
-    }
-
     public Boolean buildoutDUMPSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Table: " + dbMirror.getName() + " buildout DUMP SQL");
@@ -1117,9 +1082,6 @@ public class TableMirror {
         return rtn;
     }
 
-    /*
-    TODO: buildoutSQLSql
-     */
     public Boolean buildoutSQLSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Table: " + dbMirror.getName() + " buildout SQL SQL");
@@ -1321,9 +1283,6 @@ public class TableMirror {
         }
     }
 
-    /*
-    TODO: buildoutEXPORT_IMPORTSql
-     */
     public Boolean buildoutEXPORT_IMPORTSql(Config config, DBMirror dbMirror) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Database: " + dbMirror.getName() + " buildout EXPORT_IMPORT SQL");
@@ -1428,91 +1387,9 @@ public class TableMirror {
         return rtn;
     }
 
-    /*
-    TODO: buildoutHYBRIDSql
-     */
-    private Boolean buildoutHYBRIDSql(Config config, DBMirror dbMirror) {
-        Boolean rtn = Boolean.FALSE;
-        LOG.debug("Table: " + dbMirror.getName() + " buildout HYBRID SQL");
-
-        String useDb = null;
-        String database = null;
-        String createTbl = null;
-
-        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
-
-        if (TableUtils.isACID(let.getName(), let.getDefinition())) {
-            rtn = buildoutIntermediateSql(config, dbMirror);
-        } else {
-            if (let.getPartitioned()) {
-                if (let.getPartitions().size() > config.getHybrid().getExportImportPartitionLimit()) {
-                    rtn = buildoutSQLSql(config, dbMirror);
-                } else {
-                    rtn = buildoutEXPORT_IMPORTSql(config, dbMirror);
-                }
-
-            }
-        }
-
-        return rtn;
+    public Boolean buildoutCOMMONSql(Config config, DBMirror dbMirror) {
+       return buildoutSCHEMA_ONLYSql(config, dbMirror);
     }
-
-    /*
-    TODO: buildoutCOMMONSql
-     */
-    private Boolean buildoutCOMMONSql(Config config, DBMirror dbMirror) {
-        Boolean rtn = Boolean.FALSE;
-        LOG.debug("Table: " + dbMirror.getName() + " buildout COMMON SQL");
-
-        String useDb = null;
-        String database = null;
-        String createTbl = null;
-
-        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
-        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
-
-        rtn = Boolean.TRUE;
-        return rtn;
-    }
-
-//    public Boolean buildoutSql(Config config, DBMirror dbMirror) {
-//        Boolean rtn = Boolean.FALSE;
-//
-//        String useDb = null;
-//        String database = null;
-//        String createTbl = null;
-//
-//        EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
-//        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
-//        switch (getStrategy()) {
-//            case DUMP:
-//                rtn = buildoutDUMPSql(config, dbMirror);
-//                break;
-//            case COMMON:
-//            case SCHEMA_ONLY:
-//            case LINKED:
-//                rtn = buildoutSCHEMA_ONLYSql(config, dbMirror);
-//                break;
-//            case SQL:
-//                rtn = buildoutSQLSql(config, dbMirror);
-//                break;
-//            case EXPORT_IMPORT:
-//                rtn = buildoutEXPORT_IMPORTSql(config, dbMirror);
-//                break;
-//            case HYBRID:
-//                rtn = buildoutHYBRIDSql(config, dbMirror);
-//                break;
-//            case ACID:
-//                rtn = buildoutIntermediateSql(config, dbMirror);
-//                break;
-//            case STORAGE_MIGRATION:
-//                rtn = buildoutSTORAGEMIGRATIONSql(config, dbMirror);
-//                break;
-//        }
-//        this.addStep("SQL", "Built");
-//
-//        return rtn;
-//    }
 
     protected Boolean buildSourceToTransferSql(Config config) {
         Boolean rtn = Boolean.TRUE;
@@ -1539,7 +1416,7 @@ public class TableMirror {
                 rtn = Boolean.FALSE;
             }
         }
-//        if (rtn) {
+
         if (isACIDDowngradeInPlace(config, source)) {
             String dropOriginalTable = MessageFormat.format(MirrorConf.DROP_TABLE,
                     source.getName());
@@ -1626,18 +1503,18 @@ public class TableMirror {
         rtn = buildSourceToTransferSql(config);
 
         // Build Shadow->Final SQL
-        if (rtn && !config.getTransfer().getStorageMigration().isDistcp()) {
-            rtn = buildShadowToFinalSql(config);
-        } else {
-            getEnvironmentTable(Environment.RIGHT).addSql("distcp specified", "-- Run the Distcp output to migrate data.");
-            if (source.getPartitioned()) {
-                String msckTable = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, target.getName());
-                target.addCleanUpSql(new Pair(MirrorConf.MSCK_REPAIR_TABLE_DESC, msckTable));
+        if (rtn) {
+            if (config.getTransfer().getStorageMigration().isDistcp()) {
+                getEnvironmentTable(Environment.RIGHT).addSql("distcp specified", "-- Run the Distcp output to migrate data.");
+                if (source.getPartitioned()) {
+                    String msckTable = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, target.getName());
+                    target.addCleanUpSql(new Pair(MirrorConf.MSCK_REPAIR_TABLE_DESC, msckTable));
+                }
+            } else if (config.getTransfer().getCommonStorage() == null) {
+                rtn = buildShadowToFinalSql(config);
             }
         }
-
         return rtn;
-
     }
 
     /*
@@ -1856,13 +1733,13 @@ public class TableMirror {
                 if (!config.getSkipFeatures()) {
                     for (FeaturesEnum features : FeaturesEnum.values()) {
                         Feature feature = features.getFeature();
-                        LOG.debug("Table: " + getName() + " - Checking Feature: " + features.toString());
+                        LOG.debug("Table: " + getName() + " - Checking Feature: " + features);
                         if (feature.fixSchema(target)) {
-                            LOG.debug("Table: " + getName() + " - Feature Applicable: " + features.toString());
-                            target.addIssue("Feature (" + features.toString() + ") was found applicable and adjustments applied. " +
+                            LOG.debug("Table: " + getName() + " - Feature Applicable: " + features);
+                            target.addIssue("Feature (" + features + ") was found applicable and adjustments applied. " +
                                     feature.getDescription());
                         } else {
-                            LOG.debug("Table: " + getName() + " - Feature NOT Applicable: " + features.toString());
+                            LOG.debug("Table: " + getName() + " - Feature NOT Applicable: " + features);
                         }
                     }
                 } else {

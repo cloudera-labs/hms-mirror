@@ -29,7 +29,7 @@ public enum FeaturesEnum {
         return feature;
     }
 
-    private FeaturesEnum(Class featureClass) {
+    FeaturesEnum(Class featureClass) {
         try {
             feature = (Feature)featureClass.newInstance();
         } catch (InstantiationException e) {

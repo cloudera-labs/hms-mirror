@@ -17,7 +17,8 @@
 package com.cloudera.utils.hadoop.hms.stage;
 
 public class ReturnStatus {
-    public enum Status { SUCCESS, ERROR };
+    public enum Status { SUCCESS, ERROR }
+
     private Status status = null;
 //    private String message = null;
     private Throwable exception = null;

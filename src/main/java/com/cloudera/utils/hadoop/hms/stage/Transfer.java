@@ -32,7 +32,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Transfer implements Callable<ReturnStatus> {
-    private static Logger LOG = LogManager.getLogger(Transfer.class);
+    private static final Logger LOG = LogManager.getLogger(Transfer.class);
     public static Pattern protocolNSPattern = Pattern.compile("(^.*://)([a-zA-Z0-9](?:(?:[a-zA-Z0-9-]*|(?<!-)\\.(?![-.]))*[a-zA-Z0-9]+)?)(:\\d{4})?");
     // Pattern to find the value of the last directory in a url.
     public static Pattern lastDirPattern = Pattern.compile(".*/([^/?]+).*");
@@ -225,7 +225,7 @@ public class Transfer implements Callable<ReturnStatus> {
             Long diff = end.getTime() - start.getTime();
             tblMirror.setStageDuration(diff);
             LOG.info("Migration complete for " + dbMirror.getName() + "." + tblMirror.getName() + " in " +
-                    Long.toString(diff) + "ms");
+                    diff + "ms");
             rtn.setStatus(ReturnStatus.Status.SUCCESS);
         } catch (Throwable t) {
             rtn.setStatus(ReturnStatus.Status.ERROR);
@@ -493,6 +493,10 @@ public class Transfer implements Callable<ReturnStatus> {
             rtn = tblMirror.buildoutLINKEDDefinition(config, dbMirror);
         }
 
+        if (rtn) {
+            rtn = tblMirror.buildoutLINKEDSql(config, dbMirror);
+        }
+
         // Execute the RIGHT sql if config.execute.
         if (rtn) {
             rtn = config.getCluster(Environment.RIGHT).runTableSql(tblMirror);
@@ -514,6 +518,10 @@ public class Transfer implements Callable<ReturnStatus> {
                     "Can't transfer SCHEMA reference on COMMON storage for ACID tables.");
         } else {
             rtn = tblMirror.buildoutCOMMONDefinition(config, dbMirror);
+        }
+
+        if (rtn) {
+            rtn = tblMirror.buildoutCOMMONSql(config, dbMirror);
         }
         // Execute the RIGHT sql if config.execute.
         if (rtn) {

@@ -78,6 +78,10 @@ public enum MessageCode {
     INTERMEDIATE_STORAGE_WITH_DA_IP(41, "Intermediate Storage (-is) is not a valid option for the ACID downgrades inplace."),
     DISTCP_W_DA_IP_ACID (42, "`distcp` is not valid for Downgraded (-da) ACID table in-place (-ip)."),
     DA_IP_NON_LEGACY(43, "ACID Inplace Downgrade only works on Non-Legacy Hive. IE: Hive3+"),
+    DISTCP_REQUIRED_FOR_SCHEMA_ONLY_RDL (44, "You need to add `--distcp` to options when 'resetting' default " +
+            "location with SCHEMA_ONLY so you can build out the movement plan."),
+    DISTCP_REQUIRED_FOR_SCHEMA_ONLY_IS (45, "You need to add `--distcp` to options when using `-is` " +
+            "with SCHEMA_ONLY so you can build out the movement plan."),
 
     // WARNINGS
     SYNC_TBL_FILTER(50, "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"

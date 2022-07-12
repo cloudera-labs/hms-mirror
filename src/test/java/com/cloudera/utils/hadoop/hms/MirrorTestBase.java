@@ -53,7 +53,7 @@ public class MirrorTestBase {
     }
 
     public Boolean dataSetup01() {
-        if (!DataState.getInstance().isDataCreated()) {
+        if (!DataState.getInstance().isDataCreated("dataset01")) {
             String nameofCurrMethod = new Throwable()
                     .getStackTrace()[0]
                     .getMethodName();
@@ -93,13 +93,13 @@ public class MirrorTestBase {
 
             Mirror cfgMirror = new Mirror();
             long rtn = cfgMirror.setupSqlLeft(args, leftSql);
-            DataState.getInstance().setDataCreated(Boolean.TRUE);
+            DataState.getInstance().setDataCreated("dataset01", Boolean.TRUE);
         }
         return Boolean.TRUE;
     }
 
     public enum DATACLEANUP {
-        LEFT, RIGHT, BOTH;
+        LEFT, RIGHT, BOTH
     }
 
     protected static Boolean dataCleanup(DATACLEANUP datacleanup) {
@@ -147,7 +147,7 @@ public class MirrorTestBase {
     protected void build_n_populate(String tableDefTemplate, String insertTemplate,
                                     List<String[]> dataset, List<Pair> targetPairList, Object[] opts) {
         MessageFormat mf = new MessageFormat("US");
-        String tableCreate = mf.format(tableDefTemplate, opts);
+        String tableCreate = MessageFormat.format(tableDefTemplate, opts);
         String tableName = (String)opts[0];
         Pair createPair = new Pair("Create table: " + tableName, tableCreate);
         targetPairList.add(createPair);
@@ -218,7 +218,7 @@ public class MirrorTestBase {
         String lclWorkingDb = System.getenv("DB");
         if (lclWorkingDb != null) {
             DataState.getInstance().setWorking_db(lclWorkingDb);
-            DataState.getInstance().setDataCreated(Boolean.TRUE);
+            DataState.getInstance().setDataCreated(lclWorkingDb, Boolean.TRUE);
             DataState.getInstance().setCleanUp(Boolean.FALSE);
         }
 

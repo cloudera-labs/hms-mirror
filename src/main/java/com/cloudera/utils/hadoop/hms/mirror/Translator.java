@@ -25,7 +25,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 
 public class Translator {
-    private static Logger LOG = LogManager.getLogger(Translator.class);
+    private static final Logger LOG = LogManager.getLogger(Translator.class);
 
     @JsonIgnore
     /**
@@ -34,7 +34,7 @@ public class Translator {
     private boolean on = Boolean.FALSE;
 
     @JsonIgnore
-    private Map<String, EnvironmentMap> dbLocationMap = new TreeMap<String, EnvironmentMap>();
+    private final Map<String, EnvironmentMap> dbLocationMap = new TreeMap<String, EnvironmentMap>();
 
     /**
      * When distcpCompatible mode is set, there are rules between the rename, consolidation, and location
@@ -329,7 +329,7 @@ public class Translator {
             dirBuilder.append(newLocation);
         }
 
-        LOG.debug("Translate Table Location: " + originalLocation + ": " + dirBuilder.toString());
+        LOG.debug("Translate Table Location: " + originalLocation + ": " + dirBuilder);
         // Add Location Map for table to a list.
         // TODO: Need to handle RIGHT locations.
         if (config.getTransfer().getStorageMigration().isDistcp() && config.getDataStrategy() != DataStrategy.SQL) {

@@ -23,14 +23,14 @@ import org.apache.log4j.Logger;
 import java.util.concurrent.Callable;
 
 public class CreateDatabases implements Callable<ReturnStatus> {
-    private static Logger LOG = LogManager.getLogger(CreateDatabases.class);
+    private static final Logger LOG = LogManager.getLogger(CreateDatabases.class);
 
     private Config config = null;
     private Conversion conversion = null;
 
     // Flag use to determine is creating transition db in lower cluster
     // or target db in upper cluster.
-    private boolean successful = Boolean.FALSE;
+    private final boolean successful = Boolean.FALSE;
 
     public boolean isSuccessful() {
         return successful;

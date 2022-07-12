@@ -44,6 +44,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -53,7 +54,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class Mirror {
-    private static Logger LOG = LogManager.getLogger(Mirror.class);
+    private static final Logger LOG = LogManager.getLogger(Mirror.class);
 
     private Conversion conversion = null;
     private Config config = null;
@@ -64,9 +65,9 @@ public class Mirror {
     private String leftCleanUpFile = null;
     private String rightExecuteFile = null;
     private String rightCleanUpFile = null;
-    private String leftActionFile = null;
-    private String rightActionFile = null;
-    private Boolean retry = Boolean.FALSE;
+    private final String leftActionFile = null;
+    private final String rightActionFile = null;
+    private final Boolean retry = Boolean.FALSE;
     private Boolean quiet = Boolean.FALSE;
     private String dateMarker;
 
@@ -215,7 +216,7 @@ public class Mirror {
 
         try {
             System.out.println("Using Config: " + configFile);
-            String yamlCfgFile = FileUtils.readFileToString(cfgFile, Charset.forName("UTF-8"));
+            String yamlCfgFile = FileUtils.readFileToString(cfgFile, StandardCharsets.UTF_8);
             config = mapper.readerFor(Config.class).readValue(yamlCfgFile);
         } catch (Throwable t) {
             // Look for yaml update errors.
@@ -718,7 +719,7 @@ public class Mirror {
 
             String retryCfgFile = null;
             try {
-                retryCfgFile = FileUtils.readFileToString(retryFile, Charset.forName("UTF-8"));
+                retryCfgFile = FileUtils.readFileToString(retryFile, StandardCharsets.UTF_8);
                 // Replace Conversion
                 conversion = mapper.readerFor(Conversion.class).readValue(retryCfgFile);
                 // Replace Config
@@ -876,7 +877,7 @@ public class Mirror {
                                         distcpSourceFW.append(source).append("\n");
                                     }
                                     line.append(" | ").append("\n");
-                                    distcpWorkbookSb.append(line.toString());
+                                    distcpWorkbookSb.append(line);
 
                                     distcpScriptSb.append("\n");
                                     distcpScriptSb.append("echo \"Copying 'distcp' source file to $HCFS_BASE_DIR\"").append("\n");
@@ -905,9 +906,9 @@ public class Mirror {
                                 }
 
                                 String distcpWorkbookFile = reportOutputDir + System.getProperty("file.separator") + database +
-                                        "_" + distcpEnv.toString() + "_distcp_workbook.md";
+                                        "_" + distcpEnv + "_distcp_workbook.md";
                                 String distcpScriptFile = reportOutputDir + System.getProperty("file.separator") + database +
-                                        "_" + distcpEnv.toString() + "_distcp_script.sh";
+                                        "_" + distcpEnv + "_distcp_script.sh";
 
                                 FileWriter distcpWorkbookFW = new FileWriter(distcpWorkbookFile);
                                 FileWriter distcpScriptFW = new FileWriter(distcpScriptFile);
@@ -955,14 +956,14 @@ public class Mirror {
                 reportFile.write(htmlReportStr);
                 reportFile.close();
 
-                LOG.info("Status Report of 'hms-mirror' is here: " + dbReportOutputFile.toString() + ".md|html");
+                LOG.info("Status Report of 'hms-mirror' is here: " + dbReportOutputFile + ".md|html");
 
                 String les = conversion.executeSql(Environment.LEFT, database);
                 if (les != null) {
                     FileWriter leftExecOutput = new FileWriter(dbLeftExecuteFile);
                     leftExecOutput.write(les);
                     leftExecOutput.close();
-                    LOG.info("LEFT Execution Script is here: " + dbLeftExecuteFile.toString());
+                    LOG.info("LEFT Execution Script is here: " + dbLeftExecuteFile);
                     runbookFile.write(step++ + ". **LEFT** clusters SQL script. ");
                     if (config.isExecute()) {
                         runbookFile.write(" (Has been executed already, check report file details)");
@@ -982,7 +983,7 @@ public class Mirror {
                     FileWriter rightExecOutput = new FileWriter(dbRightExecuteFile);
                     rightExecOutput.write(res);
                     rightExecOutput.close();
-                    LOG.info("RIGHT Execution Script is here: " + dbRightExecuteFile.toString());
+                    LOG.info("RIGHT Execution Script is here: " + dbRightExecuteFile);
                     runbookFile.write(step++ + ". **RIGHT** clusters SQL script. ");
                     if (config.isExecute()) {
                         runbookFile.write(" (Has been executed already, check report file details)");
@@ -1002,7 +1003,7 @@ public class Mirror {
                     FileWriter leftCleanUpOutput = new FileWriter(dbLeftCleanUpFile);
                     leftCleanUpOutput.write(lcu);
                     leftCleanUpOutput.close();
-                    LOG.info("LEFT CleanUp Execution Script is here: " + dbLeftCleanUpFile.toString());
+                    LOG.info("LEFT CleanUp Execution Script is here: " + dbLeftCleanUpFile);
                     runbookFile.write(step++ + ". **LEFT** clusters CLEANUP SQL script. ");
                     runbookFile.write("(Has NOT been executed yet)");
                     runbookFile.write("\n");
@@ -1013,7 +1014,7 @@ public class Mirror {
                     FileWriter rightCleanUpOutput = new FileWriter(dbRightCleanUpFile);
                     rightCleanUpOutput.write(rcu);
                     rightCleanUpOutput.close();
-                    LOG.info("RIGHT CleanUp Execution Script is here: " + dbRightCleanUpFile.toString());
+                    LOG.info("RIGHT CleanUp Execution Script is here: " + dbRightCleanUpFile);
                     runbookFile.write(step++ + ". **RIGHT** clusters CLEANUP SQL script. ");
                     runbookFile.write("(Has NOT been executed yet)");
                     runbookFile.write("\n");
@@ -1268,12 +1269,13 @@ public class Mirror {
         mnnOption.setRequired(Boolean.FALSE);
         options.addOption(mnnOption);
 
-        Option replaceOption = new Option("r", "replace", false,
-                "When downgrading an ACID table as its transferred to the 'RIGHT' cluster, this option " +
-                        "will replace the current ACID table on the LEFT cluster with a 'downgraded' table (EXTERNAL). " +
-                        "The option only works with options '-da' and '-cs'.");
-        replaceOption.setRequired(Boolean.FALSE);
-        options.addOption(replaceOption);
+        // TODO: Implement this feature...  If requested.  Needs testings, not complete after other downgrade work.
+//        Option replaceOption = new Option("r", "replace", false,
+//                "When downgrading an ACID table as its transferred to the 'RIGHT' cluster, this option " +
+//                        "will replace the current ACID table on the LEFT cluster with a 'downgraded' table (EXTERNAL). " +
+//                        "The option only works with options '-da' and '-cs'.");
+//        replaceOption.setRequired(Boolean.FALSE);
+//        options.addOption(replaceOption);
 
         Option syncOption = new Option("s", "sync", false,
                 "For SCHEMA_ONLY, COMMON, and LINKED data strategies.  Drop and Recreate Schema's when different.  " +
@@ -1489,7 +1491,7 @@ public class Mirror {
             LOG.error(e.getMessage(), e);
             System.err.println("=====================================================");
             System.err.println("Commandline args: " + Arrays.toString(args));
-            System.err.println("");
+            System.err.println();
             LOG.error("Commandline args: " + Arrays.toString(args));
             if (config != null) {
                 for (String error : config.getErrors().getMessages()) {
@@ -1531,7 +1533,7 @@ public class Mirror {
             LOG.error(e.getMessage(), e);
             System.err.println("=====================================================");
             System.err.println("Commandline args: " + Arrays.toString(args));
-            System.err.println("");
+            System.err.println();
             LOG.error("Commandline args: " + Arrays.toString(args));
             if (config != null) {
                 returnCode = config.getErrors().getReturnCode();

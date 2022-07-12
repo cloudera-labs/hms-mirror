@@ -88,7 +88,7 @@ public class ReportingConf {
                 }
             }
             matcher.appendTail(buffer);
-            sb.append(buffer.toString()).append("\n");
+            sb.append(buffer).append("\n");
         }
         return sb.toString();
     }

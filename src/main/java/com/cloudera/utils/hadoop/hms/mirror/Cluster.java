@@ -29,8 +29,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 
 public class Cluster implements Comparable<Cluster> {
-    private static Logger LOG = LogManager.getLogger(Cluster.class);
-    private DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private static final Logger LOG = LogManager.getLogger(Cluster.class);
+    private final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     @JsonIgnore
     private ConnectionPools pools = null;
 

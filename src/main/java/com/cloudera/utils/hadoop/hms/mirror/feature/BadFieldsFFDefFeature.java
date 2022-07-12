@@ -27,7 +27,7 @@ public class BadFieldsFFDefFeature extends BaseFeature implements Feature {
     private final String FTB = "FIELDS TERMINATED BY";
     private final Pattern FIELDS_TERMINATED_BY = Pattern.compile(FTB + " '(.*)'");
 
-    private static Logger LOG = LogManager.getLogger(BadFieldsFFDefFeature.class);
+    private static final Logger LOG = LogManager.getLogger(BadFieldsFFDefFeature.class);
 
     public String getDescription() {
         return "Table schemas with a \\f definition in the FIELDS TERMINATED BY declaration will not be created correctly " +

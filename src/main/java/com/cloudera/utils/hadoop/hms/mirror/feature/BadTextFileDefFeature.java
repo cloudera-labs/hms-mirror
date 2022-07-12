@@ -32,7 +32,7 @@ public class BadTextFileDefFeature extends BaseFeature implements Feature {
     private final String ROW_FORMAT_SERDE = "ROW FORMAT SERDE";
     private final String LAZY_SERDE = "'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'";
 
-    private static Logger LOG = LogManager.getLogger(BadTextFileDefFeature.class);
+    private static final Logger LOG = LogManager.getLogger(BadTextFileDefFeature.class);
 
     public String getDescription() {
         return "Table schema definitions that include both ROW FORMAT DELIMITED BY and " +

@@ -21,7 +21,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 public class DriverShim implements Driver {
-    private Driver driver;
+    private final Driver driver;
 
     public DriverShim(Driver d) {
         this.driver = d;

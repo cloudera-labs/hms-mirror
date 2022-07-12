@@ -384,7 +384,50 @@ public class ConfigValidationTest extends MirrorTestBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
+        check = check | MessageCode.DISTCP_REQUIRED_FOR_SCHEMA_ONLY_RDL.getLong();
 
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+    }
+
+    @Test
+    public void test_so_rdl_w_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-rdl",
+                "-wd", "/warehouse/managed",
+                "-ewd", "/warehouse/external",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = MessageCode.DISTCP_REQUIRED_FOR_SCHEMA_ONLY_RDL.getLong();
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+    }
+
+    @Test
+    public void test_so_is_leg() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
+                "-is", "s3a://my_intermediate_storage",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = MessageCode.DISTCP_REQUIRED_FOR_SCHEMA_ONLY_IS.getLong();
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 

@@ -17,9 +17,9 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
 public class Marker {
-    private String mark;
-    private String description;
-    private String action;
+    private final String mark;
+    private final String description;
+    private final String action;
 
     public Marker(String mark, String description, Object action) {
         this.mark = mark;

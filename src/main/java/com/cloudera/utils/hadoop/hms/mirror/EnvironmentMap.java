@@ -5,8 +5,8 @@ import java.util.TreeMap;
 
 public class EnvironmentMap {
 
-    private String database;
-    private Map<Environment, Map<String, String>> environmentMap = new TreeMap<>();
+    private final String database;
+    private final Map<Environment, Map<String, String>> environmentMap = new TreeMap<>();
 
     public EnvironmentMap(String database) {
         this.database = database;

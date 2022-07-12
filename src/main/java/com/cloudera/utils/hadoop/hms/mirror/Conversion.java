@@ -31,7 +31,7 @@ import java.util.*;
 
 public class Conversion {
     @JsonIgnore
-    private Date start = new Date();
+    private final Date start = new Date();
     private Config config;
     private Map<String, DBMirror> databases = new TreeMap<String, DBMirror>();
 
@@ -303,7 +303,7 @@ public class Conversion {
                 sb.append("</td>");
                 sb.append("<td>");
                 if (entry.getAction() != null)
-                    sb.append(entry.getAction().toString());
+                    sb.append(entry.getAction());
                 sb.append("</td>");
                 sb.append("</tr>\n");
             }

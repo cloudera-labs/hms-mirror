@@ -27,23 +27,23 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Reporter implements Runnable {
-    private static Logger LOG = LogManager.getLogger(Reporter.class);
+    private static final Logger LOG = LogManager.getLogger(Reporter.class);
 
     private Thread worker;
     private Boolean retry = Boolean.FALSE;
     private Boolean quiet = Boolean.FALSE;
-    private Date start = new Date();
+    private final Date start = new Date();
     private final AtomicBoolean running = new AtomicBoolean(false);
-    private int sleepInterval;
-    private List<String> reportTemplateHeader = new ArrayList<String>();
-    private List<String> reportTemplateTableDetail = new ArrayList<String>();
-    private List<String> reportTemplateFooter = new ArrayList<String>();
-    private List<String> reportTemplateOutput = new ArrayList<String>();
-    private Map<String, String> varMap = new TreeMap<String, String>();
+    private final int sleepInterval;
+    private final List<String> reportTemplateHeader = new ArrayList<String>();
+    private final List<String> reportTemplateTableDetail = new ArrayList<String>();
+    private final List<String> reportTemplateFooter = new ArrayList<String>();
+    private final List<String> reportTemplateOutput = new ArrayList<String>();
+    private final Map<String, String> varMap = new TreeMap<String, String>();
 
-    private List<TableMirror> startedTables = new ArrayList<TableMirror>();
+    private final List<TableMirror> startedTables = new ArrayList<TableMirror>();
 
-    private Conversion conversion;
+    private final Conversion conversion;
 
     public Boolean getRetry() {
         return retry;
@@ -190,9 +190,9 @@ public class Reporter implements Runnable {
         Date current = new Date();
         long elapsedMS = current.getTime() - start.getTime();
         if (tiktok)
-            varMap.put("elapsed.time", "\u001B[34m" + Long.toString(elapsedMS / 1000) + "[0m");
+            varMap.put("elapsed.time", "\u001B[34m" + elapsedMS / 1000 + "[0m");
         else
-            varMap.put("elapsed.time", "\u001B[33m" + Long.toString(elapsedMS / 1000) + "[0m");
+            varMap.put("elapsed.time", "\u001B[33m" + elapsedMS / 1000 + "[0m");
     }
 
 
@@ -227,7 +227,7 @@ public class Reporter implements Runnable {
             LOG.info(report.toString());
         }
 
-        System.out.print(report.toString());
+        System.out.print(report);
 
     }
 

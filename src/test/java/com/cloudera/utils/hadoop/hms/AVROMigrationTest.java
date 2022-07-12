@@ -35,7 +35,7 @@ public class AVROMigrationTest  extends MirrorTestBase {
 
 
     public Boolean dataSetupAvro() {
-        if (!DataState.getInstance().isDataCreated()) {
+        if (!DataState.getInstance().isDataCreated("avro")) {
             String nameofCurrMethod = new Throwable()
                     .getStackTrace()[0]
                     .getMethodName();
@@ -59,7 +59,8 @@ public class AVROMigrationTest  extends MirrorTestBase {
 
             Mirror cfgMirror = new Mirror();
             long rtn = cfgMirror.setupSqlLeft(args, leftSql);
-            DataState.getInstance().setDataCreated(Boolean.TRUE);
+
+            DataState.getInstance().setDataCreated("avro", Boolean.TRUE);
         }
         return Boolean.TRUE;
     }

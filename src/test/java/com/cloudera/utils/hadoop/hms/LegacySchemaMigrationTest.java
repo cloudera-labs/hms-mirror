@@ -249,26 +249,6 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
     }
 
     @Test
-    public void test_so_is_leg() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = outputDirBase + nameofCurrMethod;
-
-        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
-                "-is", "s3a://my_intermediate_storage",
-                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-        args = toExecute(args, execArgs, Boolean.FALSE);
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        int check = 0;
-        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
-    }
-
-    @Test
     public void test_so_cs_leg() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
@@ -314,7 +294,7 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
     }
 
     @Test
-    public void test_so_rdl_w_leg() {
+    public void test_so_rdl_dc_w_leg() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -323,6 +303,7 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
 
         String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
                 "-rdl",
+                "--distcp",
                 "-wd", "/warehouse/managed",
                 "-ewd", "/warehouse/external",
                 "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
@@ -378,23 +359,4 @@ public class LegacySchemaMigrationTest extends MirrorTestBase {
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
 
-    @Test
-    public void test_sp_limit() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = outputDirBase + nameofCurrMethod;
-
-        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
-                "-sp", "-1",
-                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-        args = toExecute(args, execArgs, Boolean.FALSE);
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        int check = 0;
-        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
-    }
 }

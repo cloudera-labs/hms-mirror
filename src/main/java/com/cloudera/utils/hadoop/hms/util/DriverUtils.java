@@ -28,7 +28,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DriverUtils {
-    private static Logger LOG = LogManager.getLogger(DriverUtils.class);
+    private static final Logger LOG = LogManager.getLogger(DriverUtils.class);
 
     // This is a shim process that allows us to load a Hive Driver from
     // a jar File, via a new ClassLoader.

@@ -33,7 +33,7 @@ public class BadOrcDefFeature extends BaseFeature implements Feature {
     private final String OUTPUT_FORMAT_CLASS = "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'";
 
     private final String STORED_AS_ORC = "STORED AS ORC";
-    private static Logger LOG = LogManager.getLogger(BadOrcDefFeature.class);
+    private static final Logger LOG = LogManager.getLogger(BadOrcDefFeature.class);
 
     public String getDescription() {
         return "Table schema definitions for ORC files that include ROW FORMAT DELIMITED " +

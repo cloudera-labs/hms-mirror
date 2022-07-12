@@ -2,6 +2,8 @@ package com.cloudera.utils.hadoop.hms;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class DataState {
 
@@ -9,10 +11,13 @@ public class DataState {
 
     protected String configuration = null;
 
-    protected Boolean dataCreated = Boolean.FALSE;
+//    protected Boolean dataCreated = Boolean.FALSE;
+    protected Map<String, Boolean> dataCreated = new TreeMap<String, Boolean>();
+
+
     protected Boolean execute = Boolean.FALSE;
     protected Boolean cleanUp = Boolean.TRUE;
-    protected Boolean populate = null;
+    protected Boolean populate = Boolean.TRUE;
 
     protected String working_db = null;
     protected String table_filter = null;
@@ -76,8 +81,11 @@ public class DataState {
         this.populate = populate;
     }
 
-    public Boolean isDataCreated() {
-        return dataCreated;
+    public Boolean isDataCreated(String dataset) {
+        Boolean rtn = Boolean.FALSE;
+        if (dataCreated.containsKey(dataset))
+            rtn = dataCreated.get(dataset);
+        return rtn;
     }
 
     public Boolean isExecute() {
@@ -88,8 +96,9 @@ public class DataState {
         this.cleanUp = cleanUp;
     }
 
-    public void setDataCreated(Boolean dataCreated) {
-        this.dataCreated = dataCreated;
+    public void setDataCreated(String dataset, Boolean dataCreated) {
+        this.dataCreated.put(dataset, dataCreated);
+//        this.dataCreated = dataCreated;
     }
 
     public void setExecute(Boolean execute) {
