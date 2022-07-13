@@ -766,7 +766,7 @@ public class Config {
             case SQL:
                 // Only do link test when NOT using intermediate storage.
                 if (this.getTransfer().getIntermediateStorage() == null && this.getTransfer().getCommonStorage() == null) {
-                    if (!linkTest()) {
+                    if (!getMigrateACID().isDowngradeInPlace() && !linkTest()) {
                         errors.set(LINK_TEST_FAILED.getCode());
                         rtn = Boolean.FALSE;
 
@@ -871,8 +871,10 @@ public class Config {
             }
         } else {
             if (!(getDataStrategy() == DataStrategy.STORAGE_MIGRATION || getDataStrategy() == DataStrategy.DUMP)) {
-                rtn = Boolean.FALSE;
-                errors.set(RIGHT_HS2_DEFINITION_MISSING.getCode());
+                if (!getMigrateACID().isDowngradeInPlace()) {
+                    rtn = Boolean.FALSE;
+                    errors.set(RIGHT_HS2_DEFINITION_MISSING.getCode());
+                }
             }
 
         }
