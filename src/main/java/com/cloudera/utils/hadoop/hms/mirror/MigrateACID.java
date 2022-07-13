@@ -16,6 +16,10 @@
 
 package com.cloudera.utils.hadoop.hms.mirror;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import net.minidev.json.annotate.JsonIgnore;
+
+@JsonIgnoreProperties({"downgradeInPlace"})
 public class MigrateACID {
 
     /*
@@ -114,6 +118,7 @@ public class MigrateACID {
         this.inplace = inplace;
     }
 
+    @JsonIgnore
     public Boolean isDowngradeInPlace() {
         if (inplace && downgrade)
             return Boolean.TRUE;

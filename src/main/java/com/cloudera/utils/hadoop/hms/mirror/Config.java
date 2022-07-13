@@ -181,7 +181,8 @@ public class Config {
                 // HS2 URI
                 System.out.print("What is the JDBC URI for the " + env + " cluster? ");
                 response = scanner.next();
-                HiveServer2Config hs2Cfg = config.getCluster(env).getHiveServer2();
+                HiveServer2Config hs2Cfg = new HiveServer2Config();
+                config.getCluster(env).setHiveServer2(hs2Cfg);
                 hs2Cfg.setUri(response);
 
                 // If Kerberized, notify to include hive jar in 'aux_libs'
