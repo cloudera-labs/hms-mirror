@@ -743,9 +743,10 @@ public class Transfer implements Callable<ReturnStatus> {
         EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
         EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
         if (TableUtils.isAVROSchemaBased(let)) {
+            LOG.info(let.getName() + ": is an AVRO table.");
             String leftPath = TableUtils.getAVROSchemaPath(let);
             String rightPath = null;
-            LOG.debug("Original AVRO Schema path: " + leftPath);
+            LOG.debug(let.getName() + ": Original AVRO Schema path: " + leftPath);
                 /* Checks:
                 - Is Path prefixed with a protocol?
                     - (Y) Does it match the LEFT's hcfsNamespace.
@@ -758,6 +759,8 @@ public class Transfer implements Callable<ReturnStatus> {
             // ProtocolNS Found.
             String cpCmd = null;
             if (matcher.find()) {
+                LOG.info(let.getName() + " protocol Matcher found.");
+
                 // Return the whole set of groups.
                 String lns = matcher.group(0);
 
@@ -767,12 +770,15 @@ public class Transfer implements Callable<ReturnStatus> {
                     leftNS = leftNS.substring(0, leftNS.length() - 1);
                 }
                 if (lns.startsWith(leftNS)) {
+                    LOG.info(let.getName() + " table namespace matches LEFT clusters namespace.");
+
                     // They match, so replace with RIGHT hcfs namespace.
                     String newNS = config.getCluster(Environment.RIGHT).getHcfsNamespace();
                     if (newNS.endsWith("/")) {
                         newNS = newNS.substring(0, newNS.length() - 1);
                     }
                     rightPath = leftPath.replace(leftNS, newNS);
+                    LOG.info(ret.getName() + " table namespace adjusted for RIGHT clusters table to " + rightPath);
                     TableUtils.updateAVROSchemaLocation(ret, rightPath);
                 } else {
                     // Protocol found doesn't match configured hcfs namespace for LEFT.
@@ -787,14 +793,15 @@ public class Transfer implements Callable<ReturnStatus> {
                 // No Protocol defined.  So we're assuming that its a relative path to the
                 // defaultFS
                 String rpath = "AVRO Schema URL appears to be relative: " + leftPath + ". No table definition adjustments.";
+                LOG.info(let.getName() + ": " + rpath);
                 ret.addIssue(rpath);
-                LOG.debug(rpath);
                 rightPath = leftPath;
                 relative = Boolean.TRUE;
             }
 
             if (leftPath != null && rightPath != null && config.isCopyAvroSchemaUrls() && config.isExecute()) {
                 // Copy over.
+                LOG.info(let.getName() + ": Attempting to copy AVRO schema file to target cluster.");
                 HadoopSession session = null;
                 try {
                     session = config.getCliPool().borrow();
@@ -823,13 +830,15 @@ public class Transfer implements Callable<ReturnStatus> {
                         }
                     }
                 } catch (Throwable t) {
-                    LOG.error(t);
+                    LOG.error(ret.getName() + ": AVRO file copy issue", t);
                     ret.addIssue(t.getMessage());
                     rtn = Boolean.FALSE;
                 } finally {
                     if (session != null)
                         config.getCliPool().returnSession(session);
                 }
+            } else {
+                LOG.info(let.getName() + ": did NOT attempt to copy AVRO schema file to target cluster.");
             }
             tblMirror.addStep("AVRO", "Checked");
         } else {
