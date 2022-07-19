@@ -16,18 +16,10 @@ transfer:
   # Optional (default: 4)
   concurrency:         10
   # Optional (default: 'transfer_')
-  transferPrefix:      "transfer_"
+  transferPrefix:      "hms_mirror_transfer_"
   # This directory is appended to the 'clusters:...:hcfsNamespace' value to store the transfer package for hive export/import.
   # Optional (default: '/apps/hive/warehouse/export_')
   exportBaseDirPrefix: "/apps/hive/warehouse/export_"
-  storageMigration:
-    target: "ofs://OHOME90"
-    strategy: "SQL"
-  pathMappings:
-    - from: "/warehouse/tablespace/managed"
-      to: "/warehouse/managed"
-    - from: "/warehouse/tablespace/external"
-      to: "/warehouse/external"
 clusters:
   LEFT:
     # Set for Hive 1/2 environments
@@ -57,8 +49,6 @@ clusters:
     # base location + the extended path where it existed in the source system.
     # The intent is to keep the data in the same relative location for this new cluster
     # as the old cluster.
-    # If the LEFT and RIGHT clusters are share the same cloud storage, then use the same
-    # hcfs base location as the LEFT cluster.
     hcfsNamespace: "<hdfs://namespace>"
     hiveServer2:
       # URI is the Hive JDBC URL in the form of:
