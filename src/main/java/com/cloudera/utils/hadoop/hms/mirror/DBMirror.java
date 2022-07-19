@@ -182,7 +182,15 @@ public class DBMirror {
                                 if (managedLocation != null) {
                                     managedLocation = managedLocation.replace(leftNamespace, rightNamespace);
                                 }
-
+                                if (config.getDbPrefix() != null) {
+                                    // adjust locations.
+                                    if (location != null) {
+                                        location = Translator.removeLastDirFromUrl(location) + "/" + config.getDbPrefix() + getName() + ".db";
+                                    }
+                                    if (managedLocation != null) {
+                                        managedLocation = Translator.removeLastDirFromUrl(managedLocation) + "/" + config.getDbPrefix() + getName() + ".db";
+                                    }
+                                }
                                 if (config.isReadOnly()) {
                                     LOG.debug("Config set to 'read-only'.  Validating FS before continuing");
                                     HadoopSession main = null;

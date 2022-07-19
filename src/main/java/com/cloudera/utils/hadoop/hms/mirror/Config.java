@@ -901,6 +901,8 @@ public class Config {
             // List User Directories on LEFT
             String leftlsTestLine = "ls " + leftHCFSNamespace + "/user";
             String rightlsTestLine = "ls " + rightHCFSNamespace + "/user";
+            LOG.info("LEFT ls testline: " + leftlsTestLine);
+            LOG.info("RIGHT ls testline: " + rightlsTestLine);
 
             CommandReturn lcr = session.processInput(leftlsTestLine);
             if (lcr.isError()) {

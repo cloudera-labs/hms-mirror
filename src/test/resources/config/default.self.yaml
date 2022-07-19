@@ -1,0 +1,36 @@
+# Config
+hybrid:
+  sqlPartitionLimit: 3000
+  # 1gb
+  sqlSizeLimit: 1073741824
+transfer:
+  concurrency: 2
+clusters:
+  LEFT:
+    legacyHive: "false"
+    hcfsNamespace: "hdfs://HOME90"
+    partitionDiscovery:
+      auto: true
+      initMSCK: true
+    hiveServer2:
+      uri: "jdbc:hive2://s03.streever.local:8443/perf_test;ssl=true;transportMode=http;httpPath=gateway/cdp-proxy-api/hive;sslTrustStore=/Users/dstreev/bin/certs/gateway-client-trust.jks;trustStorePassword=changeit"
+      connectionProperties:
+        user: "dstreev"
+        maxWaitMillis: "5000"
+        password: "judge-abnormal-precede"
+        maxTotal: "-1"
+      jarFile: "/Users/dstreev/.hms-mirror/aux_libs/ext/hive-jdbc-3.1.3000.7.1.7.0-551-standalone.jar"
+  RIGHT:
+    legacyHive: "false"
+    hcfsNamespace: "hdfs://HOME90"
+    partitionDiscovery:
+      auto: true
+      initMSCK: true
+    hiveServer2:
+      uri: "jdbc:hive2://s03.streever.local:8443/perf_test;ssl=true;transportMode=http;httpPath=gateway/cdp-proxy-api/hive;sslTrustStore=/Users/dstreev/bin/certs/gateway-client-trust.jks;trustStorePassword=changeit"
+      connectionProperties:
+        user: "dstreev"
+        maxWaitMillis: "5000"
+        password: "judge-abnormal-precede"
+        maxTotal: "-1"
+      jarFile: "/Users/dstreev/.hms-mirror/aux_libs/ext/hive-jdbc-3.1.3000.7.1.7.0-551-standalone.jar"

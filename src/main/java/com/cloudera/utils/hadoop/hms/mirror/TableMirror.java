@@ -1335,7 +1335,7 @@ public class TableMirror {
 
         // RIGHT IMPORT from Directory
         if (!isACIDDowngradeInPlace(config, let)) {
-            String useRightDb = MessageFormat.format(MirrorConf.USE, dbMirror.getName());
+            String useRightDb = MessageFormat.format(MirrorConf.USE, database);
             ret.addSql(TableUtils.USE_DESC, useRightDb);
         }
 
