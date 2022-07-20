@@ -161,7 +161,7 @@ public class Mirror {
             HelpFormatter formatter = new HelpFormatter();
             String cmdline = ReportingConf.substituteVariablesFromManifest("hms-mirror <options> \nversion:${Implementation-Version}");
             formatter.printHelp(100, cmdline, "Hive Metastore Migration Utility", options,
-                    "\nVisit https://github.com/dstreev/hms-mirror/blob/main/README.md for detailed docs.");
+                    "\nVisit https://github.com/cloudera-labs/hms-mirror/blob/main/README.md for detailed docs.");
 //            formatter.printHelp(cmdline, options);
             throw new RuntimeException(pe);
         }
@@ -170,7 +170,7 @@ public class Mirror {
             HelpFormatter formatter = new HelpFormatter();
             String cmdline = ReportingConf.substituteVariablesFromManifest("hms-mirror <options> \nversion:${Implementation-Version}");
             formatter.printHelp(100, cmdline, "Hive Metastore Migration Utility", options,
-                    "\nVisit https://github.com/dstreev/hms-mirror/blob/main/README.md for detailed docs");
+                    "\nVisit https://github.com/cloudera-labs/hms-mirror/blob/main/README.md for detailed docs");
 //            formatter.printHelp(cmdline, options);
             System.exit(0);
         }

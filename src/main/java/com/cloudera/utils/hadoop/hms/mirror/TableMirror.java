@@ -1361,7 +1361,15 @@ public class TableMirror {
             }
         } else {
             if (config.getResetToDefaultLocation()) {
-                importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
+                if (config.getTransfer().getWarehouse().getExternalDirectory() != null) {
+                    // Build default location, because in some cases when location isn't specified, it will use the "FROM"
+                    // location in the IMPORT statement.
+                    targetLocation = config.getCluster(Environment.RIGHT).getHcfsNamespace() + config.getTransfer().getWarehouse().getExternalDirectory() +
+                            "/" + config.getResolvedDB(dbMirror.getName()) + ".db/" + getName();
+                    importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
+                } else {
+                    importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
+                }
             } else {
                 importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
             }
