@@ -219,6 +219,7 @@ public class MirrorTestBase {
         if (lclWorkingDb != null) {
             DataState.getInstance().setWorking_db(lclWorkingDb);
             DataState.getInstance().setDataCreated(lclWorkingDb, Boolean.TRUE);
+            DataState.getInstance().setSkipAdditionDataCreation(Boolean.TRUE);
             DataState.getInstance().setCleanUp(Boolean.FALSE);
         }
 

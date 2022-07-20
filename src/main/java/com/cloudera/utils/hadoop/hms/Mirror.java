@@ -662,6 +662,7 @@ public class Mirror {
                 connPools.addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
                 break;
             case SQL:
+            case SCHEMA_ONLY:
             case EXPORT_IMPORT:
             case HYBRID:
                 // When doing inplace downgrade of ACID tables, we're only dealing with the LEFT cluster.
@@ -763,33 +764,32 @@ public class Mirror {
             // TODO: Failure here may not make it to saved state.
             if (setup.collect()) {
 //                stateMaintenance.saveState();
+                // State reason table/view was removed from processing list.
+                for (Map.Entry<String, DBMirror> dbEntry : conversion.getDatabases().entrySet()) {
+                    if (config.getDatabaseOnly()) {
+                        dbEntry.getValue().addIssue(Environment.RIGHT, "FYI:Only processing DB.");
+                    }
+                    for (TableMirror tm : dbEntry.getValue().getTableMirrors().values()) {
+                        if (tm.isRemove()) {
+                            dbEntry.getValue().getFilteredOut().put(tm.getName(), tm.getRemoveReason());
+                        }
+                    }
+                }
+
+                // Remove all the tblMirrors that shouldn't be processed based on config.
+                for (Map.Entry<String, DBMirror> dbEntry : conversion.getDatabases().entrySet()) {
+                    dbEntry.getValue().getTableMirrors().values().removeIf(value -> value.isRemove());
+                }
+
+                // GO TIME!!!
+                conversion = runTransfer(conversion);
+//        stateMaintenance.saveState();
+                // Actions
             } else {
                 // Need to delete retry file.
 //                stateMaintenance.deleteState();
             }
         }
-
-        // State reason table/view was removed from processing list.
-        for (Map.Entry<String, DBMirror> dbEntry : conversion.getDatabases().entrySet()) {
-            if (config.getDatabaseOnly()) {
-                dbEntry.getValue().addIssue("FYI:Only processing DB.");
-            }
-            for (TableMirror tm : dbEntry.getValue().getTableMirrors().values()) {
-                if (tm.isRemove()) {
-                    dbEntry.getValue().getFilteredOut().put(tm.getName(), tm.getRemoveReason());
-                }
-            }
-        }
-
-        // Remove all the tblMirrors that shouldn't be processed based on config.
-        for (Map.Entry<String, DBMirror> dbEntry : conversion.getDatabases().entrySet()) {
-            dbEntry.getValue().getTableMirrors().values().removeIf(value -> value.isRemove());
-        }
-
-        // GO TIME!!!
-        conversion = runTransfer(conversion);
-//        stateMaintenance.saveState();
-        // Actions
 
         // Remove the abstract environments from config before reporting output.
         config.getClusters().remove(Environment.TRANSFER);

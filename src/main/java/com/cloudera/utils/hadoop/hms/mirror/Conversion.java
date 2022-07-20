@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.collect.Sets;
 
 import java.math.BigDecimal;
 import java.text.DateFormat;
@@ -223,8 +224,15 @@ public class Conversion {
         sb.append("## DB Issues").append("\n\n");
         // Issues
         if (dbMirror.isThereAnIssue()) {
-            for (String issue : dbMirror.getIssues()) {
-                sb.append("* ").append(issue).append("\n");
+            Set<Environment> environments = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
+            for (Environment env: environments) {
+                List<String> issues = dbMirror.getIssuesList(env);
+                if (issues != null) {
+                    sb.append("### ").append(env).append("\n\n");
+                    for (String issue : issues) {
+                        sb.append("* ").append(issue).append("\n");
+                    }
+                }
             }
         } else {
             sb.append("none\n");

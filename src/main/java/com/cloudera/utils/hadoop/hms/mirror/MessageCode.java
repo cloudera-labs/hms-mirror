@@ -82,6 +82,8 @@ public enum MessageCode {
             "location with SCHEMA_ONLY so you can build out the movement plan."),
     DISTCP_REQUIRED_FOR_SCHEMA_ONLY_IS (45, "You need to add `--distcp` to options when using `-is` " +
             "with SCHEMA_ONLY so you can build out the movement plan."),
+    SAME_CLUSTER_COPY_WITHOUT_RDL(46, "You must specify `-rdl` when the cluster configurations use the same storage."),
+    SAME_CLUSTER_COPY_WITHOUT_DBP(47, "You must specify `-dbp` when the cluster configurations use the same storage."),
 
     // WARNINGS
     SYNC_TBL_FILTER(50, "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"

@@ -58,7 +58,7 @@ public class Setup {
                     config.getCluster(Environment.RIGHT).getDatabase(config, dbMirror);
                 } else {
                     // LEFT DB doesn't exists.
-                    dbMirror.addIssue("LEFT DB doesn't exist. Check permissions for user running process");
+                    dbMirror.addIssue(Environment.LEFT, "DB doesn't exist. Check permissions for user running process");
                     return Boolean.FALSE;
                 }
             } catch (SQLException se) {
@@ -83,7 +83,8 @@ public class Setup {
                 try {
                     if (sf.isDone() && sf.get() != null) {
                         if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
-                            throw new RuntimeException(sf.get().getException());
+                            rtn = Boolean.FALSE;
+//                            throw new RuntimeException(sf.get().getException());
                         }
                     }
                 } catch (InterruptedException | ExecutionException e) {
@@ -109,8 +110,10 @@ public class Setup {
                 }
                 try {
                     if (sf.isDone() && sf.get() != null) {
-                        if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
-                            throw new RuntimeException(sf.get().getException());
+                        ReturnStatus returnStatus = sf.get();
+                        if (returnStatus != null && returnStatus.getStatus() == ReturnStatus.Status.ERROR) {
+//                            throw new RuntimeException(sf.get().getException());
+                            rtn = Boolean.FALSE;
                         }
                     }
                 } catch (InterruptedException | ExecutionException e) {

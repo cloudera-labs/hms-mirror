@@ -52,13 +52,16 @@ public class CreateDatabases implements Callable<ReturnStatus> {
 
             if (config.getCluster(Environment.LEFT).runDatabaseSql(dbMirror)) {
                 rtn.setStatus(ReturnStatus.Status.SUCCESS);
+            } else {
+                rtn.setStatus(ReturnStatus.Status.ERROR);
             }
 
             if (config.getCluster(Environment.RIGHT).runDatabaseSql(dbMirror)) {
                 rtn.setStatus(ReturnStatus.Status.SUCCESS);
+            } else {
+                rtn.setStatus(ReturnStatus.Status.ERROR);
             }
         }
-        rtn.setStatus(ReturnStatus.Status.SUCCESS);
         return rtn;
     }
 }

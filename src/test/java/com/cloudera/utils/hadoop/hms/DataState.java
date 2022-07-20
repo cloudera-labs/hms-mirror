@@ -13,7 +13,7 @@ public class DataState {
 
 //    protected Boolean dataCreated = Boolean.FALSE;
     protected Map<String, Boolean> dataCreated = new TreeMap<String, Boolean>();
-
+    private Boolean skipAdditionDataCreation = Boolean.FALSE;
 
     protected Boolean execute = Boolean.FALSE;
     protected Boolean cleanUp = Boolean.TRUE;
@@ -73,6 +73,14 @@ public class DataState {
         return cleanUp;
     }
 
+    public Boolean getSkipAdditionDataCreation() {
+        return skipAdditionDataCreation;
+    }
+
+    public void setSkipAdditionDataCreation(Boolean skipAdditionDataCreation) {
+        this.skipAdditionDataCreation = skipAdditionDataCreation;
+    }
+
     public Boolean getPopulate() {
         return populate;
     }
@@ -83,8 +91,12 @@ public class DataState {
 
     public Boolean isDataCreated(String dataset) {
         Boolean rtn = Boolean.FALSE;
-        if (dataCreated.containsKey(dataset))
-            rtn = dataCreated.get(dataset);
+        if (!skipAdditionDataCreation) {
+            if (dataCreated.containsKey(dataset))
+                rtn = dataCreated.get(dataset);
+        } else {
+            rtn = Boolean.TRUE;
+        }
         return rtn;
     }
 

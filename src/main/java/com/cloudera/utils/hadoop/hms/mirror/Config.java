@@ -617,6 +617,30 @@ public class Config {
             }
         }
 
+        // When RIGHT is defined
+        switch (getDataStrategy()) {
+            case SQL:
+            case EXPORT_IMPORT:
+            case HYBRID:
+            case LINKED:
+            case SCHEMA_ONLY:
+            case CONVERT_LINKED:
+                // When the storage on LEFT and RIGHT match, we need to specify both rdl (resetDefaultLocation)
+                //   and use -dbp (db prefix) to identify a new db name (hence a location).
+                if (getCluster(Environment.RIGHT) != null &&
+                        (getCluster(Environment.LEFT).getHcfsNamespace()
+                                .equalsIgnoreCase(getCluster(Environment.RIGHT).getHcfsNamespace()))) {
+                    if (!resetToDefaultLocation) {
+                        errors.set(SAME_CLUSTER_COPY_WITHOUT_RDL.getCode());
+                        rtn = Boolean.FALSE;
+                    }
+                    if (getDbPrefix() == null) {
+                        errors.set(SAME_CLUSTER_COPY_WITHOUT_DBP.getCode());
+                        rtn = Boolean.FALSE;
+                    }
+                }
+        }
+
         if (getTransfer().getStorageMigration().isDistcp()) {
 //            if (resetToDefaultLocation && (getTransfer().getWarehouse().getManagedDirectory() == null || getTransfer().getWarehouse().getExternalDirectory() == null)) {
 //                errors.set(DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION.getCode());

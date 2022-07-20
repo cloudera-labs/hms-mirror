@@ -36,7 +36,8 @@ public class DBMirror {
 
     private String name;
     private Map<Environment, Map<String, String>> dbDefinitions = new TreeMap<Environment, Map<String, String>>();
-    private final List<String> issues = new ArrayList<String>();
+    private final Map<Environment, List<String>> issues = new TreeMap<Environment, List<String>>();
+
     /*
     table - reason
      */
@@ -66,13 +67,19 @@ public class DBMirror {
         return issues.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
     }
 
-    public void addIssue(String issue) {
+    public void addIssue(Environment environment, String issue) {
         String scrubbedIssue = issue.replace("\n", "<br/>");
-        getIssues().add(scrubbedIssue);
+        List<String> issuesList = issues.get(environment);
+        if (issuesList == null) {
+            issuesList = new ArrayList<String>();
+            issues.put(environment, issuesList);
+        }
+        issuesList.add(scrubbedIssue);
+//        getIssues().add(scrubbedIssue);
     }
 
-    public List<String> getIssues() {
-        return issues;
+    public List<String> getIssuesList(Environment environment) {
+        return issues.get(environment);
     }
 
     public Map<String, String> getFilteredOut() {
@@ -274,7 +281,7 @@ public class DBMirror {
                                                 // Doesn't exist.  So we can't create the DB in a "read-only" mode.
                                                 config.getErrors().set(RO_DB_DOESNT_EXIST.getCode(), dbLocation,
                                                         testCr.getCode(), testCr.getCommand(), getName());
-                                                addIssue(config.getErrors().getMessage(RO_DB_DOESNT_EXIST.getCode()));
+                                                addIssue(Environment.RIGHT, config.getErrors().getMessage(RO_DB_DOESNT_EXIST.getCode()));
                                                 throw new RuntimeException(config.getErrors().getMessage(RO_DB_DOESNT_EXIST.getCode()));
 //                                        } else {
 //                                            config.getCluster(Environment.RIGHT).databaseSql(config, database, dbCreate[0]);
@@ -362,7 +369,7 @@ public class DBMirror {
                                 String alterDbMngdLoc = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, sbMngdLoc.toString());
                                 this.getSql(Environment.LEFT).add(new Pair(MirrorConf.ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
 
-                                this.addIssue("This process, when 'executed' will leave the original tables intact in there renamed " +
+                                this.addIssue(Environment.LEFT,"This process, when 'executed' will leave the original tables intact in there renamed " +
                                         "version.  They are NOT automatically cleaned up.  Run the produced '" +
                                         getName() + "_LEFT_CleanUp_execute.sql' " +
                                         "file to permanently remove them.  Managed and External/Purge table data will be " +

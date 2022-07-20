@@ -257,7 +257,7 @@ public class Cluster implements Comparable<Cluster> {
                 } catch (SQLException se) {
                     LOG.error(getEnvironment() + ":" + database + " ", se);
                     // This is helpful if the user running the process doesn't have permissions.
-                    dbMirror.addIssue(getEnvironment() + ":" + database + " " + se.getMessage());
+                    dbMirror.addIssue(getEnvironment(), database + " " + se.getMessage());
                 } finally {
                     if (resultSet != null) {
                         try {
@@ -425,6 +425,12 @@ public class Cluster implements Comparable<Cluster> {
             // conn will be null if config.execute != true.
             conn = getConnection();
 
+            if (conn == null && config.isExecute()) {
+                // this is a problem.
+                rtn = Boolean.FALSE;
+                tblMirror.addIssue(getEnvironment(), "Connection missing. This is a bug.");
+            }
+
             if (conn != null) {
                 Statement stmt = null;
                 try {
@@ -478,6 +484,8 @@ public class Cluster implements Comparable<Cluster> {
         for (Pair pair : clusterSql) {
             if (!runDatabaseSql(null, pair)) {
                 rtn = Boolean.FALSE;
+                // don't continue
+                break;
             }
         }
         return rtn;
@@ -490,6 +498,8 @@ public class Cluster implements Comparable<Cluster> {
         for (Pair pair : dbPairs) {
             if (!runDatabaseSql(dbMirror, pair)) {
                 rtn = Boolean.FALSE;
+                // don't continue
+                break;
             }
         }
         return rtn;
@@ -502,6 +512,14 @@ public class Cluster implements Comparable<Cluster> {
 
         try {
             conn = getConnection();
+
+            if (conn == null && config.isExecute()) {
+                // this is a problem.
+                rtn = Boolean.FALSE;
+                dbMirror.addIssue(getEnvironment(), "Connection missing. This is a bug.");
+            }
+
+
             if (conn != null) {
 
                 if (dbMirror != null)
@@ -524,6 +542,8 @@ public class Cluster implements Comparable<Cluster> {
                             stmt.execute(dbSqlPair.getAction());
                     } catch (SQLException throwables) {
                         LOG.error(getEnvironment() + ":" + dbSqlPair.getDescription() + ":", throwables);
+                        dbMirror.addIssue(getEnvironment(), throwables.getMessage() + " " + dbSqlPair.getDescription() +
+                                " " + dbSqlPair.getAction());
                         rtn = Boolean.FALSE;
                     }
 
