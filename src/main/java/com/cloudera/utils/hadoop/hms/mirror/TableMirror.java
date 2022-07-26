@@ -315,7 +315,10 @@ public class TableMirror {
         if (config.convertManaged())
             copySpec.setUpgrade(Boolean.TRUE);
         if (!config.isReadOnly() || !config.isSync()) {
-            if (TableUtils.isExternal(let) && config.getCluster(Environment.LEFT).getLegacyHive()) {
+            if ((TableUtils.isExternal(let) && config.getCluster(Environment.LEFT).getLegacyHive()) ||
+                    // Don't add purge for non-legacy environments...
+                    // https://github.com/cloudera-labs/hms-mirror/issues/5
+                    (TableUtils.isExternal(let) && !config.getCluster(Environment.LEFT).getLegacyHive())) {
                 copySpec.setTakeOwnership(Boolean.FALSE);
             } else {
                 copySpec.setTakeOwnership(Boolean.TRUE);
