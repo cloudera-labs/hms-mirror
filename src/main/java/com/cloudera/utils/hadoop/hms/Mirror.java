@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -675,7 +676,7 @@ public class Mirror {
         }
         try {
             connPools.init();
-        } catch (RuntimeException cnfe) {
+        } catch (SQLException cnfe) {
             LOG.error("Issue initializing connections.  Check driver locations", cnfe);
             throw new RuntimeException(cnfe);
         }

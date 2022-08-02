@@ -45,12 +45,12 @@ public class ConnectionPools {
         hiveServerConfigs.put(environment, hiveServer2);
     }
 
-    public void init() {
+    public void init() throws SQLException {
         initDrivers();
         initPooledDataSources();
     }
 
-    protected void initDrivers() {
+    protected void initDrivers() throws SQLException {
         Set<Environment> environments = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
 
         for (Environment environment : environments) {
@@ -62,6 +62,7 @@ public class ConnectionPools {
                     DriverManager.deregisterDriver(driver);
                 } catch (SQLException throwables) {
                     throwables.printStackTrace();
+                    throw throwables;
                 }
                 drivers.put(environment, driver);
             }
