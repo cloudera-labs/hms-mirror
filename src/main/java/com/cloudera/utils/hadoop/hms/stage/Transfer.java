@@ -23,6 +23,7 @@ import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.net.ConnectException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -215,10 +216,18 @@ public class Transfer implements Callable<ReturnStatus> {
                     tblMirror.setPhaseState(PhaseState.SUCCESS);
                 else
                     tblMirror.setPhaseState(PhaseState.ERROR);
+            } catch (ConnectionException ce) {
+                tblMirror.addIssue(Environment.LEFT, "FAILURE (check logs):" + ce.getMessage());
+                LOG.error("Connection Error", ce);
+                ce.printStackTrace();
+                rtn.setStatus(ReturnStatus.Status.FATAL);
+                rtn.setException(ce);
             } catch (RuntimeException rte) {
                 tblMirror.addIssue(Environment.LEFT, "FAILURE (check logs):" + rte.getMessage());
                 LOG.error("Transfer Error", rte);
                 rte.printStackTrace();
+                rtn.setStatus(ReturnStatus.Status.FATAL);
+                rtn.setException(rte);
             }
 
             Date end = new Date();

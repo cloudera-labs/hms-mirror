@@ -21,6 +21,7 @@ import com.cloudera.utils.hadoop.hms.stage.ReturnStatus;
 import com.cloudera.utils.hadoop.hms.stage.Setup;
 import com.cloudera.utils.hadoop.hms.stage.Transfer;
 import com.cloudera.utils.hadoop.hms.util.Protect;
+import com.cloudera.utils.hadoop.shell.commands.Env;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -45,7 +46,9 @@ import java.io.IOException;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -53,6 +56,8 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
+import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.ENVIRONMENT_CONNECTION_ISSUE;
 
 public class Mirror {
     private static final Logger LOG = LogManager.getLogger(Mirror.class);
@@ -648,6 +653,7 @@ public class Mirror {
         }
 
         ConnectionPools connPools = new ConnectionPools();
+        Set<Environment> hs2Envs = new HashSet<Environment>();
         switch (config.getDataStrategy()) {
             case DUMP:
                 // Don't load the datasource for the right with DUMP strategy.
@@ -661,6 +667,7 @@ public class Mirror {
             case STORAGE_MIGRATION:
                 // Get Pool
                 connPools.addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
+                hs2Envs.add(Environment.LEFT);
                 break;
             case SQL:
             case SCHEMA_ONLY:
@@ -669,13 +676,41 @@ public class Mirror {
                 // When doing inplace downgrade of ACID tables, we're only dealing with the LEFT cluster.
                 if (!config.getMigrateACID().isInplace()) {
                     connPools.addHiveServer2(Environment.RIGHT, config.getCluster(Environment.RIGHT).getHiveServer2());
+                    hs2Envs.add(Environment.RIGHT);
                 }
             default:
                 connPools.addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
+                hs2Envs.add(Environment.LEFT);
                 break;
         }
         try {
             connPools.init();
+            for (Environment target: hs2Envs) {
+                Connection conn = null;
+                Statement stmt = null;
+                try {
+                    conn = connPools.getEnvironmentConnection(target);
+                    if (conn == null) {
+                        config.getErrors().set(ENVIRONMENT_CONNECTION_ISSUE.getCode(), new Object[]{target});
+                        return config.getErrors().getReturnCode();
+                    } else {
+                        // Exercise the connection.
+                        stmt = conn.createStatement();
+                        stmt.execute("SELECT 1");
+                    }
+                } catch (Throwable t) {
+                    LOG.error(t);
+                    config.getErrors().set(ENVIRONMENT_CONNECTION_ISSUE.getCode(), new Object[]{target});
+                    return config.getErrors().getReturnCode();
+                } finally {
+                    if (stmt != null) {
+                        stmt.close();
+                    }
+                    if (conn != null) {
+                        conn.close();
+                    }
+                }
+            }
         } catch (SQLException cnfe) {
             LOG.error("Issue initializing connections.  Check driver locations", cnfe);
             throw new RuntimeException(cnfe);
@@ -1086,8 +1121,12 @@ public class Mirror {
                 }
                 try {
                     if (sf.isDone() && sf.get() != null) {
-                        if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
-                            throw new RuntimeException(sf.get().getException());
+                        switch (sf.get().getStatus()) {
+                            case SUCCESS:
+                                break;
+                            case ERROR:
+                            case FATAL:
+                                throw new RuntimeException(sf.get().getException());
                         }
                     }
                 } catch (InterruptedException | ExecutionException e) {

@@ -84,7 +84,7 @@ public enum MessageCode {
             "with SCHEMA_ONLY so you can build out the movement plan."),
     SAME_CLUSTER_COPY_WITHOUT_RDL(46, "You must specify `-rdl` when the cluster configurations use the same storage."),
     SAME_CLUSTER_COPY_WITHOUT_DBP(47, "You must specify `-dbp` when the cluster configurations use the same storage."),
-
+    ENVIRONMENT_CONNECTION_ISSUE(48, "There is an issue connecting to the {0} HS2 environment.  Check jdbc setup."),
     // WARNINGS
     SYNC_TBL_FILTER(50, "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"
             + "' ON BOTH SIDES!!!"),
