@@ -568,12 +568,16 @@ public class TableMirror {
         let.addSql(TableUtils.USE_DESC, useDb);
 
         if (let.getPartitioned()) {
-            if (false) {
-                // TODO: Check for Optimization Settings.
-            } else {
+            if (config.getOptimization().getSortDynamicPartitionInserts()) {
                 // Prescriptive Optimization.
                 String partElement = TableUtils.getPartitionElements(let);
                 String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
+                        let.getName(), ret.getName(), partElement);
+                String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
+                let.addSql(new Pair(transferDesc, transferSql));
+            } else {
+                String partElement = TableUtils.getPartitionElements(let);
+                String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
                         let.getName(), ret.getName(), partElement);
                 String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
                 let.addSql(new Pair(transferDesc, transferSql));
@@ -1436,12 +1440,19 @@ public class TableMirror {
 
         if (transfer.isDefined()) {
             if (source.getPartitioned()) {
-                // TODO: Check Optimizations and Cluster Version
-                if (false) {
-
-                } else {
+                if (config.getOptimization().getSortDynamicPartitionInserts()) {
                     String partElement = TableUtils.getPartitionElements(source);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
+                            source.getName(), transfer.getName(), partElement);
+                    String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
+                    source.addSql(new Pair(transferDesc, transferSql));
+                } else {
+                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                        source.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=true");
+                        source.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                    }
+                    String partElement = TableUtils.getPartitionElements(source);
+                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
                             source.getName(), transfer.getName(), partElement);
                     String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
                     source.addSql(new Pair(transferDesc, transferSql));
@@ -1485,11 +1496,19 @@ public class TableMirror {
             }
             // Sql from Shadow to Final
             if (source.getPartitioned()) {
-                if (false) {
-                    // optimizations
-                } else {
+                if (config.getOptimization().getSortDynamicPartitionInserts()) {
                     String partElement = TableUtils.getPartitionElements(source);
                     String shadowSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
+                            shadow.getName(), target.getName(), partElement);
+                    String shadowDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, source.getPartitions().size());
+                    target.addSql(new Pair(shadowDesc, shadowSql));
+                } else {
+                    if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
+                        target.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=true");
+                        target.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                    }
+                    String partElement = TableUtils.getPartitionElements(source);
+                    String shadowSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
                             shadow.getName(), target.getName(), partElement);
                     String shadowDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, source.getPartitions().size());
                     target.addSql(new Pair(shadowDesc, shadowSql));
@@ -1755,6 +1774,12 @@ public class TableMirror {
                     }
                 } else {
                     LOG.debug("Table: " + getName() + " - Skipping Features Check...");
+                }
+
+                if (config.isTranslateLegacy()) {
+                    if (config.getLegacyTranslations().fixSchema(target)) {
+                      LOG.info("Legacy Translation applied to: " + getDbName() + target.getName());
+                    }
                 }
 
                 // Add props to definition.

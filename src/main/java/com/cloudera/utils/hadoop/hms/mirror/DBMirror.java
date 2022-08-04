@@ -189,13 +189,13 @@ public class DBMirror {
                                 if (managedLocation != null) {
                                     managedLocation = managedLocation.replace(leftNamespace, rightNamespace);
                                 }
-                                if (config.getDbPrefix() != null) {
+                                if (config.getDbPrefix() != null || config.getDbRename() != null) {
                                     // adjust locations.
                                     if (location != null) {
-                                        location = Translator.removeLastDirFromUrl(location) + "/" + config.getDbPrefix() + getName() + ".db";
+                                        location = Translator.removeLastDirFromUrl(location) + "/" + config.getResolvedDB(getName()) + ".db";
                                     }
                                     if (managedLocation != null) {
-                                        managedLocation = Translator.removeLastDirFromUrl(managedLocation) + "/" + config.getDbPrefix() + getName() + ".db";
+                                        managedLocation = Translator.removeLastDirFromUrl(managedLocation) + "/" + config.getResolvedDB(getName()) + ".db";
                                     }
                                 }
                                 if (config.isReadOnly()) {

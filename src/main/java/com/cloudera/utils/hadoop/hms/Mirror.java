@@ -316,6 +316,10 @@ public class Mirror {
                 config.setResetToDefaultLocation(Boolean.TRUE);
             }
 
+            if (cmd.hasOption("slt")) {
+                config.setSkipLegacyTranslation(Boolean.TRUE);
+            }
+
             if (cmd.hasOption("ap")) {
                 config.getMigrateACID().setPartitionLimit(Integer.valueOf(cmd.getOptionValue("ap")));
             }
@@ -330,6 +334,10 @@ public class Mirror {
 
             if (cmd.hasOption("dbp")) {
                 config.setDbPrefix(cmd.getOptionValue("dbp"));
+            }
+
+            if (cmd.hasOption("dbr")) {
+                config.setDbRename(cmd.getOptionValue("dbr"));
             }
 
             if (cmd.hasOption("v")) {
@@ -1132,6 +1140,11 @@ public class Mirror {
         resetToDefaultLocation.setRequired(Boolean.FALSE);
         options.addOption(resetToDefaultLocation);
 
+        Option skipLegacyTranslation = new Option("slt", "skip-legacy-translation", false,
+                "Skip Schema Upgrades and Serde Translations");
+        skipLegacyTranslation.setRequired(Boolean.FALSE);
+        options.addOption(skipLegacyTranslation);
+
         Option flipOption = new Option("f", "flip", false,
                 "Flip the definitions for LEFT and RIGHT.  Allows the same config to be used in reverse.");
         flipOption.setOptionalArg(Boolean.FALSE);
@@ -1329,11 +1342,21 @@ public class Mirror {
         asmOption.setRequired(Boolean.FALSE);
         options.addOption(asmOption);
 
+        OptionGroup dbAdjustOptionGroup = new OptionGroup();
+
         Option dbPrefixOption = new Option("dbp", "db-prefix", true,
                 "Optional: A prefix to add to the RIGHT cluster DB Name. Usually used for testing.");
         dbPrefixOption.setRequired(Boolean.FALSE);
         dbPrefixOption.setArgName("prefix");
-        options.addOption(dbPrefixOption);
+        dbAdjustOptionGroup.addOption(dbPrefixOption);
+
+        Option dbRenameOption = new Option("dbr", "db-rename", true,
+                "Optional: Rename target db to ...  This option is only valid when '1' database is listed in `-db`.");
+        dbRenameOption.setRequired(Boolean.FALSE);
+        dbRenameOption.setArgName("rename");
+        dbAdjustOptionGroup.addOption(dbRenameOption);
+
+        options.addOptionGroup(dbAdjustOptionGroup);
 
         Option storageMigrationNamespaceOption = new Option("smn", "storage-migration-namespace", true,
                 "Optional: Used with the 'data strategy STORAGE_MIGRATION to specify the target namespace.");

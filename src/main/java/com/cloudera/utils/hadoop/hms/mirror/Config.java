@@ -39,7 +39,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -61,6 +60,7 @@ public class Config {
     private DataStrategy dataStrategy = DataStrategy.SCHEMA_ONLY;
     private Boolean databaseOnly = Boolean.FALSE;
     private String[] databases = null;
+    private LegacyTranslations legacyTranslations = new LegacyTranslations();
     @JsonIgnore
     private final String runMarker = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
@@ -73,6 +73,7 @@ public class Config {
    Should leave null for like replication.
     */
     private String dbPrefix = null;
+    private String dbRename = null;
     @JsonIgnore // wip
     private String dbRegEx = null;
     private Environment dumpSource = null;
@@ -107,6 +108,7 @@ public class Config {
     private Boolean resetToDefaultLocation = Boolean.FALSE;
 
     private Boolean skipFeatures = Boolean.FALSE;
+    private Boolean skipLegacyTranslation = Boolean.FALSE;
     /*
     Always true.  leaving to ensure config serialization compatibility.
      */
@@ -267,6 +269,20 @@ public class Config {
         }
     }
 
+    public Boolean isTranslateLegacy() {
+        Boolean rtn = Boolean.FALSE;
+        if (!skipLegacyTranslation) {
+            // If both env are defined and left is legacy and right is NOT.  Do it.
+            // contribs can be in legacy and non-legacy envs.
+//            if (getCluster(Environment.LEFT) != null && getCluster(Environment.RIGHT) != null) {
+//                if (getCluster(Environment.LEFT).getLegacyHive() && !getCluster(Environment.RIGHT).getLegacyHive()) {
+                    rtn = Boolean.TRUE;
+//                }
+//            }
+        }
+        return rtn;
+    }
+
     public HadoopSessionPool getCliPool() {
         if (cliPool == null) {
             GenericObjectPoolConfig<HadoopSession> hspCfg = new GenericObjectPoolConfig<HadoopSession>();
@@ -306,6 +322,14 @@ public class Config {
 
     public void setReplace(Boolean replace) {
         this.replace = replace;
+    }
+
+    public Boolean getSkipLegacyTranslation() {
+        return skipLegacyTranslation;
+    }
+
+    public void setSkipLegacyTranslation(Boolean skipLegacyTranslation) {
+        this.skipLegacyTranslation = skipLegacyTranslation;
     }
 
     public Boolean getSqlOutput() {
@@ -358,6 +382,14 @@ public class Config {
 
     public Messages getWarnings() {
         return warnings;
+    }
+
+    public LegacyTranslations getLegacyTranslations() {
+        return legacyTranslations;
+    }
+
+    public void setLegacyTranslations(LegacyTranslations legacyTranslations) {
+        this.legacyTranslations = legacyTranslations;
     }
 
     public MigrateACID getMigrateACID() {
@@ -472,9 +504,18 @@ public class Config {
         this.dbPrefix = dbPrefix;
     }
 
+    public String getDbRename() {
+        return dbRename;
+    }
+
+    public void setDbRename(String dbRename) {
+        this.dbRename = dbRename;
+    }
+
     public String getResolvedDB(String database) {
         String rtn = null;
         rtn = (dbPrefix != null ? dbPrefix + database : database);
+        rtn = (dbRename != null ? dbRename: database);
         return rtn;
     }
 
@@ -634,11 +675,17 @@ public class Config {
                         errors.set(SAME_CLUSTER_COPY_WITHOUT_RDL.getCode());
                         rtn = Boolean.FALSE;
                     }
-                    if (getDbPrefix() == null) {
-                        errors.set(SAME_CLUSTER_COPY_WITHOUT_DBP.getCode());
+                    if (getDbPrefix() == null && getDbRename() == null) {
+                        errors.set(SAME_CLUSTER_COPY_WITHOUT_DBPR.getCode());
                         rtn = Boolean.FALSE;
                     }
                 }
+        }
+
+        // Only allow db rename with a single database.
+        if (getDbRename() != null && getDatabases().length > 1) {
+            errors.set(DB_RENAME_ONLY_WITH_SINGLE_DB_OPTION.getCode());
+            rtn = Boolean.FALSE;
         }
 
         if (getTransfer().getStorageMigration().isDistcp()) {

@@ -361,18 +361,19 @@ public class Transfer implements Callable<ReturnStatus> {
             if (let.getPartitioned()) {
                 // Check that the partition count doesn't exceed the configuration limit.
                 // Build Partition Elements.
-                if (config.getOptimization().getSortDynamicPartitionInserts() && !config.getCluster(Environment.LEFT).getLegacyHive()) {
-                    let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=true");
-                    let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
-                    String partElement = TableUtils.getPartitionElements(let);
-
-                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
-                            let.getName(), ret.getName(), partElement);
-                    String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
-                    ret.addSql(new Pair(transferDesc, transferSql));
-                } else {
+                if (config.getOptimization().getSortDynamicPartitionInserts()) {
                     String partElement = TableUtils.getPartitionElements(let);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
+                            let.getName(), ret.getName(), partElement);
+                    String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
+                    let.addSql(new Pair(transferDesc, transferSql));
+                } else{
+                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                        let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=true");
+                        let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                    }
+                    String partElement = TableUtils.getPartitionElements(let);
+                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
                             let.getName(), ret.getName(), partElement);
                     String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
                     let.addSql(new Pair(transferDesc, transferSql));
