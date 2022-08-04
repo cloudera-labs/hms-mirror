@@ -21,6 +21,9 @@ public enum FeaturesEnum {
     BAD_ORC_DEF(BadOrcDefFeature.class),
     BAD_RC_DEF(BadRCDefFeature.class),
     BAD_PARQUET_DEF(BadParquetDefFeature.class),
+
+    // Not required currently.
+//    SPARK_SQL_PART_DEF(SparkSqlPartFeature.class),
     BAD_TEXTFILE_DEF(BadTextFileDefFeature.class);
 
     private Feature feature;

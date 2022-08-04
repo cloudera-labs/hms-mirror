@@ -20,6 +20,7 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class BadParquetDefFeatureTest extends BaseFeatureTest {
@@ -92,6 +93,62 @@ public class BadParquetDefFeatureTest extends BaseFeatureTest {
             "  'PARQUET.COMPRESSION'='GZIP',",
             "  'transient_lastDdlTime'='1631064805')"
     };
+
+    public static String[] schema_03 = new String[]{
+            "CREATE EXTERNAL TABLE `my_spark_tbl`(",
+            "  `institution_id` int, ",
+            "  `period_id` string, ",
+            "  `company_id` int, ",
+            "  `ebr_id` string, ",
+            "  `entity_name_derived` string, ",
+            "  `period_end_date` timestamp, ",
+            "  `fiscal_year` smallint, ",
+            "  `magnitude` string, ",
+            "  `environmental_data_source` string, ",
+            "  `val_1` decimal(38,19), ",
+            "  `val_1_disclosure` string, ",
+            "  `val_2` decimal(38,19), ",
+            "  `val_2_disclosure` string, ",
+            "  `val_3_upstream` decimal(38,19), ",
+            "  `val_3_upstream_air_transportation_disclosure` string, ",
+            "  `val_3_upstream_rail_transportation_disclosure` string, ",
+            "  `val_3_upstream_truck_transportation_disclosure` string, ",
+            "  `val_3_downstream` decimal(38,19), ",
+            "  `val_3_downstream_disclosure` string, ",
+            "  `my_scr` int, ",
+            "  `my_scr_scope_1` int, ",
+            "  `my_scr_scope_2` int, ",
+            "  `my_scr_scope_1_scope_2` int, ",
+            "  `my_scr_scope_3_upstream` int, ",
+            "  `my_scr_scope_3_downstream` int, ",
+            "  `my_scr_scope_3` int)",
+            "PARTITIONED BY ( ",
+            "  `run_frequency` string, ",
+            "  `run_report_date` date, ",
+            "  `run_rev` int)",
+            "ROW FORMAT SERDE ",
+            "  'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe' ",
+            "WITH SERDEPROPERTIES ( ",
+            "  'path'='hdfs://oldns/dev/app/XYZ/abc/df/my_spark_tbl') ",
+            "STORED AS INPUTFORMAT ",
+            "  'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat' ",
+            "OUTPUTFORMAT ",
+            "  'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'",
+            "LOCATION",
+            "  'hdfs://oldns/dev/app/XYZ/abc/df/my_spark_tbl'",
+            "TBLPROPERTIES (",
+            "  'spark.sql.create.version'='2.3.0.2.6.5.106-2', ",
+            "  'spark.sql.partitionProvider'='catalog', ",
+            "  'spark.sql.sources.provider'='org.apache.spark.sql.parquet', ",
+            "  'spark.sql.sources.schema.numPartCols'='3', ",
+            "  'spark.sql.sources.schema.numParts'='1', ",
+            "  'spark.sql.sources.schema.part.0'='{\"type\":\"struct\",\"fields\":[{\"name\":\"institution_id\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"period_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"company_id\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"ebr_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"entity_name_derived\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"period_end_date\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{}},{\"name\":\"fiscal_year\",\"type\":\"short\",\"nullable\":true,\"metadata\":{}},{\"name\":\"magnitude\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"environmental_data_source\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"val_1\",\"type\":\"decimal(38,19)\",\"nullable\":true,\"metadata\":{}},{\"name\":\"val_1_disclosure\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"val_2\",\"type\":\"decimal(38,19)\",\"nullable\":true,\"metadata\":{}},{\"name\":\"val_2_disclosure\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"val_3_upstream\",\"type\":\"decimal(38,19)\",\"nullable\":true,\"metadata\":{}},{\"name\":\"val_3_upstream_air_transportation_disclosure\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"val_3_upstream_rail_transportation_disclosure\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"val_3_upstream_truck_transportation_disclosure\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"val_3_downstream\",\"type\":\"decimal(38,19)\",\"nullable\":true,\"metadata\":{}},{\"name\":\"val_3_downstream_disclosure\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"my_scr\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"my_scr_scope_1\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"my_scr_scope_2\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"my_scr_scope_1_scope_2\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"my_scr_scope_3_upstream\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"my_scr_scope_3_downstream\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"my_scr_scope_3\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"run_frequency\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"run_report_date\",\"type\":\"date\",\"nullable\":true,\"metadata\":{}},{\"name\":\"run_rev\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}}]}', ",
+            "  'spark.sql.sources.schema.partCol.0'='run_frequency', ",
+            "  'spark.sql.sources.schema.partCol.1'='run_report_date', ",
+            "  'spark.sql.sources.schema.partCol.2'='run_rev', ",
+            "  'transient_lastDdlTime'='1658852325')"
+    };
+
     private final Feature feature = new BadParquetDefFeature();
 
     @Test
@@ -106,9 +163,16 @@ public class BadParquetDefFeatureTest extends BaseFeatureTest {
     public void test_002() {
         List<String> schema = toList(schema_02);
         Boolean check = feature.fixSchema(schema);
-        assertTrue(check);
         schema.stream().forEach(System.out::println);
+        assertTrue(check);
+    }
 
+    @Test
+    public void test_003() {
+        List<String> schema = toList(schema_03);
+        Boolean check = feature.fixSchema(schema);
+        schema.stream().forEach(System.out::println);
+        assertFalse(check);
     }
 
 }

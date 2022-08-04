@@ -799,6 +799,56 @@ public class TableUtils {
         }
     }
 
+    public static String getTblProperty(String key, EnvironmentTable environmentTable) {
+        return getTblProperty(key, environmentTable.getDefinition());
+    }
+
+    public static String getTblProperty(String key, List<String> tblDef) {
+        String rtn = null;
+        int tpIdx = tblDef.indexOf(TBL_PROPERTIES);
+
+        for (int i = tpIdx + 1; i < tblDef.size(); i++) {
+            String line = tblDef.get(i).trim();
+            String[] checkProperty = line.split("=");
+            String checkKey = checkProperty[0].replace("'", "");
+            if (checkKey.equalsIgnoreCase(key)) {
+                // Found existing Property, replace it.
+                rtn = checkProperty[1].replace("'", "");
+                break;
+            }
+        }
+        return rtn;
+    }
+
+    public static Boolean replaceTblProperty(String key, String newValue, EnvironmentTable environmentTable) {
+        Boolean rtn = Boolean.FALSE;
+        List<String> tblDef = environmentTable.getDefinition();
+        int tpIdx = tblDef.indexOf(TBL_PROPERTIES);
+
+        for (int i = tpIdx + 1; i < tblDef.size(); i++) {
+            String line = tblDef.get(i).trim();
+            String[] checkProperty = line.split("=");
+            String checkKey = checkProperty[0].replace("'", "");
+            if (checkKey.equalsIgnoreCase(key)) {
+                // Found existing Property, replace it.
+                tblDef.remove(i);
+                StringBuilder sb = new StringBuilder();
+                sb.append("'").append(key).append("'")
+                        .append("=")
+                        .append("'").append(newValue).append("'");
+                // Replace ending param.
+                if (line.endsWith(")")) {
+                    sb.append(")");
+                }
+                tblDef.add(i, sb.toString());
+                rtn = Boolean.TRUE;
+                break;
+            }
+        }
+        return rtn;
+    }
+
+
     public static void removeTblProperty(String key, EnvironmentTable envTable) {
         // Search for property first.
         removeTblProperty(key, envTable.getDefinition());

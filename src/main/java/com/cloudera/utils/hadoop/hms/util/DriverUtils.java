@@ -16,6 +16,8 @@
 
 package com.cloudera.utils.hadoop.hms.util;
 
+import com.cloudera.utils.hadoop.hms.mirror.Environment;
+import com.cloudera.utils.hadoop.hms.mirror.ReportingConf;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -32,7 +34,7 @@ public class DriverUtils {
 
     // This is a shim process that allows us to load a Hive Driver from
     // a jar File, via a new ClassLoader.
-    public static Driver getDriver(String jarFile) {
+    public static Driver getDriver(String jarFile, Environment environment) {
         Driver hiveShim = null;
         try {
             if (jarFile != null) {
@@ -45,6 +47,9 @@ public class DriverUtils {
                 URLClassLoader hive3ClassLoader = URLClassLoader.newInstance(urls, jdbcJar.getClass().getClassLoader());
                 LOG.trace("Loading Hive JDBC Driver");
                 Class<?> classToLoad = hive3ClassLoader.loadClass("org.apache.hive.jdbc.HiveDriver");
+                Package aPackage = classToLoad.getPackage();
+                String implementationVersion = aPackage.getImplementationVersion();
+                LOG.info(environment + " - Hive JDBC Implementation Version: " + implementationVersion);
                 Driver hiveDriver = (Driver) classToLoad.newInstance();
                 LOG.trace("Building Hive Driver Shim");
                 hiveShim = new DriverShim(hiveDriver);
@@ -52,12 +57,16 @@ public class DriverUtils {
             } else {
                 Class hiveDriverClass = Class.forName("org.apache.hive.jdbc.HiveDriver");
                 hiveShim = (Driver) hiveDriverClass.newInstance();
+                Package aPackage = hiveDriverClass.getPackage();
+                String implementationVersion = aPackage.getImplementationVersion();
+                LOG.info(environment + " - Hive JDBC Implementation Version: " + implementationVersion);
             }
             DriverManager.registerDriver(hiveShim);
         } catch (SQLException | MalformedURLException |
                 ClassNotFoundException | InstantiationException |
                 IllegalAccessException throwables) {
             throwables.printStackTrace();
+            LOG.error(throwables.getMessage(), throwables);
         }
         return hiveShim;
     }

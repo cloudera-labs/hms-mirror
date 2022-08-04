@@ -56,7 +56,7 @@ public class ConnectionPools {
         for (Environment environment : environments) {
             HiveServer2Config hs2Config = hiveServerConfigs.get(environment);
             if (hs2Config != null) {
-                Driver driver = DriverUtils.getDriver(hs2Config.getJarFile());
+                Driver driver = DriverUtils.getDriver(hs2Config.getJarFile(),environment);
                 // Need to deregister, cause it was registered in the getDriver.
                 try {
                     DriverManager.deregisterDriver(driver);
@@ -90,6 +90,18 @@ public class ConnectionPools {
 //            poolingDatasource.setLoginTimeout(10);
 
             dataSources.put(environment, poolingDatasource);
+            Connection conn = null;
+            try {
+                conn = getEnvironmentConnection(environment);
+            } catch (Throwable t) {
+                if (conn != null) {
+                    try {
+                        conn.close();
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
         }
     }
 

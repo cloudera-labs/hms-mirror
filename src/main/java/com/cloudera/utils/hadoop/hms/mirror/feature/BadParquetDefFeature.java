@@ -56,7 +56,14 @@ public class BadParquetDefFeature extends BaseFeature implements Feature {
                 if (of > saiIdx + 1) {
                     // Now check for OUTPUT class match
                     if (schema.get(of + 1).trim().equals(OUTPUT_FORMAT_CLASS)) {
-                        rtn = Boolean.TRUE;
+                        // Need to check for proper spark defined ROW_FORMAT_SERDE
+                        // When present, don't fix this.  It breaks Spark SQL.
+                        int rfsIdx = indexOf(schema, ROW_FORMAT_SERDE);
+                        if (rfsIdx > 0) {
+                            if (!schema.get(rfsIdx +1).trim().equals(ROW_FORMAT_SERDE_CLASS)) {
+                                rtn = Boolean.TRUE;
+                            }
+                        }
                     }
                 }
             }
