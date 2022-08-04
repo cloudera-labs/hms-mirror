@@ -16,10 +16,8 @@
 
 package com.cloudera.utils.hadoop.hms;
 
-import com.cloudera.utils.hadoop.hms.mirror.LegacyTranslations;
-import com.cloudera.utils.hadoop.hms.mirror.feature.BadOrcDefFeature;
+import com.cloudera.utils.hadoop.hms.mirror.feature.LegacyTranslations;
 import com.cloudera.utils.hadoop.hms.mirror.feature.BaseFeatureTest;
-import com.cloudera.utils.hadoop.hms.mirror.feature.Feature;
 import org.junit.Test;
 
 import java.util.List;
@@ -68,8 +66,8 @@ public class LegacyTranslationTest extends BaseFeatureTest {
         List<String> schema = toList(schema_01);
         Boolean check = Boolean.FALSE;
         check = legacyTranslations.fixSchema(schema);
-        assertTrue(check);
         schema.stream().forEach(System.out::println);
+        assertTrue(check);
     }
 
 }

@@ -19,6 +19,7 @@ package com.cloudera.utils.hadoop.hms.mirror;
 import com.cloudera.utils.hadoop.HadoopSession;
 import com.cloudera.utils.hadoop.HadoopSessionFactory;
 import com.cloudera.utils.hadoop.HadoopSessionPool;
+import com.cloudera.utils.hadoop.hms.mirror.feature.LegacyTranslations;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -272,13 +273,8 @@ public class Config {
     public Boolean isTranslateLegacy() {
         Boolean rtn = Boolean.FALSE;
         if (!skipLegacyTranslation) {
-            // If both env are defined and left is legacy and right is NOT.  Do it.
             // contribs can be in legacy and non-legacy envs.
-//            if (getCluster(Environment.LEFT) != null && getCluster(Environment.RIGHT) != null) {
-//                if (getCluster(Environment.LEFT).getLegacyHive() && !getCluster(Environment.RIGHT).getLegacyHive()) {
-                    rtn = Boolean.TRUE;
-//                }
-//            }
+            rtn = Boolean.TRUE;
         }
         return rtn;
     }
@@ -515,7 +511,7 @@ public class Config {
     public String getResolvedDB(String database) {
         String rtn = null;
         rtn = (dbPrefix != null ? dbPrefix + database : database);
-        rtn = (dbRename != null ? dbRename: database);
+        rtn = (dbRename != null ? dbRename : database);
         return rtn;
     }
 

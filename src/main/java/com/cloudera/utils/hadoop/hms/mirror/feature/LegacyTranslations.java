@@ -1,8 +1,6 @@
-package com.cloudera.utils.hadoop.hms.mirror;
+package com.cloudera.utils.hadoop.hms.mirror.feature;
 
-import com.cloudera.utils.hadoop.hms.mirror.feature.BadOrcDefFeature;
-import com.cloudera.utils.hadoop.hms.mirror.feature.BaseFeature;
-import com.cloudera.utils.hadoop.hms.mirror.feature.Feature;
+import com.cloudera.utils.hadoop.hms.mirror.EnvironmentTable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
