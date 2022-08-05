@@ -17,6 +17,13 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Building METADATA](#building-metadata)
   * [Partition Handling for Data Transfers](#partition-handling-for-data-transfers)
   * [Permissions](#permissions)
+- [Where to Run `hms-mirror`](#where-to-run-hms-mirror)
+  * [Default Workflow Patterns and Where to Run From](#default-workflow-patterns-and-where-to-run-from)
+    + [Run On - Dataflow Model](#run-on---dataflow-model)
+  * [`--intermediate-storage` Workflow Patterns and Where to Run From](#--intermediate-storage-workflow-patterns-and-where-to-run-from)
+    + [Run On - Dataflow Model](#run-on---dataflow-model-1)
+  * [`--common-storage` Workflow Patterns and Where to Run From](#--common-storage-workflow-patterns-and-where-to-run-from)
+    + [Run On - Dataflow Model](#run-on---dataflow-model-2)
 - [Features](#features)
   * [VIEWS](#views)
     + [Requirements](#requirements)
@@ -33,6 +40,13 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Table Translations](#table-translations)
     + [Legacy Managed Tables](#legacy-managed-tables)
   * [`distcp` Planning Workbook and Scripts](#distcp-planning-workbook-and-scripts)
+  * [ACID Table Downgrades](#acid-table-downgrades)
+  * [Reset to Default Locations](#reset-to-default-locations)
+  * [Legacy Row Serde Translations](#legacy-row-serde-translations)
+  * [Filtering Tables to Process](#filtering-tables-to-process)
+  * [Migrations between Clusters WITHOUT line of Site](#migrations-between-clusters-without-line-of-site)
+    + [On-Prem to Cloud](#on-prem-to-cloud)
+  * [Shared Storage Models (Isilon, Spectrum-Scale, etc.)](#shared-storage-models-isilon-spectrum-scale-etc)
 - [Setup](#setup)
   * [Binary Package](#binary-package)
     + [Don't Build. Download the LATEST binary here!!!](#dont-build-download-the-latest-binary-here)
@@ -95,7 +109,6 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
 - [Output](#output)
   * [distcp Workbook (Tech Preview)](#distcp-workbook-tech-preview)
   * [Application Report](#application-report)
-  * [Action Report for LEFT and RIGHT Clusters](#action-report-for-left-and-right-clusters)
   * [SQL Execution Output](#sql-execution-output)
   * [Logs](#logs)
 - [Strategies](#strategies)
@@ -345,6 +358,49 @@ Depending on the job size and operational expectations, you may want to use *SNA
 If your process requires the data to exist BEFORE you migrate the schemas, run `hms-mirror` in the `dry-run` mode (default) and use the distcp planning workbook and scripts to transfer the datasets.  Then run `hms-mirror` with the `-e|--execute` option to migrate the schemas.
 
 These workbooks will NOT include elements for ACID/Transactional tables.  Simply copying the dataset for transactional tables will NOT work.  Use the `HYBRID` data strategy migration transactional table schemas and datasets.
+
+### ACID Table Downgrades
+
+The default table creation scenario for Hive 3 (CDP and HDP 3) installations is to create ACID transactional tables.  If you're moving from a legacy platform like HDP 2 or CDH, this may have caught you off guard and resulted in a lot of ACID tables you did NOT intend on.
+
+The `-da|--downgrade-acid` option can be used to convert these ACID tables to *EXTERNAL/PURGE* tables.
+
+If you have ACID tables on the current platform and would like to *downgrade* them, but you're not doing a migration, try the `-ip|--in-place` option.  This will archive to existing ACID table and build a new table (with the original table name) that is *EXTERNAL/PURGE*.
+
+### Reset to Default Locations
+
+Migrations present an opportunity to clean up a lot of history.  While `hms-mirror` was originally designed to migration data and maintain the **relative** locations of the data, some may want to reorganize the data during the migration.
+
+The option `-rdl|--reset-default-location` will overwrite the locations originally used and place the datasets in the 'default' locations as defined by `-wd|--warehouse-directory` and `-ewd|--external-warehouse-directory`.
+
+The `-rdl` option requires `-wd` and `-ewd` to be specified.  These locations will be used to `ALTER` the databases `LOCATION` and `MANAGEDLOCATION` values.  After which, all new `CREATE \[EXTERNAL\] TABLE` definitions don't specify a `LOCATION`, which means table locations will use the default.
+
+### Legacy Row Serde Translations
+
+By default, tables using old row *serde* classes will be converted to the newer serde as the definition is processed by `hms-mirror`.  See [here](https://github.com/cloudera-labs/hms-mirror/blob/6f6c309f24fbb8133e5bd52e5b18274094ff5be8/src/main/java/com/cloudera/utils/hadoop/hms/mirror/feature/LegacyTranslations.java#L28) for a list of serdes we look for.
+
+If you do NOT want to apply this translation, add the option `-slt|--skip-legacy-translation` to the commandline.
+
+### Filtering Tables to Process
+
+The are options to filter tables included in `hms-mirror` process.  You can select `-tf|--table-filter` to "include" only tables that match this 'regular-expression'.  Inversely, use `-etf|--exclude-table-filter` to omit tables from the list.  These options are mutually exclusive.
+
+The filter is expressed as a 'regular-expression'.  Complex expressions should be enclosed in quotes to ensure the commandline interpreter doesn't split them.
+
+The filter does NOT override the requirement for options like `-ma|-mao`.  It is used as an additional filter.
+
+### Migrations between Clusters WITHOUT line of Site
+
+There will be cases where clusters can't be [linked](#linking-clusters-storage-layers).  And without this line of sight, data movement needs to happen through some other means.  
+
+#### On-Prem to Cloud
+This scenario is most common with "on-prem" to "cloud" migrations.  Typically, `hms-mirror` is run from the **RIGHT** cluster, but in this case the **RIGHT** cloud cluster doesn't have line of site to the **LEFT** on-prem cluster.  But the on-prem cluster will have limited line of site to the cloud environment.  In this case, the only option is to run `hms-mirror` from the on-prem cluster.  The on-prem cluster will need access to either an `-is|--intermediate-storage` location that both clusters can access or a `-cs|--common-storage` location that each cluster can see, but can be considered the final resting place for the cloud environment.  The `-cs` option usually means there are fewer data hops required to complete the migration.
+
+You'll run `hms-mirror` from a **LEFT** cluster edgenode.  This node will require line of site to the Hive Server 2 endpoint in the **RIGHT** cloud environment.  The **LEFT** cluster will also need to be configured with the appropriate libraries and configurations to write to the location defined in `-is|-cs`.  For example: For S3, the **LEFT** cluster will need the AWS S3 libraries configured and the appropriate keys for S3 access setup to complete the transfer.
+
+### Shared Storage Models (Isilon, Spectrum-Scale, etc.)
+
+There are cases where 'HDFS' isn't the primary data source.  So the only thing the cluster share is storage in these 'common' storage units.  You want to transfer the schema, but the data doesn't need to move (at least for 'EXTERNAL' (non-transactional) tables).  In this case, try the `-d|--data-strategy` COMMON.  The schema's will go through all the needed conversions while the data remains in the same location.   
 
 ## Setup
 
@@ -723,7 +779,7 @@ When you do need to move data, `hms-mirror` create a workbook of 'source' and 't
 
 ```
 usage: hms-mirror <options>
-
+                  version:1.5.3.1.0-SNAPSHOT
 Hive Metastore Migration Utility
  -accept,--accept                                                          Accept ALL confirmations
                                                                            and silence prompts
@@ -796,6 +852,22 @@ Hive Metastore Migration Utility
                                                                            to the RIGHT cluster DB
                                                                            Name. Usually used for
                                                                            testing.
+ -dbr,--db-rename <rename>                                                 Optional: Rename target
+                                                                           db to ...  This option is
+                                                                           only valid when '1'
+                                                                           database is listed in
+                                                                           `-db`.
+ -dc,--distcp <flow-direction default:PULL>                                Build the 'distcp'
+                                                                           workplans.  Optional
+                                                                           argument (PULL, PUSH) to
+                                                                           define which cluster is
+                                                                           running the distcp
+                                                                           commands.  Default is
+                                                                           PULL.
+ -dp,--decrypt-password <encrypted-password>                               Used this in conjunction
+                                                                           with '-pkey' to decrypt
+                                                                           the generated passcode
+                                                                           from `-p`.
  -ds,--dump-source <source>                                                Specify which 'cluster'
                                                                            is the source for the
                                                                            DUMP strategy
@@ -819,6 +891,9 @@ Hive Metastore Migration Utility
                                                                            the same config to be
                                                                            used in reverse.
  -h,--help                                                                 Help
+ -ip,--in-place                                                            Downgrade ACID tables to
+                                                                           EXTERNAL tables with
+                                                                           purge.
  -is,--intermediate-storage <storage-path>                                 Intermediate Storage used
                                                                            with Data Strategy
                                                                            HYBRID, SQL,
@@ -841,7 +916,7 @@ Hive Metastore Migration Utility
                                                                            requirements for 'hdfs'
                                                                            to ensure this seamless
                                                                            access.
- -ma,--migrate-acid <arg>                                                  Migrate ACID tables (if
+ -ma,--migrate-acid <artificial-bucket-threshold default:2>                Migrate ACID tables (if
                                                                            strategy allows).
                                                                            Optional:
                                                                            ArtificialBucketThreshold
@@ -853,7 +928,7 @@ Hive Metastore Migration Utility
                                                                            definitions that were
                                                                            added 'artificially' in
                                                                            legacy Hive. (default: 2)
- -mao,--migrate-acid-only <arg>                                            Migrate ACID tables ONLY
+ -mao,--migrate-acid-only <artificial-bucket-threshold default:2>          Migrate ACID tables ONLY
                                                                            (if strategy allows).
                                                                            Optional:
                                                                            ArtificialBucketThreshold
@@ -901,16 +976,6 @@ Hive Metastore Migration Utility
                                                                            background processes with
                                                                            output redirects to a
                                                                            file
- -r,--replace                                                              When downgrading an ACID
-                                                                           table as its transferred
-                                                                           to the 'RIGHT' cluster,
-                                                                           this option will replace
-                                                                           the current ACID table on
-                                                                           the LEFT cluster with a
-                                                                           'downgraded' table
-                                                                           (EXTERNAL). The option
-                                                                           only works with options
-                                                                           '-da' and '-cs'.
  -rdl,--reset-to-default-location                                          Strip 'LOCATION' from all
                                                                            target cluster
                                                                            definitions.  This will
@@ -952,6 +1017,8 @@ Hive Metastore Migration Utility
                                                                            sides) will be
                                                                            considered.
  -sf,--skip-features                                                       Skip Features evaluation.
+ -slt,--skip-legacy-translation                                            Skip Schema Upgrades and
+                                                                           Serde Translations
  -smn,--storage-migration-namespace <Storage Migration Target Namespace>   Optional: Used with the
                                                                            'data strategy
                                                                            STORAGE_MIGRATION to
@@ -970,6 +1037,17 @@ Hive Metastore Migration Utility
                                                                            configuration file
                                                                            through a series of
                                                                            questions
+ -tef,--table-exclude-filter <regex>                                       Filter tables (excludes)
+                                                                           with name matching RegEx.
+                                                                           Comparison done with
+                                                                           'show tables' results.
+                                                                           Check case, that's
+                                                                           important.  Hive tables
+                                                                           are generally stored in
+                                                                           LOWERCASE. Make sure you
+                                                                           double-quote the
+                                                                           expression on the
+                                                                           commandline.
  -tf,--table-filter <regex>                                                Filter tables (inclusive)
                                                                            with name matching RegEx.
                                                                            Comparison done with
@@ -977,7 +1055,10 @@ Hive Metastore Migration Utility
                                                                            Check case, that's
                                                                            important.  Hive tables
                                                                            are generally stored in
-                                                                           LOWERCASE.
+                                                                           LOWERCASE. Make sure you
+                                                                           double-quote the
+                                                                           expression on the
+                                                                           commandline.
  -v,--views-only                                                           Process VIEWs ONLY
  -wd,--warehouse-directory <warehouse-path>                                The warehouse directory
                                                                            path.  Should not include
