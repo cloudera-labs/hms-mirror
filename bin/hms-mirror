@@ -40,9 +40,6 @@ fi
 PRG_ARGS=
 CMD_CP=
 
-# Set the default.
-export HADOOP_CONF_DIR="/etc/hadoop/conf"
-
 AUX_LIBS_DIR=${HMS_MIRROR_AUX_LIBS:-${HOME}/.hms-mirror/aux_libs}
 
 SHOW_CP=
