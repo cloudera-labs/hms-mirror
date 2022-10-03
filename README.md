@@ -686,7 +686,7 @@ There are two ways to get started:
   - URI's for each clusters HiveServer2
   - STANDALONE jar files for EACH Hive version.
   - Username and Password for non-kerberized connections.
-    - Note: `hms-mirror` only support one kerberos connection.  For the other, use another AUTH method.
+    - Note: `hms-mirror` will only support one kerberos connection.  For the other, use another AUTH method.
   - The hcfs (Hadoop Compatible FileSystem) protocol and prefix used for the hive table locations in EACH cluster.
 - Use the [template yaml](./configs/default.template.yaml) for reference and create a `default.yaml` in the running users `$HOME/.hms-mirror/cfg` directory.
 
@@ -1071,7 +1071,7 @@ Hive Metastore Migration Utility
 
 ### Running Against a LEGACY (Non-CDP) Kerberized HiveServer2
 
-`hms-mirror` is pre-built with CDP libraries and they WILL NOT be compatible with LEGACY kerberos environments. A Kerberos connection can only be made to ONE cluster when the clusters are NOT running the same 'major' version of Hadoop.
+`hms-mirror` is pre-built with CDP libraries and WILL NOT be compatible with LEGACY kerberos environments. A Kerberos connection can only be made to ONE cluster when the clusters are NOT running the same 'major' version of Hadoop.
 
 To attach to a LEGACY HS2, run `hms-mirror` with the `--hadoop-classpath` command-line option.  This will strip the CDP libraries from `hms-mirror` and use the hosts Hadoop libraries by calling `hadoop classpath` to locate the binaries needed to do this.
 
@@ -1232,15 +1232,17 @@ _SAMPLE Commandline_
 
 ##### Kerberized Connections
 
-`hms-mirror` relies on the Hadoop libraries to connect via 'kerberos'.  Suppose the clusters are running different versions of Hadoop/Hive. In that case, we can only support connecting to one of the clusters via Kerberos.  `hms-mirror` is built with the dependencies for Hadoop 3.1 (CDP 7.1.x).  Kerberos connections are NOT supported in the 'sandbox' configuration we discussed above.
+`hms-mirror` relies on the Hadoop libraries to connect via 'kerberos'.  Suppose the clusters are running different versions of Hadoop/Hive. In that case, we can only support connecting to one of the clusters via Kerberos.  While `hms-mirror` is built with the dependencies for Hadoop 3.1 (CDP 7.1.x), we do NOT have embedded all the libraries to establish a connection to kerberos.  Kerberos connections are NOT supported in the 'sandbox' configuration we discussed above.
+
+To connect to a 'kerberized' jdbc endpoint, you need to include `--hadoop-classpath` with the commandline options.  This will load the environments `hadoop classpath` libraries for the application.  To connect with a kerberos endpoint, `hms-mirror` must be run on an edgenode of the platform that is kerberized to ensure we pick up the correct supporting libraries via `hadoop classpath`, AND the jdbc driver for that environment must be in the `$HOME/.hms-mirror/cfg/aux_libs` directory so it is a part of the applications classpath at start up.  DO NOT define that environments `jarFile` configuration property.
 
 There are three scenarios for kerberized connections.
 
-| Scenario | LEFT Kerberized/Version | RIGHT Kerberized/Version | Notes | Sample Commandline |
-|:---|:---:|:---:|:---|:---|
-| 1 | No <br/> HDP2 | Yes <br/> HDP 3 or CDP 7 | <ol><li>The hadoop libs are built into `hms-mirror` for this scenario.</li><li>'hms-mirror' needs to be run from a node on the HDP3/CDP cluster.</li><li>place the RIGHT cluster jdbc jar file in `$HOME/.hms-mirror/aux_libs` (yes this contradicts some earlier directions)</li><li>comment out the `jarFile` property for the RIGHT cluster hiveServer2 setting.</li></ol> | `hms-mirror -db tpcds_bin_partitioned_orc_10` |
-| 2 | YES <br/> HDP 3 or CDP 7 | YES <br/>HDP 3 or CDP 7 | <ol><li>The hadoop libs are built into `hms-mirror` for this scenario.</li><li>'hms-mirror' needs to be run from a node on the HDP3/CDP cluster.</li><li>place the RIGHT cluster jdbc jar file in $HOME/.hms-mirror/aux_libs (yes this contradicts some earlier directions)</li><li>comment out the `jarFile` property for the LEFT AND RIGHT cluster hiveServer2 settings.</li></ol> | `hms-mirror -db tpcds_bin_partitioned_orc_10` |
-| 3 | YES<br/>HDP2 or Hive 1 | NO <br/> HDP 3 or CDP 7 | Not Supported when `hms-mirror` run from the RIGHT cluster. | `hms-mirror -db tpcds_bin_partitioned_orc_10` |
+| Scenario | LEFT Kerberized/Version | RIGHT Kerberized/Version | Notes                                                                                                                                                                                                                                                                                                                                                                                                                     | Sample Commandline                                               |
+|:---|:---:|:---:|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------|
+| 1 | No <br/> HDP2 | Yes <br/> HDP 3 or CDP 7 | <ol><li>'hms-mirror' needs to be run from a node on the HDP3/CDP cluster.</li><li>place the RIGHT cluster jdbc jar file in `$HOME/.hms-mirror/aux_libs` (yes this contradicts some earlier directions)</li><li>comment out the `jarFile` property for the RIGHT cluster hiveServer2 setting.</li></ol>                                                                                                                    | `hms-mirror -db tpcds_bin_partitioned_orc_10 --hadoop-classpath` |
+| 2 | YES <br/> HDP 3 or CDP 7 | YES <br/>HDP 3 or CDP 7 | <ol><li>'hms-mirror' needs to be run from a node on the HDP3/CDP cluster.</li><li>place the RIGHT cluster jdbc jar file in $HOME/.hms-mirror/aux_libs (yes this contradicts some earlier directions)</li><li>comment out the `jarFile` property for the LEFT AND RIGHT cluster hiveServer2 settings.</li></ol>                                                                                                            | `hms-mirror -db tpcds_bin_partitioned_orc_10 --hadoop-classpath` |
+| 3 | YES<br/>HDP2 or Hive 1 | NO <br/> HDP 3 or CDP 7 | Limited testing, but you'll need to run `hms-mirror` ON the **LEFT** cluster and include the LEFT clusters hive standalone jdbc driver in `$HOME/.hms-mirror/cfg/aux_libs`. | `hms-mirror -db tpcds_bin_partitioned_orc_10 --hadoop-classpath` |
 | 4 | YES<br/>HDP2 or Hive 1 | YES <br/> HDP2 or Hive 1 | <ol><li>The Kerberos credentials must be TRUSTED to both clusters</li><li>Add `--hadoop-classpath` as a commandline option to `hms-mirror`.  This replaces the prebuilt Hadoop 3 libraries with the current environments Hadoop Libs.</li><li>Add the jdbc standalone jar file to `$HOME/.hms-mirror/aux_libs`</li><li>Comment out/remove the `jarFile` references for BOTH clusters in the configuration file.</li></ol> | `hms-mirror -db tpcds_bin_partitioned_orc_10 --hadoop-classpath` |
 
 For Kerberos JDBC connections, ensure you are using an appropriate Kerberized Hive URL.
