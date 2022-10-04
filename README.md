@@ -758,7 +758,7 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 ### Assumptions
 
 1. This process will only 'migrate' EXTERNAL and MANAGED (non-ACID/Transactional) table METADATA (not data, except with [SQL](#sql) and [EXPORT_IMPORT](#export-import) ).
-2. MANAGED tables replicated to the **RIGHT** cluster will be converted to "EXTERNAL" tables for the 'metadata' stage.  They will be tagged as 'legacy managed' in the **RIGHT** cluster and will NOT be assigned the `external.table.purge=true` flag, yet.  Once the table's data has been migrated, the table will be adjusted to be purgeable via `external.table.purge=true` to match the classic `MANAGED` table behavior.
+2. MANAGED tables replicated to the **RIGHT** cluster will be converted to "EXTERNAL" tables for the 'metadata' stage.  They will be tagged as 'legacy managed' in the **RIGHT** cluster.  They will be assigned the `external.table.purge=true` flag, to continue the behaviors of the legacy managed tables.
 1. The **RIGHT** cluster has 'line of sight' to the **LEFT** cluster.
 2. The **RIGHT** cluster has been configured to access the **LEFT** cluster storage. See [link clusters](#linking-clusters-storage-layers).  This is the same configuration required to support `distcp` from the **RIGHT** cluster to the **LEFT** cluster.
 3. The movement of metadata/data is from the **LEFT** cluster to the **RIGHT** cluster.
