@@ -90,6 +90,7 @@ public class MirrorTestBase {
                 dataset = getDataset(2, 2000, null);
             }
             build_n_populate(CREATE_EXTERNAL_TBL, TBL_INSERT, dataset, leftSql,new String[]{"ext_part_02"});
+            build_n_populate(CREATE_LEGACY_MNGD_TBL, TBL_INSERT, dataset, leftSql,new String[]{"legacy_mngd_01"});
 
             Mirror cfgMirror = new Mirror();
             long rtn = cfgMirror.setupSqlLeft(args, leftSql);

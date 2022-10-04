@@ -779,7 +779,7 @@ When you do need to move data, `hms-mirror` create a workbook of 'source' and 't
 
 ```
 usage: hms-mirror <options>
-                  version:1.5.3.1.0-SNAPSHOT
+                  version: *******
 Hive Metastore Migration Utility
  -accept,--accept                                                          Accept ALL confirmations
                                                                            and silence prompts
@@ -1059,6 +1059,22 @@ Hive Metastore Migration Utility
                                                                            double-quote the
                                                                            expression on the
                                                                            commandline.
+ -to,--transfer-ownership                                                  If available (supported)
+                                                                           on LEFT cluster, extract
+                                                                           and transfer the tables
+                                                                           owner to the RIGHT
+                                                                           cluster. Note: This will
+                                                                           make an 'exta' SQL call
+                                                                           on the LEFT cluster to
+                                                                           determine the ownership.
+                                                                           This won't be supported
+                                                                           on CDH 5 and some other
+                                                                           legacy Hive platforms.
+                                                                           Beware the cost of this
+                                                                           extra call for EVERY
+                                                                           table, as it may slow
+                                                                           down the process for a
+                                                                           large volume of tables.
  -v,--views-only                                                           Process VIEWs ONLY
  -wd,--warehouse-directory <warehouse-path>                                The warehouse directory
                                                                            path.  Should not include

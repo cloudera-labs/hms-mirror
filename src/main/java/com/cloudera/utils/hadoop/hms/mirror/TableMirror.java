@@ -972,6 +972,10 @@ public class TableMirror {
 
         createTbl = this.getCreateStatement(Environment.LEFT);
         let.addSql(TableUtils.CREATE_DESC, createTbl);
+        if (!config.getCluster(Environment.LEFT).getLegacyHive() && config.getTransferOwnership() && let.getOwner() != null) {
+            String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, let.getName(), let.getOwner());
+            let.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
+        }
 
         // If partitioned, !ACID, repair
         if (let.getPartitioned() && !TableUtils.isACID(let) &&
@@ -1028,6 +1032,10 @@ public class TableMirror {
                 ret.addSql(TableUtils.USE_DESC, useDb);
                 String createStmt2 = getCreateStatement(Environment.RIGHT);
                 ret.addSql(TableUtils.CREATE_DESC, createStmt2);
+                if (!config.getCluster(Environment.RIGHT).getLegacyHive() && config.getTransferOwnership() && let.getOwner() != null) {
+                    String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, ret.getName(), let.getOwner());
+                    ret.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
+                }
                 break;
         }
 
@@ -1154,6 +1162,10 @@ public class TableMirror {
                 case CREATE:
                     String createStmt2 = getCreateStatement(Environment.RIGHT);
                     ret.addSql(TableUtils.CREATE_DESC, createStmt2);
+                    if (!config.getCluster(Environment.RIGHT).getLegacyHive() && config.getTransferOwnership() && let.getOwner() != null) {
+                        String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, ret.getName(), let.getOwner());
+                        ret.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
+                    }
                     break;
             }
 
@@ -1189,6 +1201,10 @@ public class TableMirror {
         // Create table with New Location
         String createStmt2 = getCreateStatement(Environment.RIGHT);
         let.addSql(TableUtils.CREATE_DESC, createStmt2);
+        if (!config.getCluster(Environment.LEFT).getLegacyHive() && config.getTransferOwnership() && let.getOwner() != null) {
+            String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, let.getName(), let.getOwner());
+            let.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
+        }
 
         // Drop Renamed Table.
         String dropOriginalTable = MessageFormat.format(MirrorConf.DROP_TABLE, let.getName());
@@ -1266,6 +1282,10 @@ public class TableMirror {
             case CREATE:
                 String createStmt2 = getCreateStatement(Environment.RIGHT);
                 ret.addSql(TableUtils.CREATE_DESC, createStmt2);
+                if (!config.getCluster(Environment.RIGHT).getLegacyHive() && config.getTransferOwnership() && let.getOwner() != null) {
+                    String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, ret.getName(), let.getOwner());
+                    ret.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
+                }
                 if (let.getPartitioned()) {
                     if (config.getTransfer().getCommonStorage() != null) {
                         if (!TableUtils.isACID(let) || (TableUtils.isACID(let) && config.getMigrateACID().isDowngrade())) {

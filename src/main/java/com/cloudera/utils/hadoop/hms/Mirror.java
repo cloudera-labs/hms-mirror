@@ -396,6 +396,10 @@ public class Mirror {
                 config.setCopyAvroSchemaUrls(Boolean.TRUE);
             }
 
+            if (cmd.hasOption("to")) {
+                config.setTransferOwnership(Boolean.TRUE);
+            }
+
             String dataStrategyStr = cmd.getOptionValue("d");
             // default is SCHEMA_ONLY
             if (dataStrategyStr != null) {
@@ -1380,6 +1384,15 @@ public class Mirror {
                         "LEFT and RIGHT cluster to be LINKED.\nSee docs: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
         asmOption.setRequired(Boolean.FALSE);
         options.addOption(asmOption);
+
+        Option transferOwnershipOption = new Option("to", "transfer-ownership", false,
+                "If available (supported) on LEFT cluster, extract and transfer the tables owner to the " +
+                        "RIGHT cluster. Note: This will make an 'exta' SQL call on the LEFT cluster to determine " +
+                        "the ownership.  This won't be supported on CDH 5 and some other legacy Hive platforms. " +
+                        "Beware the cost of this extra call for EVERY table, as it may slow down the process for " +
+                        "a large volume of tables.");
+        transferOwnershipOption.setRequired(Boolean.FALSE);
+        options.addOption(transferOwnershipOption);
 
         OptionGroup dbAdjustOptionGroup = new OptionGroup();
 

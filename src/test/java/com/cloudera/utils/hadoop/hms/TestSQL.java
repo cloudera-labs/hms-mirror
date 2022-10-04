@@ -28,6 +28,8 @@ public interface TestSQL {
             "(id String, checkValue String)";
     String CREATE_EXTERNAL_TBL = "CREATE EXTERNAL TABLE IF NOT EXISTS {0} " +
             "(id String, checkValue String)";
+    String CREATE_LEGACY_MNGD_TBL = "CREATE TABLE IF NOT EXISTS {0} " +
+            "(id String, checkValue String)";
     String CREATE_EXTERNAL_TBL_PARTITIONED = "CREATE EXTERNAL TABLE IF NOT EXISTS {0} " +
             "(id String, checkValue String)" +
             "PARTITIONED BY (num String) " +
