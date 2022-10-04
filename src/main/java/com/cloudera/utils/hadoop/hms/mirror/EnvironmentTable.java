@@ -27,6 +27,8 @@ public class EnvironmentTable {
     private CreateStrategy createStrategy = CreateStrategy.NOTHING;
     private List<String> definition = new ArrayList<String>();
     private final Boolean partitioned = Boolean.FALSE;
+    private String owner = null;
+
     private List<String> partitions = new ArrayList<String>();
     private List<String> actions = new ArrayList<String>();
     private Map<String, String> addProperties = new TreeMap<String, String>();
@@ -86,6 +88,14 @@ public class EnvironmentTable {
 
     public List<String> getPartitions() {
         return partitions;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
     }
 
     public void setPartitions(List<String> partitions) {

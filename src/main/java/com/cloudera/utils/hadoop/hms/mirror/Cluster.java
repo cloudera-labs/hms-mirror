@@ -287,6 +287,7 @@ public class Cluster implements Comparable<Cluster> {
         }
     }
 
+
     public void getTableDefinition(Config config, String database, TableMirror tableMirror) throws SQLException {
         // The connection should already be in the database;
         Connection conn = null;
@@ -355,6 +356,33 @@ public class Cluster implements Comparable<Cluster> {
                         Boolean partitioned = TableUtils.isPartitioned(et.getName(), et.getDefinition());
                         if (partitioned) {
                             loadTablePartitionMetadata(database, et);
+                        }
+                    }
+
+                    if (config.getTransferOwnership()) {
+                        try {
+                            String ownerStatement = MessageFormat.format(MirrorConf.SHOW_TABLE_EXTENDED, tableMirror.getName());
+                            resultSet = stmt.executeQuery(ownerStatement);
+                            String owner = null;
+                            while (resultSet.next()) {
+
+                                if (resultSet.getString(1).startsWith("owner")) {
+                                    String[] ownerLine = resultSet.getString(1).split(":");
+                                    try {
+                                        owner = ownerLine[1];
+                                    } catch (Throwable t) {
+                                        // Parsing issue.
+                                        LOG.error("Couldn't parse 'owner' value from: " + resultSet.getString(1) +
+                                                " for table: " + tableMirror.getDbName() + "." + tableMirror.getName());
+                                    }
+                                    break;
+                                }
+                            }
+                            if (owner != null) {
+                                et.setOwner(owner);
+                            }
+                        }  catch (SQLException sed) {
+                            // Failed to gather owner details.
                         }
                     }
 

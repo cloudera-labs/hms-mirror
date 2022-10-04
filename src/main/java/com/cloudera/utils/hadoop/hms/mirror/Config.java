@@ -140,6 +140,7 @@ public class Config {
     private String tblExcludeRegEx = null;
 
     private TransferConfig transfer = new TransferConfig();
+    private Boolean transferOwnership = Boolean.FALSE;
     @JsonIgnore
     private ScheduledExecutorService transferThreadPool;
     @JsonIgnore
@@ -1064,6 +1065,14 @@ public class Config {
 
     public void setTransfer(TransferConfig transfer) {
         this.transfer = transfer;
+    }
+
+    public Boolean getTransferOwnership() {
+        return transferOwnership;
+    }
+
+    public void setTransferOwnership(Boolean transferOwnership) {
+        this.transferOwnership = transferOwnership;
     }
 
     public Map<Environment, Cluster> getClusters() {

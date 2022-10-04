@@ -21,7 +21,9 @@ public class MirrorConf {
 
     public static final String SHOW_TABLES = "SHOW TABLES";
     public static final String SHOW_VIEWS = "SHOW VIEWS";
+    public static final String SHOW_TABLE_EXTENDED = "SHOW TABLE EXTENDED LIKE {0}";
     public static final String SHOW_CREATE_TABLE = "SHOW CREATE TABLE {0}";
+    public static final String DESCRIBE_FORMATTED_TABLE = "DESCRIBE FORMATTED {0}";
     public static final String SHOW_PARTITIONS = "SHOW PARTITIONS {0}.{1}";
     public static final String MSCK_REPAIR_TABLE = "MSCK REPAIR TABLE {0}";
     public static final String MSCK_REPAIR_TABLE_DESC = "MSCK Repair Table";
@@ -55,6 +57,8 @@ public class MirrorConf {
     public static final String DROP_VIEW = "DROP VIEW IF EXISTS {0}";
     public static final String RENAME_TABLE_DESC = "Rename table";
     public static final String RENAME_TABLE = " ALTER TABLE {0} RENAME TO {1}";
+    public static final String SET_OWNER_DESC = "Set table owner";
+    public static final String SET_OWNER = "ALTER TABLE {0} SET OWNER USER {1}";
     public static final String EXPORT_TABLE =
             "EXPORT TABLE {0} TO \"{1}\"";
     public static final String IMPORT_EXTERNAL_TABLE =
