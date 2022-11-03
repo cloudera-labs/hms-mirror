@@ -86,6 +86,8 @@ public enum MessageCode {
     SAME_CLUSTER_COPY_WITHOUT_DBPR(47, "You must specify `-dbp` or `-dbr` when the cluster configurations use the same storage."),
     DB_RENAME_ONLY_WITH_SINGLE_DB_OPTION(48, "DB Rename can only be used for a single DB `-db`."),
     ENVIRONMENT_CONNECTION_ISSUE(49, "There is an issue connecting to the {0} HS2 environment.  Check jdbc setup."),
+    FLIP_WITHOUT_RIGHT(80, "You can use the 'flip' option if there isn't a RIGHT cluster defined in the configuration."),
+
 
     // WARNINGS
     SYNC_TBL_FILTER(50, "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"

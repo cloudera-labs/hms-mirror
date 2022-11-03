@@ -685,6 +685,11 @@ public class Config {
             rtn = Boolean.FALSE;
         }
 
+        if (isFlip() && getCluster(Environment.LEFT) == null) {
+            errors.set(FLIP_WITHOUT_RIGHT.getCode());
+            rtn = Boolean.FALSE;
+        }
+
         if (getTransfer().getStorageMigration().isDistcp()) {
 //            if (resetToDefaultLocation && (getTransfer().getWarehouse().getManagedDirectory() == null || getTransfer().getWarehouse().getExternalDirectory() == null)) {
 //                errors.set(DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION.getCode());
