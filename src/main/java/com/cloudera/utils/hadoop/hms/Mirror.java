@@ -447,12 +447,29 @@ public class Mirror {
             if (cmd.hasOption("wd")) {
                 if (config.getTransfer().getWarehouse() == null)
                     config.getTransfer().setWarehouse(new WarehouseConfig());
-                config.getTransfer().getWarehouse().setManagedDirectory(cmd.getOptionValue("wd"));
+                String wdStr = cmd.getOptionValue("wd");
+                // Remove/prevent duplicate namespace config.
+                if (config.getTransfer().getCommonStorage() != null) {
+                    if (wdStr.startsWith(config.getTransfer().getCommonStorage())) {
+                        wdStr = wdStr.substring(config.getTransfer().getCommonStorage().length());
+                        LOG.warn("Managed Warehouse Location Modified (stripped duplicate namespace): " + wdStr);
+                    }
+                }
+                config.getTransfer().getWarehouse().setManagedDirectory(wdStr);
             }
+
             if (cmd.hasOption("ewd")) {
                 if (config.getTransfer().getWarehouse() == null)
                     config.getTransfer().setWarehouse(new WarehouseConfig());
-                config.getTransfer().getWarehouse().setExternalDirectory(cmd.getOptionValue("ewd"));
+                String ewdStr = cmd.getOptionValue("ewd");
+                // Remove/prevent duplicate namespace config.
+                if (config.getTransfer().getCommonStorage() != null) {
+                    if (ewdStr.startsWith(config.getTransfer().getCommonStorage())) {
+                        ewdStr = ewdStr.substring(config.getTransfer().getCommonStorage().length());
+                        LOG.warn("External Warehouse Location Modified (stripped duplicate namespace): " + ewdStr);
+                    }
+                }
+                config.getTransfer().getWarehouse().setExternalDirectory(ewdStr);
             }
 
             // When the pkey is specified, we assume the config passwords are encrytped and we'll decrypt them before continuing.

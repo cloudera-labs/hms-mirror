@@ -633,10 +633,16 @@ public class Config {
         // Set distcp options.
         canDeriveDistcpPlan();
 
-        if (getDataStrategy() != DataStrategy.DUMP && getCluster(Environment.RIGHT).isInitialized()) {
-            if (getCluster(Environment.RIGHT).getLegacyHive() && !getCluster(Environment.LEFT).getLegacyHive()) {
-                errors.set(LEGACY_TO_NON_LEGACY.getCode());
-                rtn = Boolean.FALSE;
+        if (getCluster(Environment.RIGHT).isInitialized()) {
+            switch (getDataStrategy()) {
+                case DUMP:
+                case STORAGE_MIGRATION:
+                    break;
+                default:
+                    if (getCluster(Environment.RIGHT).getLegacyHive() && !getCluster(Environment.LEFT).getLegacyHive()) {
+                        errors.set(LEGACY_TO_NON_LEGACY.getCode());
+                        rtn = Boolean.FALSE;
+                    }
             }
         }
 
