@@ -102,7 +102,7 @@ SHADED=
 if [[ "${HADOOP_CLASSPATH}x" != "x" ]]; then
   echo "Picking up local Hadoop Classpath Libs."
   SHADED=shaded-no-hadoop
-  CMD_CP=${CMD_CP}:$(hadoop classpath)
+  CMD_CP=$(hadoop classpath):${CMD_CP}
 else
   SHADED=shaded
 fi
