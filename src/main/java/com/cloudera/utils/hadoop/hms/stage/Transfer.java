@@ -387,7 +387,6 @@ public class Transfer implements Callable<ReturnStatus> {
                     String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
                     let.addSql(new Pair(transferDesc, transferSql));
                 }
-
                 if (TableUtils.isACID(let)) {
                     if (let.getPartitions().size() > config.getMigrateACID().getPartitionLimit() && config.getMigrateACID().getPartitionLimit() > 0) {
                         // The partition limit has been exceeded.  The process will need to be done manually.

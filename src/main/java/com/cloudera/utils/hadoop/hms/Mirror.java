@@ -384,6 +384,10 @@ public class Mirror {
                 }
             }
 
+            if (cmd.hasOption("sdpi")) {
+                config.getOptimization().setSortDynamicPartitionInserts(Boolean.TRUE);
+            }
+
             if (cmd.hasOption("mnn")) {
                 config.setMigratedNonNative(Boolean.TRUE);
             }
@@ -1270,7 +1274,7 @@ public class Mirror {
                 "The external warehouse directory path.  Should not include the namespace OR the database directory. " +
                         "This will be used to set the LOCATION database option.");
         externalWarehouseDirOption.setOptionalArg(Boolean.TRUE);
-        externalWarehouseDirOption.setArgName("external-warehouse-path");
+        externalWarehouseDirOption.setArgName("path");
         externalWarehouseDirOption.setRequired(Boolean.FALSE);
         options.addOption(externalWarehouseDirOption);
 
@@ -1279,7 +1283,7 @@ public class Mirror {
                 "The warehouse directory path.  Should not include the namespace OR the database directory. " +
                         "This will be used to set the MANAGEDLOCATION database option.");
         warehouseDirOption.setOptionalArg(Boolean.TRUE);
-        warehouseDirOption.setArgName("warehouse-path");
+        warehouseDirOption.setArgName("path");
         warehouseDirOption.setRequired(Boolean.FALSE);
         options.addOption(warehouseDirOption);
 
@@ -1298,7 +1302,7 @@ public class Mirror {
                         "were added 'artificially' in legacy Hive. (default: 2)");
         maoOption.setArgs(1);
         maoOption.setOptionalArg(Boolean.TRUE);
-        maoOption.setArgName("artificial-bucket-threshold default:2");
+        maoOption.setArgName("bucket-threshold (2)");
         maoOption.setRequired(Boolean.FALSE);
         migrationOptionsGroup.addOption(maoOption);
 
@@ -1307,6 +1311,13 @@ public class Mirror {
                         "external connection to systems like: HBase, Kafka, JDBC");
         mnnoOption.setRequired(Boolean.FALSE);
         migrationOptionsGroup.addOption(mnnoOption);
+
+        Option sdpiOption = new Option("sdpi", "sort-dynamic-partition-inserts", false,
+                "Used to set `hive.optimize.sort.dynamic.partition` in TEZ for optimal partition inserts.  " +
+                        "When not specified, will use prescriptive sorting by adding 'DISTRIBUTE BY' to transfer SQL. " +
+                        "default: false");
+        sdpiOption.setRequired(Boolean.FALSE);
+        options.addOption(sdpiOption);
 
         Option viewOption = new Option("v", "views-only", false,
                 "Process VIEWs ONLY");
@@ -1321,7 +1332,7 @@ public class Mirror {
                         "were added 'artificially' in legacy Hive. (default: 2)");
         maOption.setArgs(1);
         maOption.setOptionalArg(Boolean.TRUE);
-        maOption.setArgName("artificial-bucket-threshold default:2");
+        maOption.setArgName("bucket-threshold (2)");
         maOption.setRequired(Boolean.FALSE);
         options.addOption(maOption);
 
@@ -1431,7 +1442,7 @@ public class Mirror {
         Option storageMigrationNamespaceOption = new Option("smn", "storage-migration-namespace", true,
                 "Optional: Used with the 'data strategy STORAGE_MIGRATION to specify the target namespace.");
         storageMigrationNamespaceOption.setRequired(Boolean.FALSE);
-        storageMigrationNamespaceOption.setArgName("Storage Migration Target Namespace");
+        storageMigrationNamespaceOption.setArgName("namespace");
         options.addOption(storageMigrationNamespaceOption);
 
 //        Option storageMigrationStrategyOption = new Option("sms", "storage-migration-strategy", true,
