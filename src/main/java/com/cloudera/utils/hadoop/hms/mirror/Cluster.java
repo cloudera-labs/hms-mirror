@@ -355,7 +355,7 @@ public class Cluster implements Comparable<Cluster> {
                         }
                         Boolean partitioned = TableUtils.isPartitioned(et.getName(), et.getDefinition());
                         if (partitioned) {
-                            loadTablePartitionMetadata(database, et);
+                            loadTablePartitionMetadata(conn, database, et);
                         }
                     }
 
@@ -599,12 +599,12 @@ public class Cluster implements Comparable<Cluster> {
         return rtn;
     }
 
-    protected void loadTablePartitionMetadata(String database, EnvironmentTable envTable) throws SQLException {
-        Connection conn = null;
+    protected void loadTablePartitionMetadata(Connection conn, String database, EnvironmentTable envTable) throws SQLException {
+//        Connection conn = null;
 
-        try {
-            conn = getConnection();
-            if (conn != null) {
+//        try {
+//            conn = getConnection();
+//            if (conn != null) {
 
                 Statement stmt = null;
                 ResultSet resultSet = null;
@@ -635,15 +635,15 @@ public class Cluster implements Comparable<Cluster> {
                         }
                     }
                 }
-            }
-        } finally {
-            try {
-                if (conn != null)
-                    conn.close();
-            } catch (SQLException throwables) {
-                //
-            }
-        }
+//            }
+//        } finally {
+//            try {
+//                if (conn != null)
+//                    conn.close();
+//            } catch (SQLException throwables) {
+//                //
+//            }
+//        }
 
     }
 

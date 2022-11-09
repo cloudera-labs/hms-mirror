@@ -137,7 +137,7 @@ public class Setup {
                 for (String table : tables) {
                     TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
                     GetTableMetadata tmd = new GetTableMetadata(config, dbMirror, tblMirror);
-                    gtf.add(config.getTransferThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
+                    gtf.add(config.getMetadataThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
                 }
             }
 

@@ -123,7 +123,7 @@ public class ConnectionPools {
         return conn;
     }
 
-    protected Driver getEnvironmentDriver(Environment environment) {
+    protected synchronized Driver getEnvironmentDriver(Environment environment) {
         return drivers.get(environment);
     }
 

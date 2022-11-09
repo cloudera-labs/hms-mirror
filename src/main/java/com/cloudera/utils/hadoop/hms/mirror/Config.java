@@ -144,6 +144,8 @@ public class Config {
     @JsonIgnore
     private ScheduledExecutorService transferThreadPool;
     @JsonIgnore
+    private ScheduledExecutorService metadataThreadPool;
+    @JsonIgnore
     private Translator translator = new Translator();
     @JsonIgnore
     private final Messages warnings = new Messages(100);
@@ -516,6 +518,13 @@ public class Config {
         return rtn;
     }
 
+    public ScheduledExecutorService getMetadataThreadPool() {
+        if (metadataThreadPool == null) {
+            metadataThreadPool = Executors.newScheduledThreadPool(getTransfer().getConcurrency());
+        }
+        return metadataThreadPool;
+    }
+
     public ScheduledExecutorService getTransferThreadPool() {
         if (transferThreadPool == null) {
             transferThreadPool = Executors.newScheduledThreadPool(getTransfer().getConcurrency());
@@ -694,6 +703,28 @@ public class Config {
         if (isFlip() && getCluster(Environment.LEFT) == null) {
             errors.set(FLIP_WITHOUT_RIGHT.getCode());
             rtn = Boolean.FALSE;
+        }
+
+        if (getTransfer().getConcurrency() > 4) {
+            // We need to pass on a few scale parameters to the hs2 configs so the connection pools can handle the scale requested.
+            if (getCluster(Environment.LEFT) != null) {
+                Cluster cluster = getCluster(Environment.LEFT);
+                cluster.getHiveServer2().getConnectionProperties().setProperty( "initialSize", Integer.toString((Integer)getTransfer().getConcurrency()/2));
+                cluster.getHiveServer2().getConnectionProperties().setProperty( "maxTotal", Integer.toString(getTransfer().getConcurrency() + 1));
+                cluster.getHiveServer2().getConnectionProperties().setProperty( "maxIdle", Integer.toString(getTransfer().getConcurrency()));
+                cluster.getHiveServer2().getConnectionProperties().setProperty( "minIdle", Integer.toString((Integer)getTransfer().getConcurrency()/2));
+                cluster.getHiveServer2().getConnectionProperties().setProperty( "maxWaitMillis", "10000" );
+//                cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", "-1");
+            }
+            if (getCluster(Environment.RIGHT) != null) {
+                Cluster cluster = getCluster(Environment.RIGHT);
+                cluster.getHiveServer2().getConnectionProperties().setProperty( "initialSize", Integer.toString((Integer)getTransfer().getConcurrency()/2));
+                cluster.getHiveServer2().getConnectionProperties().setProperty( "maxTotal", Integer.toString(getTransfer().getConcurrency() + 1));
+                cluster.getHiveServer2().getConnectionProperties().setProperty( "maxIdle", Integer.toString(getTransfer().getConcurrency()));
+                cluster.getHiveServer2().getConnectionProperties().setProperty( "minIdle", Integer.toString((Integer)getTransfer().getConcurrency()/2));
+                cluster.getHiveServer2().getConnectionProperties().setProperty( "maxWaitMillis", "10000" );
+//                cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", "-1");
+            }
         }
 
         if (getTransfer().getStorageMigration().isDistcp()) {
