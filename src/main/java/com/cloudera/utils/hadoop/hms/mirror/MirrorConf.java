@@ -38,6 +38,7 @@ public class MirrorConf {
             "ALTER DATABASE {0} SET LOCATION \"{1}\"";
     public static final String ALTER_DB_LOCATION_DESC =
             "Alter Database Location";
+    public static final String DEFAULT_MANAGED_BASE_DIR = "/warehouse/tablespace/managed/hive";
     public static final String ALTER_DB_MNGD_LOCATION =
             "ALTER DATABASE {0} SET MANAGEDLOCATION \"{1}\"";
     public static final String ALTER_DB_MNGD_LOCATION_DESC =

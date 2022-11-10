@@ -185,6 +185,18 @@ public class DBMirror {
                             case LINKED:
                                 if (location != null) {
                                     location = location.replace(leftNamespace, rightNamespace);
+                                    // https://github.com/cloudera-labs/hms-mirror/issues/13
+                                    // LOCATION to MANAGED LOCATION silent translation for HDP 3 migrations.
+                                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                                        String locationMinusNS = location.substring(rightNamespace.length());
+                                        if (locationMinusNS.startsWith(MirrorConf.DEFAULT_MANAGED_BASE_DIR)) {
+                                            // Translate to managed.
+                                            managedLocation = location;
+                                            // Set to null to skip processing.
+                                            location = null;
+                                        }
+                                    }
+
                                 }
                                 if (managedLocation != null) {
                                     managedLocation = managedLocation.replace(leftNamespace, rightNamespace);
