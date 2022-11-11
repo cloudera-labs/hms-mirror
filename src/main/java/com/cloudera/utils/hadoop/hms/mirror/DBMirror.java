@@ -194,6 +194,12 @@ public class DBMirror {
                                             managedLocation = location;
                                             // Set to null to skip processing.
                                             location = null;
+                                            this.addIssue(Environment.RIGHT, "The LEFT's DB 'LOCATION' element was defined " +
+                                                    "as the default 'managed' location in later versions of Hive3.  " +
+                                                    "We've adjusted the DB to set the MANAGEDLOCATION setting instead, " +
+                                                    "to avoid future conflicts. If your target environment is HDP3, this setting " +
+                                                    "will FAIL since the MANAGEDLOCATION property for a Database doesn't exist. " +
+                                                    "Fix the source DB's location element to avoid this translation." );
                                         }
                                     }
 
