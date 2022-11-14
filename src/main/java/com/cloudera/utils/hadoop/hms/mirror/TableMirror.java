@@ -1405,6 +1405,10 @@ public class TableMirror {
             let.addSql(TableUtils.IMPORT_TABLE, importSql);
         } else {
             ret.addSql(TableUtils.IMPORT_TABLE, importSql);
+            if (!config.getCluster(Environment.RIGHT).getLegacyHive() && config.getTransferOwnership() && let.getOwner() != null) {
+                String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, ret.getName(), let.getOwner());
+                ret.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
+            }
         }
 
         if (let.getPartitions().size() > config.getHybrid().getExportImportPartitionLimit() &&

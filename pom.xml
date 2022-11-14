@@ -62,7 +62,7 @@
         <commons-text.version>1.10.0</commons-text.version>
         <junit.version>4.13.1</junit.version>
 
-        <hadoop-cli.version>2.4.1.0</hadoop-cli.version>
+        <hadoop-cli.version>2.4.1.1</hadoop-cli.version>
 
     </properties>
 
