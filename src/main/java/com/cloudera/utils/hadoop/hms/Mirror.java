@@ -584,13 +584,11 @@ public class Mirror {
         }
 
         // Action Files
-        reportOutputFile = reportOutputDir + System.getProperty("file.separator") + "<db>_hms-mirror.md|html";
+        reportOutputFile = reportOutputDir + System.getProperty("file.separator") + "<db>_hms-mirror.md|html|yaml";
         leftExecuteFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_execute.sql";
         leftCleanUpFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_CleanUp_execute.sql";
         rightExecuteFile = reportOutputDir + System.getProperty("file.separator") + "<db>_RIGHT_execute.sql";
         rightCleanUpFile = reportOutputDir + System.getProperty("file.separator") + "<db>_RIGHT_CleanUp_execute.sql";
-//        leftActionFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_action.sql";
-//        rightActionFile = reportOutputDir + System.getProperty("file.separator") + "<db>_RIGHT_action.sql";
 
         try {
             File reportPathDir = new File(reportOutputDir);
@@ -865,6 +863,10 @@ public class Mirror {
         config.getClusters().remove(Environment.TRANSFER);
         config.getClusters().remove(Environment.SHADOW);
 
+        ObjectMapper mapper;
+        mapper = new ObjectMapper(new YAMLFactory());
+        mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
         for (String database : config.getDatabases()) {
 
             String dbReportOutputFile = reportOutputDir + System.getProperty("file.separator") + database + "_hms-mirror";
@@ -873,7 +875,6 @@ public class Mirror {
             String dbRightExecuteFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_execute.sql";
             String dbRightCleanUpFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_CleanUp_execute.sql";
             String dbRunbookFile = reportOutputDir + System.getProperty("file.separator") + database + "_runbook.md";
-
 
             try {
                 // Output directory maps
@@ -990,7 +991,6 @@ public class Mirror {
                                 distcpWorkbookFW.close();
                             }
                         }
-//                        }
                     } catch (IOException ioe) {
                         LOG.error("Issue writing distcp workbook", ioe);
                     }
@@ -1013,6 +1013,23 @@ public class Mirror {
                 int step = 1;
                 FileWriter reportFile = new FileWriter(dbReportOutputFile + ".md");
                 String mdReportStr = conversion.toReport(config, database);
+
+
+                File dbYamlFile = new File(dbReportOutputFile + ".yaml");
+                FileWriter dbYamlFileWriter = new FileWriter(dbYamlFile);
+
+                DBMirror yamlDb = conversion.getDatabase(database);
+
+                String dbYamlStr = mapper.writeValueAsString(yamlDb);
+                try {
+                    dbYamlFileWriter.write(dbYamlStr);
+                    LOG.info("Database (" + database + ") yaml 'saved' to: " + dbYamlFile.getPath());
+                } catch (IOException ioe) {
+                    LOG.error("Problem 'writing' database yaml", ioe);
+                } finally {
+                    dbYamlFileWriter.close();
+                }
+
                 reportFile.write(mdReportStr);
                 reportFile.close();
                 // Convert to HTML

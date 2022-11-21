@@ -1,5 +1,5 @@
 
-Report file              : ${report.file}
+Report files              : ${report.file}
 LEFT Execute file        : ${left.execute.file}
 RIGHT Execute file       : ${right.execute.file}
 LEFT Action file         : ${left.action.file}
