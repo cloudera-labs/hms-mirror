@@ -47,7 +47,7 @@
 
         <!-- DB Support -->
         <mariadb.client.version>2.5.3</mariadb.client.version>
-        <postgresql.client.version>42.3.3</postgresql.client.version>
+        <postgresql.client.version>42.3.8</postgresql.client.version>
         <oracle.client.version>12.1.0.2</oracle.client.version>
 
         <!-- Support Libs -->
