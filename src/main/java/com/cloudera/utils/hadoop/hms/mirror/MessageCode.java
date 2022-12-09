@@ -73,7 +73,7 @@ public enum MessageCode {
     DECRYPTING_PASSWORD_ISSUE(36, "Issue decrypting password"),
     PKEY_PASSWORD_CFG(37, "Need to include '-pkey' with '-p'."),
     PASSWORD_CFG(38, "Password en/de crypt"),
-    VALID_ACID_DA_IP_STRATEGIES(39, "Inplace Downgrade of ACID tables only valid for SQL, EXPORT_IMPORT, and HYBRID data strategies"),
+    VALID_ACID_DA_IP_STRATEGIES(39, "Inplace Downgrade of ACID tables only valid for the SQL data strategy"),
     COMMON_STORAGE_WITH_DA_IP(40,"Common Storage (-cs) is not a valid option for the ACID downgrades inplace."),
     INTERMEDIATE_STORAGE_WITH_DA_IP(41, "Intermediate Storage (-is) is not a valid option for the ACID downgrades inplace."),
     DISTCP_W_DA_IP_ACID (42, "`distcp` is not valid for Downgraded (-da) ACID table in-place (-ip)."),

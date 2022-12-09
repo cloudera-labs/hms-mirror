@@ -818,8 +818,7 @@ public class Config {
         }
 
         if (migrateACID.isOn() && migrateACID.isInplace()) {
-            if (!(dataStrategy == DataStrategy.SQL || dataStrategy == DataStrategy.EXPORT_IMPORT ||
-                    dataStrategy == DataStrategy.HYBRID)) {
+            if (!(dataStrategy == DataStrategy.SQL)) {
                 errors.set(VALID_ACID_DA_IP_STRATEGIES.getCode());
                 rtn = Boolean.FALSE;
             }
