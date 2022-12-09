@@ -59,6 +59,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.ENVIRONMENT_CONNECTION_ISSUE;
+import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.ENVIRONMENT_DISCONNECTED;
 
 public class Mirror {
     private static final Logger LOG = LogManager.getLogger(Mirror.class);
@@ -405,6 +406,10 @@ public class Mirror {
                 config.setTransferOwnership(Boolean.TRUE);
             }
 
+            if (cmd.hasOption("rid")) {
+                config.getCluster(Environment.RIGHT).getHiveServer2().setDisconnected(Boolean.TRUE);
+            }
+
             String dataStrategyStr = cmd.getOptionValue("d");
             // default is SCHEMA_ONLY
             if (dataStrategyStr != null) {
@@ -723,12 +728,26 @@ public class Mirror {
                 try {
                     conn = connPools.getEnvironmentConnection(target);
                     if (conn == null) {
-                        config.getErrors().set(ENVIRONMENT_CONNECTION_ISSUE.getCode(), new Object[]{target});
-                        return config.getErrors().getReturnCode();
+                        if (target == Environment.RIGHT && config.getCluster(target).getHiveServer2().getDisconnected()) {
+                            // Skip error.  Set Warning that we're disconnected.
+                            config.getWarnings().set(ENVIRONMENT_DISCONNECTED.getCode(), new Object[]{target});
+                        } else {
+                            config.getErrors().set(ENVIRONMENT_CONNECTION_ISSUE.getCode(), new Object[]{target});
+                            return config.getErrors().getReturnCode();
+                        }
                     } else {
                         // Exercise the connection.
                         stmt = conn.createStatement();
                         stmt.execute("SELECT 1");
+                    }
+                } catch (SQLException se) {
+                    if (target == Environment.RIGHT && config.getCluster(target).getHiveServer2().getDisconnected()) {
+                        // Set warning that RIGHT is disconnected.
+                        config.getWarnings().set(ENVIRONMENT_DISCONNECTED.getCode(), new Object[]{target});
+                    } else {
+                        LOG.error(se);
+                        config.getErrors().set(ENVIRONMENT_CONNECTION_ISSUE.getCode(), new Object[]{target});
+                        return config.getErrors().getReturnCode();
                     }
                 } catch (Throwable t) {
                     LOG.error(t);
@@ -754,7 +773,10 @@ public class Mirror {
                 // Don't load the datasource for the right with DUMP strategy.
                 break;
             default:
-                config.getCluster(Environment.RIGHT).setPools(connPools);
+                // Don't set the Pools when Disconnected.
+                if (!config.getCluster(Environment.RIGHT).getHiveServer2().getDisconnected()) {
+                    config.getCluster(Environment.RIGHT).setPools(connPools);
+                }
         }
 
         if (config.isConnectionKerberized()) {
@@ -1007,6 +1029,9 @@ public class Mirror {
                     runbookFile.write("Execute was **ON**, so many of the scripts have been run already.  Verify status " +
                             "in the above report.  `distcp` actions (if requested/applicable) need to be run manually. " +
                             "Some cleanup scripts may have been run if no `distcp` actions were requested.\n\n");
+                    if (config.getCluster(Environment.RIGHT).getHiveServer2().getDisconnected()) {
+                        runbookFile.write("Process ran with RIGHT environment 'disconnected'.  All RIGHT scripts will need to be run manually.\n\n");
+                    }
                 } else {
                     runbookFile.write("Execute was **OFF**.  All actions will need to be run manually. See below steps.\n\n");
                 }
@@ -1073,7 +1098,11 @@ public class Mirror {
                     LOG.info("RIGHT Execution Script is here: " + dbRightExecuteFile);
                     runbookFile.write(step++ + ". **RIGHT** clusters SQL script. ");
                     if (config.isExecute()) {
-                        runbookFile.write(" (Has been executed already, check report file details)");
+                        if (!config.getCluster(Environment.RIGHT).getHiveServer2().getDisconnected()) {
+                            runbookFile.write(" (Has been executed already, check report file details)");
+                        } else {
+                            runbookFile.write(" (Has NOT been executed because the environment is NOT connected.  Review and run scripts manually.)");
+                        }
                     } else {
                         runbookFile.write("(Has NOT been executed yet)");
                     }
@@ -1357,6 +1386,11 @@ public class Mirror {
                 "Downgrade ACID tables to EXTERNAL tables with purge.");
         daOption.setRequired(Boolean.FALSE);
         options.addOption(daOption);
+
+        Option ridOption = new Option("rid", "right-is-disconnected", false,
+                "Don't attempt to connect to the 'right' cluster and run in this mode");
+        ridOption.setRequired(Boolean.FALSE);
+        options.addOption(ridOption);
 
         Option ipOption = new Option("ip", "in-place", false,
                 "Downgrade ACID tables to EXTERNAL tables with purge.");

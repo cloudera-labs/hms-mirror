@@ -74,31 +74,32 @@ public class ConnectionPools {
 
         for (Environment environment : environments) {
             HiveServer2Config hs2Config = hiveServerConfigs.get(environment);
+            if (!hs2Config.getDisconnected()) {
+                ConnectionFactory connectionFactory =
+                        new DriverManagerConnectionFactory(hs2Config.getUri(), hs2Config.getConnectionProperties());
 
-            ConnectionFactory connectionFactory =
-                    new DriverManagerConnectionFactory(hs2Config.getUri(), hs2Config.getConnectionProperties());
+                PoolableConnectionFactory poolableConnectionFactory =
+                        new PoolableConnectionFactory(connectionFactory, null);
 
-            PoolableConnectionFactory poolableConnectionFactory =
-                    new PoolableConnectionFactory(connectionFactory, null);
+                ObjectPool<PoolableConnection> connectionPool =
+                        new GenericObjectPool<>(poolableConnectionFactory);
 
-            ObjectPool<PoolableConnection> connectionPool =
-                    new GenericObjectPool<>(poolableConnectionFactory);
+                poolableConnectionFactory.setPool(connectionPool);
 
-            poolableConnectionFactory.setPool(connectionPool);
-
-            PoolingDataSource poolingDatasource = new PoolingDataSource<>(connectionPool);
+                PoolingDataSource poolingDatasource = new PoolingDataSource<>(connectionPool);
 //            poolingDatasource.setLoginTimeout(10);
 
-            dataSources.put(environment, poolingDatasource);
-            Connection conn = null;
-            try {
-                conn = getEnvironmentConnection(environment);
-            } catch (Throwable t) {
-                if (conn != null) {
-                    try {
-                        conn.close();
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
+                dataSources.put(environment, poolingDatasource);
+                Connection conn = null;
+                try {
+                    conn = getEnvironmentConnection(environment);
+                } catch (Throwable t) {
+                    if (conn != null) {
+                        try {
+                            conn.close();
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
                 }
             }
@@ -111,7 +112,9 @@ public class ConnectionPools {
         if (lclDriver != null) {
             DriverManager.registerDriver(lclDriver);
             try {
-                conn = getEnvironmentDataSource(environment).getConnection();
+                DataSource ds = getEnvironmentDataSource(environment);
+                if (ds != null)
+                    conn = ds.getConnection();
             } catch (Throwable se) {
                 se.printStackTrace();
                 LOG.error(se);

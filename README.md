@@ -402,6 +402,21 @@ You'll run `hms-mirror` from a **LEFT** cluster edgenode.  This node will requir
 
 There are cases where 'HDFS' isn't the primary data source.  So the only thing the cluster share is storage in these 'common' storage units.  You want to transfer the schema, but the data doesn't need to move (at least for 'EXTERNAL' (non-transactional) tables).  In this case, try the `-d|--data-strategy` COMMON.  The schema's will go through all the needed conversions while the data remains in the same location.   
 
+### Disconnected Mode
+
+Use the `-rid|--right-is-disconnected` mode when you need to build (and/or) transfer schema/datasets from one cluster to another, but you can't connect to both at the same time.  See the issues log for details regarding the cases [here issue #17](../../issues/17)
+
+Use cases:
+- Schema Only Transfers
+- SQL, EXPORT_IMPORT, and HYBRID only when -is or -cs is used. This might be the case when the clusters are secure (kerberized), but don't share a common kerberos domain/user auth. So an intermediate or common storage location will be used to migrate the data.
+- Both clusters (and HS2 endpoints) are Kerberized, but the clusters are NOT the same major hadoop version. In this case, hms-mirror doesn't support connecting to both of these endpoints at the same time. Running in the disconnected mode will help push through with the conversion.
+
+hms-mirror will run as normal, with the exception of examining and running scripts against the right cluster. It will be assumed that the RIGHT cluster elements do NOT exist.
+
+The RIGHT_ 'execution' scripts and distcp commands will need to be run MANUALLY via Beeline on the RIGHT cluster.
+
+Note: This will be know as the "right-is-disconnected" option. Which means the process should be run from a node that has access to the "left" cluster. This is 'counter' to our general recommendation that the process should be run from the 'right' cluster.
+
 ## Setup
 
 ### Binary Package
@@ -888,6 +903,8 @@ Hive Metastore Migration Utility
                                                    definitions.  This will allow the system defaults
                                                    to take over and define the location of the new
                                                    datasets.
+ -rid,--right-is-disconnected                      Don't attempt to connect to the 'right' cluster
+                                                   and run in this mode
  -ro,--read-only                                   For SCHEMA_ONLY, COMMON, and LINKED data
                                                    strategies set RIGHT table to NOT purge on DROP
  -rr,--reset-right                                 Use this for testing to remove the database on

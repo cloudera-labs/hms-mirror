@@ -954,6 +954,10 @@ public class Config {
         HiveServer2Config rightHS2 = this.getCluster(Environment.RIGHT).getHiveServer2();
 
         if (rightHS2 != null) {
+            // TODO: Add validation for -rid (right-is-disconnected) option.
+            // - Only applies to SCHEMA_ONLY, SQL, EXPORT_IMPORT, and HYBRID data strategies.
+            // -
+            //
             if (getDataStrategy() != DataStrategy.STORAGE_MIGRATION && !rightHS2.isValidUri()) {
                 if (!this.getDataStrategy().equals(DataStrategy.DUMP)) {
                     rtn = Boolean.FALSE;
@@ -1041,7 +1045,8 @@ public class Config {
         Set<Environment> envs = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
         for (Environment env : envs) {
             Cluster cluster = clusters.get(env);
-            if (cluster != null && cluster.getHiveServer2() != null && cluster.getHiveServer2().isValidUri()) {
+            if (cluster != null && cluster.getHiveServer2() != null && cluster.getHiveServer2().isValidUri() &&
+                    !cluster.getHiveServer2().getDisconnected()) {
                 Connection conn = null;
                 try {
                     conn = cluster.getConnection();
