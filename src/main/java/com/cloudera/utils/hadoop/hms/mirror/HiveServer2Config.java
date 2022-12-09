@@ -22,6 +22,7 @@ import java.util.Properties;
 
 public class HiveServer2Config {
     private String uri = null;
+    private Boolean disconnected = Boolean.FALSE;
     private Properties connectionProperties;
     private String jarFile = null;
 
@@ -31,6 +32,14 @@ public class HiveServer2Config {
 
     public void setUri(String uri) {
         this.uri = uri;
+    }
+
+    public Boolean getDisconnected() {
+        return disconnected;
+    }
+
+    public void setDisconnected(Boolean disconnected) {
+        this.disconnected = disconnected;
     }
 
     public Properties getConnectionProperties() {

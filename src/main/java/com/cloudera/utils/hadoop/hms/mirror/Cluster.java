@@ -453,10 +453,15 @@ public class Cluster implements Comparable<Cluster> {
             // conn will be null if config.execute != true.
             conn = getConnection();
 
-            if (conn == null && config.isExecute()) {
+            if (conn == null && config.isExecute() && !this.getHiveServer2().getDisconnected()) {
                 // this is a problem.
                 rtn = Boolean.FALSE;
                 tblMirror.addIssue(getEnvironment(), "Connection missing. This is a bug.");
+            }
+
+            if (conn == null && this.getHiveServer2().getDisconnected()) {
+                tblMirror.addIssue(getEnvironment(), "Running in 'disconnected' mode.  NO RIGHT operations will be done.  " +
+                        "The scripts will need to be run 'manually'.");
             }
 
             if (conn != null) {
@@ -541,15 +546,18 @@ public class Cluster implements Comparable<Cluster> {
         try {
             conn = getConnection();
 
-            if (conn == null && config.isExecute()) {
+            if (conn == null && config.isExecute() && !this.getHiveServer2().getDisconnected()) {
                 // this is a problem.
                 rtn = Boolean.FALSE;
                 dbMirror.addIssue(getEnvironment(), "Connection missing. This is a bug.");
             }
 
+            if (conn == null && this.getHiveServer2().getDisconnected()) {
+                dbMirror.addIssue(getEnvironment(), "Running in 'disconnected' mode.  NO RIGHT operations will be done.  " +
+                        "The scripts will need to be run 'manually'.");
+            }
 
             if (conn != null) {
-
                 if (dbMirror != null)
                     LOG.debug(getEnvironment() + " - " + dbSqlPair.getDescription() + ": " + dbMirror.getName());
                 else

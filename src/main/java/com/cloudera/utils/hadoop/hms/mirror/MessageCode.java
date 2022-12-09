@@ -102,7 +102,10 @@ public enum MessageCode {
     DISTCP_RDL_WO_WAREHOUSE_DIR(55, "When using `-rdl|--reset-to-default-location` you must also specify " +
             "warehouse locations `-wd|-ewd` to build the `distcp` workplans."),
     ENCRYPT_PASSWORD(56, "Encrypted Password {0}"),
-    DECRYPT_PASSWORD(57, "Decrypted Password {0}")
+    DECRYPT_PASSWORD(57, "Decrypted Password {0}"),
+    ENVIRONMENT_DISCONNECTED(58, "Environment {0} is disconnected. Current db/table status could not be determined.  " +
+            "All actions will assume they don't exist.\n\nStrategies/methods of sync that require the 'RIGHT' cluster or 'LEFT' cluster " +
+            "to be linked may not work without a `common-storage` or `intermediate-storage` option that will bridge the gap.")
 
     ;
 
