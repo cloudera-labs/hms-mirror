@@ -24,7 +24,8 @@ public enum FeaturesEnum {
 
     // Not required currently.
 //    SPARK_SQL_PART_DEF(SparkSqlPartFeature.class),
-    BAD_TEXTFILE_DEF(BadTextFileDefFeature.class);
+    BAD_TEXTFILE_DEF(BadTextFileDefFeature.class),
+    STRUCT_ESCAPE(StructEscapeFieldsFeature.class);
 
     private Feature feature;
 
