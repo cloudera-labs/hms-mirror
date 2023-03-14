@@ -19,37 +19,28 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Permissions](#permissions)
 - [Where to Run `hms-mirror`](#where-to-run-hms-mirror)
   * [Default Workflow Patterns and Where to Run From](#default-workflow-patterns-and-where-to-run-from)
-    + [Run On - Dataflow Model](#run-on---dataflow-model)
   * [`--intermediate-storage` Workflow Patterns and Where to Run From](#--intermediate-storage-workflow-patterns-and-where-to-run-from)
-    + [Run On - Dataflow Model](#run-on---dataflow-model-1)
   * [`--common-storage` Workflow Patterns and Where to Run From](#--common-storage-workflow-patterns-and-where-to-run-from)
-    + [Run On - Dataflow Model](#run-on---dataflow-model-2)
 - [Features](#features)
   * [VIEWS](#views)
-    + [Requirements](#requirements)
   * [ACID Tables](#acid-tables)
-    + [The ACID Migration Process](#the-acid-migration-process)
-    + [Requirements](#requirements-1)
-    + [Replace ACID `-r` or `--replace`](#replace-acid--r-or---replace)
   * [Intermediate/Common Storage Options](#intermediatecommon-storage-options)
   * [Non-Native Hive Tables (Hbase, KAFKA, JDBC, Druid, etc..)](#non-native-hive-tables-hbase-kafka-jdbc-druid-etc)
-    + [Requirements](#requirements-2)
   * [AVRO Tables](#avro-tables)
-    + [Requirements](#requirements-3)
-    + [Warnings](#warnings)
   * [Table Translations](#table-translations)
-    + [Legacy Managed Tables](#legacy-managed-tables)
   * [`distcp` Planning Workbook and Scripts](#distcp-planning-workbook-and-scripts)
   * [ACID Table Downgrades](#acid-table-downgrades)
   * [Reset to Default Locations](#reset-to-default-locations)
   * [Legacy Row Serde Translations](#legacy-row-serde-translations)
   * [Filtering Tables to Process](#filtering-tables-to-process)
   * [Migrations between Clusters WITHOUT line of Site](#migrations-between-clusters-without-line-of-site)
-    + [On-Prem to Cloud](#on-prem-to-cloud)
   * [Shared Storage Models (Isilon, Spectrum-Scale, etc.)](#shared-storage-models-isilon-spectrum-scale-etc)
+  * [Disconnected Mode](#disconnected-mode)
+  * [No-Purge Option (`-np`)](#no-purge-option--np)
+  * [Skip Optimizations (`-so`)](#skip-optimizations--so)
+  * [Property Overrides (`-po[l|r] [,]...`)](#property-overrides--polr-)
 - [Setup](#setup)
   * [Binary Package](#binary-package)
-    + [Don't Build. Download the LATEST binary here!!!](#dont-build-download-the-latest-binary-here)
   * [HMS-Mirror Setup from Binary Distribution](#hms-mirror-setup-from-binary-distribution)
   * [Quick Start](#quick-start)
   * [General Guidance](#general-guidance)
@@ -59,27 +50,15 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Isolate Migration Activities](#isolate-migration-activities)
   * [Speed up CREATE/ALTER Table Statements - with existing data](#speed-up-createalter-table-statements---with-existing-data)
   * [Turn ON HMS partition discovery](#turn-on-hms-partition-discovery)
-    + [Source Reference](#source-reference)
 - [Pre-Requisites](#pre-requisites)
   * [Backups](#backups)
-    + [HDFS Snapshots](#hdfs-snapshots)
-    + [Metastore Backups](#metastore-backups)
   * [Shared Authentication](#shared-authentication)
 - [Linking Clusters Storage Layers](#linking-clusters-storage-layers)
   * [Goal](#goal)
   * [Scenario #1](#scenario-%231)
-    + [HDP 2.6.5 (Hadoop 2.7.x)](#hdp-265-hadoop-27x)
-      - [Configuration Changes](#configuration-changes)
-    + [CDP 7.1.4 (Hadoop 3.1.x)](#cdp-714-hadoop-31x)
-      - [Configuration Changes](#configuration-changes-1)
-    + [Running `distcp` from the **RIGHT** Cluster](#running-distcp-from-the-right-cluster)
-    + [Sourcing Data from Lower Cluster to Support Upper Cluster External Tables](#sourcing-data-from-lower-cluster-to-support-upper-cluster-external-tables)
-      - [Proxy Permissions](#proxy-permissions)
 - [Permissions](#permissions-1)
 - [Configuration](#configuration)
   * [Secure Passwords in Configuration](#secure-passwords-in-configuration)
-    + [Generate the Encrypted Password](#generate-the-encrypted-password)
-    + [Running `hms-mirror` with Encrypted Passwords](#running-hms-mirror-with-encrypted-passwords)
 - [Tips for Running `hms-miror`](#tips-for-running-hms-miror)
   * [Run in `screen` or `tmux`](#run-in-screen-or-tmux)
   * [Use `dryrun` FIRST](#use-dryrun-first)
@@ -87,25 +66,11 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [RETRY (WIP-NOT FULLY IMPLEMENTED YET)](#retry-wip-not-fully-implemented-yet)
 - [Running HMS Mirror](#running-hms-mirror)
   * [Assumptions](#assumptions)
-    + [Transfer DATA, beyond the METADATA](#transfer-data-beyond-the-metadata)
   * [Options (Help)](#options-help)
   * [Running Against a LEGACY (Non-CDP) Kerberized HiveServer2](#running-against-a-legacy-non-cdp-kerberized-hiveserver2)
-    + [Features](#features-1)
-      - [BAD_ORC_DEF](#bad_orc_def)
-      - [BAD_RC_DEF](#bad_rc_def)
-      - [BAD_TEXTFILE_DEF](#bad_textfile_def)
   * [On-Prem to Cloud Migrations](#on-prem-to-cloud-migrations)
-    + [SCHEMA_ONLY](#schema_only)
-    + [INTERMEDIATE](#intermediate)
   * [Connections](#connections)
-    + [Configuring the Libraries](#configuring-the-libraries)
-      - [JDBC Connection Strings for HS2](#jdbc-connection-strings-for-hs2)
-      - [Non-Kerberos Connections](#non-kerberos-connections)
-      - [Kerberized Connections](#kerberized-connections)
-      - [ZooKeeper Discovery Connections](#zookeeper-discovery-connections)
-      - [TLS/SSL Connections](#tlsssl-connections)
   * [Troubleshooting](#troubleshooting)
-    + ["Unrecognized Hadoop major version number: 3.1.1.7.1...0-257"](#unrecognized-hadoop-major-version-number-311710-257)
 - [Output](#output)
   * [distcp Workbook (Tech Preview)](#distcp-workbook-tech-preview)
   * [Application Report](#application-report)
@@ -122,24 +87,15 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Storage Migration](#storage-migration)
 - [Troubleshooting / Issues](#troubleshooting--issues)
   * [Failed AVRO Table Creation](#failed-avro-table-creation)
-    + [Solution](#solution)
   * [Table processing completed with `ERROR.`](#table-processing-completed-with-error)
-    + [Solution](#solution-1)
   * [Connecting to HS2 via Kerberos](#connecting-to-hs2-via-kerberos)
-    + [Solution](#solution-2)
   * [Auto Partition Discovery not working](#auto-partition-discovery-not-working)
-    + [Solution](#solution-3)
   * [Hive SQL Exception / HDFS Permissions Issues](#hive-sql-exception--hdfs-permissions-issues)
-    + [Example and Ambari Hints](#example-and-ambari-hints)
   * [YARN Submission stuck in ACCEPTED phase](#yarn-submission-stuck-in-accepted-phase)
-    + [Solution](#solution-4)
   * [Spark DFS Access](#spark-dfs-access)
   * [Permission Issues](#permission-issues)
-    + [Solution](#solution-5)
   * [Must use HiveInputFormat to read ACID tables](#must-use-hiveinputformat-to-read-acid-tables)
-    + [Solution](#solution-6)
   * [ACL issues across cross while using LOWER clusters storage](#acl-issues-across-cross-while-using-lower-clusters-storage)
-    + [Solution](#solution-7)
 
 <!-- tocstop -->
 
@@ -416,6 +372,26 @@ hms-mirror will run as normal, with the exception of examining and running scrip
 The RIGHT_ 'execution' scripts and distcp commands will need to be run MANUALLY via Beeline on the RIGHT cluster.
 
 Note: This will be know as the "right-is-disconnected" option. Which means the process should be run from a node that has access to the "left" cluster. This is 'counter' to our general recommendation that the process should be run from the 'right' cluster.
+
+### No-Purge Option (`-np`)
+
+[Feature Request #25](https://github.com/cloudera-labs/hms-mirror/issues/25) was introduced in v1.5.4.2 and gives the user to option to remove the `external.table.purge` option that is added when converting legacy managed tables to external table (Hive 1/2 to 3).  This does affect the behavior of the table from the older platforms.
+
+### Skip Optimizations (`-so`)
+
+[Feature Request #23](https://github.com/cloudera-labs/hms-mirror/issues/23) was introduced in v1.5.4.2 and give an option to **Skip Optimizations**.
+
+When migrating data via SQL with partitioned tables (OR downgrading an ACID table), there are optimizations that we apply to help hive distribute data more efficiently.  One method is to use `hive.optimize.sort.dynamic.partition=true` which will "DISTRIBUTE" data along the partitions via a Reduction task.  Another is to declare this in SQL with a `DISTRIBUTE BY` clause.
+
+But there is a corner case where these optimizations can get in the way and cause long-running tasks.  If the source table has already been organized into large files (which would be within the partitions already), adding the optimizations above force a single reducer per partition.  If the partitions are large and already have good file sizes, we want to skip these optimizations and let hive run the process with only a map task.
+
+### Property Overrides (`-po[l|r] <key=value>[,<key=value>]...`)
+
+[Feature Request #27](https://github.com/cloudera-labs/hms-mirror/issues/27) introduced in v1.5.4.2 provides the ability to set a hive properties at the beginning of each migration part.  This is a comma separated list of key=value pairs  with no space.  If spaces are needed, quote the parameter on the commandline.
+
+You can use `-po` to set the properties for BOTH clusters or `-pol`|`-por` to set them specifically for the 'left' and/or 'right' cluster.
+
+For example: `-po hive.exec.orc.split.strategy=BI,hive.compute.query.using.stats=false`
 
 ## Setup
 
@@ -794,7 +770,7 @@ When you do need to move data, `hms-mirror` create a workbook of 'source' and 't
 
 ```
 usage: hms-mirror <options>
-                  version:1.5.3.2.3-SNAPSHOT
+                  version:1.5.4.2-SNAPSHOT
 Hive Metastore Migration Utility
  -accept,--accept                                  Accept ALL confirmations and silence prompts
  -ap,--acid-partition-count <limit>                Set the limit of partitions that the ACID
@@ -887,6 +863,8 @@ Hive Metastore Migration Utility
                                                    These include table definitions that rely on
                                                    external connection to systems like: HBase,
                                                    Kafka, JDBC
+ -np,--no-purge                                    For SCHEMA_ONLY, COMMON, and LINKED data
+                                                   strategies set RIGHT table to NOT purge on DROP
  -o,--output-dir <outputdir>                       Output Directory (default:
                                                    $HOME/.hms-mirror/reports/<yyyy-MM-dd_HH-mm-ss>
  -p,--password <password>                          Used this in conjunction with '-pkey' to generate
@@ -896,6 +874,8 @@ Hive Metastore Migration Utility
                                                    jdbc passwords.  If not present, the passwords
                                                    will be processed as is (clear text) from the
                                                    config file.
+ -po,--property-overrides <key=value>              Comma separated key=value pairs of Hive
+                                                   properties you wish to set/override.
  -q,--quiet                                        Reduce screen reporting output.  Good for
                                                    background processes with output redirects to a
                                                    file
@@ -906,7 +886,12 @@ Hive Metastore Migration Utility
  -rid,--right-is-disconnected                      Don't attempt to connect to the 'right' cluster
                                                    and run in this mode
  -ro,--read-only                                   For SCHEMA_ONLY, COMMON, and LINKED data
-                                                   strategies set RIGHT table to NOT purge on DROP
+                                                   strategies set RIGHT table to NOT purge on DROP.
+                                                   Intended for use with replication distcp
+                                                   strategies and has restrictions about existing
+                                                   DB's on RIGHT and PATH elements.  To simply NOT
+                                                   set the purge flag for applicable tables, use
+                                                   -np.
  -rr,--reset-right                                 Use this for testing to remove the database on
                                                    the RIGHT using CASCADE.
  -s,--sync                                         For SCHEMA_ONLY, COMMON, and LINKED data
@@ -931,6 +916,8 @@ Hive Metastore Migration Utility
  -smn,--storage-migration-namespace <namespace>    Optional: Used with the 'data strategy
                                                    STORAGE_MIGRATION to specify the target
                                                    namespace.
+ -so,--skip-optimizations                          Skip any optimizations during data movement, like
+                                                   dynamic sorting or distribute by
  -sp,--sql-partition-count <limit>                 Set the limit of partitions that the SQL strategy
                                                    will work with. '-1' means no-limit.
  -sql,--sql-output                                 <deprecated>.  This option is no longer required

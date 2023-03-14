@@ -22,7 +22,6 @@ import com.cloudera.utils.hadoop.hms.stage.ReturnStatus;
 import com.cloudera.utils.hadoop.hms.stage.Setup;
 import com.cloudera.utils.hadoop.hms.stage.Transfer;
 import com.cloudera.utils.hadoop.hms.util.Protect;
-import com.cloudera.utils.hadoop.shell.commands.Env;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -45,7 +44,6 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.math.RoundingMode;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -389,6 +387,32 @@ public class Mirror {
                 config.getOptimization().setSortDynamicPartitionInserts(Boolean.TRUE);
             }
 
+            if (cmd.hasOption("po")) {
+                // property overrides.
+                String[] overrides = cmd.getOptionValues("po");
+                if (overrides != null)
+                    config.getOptimization().getOverrides().setPropertyOverridesStr(overrides, Overrides.Side.BOTH);
+            }
+
+            if (cmd.hasOption("pol")) {
+                // property overrides.
+                String[] overrides = cmd.getOptionValues("pol");
+                if (overrides != null)
+                    config.getOptimization().getOverrides().setPropertyOverridesStr(overrides, Overrides.Side.LEFT);
+            }
+
+            if (cmd.hasOption("por")) {
+                // property overrides.
+                String[] overrides = cmd.getOptionValues("por");
+                if (overrides != null)
+                    config.getOptimization().getOverrides().setPropertyOverridesStr(overrides, Overrides.Side.RIGHT);
+            }
+
+            // Skip Optimizations.
+            if (cmd.hasOption("so")) {
+                config.getOptimization().setSkip(Boolean.TRUE);
+            }
+
             if (cmd.hasOption("mnn")) {
                 config.setMigratedNonNative(Boolean.TRUE);
             }
@@ -561,7 +585,9 @@ public class Mirror {
                         throw new RuntimeException("RO option only valid with SCHEMA_ONLY, LINKED, SQL, and COMMON data strategies.");
                 }
             }
-
+            if (cmd.hasOption("np")) {
+                config.setNoPurge(Boolean.TRUE);
+            }
             if (cmd.hasOption("sync") && config.getDataStrategy() != DataStrategy.DUMP) {
                 config.setSync(Boolean.TRUE);
             }
@@ -1285,6 +1311,34 @@ public class Mirror {
         dumpSource.setRequired(Boolean.FALSE);
         options.addOption(dumpSource);
 
+        Option propertyOverrides = new Option("po", "property-overrides", true,
+                "Comma separated key=value pairs of Hive properties you wish to set/override.");
+        propertyOverrides.setArgName("key=value");
+        propertyOverrides.setRequired(Boolean.FALSE);
+        propertyOverrides.setValueSeparator(',');
+        propertyOverrides.setArgs(100);
+        options.addOption(propertyOverrides);
+
+        Option propertyLeftOverrides = new Option("pol", "property-overrides-left", true,
+                "Comma separated key=value pairs of Hive properties you wish to set/override for LEFT cluster.");
+        propertyLeftOverrides.setArgName("key=value");
+        propertyLeftOverrides.setRequired(Boolean.FALSE);
+        propertyLeftOverrides.setValueSeparator(',');
+        propertyLeftOverrides.setArgs(100);
+        options.addOption(propertyLeftOverrides);
+
+        Option propertyRightOverrides = new Option("por", "property-overrides-right", true,
+                "Comma separated key=value pairs of Hive properties you wish to set/override for RIGHT cluster.");
+        propertyRightOverrides.setArgName("key=value");
+        propertyRightOverrides.setRequired(Boolean.FALSE);
+        propertyRightOverrides.setValueSeparator(',');
+        propertyRightOverrides.setArgs(100);
+        options.addOption(propertyRightOverrides);
+
+        Option skipOptimizationsOption = new Option("so", "skip-optimizations", false,
+        "Skip any optimizations during data movement, like dynamic sorting or distribute by");
+        skipOptimizationsOption.setRequired(Boolean.FALSE);
+        options.addOption(skipOptimizationsOption);
 
         OptionGroup storageOptionsGroup = new OptionGroup();
         storageOptionsGroup.setRequired(Boolean.FALSE);
@@ -1425,9 +1479,16 @@ public class Mirror {
         options.addOption(syncOption);
 
         Option roOption = new Option("ro", "read-only", false,
-                "For SCHEMA_ONLY, COMMON, and LINKED data strategies set RIGHT table to NOT purge on DROP");
+                "For SCHEMA_ONLY, COMMON, and LINKED data strategies set RIGHT table to NOT purge on DROP. " +
+                        "Intended for use with replication distcp strategies and has restrictions about existing DB's " +
+                        "on RIGHT and PATH elements.  To simply NOT set the purge flag for applicable tables, use -np.");
         roOption.setRequired(Boolean.FALSE);
         options.addOption(roOption);
+
+        Option npOption = new Option("np", "no-purge", false,
+                "For SCHEMA_ONLY, COMMON, and LINKED data strategies set RIGHT table to NOT purge on DROP");
+        npOption.setRequired(Boolean.FALSE);
+        options.addOption(npOption);
 
         Option acceptOption = new Option("accept", "accept", false,
                 "Accept ALL confirmations and silence prompts");

@@ -329,6 +329,9 @@ public class TableMirror {
         if (config.isReadOnly()) {
             copySpec.setTakeOwnership(Boolean.FALSE);
         }
+        if (config.isNoPurge()) {
+            copySpec.setTakeOwnership(Boolean.FALSE);
+        }
 
         if (config.isSync()) {
             // We assume that the 'definitions' are only there is the
@@ -496,6 +499,8 @@ public class TableMirror {
             // COMMON owns the data unless readonly specified.
             if (!config.isReadOnly())
                 copySpec.setTakeOwnership(Boolean.TRUE);
+            if (config.isNoPurge())
+                copySpec.setTakeOwnership(Boolean.FALSE);
 
             if (config.isSync()) {
                 // We assume that the 'definitions' are only there if the
@@ -566,9 +571,24 @@ public class TableMirror {
         String useDb = MessageFormat.format(MirrorConf.USE, database);
 
         let.addSql(TableUtils.USE_DESC, useDb);
+        // Set Override Properties.
+        if (config.getOptimization().getOverrides().getLeft().size() > 0) {
+            for (String key: config.getOptimization().getOverrides().getLeft().stringPropertyNames()) {
+                let.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
+            }
+        }
 
         if (let.getPartitioned()) {
-            if (config.getOptimization().getSortDynamicPartitionInserts()) {
+            if (config.getOptimization().getSkip()) {
+                if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                    let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=false");
+                }
+                String partElement = TableUtils.getPartitionElements(let);
+                String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
+                        let.getName(), ret.getName(), partElement);
+                String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, let.getPartitions().size());
+                let.addSql(new Pair(transferDesc, transferSql));
+            } else if (config.getOptimization().getSortDynamicPartitionInserts()) {
                 // Prescriptive Optimization.
                 String partElement = TableUtils.getPartitionElements(let);
                 String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
@@ -717,6 +737,9 @@ public class TableMirror {
         } else if (TableUtils.isManaged(let)) {
             rightSpec.setTakeOwnership(Boolean.TRUE);
         }
+        if (config.isNoPurge()) {
+            rightSpec.setTakeOwnership(Boolean.FALSE);
+        }
 
         // Rebuild Target from Source.
         rtn = buildTableSchema(rightSpec);
@@ -755,6 +778,9 @@ public class TableMirror {
             copySpec.setTakeOwnership(Boolean.TRUE);
         }
         if (config.isReadOnly()) {
+            copySpec.setTakeOwnership(Boolean.FALSE);
+        }
+        if (config.isNoPurge()) {
             copySpec.setTakeOwnership(Boolean.FALSE);
         }
 
@@ -1461,10 +1487,25 @@ public class TableMirror {
                     source.getName());
             source.addCleanUpSql(MirrorConf.DROP_TABLE_DESC, dropOriginalTable);
         }
+        // Set Override Properties.
+        if (config.getOptimization().getOverrides() != null) {
+            for (String key: config.getOptimization().getOverrides().getLeft().stringPropertyNames()) {
+                source.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
+            }
+        }
 
         if (transfer.isDefined()) {
             if (source.getPartitioned()) {
-                if (config.getOptimization().getSortDynamicPartitionInserts()) {
+                if (config.getOptimization().getSkip()) {
+                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                        source.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=false");
+                    }
+                    String partElement = TableUtils.getPartitionElements(source);
+                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
+                            source.getName(), transfer.getName(), partElement);
+                    String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
+                    source.addSql(new Pair(transferDesc, transferSql));
+                } else if (config.getOptimization().getSortDynamicPartitionInserts()) {
                     if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
                         source.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=true");
                         source.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
@@ -1518,9 +1559,24 @@ public class TableMirror {
                 // Build Shadow Stats.
 
             }
+            // Set Override Properties.
+            if (config.getOptimization().getOverrides() != null) {
+                for (String key: config.getOptimization().getOverrides().getRight().stringPropertyNames()) {
+                    target.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getRight().get(key));
+                }
+            }
             // Sql from Shadow to Final
             if (source.getPartitioned()) {
-                if (config.getOptimization().getSortDynamicPartitionInserts()) {
+                if (config.getOptimization().getSkip()) {
+                    if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
+                        target.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=false");
+                    }
+                    String partElement = TableUtils.getPartitionElements(source);
+                    String shadowSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
+                            shadow.getName(), target.getName(), partElement);
+                    String shadowDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, source.getPartitions().size());
+                    target.addSql(new Pair(shadowDesc, shadowSql));
+                } else if (config.getOptimization().getSortDynamicPartitionInserts()) {
                     if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
                         target.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=true");
                         target.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
@@ -1611,7 +1667,9 @@ public class TableMirror {
                             target.addProperty(MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
                             target.addProperty(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, converted.toString());
                             if (copySpec.getTakeOwnership()) {
-                                target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+                                if (!config.isNoPurge()) {
+                                    target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+                                }
                             } else {
                                 target.addIssue("Ownership of the data not allowed in this scenario, PURGE flag NOT set.");
                             }
@@ -1622,7 +1680,7 @@ public class TableMirror {
                         }
                         if (copySpec.getTakeOwnership()) {
                             if (TableUtils.isACID(source)) {
-                                if (config.getMigrateACID().isDowngrade()) {
+                                if (config.getMigrateACID().isDowngrade() && !config.isNoPurge()) {
                                     target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true");
                                 }
                             } else {
@@ -1643,10 +1701,9 @@ public class TableMirror {
 
                     if (copySpec.getTakeOwnership()) {
                         if (TableUtils.isACID(source)) {
-                            if (config.getMigrateACID().isDowngrade()) {
-                                target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true");
-                            }
                             if (copySpec.getTarget() == Environment.TRANSFER) {
+                                target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+                            } else if (config.getMigrateACID().isDowngrade() && !config.isNoPurge()) {
                                 target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, "true");
                             }
                         } else {
@@ -1668,7 +1725,9 @@ public class TableMirror {
                     if (config.getMigrateACID().isDowngrade() && copySpec.isMakeExternal()) {
 //                        TableUtils.upsertTblProperty(MirrorConf.DOWNGRADED_FROM_ACID, Boolean.TRUE.toString(), target);
                         converted = TableUtils.makeExternal(target);
-                        target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, Boolean.TRUE.toString());
+                        if (!config.isNoPurge()) {
+                            target.addProperty(MirrorConf.EXTERNAL_TABLE_PURGE, Boolean.TRUE.toString());
+                        }
                         target.addProperty(MirrorConf.DOWNGRADED_FROM_ACID, Boolean.TRUE.toString());
                     }
 

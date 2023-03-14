@@ -7,9 +7,17 @@ public class Optimization {
     we'll use a PRESCRIPTIVE approach with the transfer SQL on partitioned tables by adding a DISTRIBUTE BY clause.
      */
     private Boolean sortDynamicPartitionInserts = Boolean.FALSE;
+    /*
+    Skip all optimizations by setting:
+    - hive.optimize.sort.dynamic.partition=false
+    - Not using DISTRIBUTE BY.
+    - But do include additional settings specified by user in 'overrides'.
+     */
+    private Boolean skip = Boolean.FALSE;
+    private Overrides overrides = new Overrides();
     private Boolean buildShadowStatistics = Boolean.FALSE;
-    private Boolean smallFiles = Boolean.FALSE;
-    private Integer tezGroupingMaxSizeMb = 128;
+//    private Boolean smallFiles = Boolean.FALSE;
+//    private Integer tezGroupingMaxSizeMb = 128;
 
     public Boolean getSortDynamicPartitionInserts() {
         return sortDynamicPartitionInserts;
@@ -19,6 +27,15 @@ public class Optimization {
         this.sortDynamicPartitionInserts = sortDynamicPartitionInserts;
     }
 
+    public Boolean getSkip() {
+        return skip;
+    }
+
+    public void setSkip(Boolean skip) {
+        this.skip = skip;
+    }
+
+
     public Boolean getBuildShadowStatistics() {
         return buildShadowStatistics;
     }
@@ -27,19 +44,27 @@ public class Optimization {
         this.buildShadowStatistics = buildShadowStatistics;
     }
 
-    public Boolean getSmallFiles() {
-        return smallFiles;
+    public Overrides getOverrides() {
+        return overrides;
     }
 
-    public void setSmallFiles(Boolean smallFiles) {
-        this.smallFiles = smallFiles;
+    public void setOverrides(Overrides overrides) {
+        this.overrides = overrides;
     }
 
-    public Integer getTezGroupingMaxSizeMb() {
-        return tezGroupingMaxSizeMb;
-    }
-
-    public void setTezGroupingMaxSizeMb(Integer tezGroupingMaxSizeMb) {
-        this.tezGroupingMaxSizeMb = tezGroupingMaxSizeMb;
-    }
+//    public Boolean getSmallFiles() {
+//        return smallFiles;
+//    }
+//
+//    public void setSmallFiles(Boolean smallFiles) {
+//        this.smallFiles = smallFiles;
+//    }
+//
+//    public Integer getTezGroupingMaxSizeMb() {
+//        return tezGroupingMaxSizeMb;
+//    }
+//
+//    public void setTezGroupingMaxSizeMb(Integer tezGroupingMaxSizeMb) {
+//        this.tezGroupingMaxSizeMb = tezGroupingMaxSizeMb;
+//    }
 }

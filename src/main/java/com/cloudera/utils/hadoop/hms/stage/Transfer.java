@@ -23,11 +23,8 @@ import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import java.net.ConnectException;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -366,11 +363,27 @@ public class Transfer implements Callable<ReturnStatus> {
                 // We need to ensure that 'tez' is the execution engine.
                 let.addSql(new Pair(MirrorConf.TEZ_EXECUTION_DESC, MirrorConf.SET_TEZ_AS_EXECUTION_ENGINE));
             }
+            // Set Override Properties.
+            if (config.getOptimization().getOverrides() != null) {
+                for (String key: config.getOptimization().getOverrides().getLeft().stringPropertyNames()) {
+                    let.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
+                }
+            }
+
             // Need to see if the table has partitions.
             if (let.getPartitioned()) {
                 // Check that the partition count doesn't exceed the configuration limit.
                 // Build Partition Elements.
-                if (config.getOptimization().getSortDynamicPartitionInserts()) {
+                if (config.getOptimization().getSkip()) {
+                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                        let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=false");
+                    }
+                    String partElement = TableUtils.getPartitionElements(let);
+                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
+                            let.getName(), ret.getName(), partElement);
+                    String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
+                    let.addSql(new Pair(transferDesc, transferSql));
+                } else if (config.getOptimization().getSortDynamicPartitionInserts()) {
                     if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
                         let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=true");
                         let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");

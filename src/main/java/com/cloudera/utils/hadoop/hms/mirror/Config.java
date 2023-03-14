@@ -100,6 +100,10 @@ public class Config {
      */
     private boolean readOnly = Boolean.FALSE;
     /*
+    Like 'readonly' without the restrictions that would invalidate the target filesystem.
+     */
+    private boolean noPurge = Boolean.FALSE;
+    /*
     When Common Storage is used with the SQL Data Strategy, this will 'replace' the original table
     with a table by the same name but who's data lives in the common storage location.
      */
@@ -477,6 +481,14 @@ public class Config {
 
     public void setReadOnly(boolean readOnly) {
         this.readOnly = readOnly;
+    }
+
+    public boolean isNoPurge() {
+        return noPurge;
+    }
+
+    public void setNoPurge(boolean noPurge) {
+        this.noPurge = noPurge;
     }
 
     public boolean isSync() {
@@ -874,7 +886,7 @@ public class Config {
             case EXPORT_IMPORT:
             case SQL:
                 // Only do link test when NOT using intermediate storage.
-                if (this.getTransfer().getIntermediateStorage() == null && this.getTransfer().getCommonStorage() == null) {
+                if (!this.getCluster(Environment.RIGHT).getHiveServer2().getDisconnected() && this.getTransfer().getIntermediateStorage() == null && this.getTransfer().getCommonStorage() == null) {
                     if (!getMigrateACID().isDowngradeInPlace() && !linkTest()) {
                         errors.set(LINK_TEST_FAILED.getCode());
                         rtn = Boolean.FALSE;
