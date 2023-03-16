@@ -277,6 +277,7 @@ public class Config {
         }
     }
 
+    @JsonIgnore
     public Boolean isTranslateLegacy() {
         Boolean rtn = Boolean.FALSE;
         if (!skipLegacyTranslation) {

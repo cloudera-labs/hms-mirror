@@ -1,6 +1,7 @@
 package com.cloudera.utils.hadoop.hms.mirror.feature;
 
 import com.cloudera.utils.hadoop.hms.mirror.EnvironmentTable;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -93,6 +94,7 @@ public class LegacyTranslations extends BaseFeature implements Feature {
     }
 
     @Override
+    @JsonIgnore
     public String getDescription() {
         return "Legacy Translations";
     }
