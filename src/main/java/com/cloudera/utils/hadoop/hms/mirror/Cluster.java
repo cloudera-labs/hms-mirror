@@ -306,10 +306,22 @@ public class Cluster implements Comparable<Cluster> {
                     String showStatement = MessageFormat.format(MirrorConf.SHOW_CREATE_TABLE, tableMirror.getName());
                     resultSet = stmt.executeQuery(showStatement);
                     List<String> tblDef = new ArrayList<String>();
-                    while (resultSet.next()) {
-                        tblDef.add(resultSet.getString(1).trim());
+                    ResultSetMetaData meta = resultSet.getMetaData();
+                    if (meta.getColumnCount() >= 1) {
+                        while (resultSet.next()) {
+                            try {
+                                tblDef.add(resultSet.getString(1).trim());
+                            } catch (NullPointerException npe) {
+                                // catch and continue.
+                                LOG.error(getEnvironment() + ":" + database + "." + tableMirror.getName() +
+                                        ": Loading Table Definition.  Issue with SHOW CREATE TABLE resultset. " +
+                                        "ResultSet record(line) is null. Skipping.");
+                            }
+                        }
+                    } else {
+                        LOG.error(getEnvironment() + ":" + database + "." + tableMirror.getName() +
+                                ": Loading Table Definition.  Issue with SHOW CREATE TABLE resultset. No Metadata.");
                     }
-
                     et.setDefinition(tblDef);
                     et.setName(tableMirror.getName());
                     // Identify that the table existed in the Database before other activity.
