@@ -799,6 +799,17 @@ public class TableUtils {
         }
     }
 
+    public static StorageType getStorageType(List<String> tblDef) {
+//        String rtn = null;
+        int tpIdx = tblDef.indexOf("ROW FORMAT SERDE");
+        String rowformatSerde = tblDef.get(tpIdx+1);
+        tpIdx = tblDef.indexOf("STORED AS INPUTFORMAT");
+        String inputFormat = tblDef.get(tpIdx+1);
+        StorageType storageType = StorageType.from(rowformatSerde, inputFormat);
+
+        return storageType;
+    }
+
     public static String getTblProperty(String key, EnvironmentTable environmentTable) {
         return getTblProperty(key, environmentTable.getDefinition());
     }
@@ -817,6 +828,9 @@ public class TableUtils {
                 break;
             }
         }
+        // Remove Comma, if present.
+        if (rtn != null && rtn.endsWith(","))
+            rtn = rtn.substring(0, rtn.length()-1);
         return rtn;
     }
 

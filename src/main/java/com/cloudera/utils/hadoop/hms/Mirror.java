@@ -353,6 +353,10 @@ public class Mirror {
                 config.setDatabaseOnly(Boolean.TRUE);
             }
 
+            if (cmd.hasOption("slc")) {
+                config.setSkipLinkCheck(Boolean.TRUE);
+            }
+
             if (cmd.hasOption("ma")) {
                 config.getMigrateACID().setOn(Boolean.TRUE);
                 String bucketLimit = cmd.getOptionValue("ma");
@@ -1450,6 +1454,13 @@ public class Mirror {
                 "Downgrade ACID tables to EXTERNAL tables with purge.");
         ipOption.setRequired(Boolean.FALSE);
         options.addOption(ipOption);
+
+        Option skipLinkTestOption = new Option("slc", "skip-link-check", false,
+                "Skip Link Check. Use when going between or to Cloud Storage to avoid having to configure " +
+                        "hms-mirror with storage credentials and libraries. This does NOT preclude your Hive Server 2 and " +
+                        "compute environment from such requirements.");
+        skipLinkTestOption.setRequired(Boolean.FALSE);
+        options.addOption(skipLinkTestOption);
 
         // Non Native Migrations
         Option mnnOption = new Option("mnn", "migrate-non-native", false,

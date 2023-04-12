@@ -60,6 +60,7 @@ public class Config {
     private boolean copyAvroSchemaUrls = Boolean.FALSE;
     private DataStrategy dataStrategy = DataStrategy.SCHEMA_ONLY;
     private Boolean databaseOnly = Boolean.FALSE;
+    private Boolean skipLinkCheck = Boolean.FALSE;
     private String[] databases = null;
     private LegacyTranslations legacyTranslations = new LegacyTranslations();
     @JsonIgnore
@@ -426,6 +427,14 @@ public class Config {
 
     public void setDatabaseOnly(Boolean databaseOnly) {
         this.databaseOnly = databaseOnly;
+    }
+
+    public Boolean getSkipLinkCheck() {
+        return skipLinkCheck;
+    }
+
+    public void setSkipLinkCheck(Boolean skipLinkCheck) {
+        this.skipLinkCheck = skipLinkCheck;
     }
 
     public DataStrategy getDataStrategy() {
@@ -1016,39 +1025,42 @@ public class Config {
 
     protected Boolean linkTest() {
         Boolean rtn = Boolean.FALSE;
-        HadoopSession session = null;
-        try {
-            session = getCliPool().borrow();
-            LOG.info("Performing Cluster Link Test to validate cluster 'hcfsNamespace' availability.");
-            // TODO: develop a test to copy data between clusters.
-            String leftHCFSNamespace = this.getCluster(Environment.LEFT).getHcfsNamespace();
-            String rightHCFSNamespace = this.getCluster(Environment.RIGHT).getHcfsNamespace();
-
-            // List User Directories on LEFT
-            String leftlsTestLine = "ls " + leftHCFSNamespace + "/user";
-            String rightlsTestLine = "ls " + rightHCFSNamespace + "/user";
-            LOG.info("LEFT ls testline: " + leftlsTestLine);
-            LOG.info("RIGHT ls testline: " + rightlsTestLine);
-
-            CommandReturn lcr = session.processInput(leftlsTestLine);
-            if (lcr.isError()) {
-                throw new RuntimeException("Link to RIGHT cluster FAILED.\n " + lcr.getError() +
-                        "\nCheck configuration and hcfsNamespace value.  " +
-                        "Check the documentation about Linking clusters: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
-            }
-            CommandReturn rcr = session.processInput(rightlsTestLine);
-            if (rcr.isError()) {
-                throw new RuntimeException("Link to LEFT cluster FAILED.\n " + rcr.getError() +
-                        "\nCheck configuration and hcfsNamespace value.  " +
-                        "Check the documentation about Linking clusters: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
-            }
+        if (this.skipLinkCheck) {
+            LOG.warn("Skipping Link Check.");
             rtn = Boolean.TRUE;
-        } finally {
-            if (session != null)
-                getCliPool().returnSession(session);
+        } else {
+            HadoopSession session = null;
+            try {
+                session = getCliPool().borrow();
+                LOG.info("Performing Cluster Link Test to validate cluster 'hcfsNamespace' availability.");
+                // TODO: develop a test to copy data between clusters.
+                String leftHCFSNamespace = this.getCluster(Environment.LEFT).getHcfsNamespace();
+                String rightHCFSNamespace = this.getCluster(Environment.RIGHT).getHcfsNamespace();
+
+                // List User Directories on LEFT
+                String leftlsTestLine = "ls " + leftHCFSNamespace + "/user";
+                String rightlsTestLine = "ls " + rightHCFSNamespace + "/user";
+                LOG.info("LEFT ls testline: " + leftlsTestLine);
+                LOG.info("RIGHT ls testline: " + rightlsTestLine);
+
+                CommandReturn lcr = session.processInput(leftlsTestLine);
+                if (lcr.isError()) {
+                    throw new RuntimeException("Link to RIGHT cluster FAILED.\n " + lcr.getError() +
+                            "\nCheck configuration and hcfsNamespace value.  " +
+                            "Check the documentation about Linking clusters: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
+                }
+                CommandReturn rcr = session.processInput(rightlsTestLine);
+                if (rcr.isError()) {
+                    throw new RuntimeException("Link to LEFT cluster FAILED.\n " + rcr.getError() +
+                            "\nCheck configuration and hcfsNamespace value.  " +
+                            "Check the documentation about Linking clusters: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
+                }
+                rtn = Boolean.TRUE;
+            } finally {
+                if (session != null)
+                    getCliPool().returnSession(session);
+            }
         }
-
-
         return rtn;
     }
 
