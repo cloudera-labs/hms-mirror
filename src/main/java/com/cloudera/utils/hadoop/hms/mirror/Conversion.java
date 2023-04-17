@@ -124,8 +124,13 @@ public class Conversion {
             if (tblMirror.isThereCleanupSql(environment)) {
                 sb.append("\n--    Cleanup script: ").append(table).append("\n");
                 for (Pair pair : tblMirror.getCleanUpSql(environment)) {
-                    sb.append(pair.getAction()).append(";\n");
-                    found = Boolean.TRUE;
+                    sb.append(pair.getAction());
+                    // Skip ';' when its a comment
+                    // https://github.com/cloudera-labs/hms-mirror/issues/33
+                    if (!pair.getAction().trim().startsWith("--")) {
+                        sb.append(";\n");
+                        found = Boolean.TRUE;
+                    }
                 }
             } else {
                 sb.append("\n");
@@ -225,7 +230,7 @@ public class Conversion {
         // Issues
         if (dbMirror.isThereAnIssue()) {
             Set<Environment> environments = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
-            for (Environment env: environments) {
+            for (Environment env : environments) {
                 List<String> issues = dbMirror.getIssuesList(env);
                 if (issues != null) {
                     sb.append("### ").append(env).append("\n\n");
