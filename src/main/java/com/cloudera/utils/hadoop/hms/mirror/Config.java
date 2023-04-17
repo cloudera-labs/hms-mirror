@@ -535,8 +535,12 @@ public class Config {
 
     public String getResolvedDB(String database) {
         String rtn = null;
-        rtn = (dbPrefix != null ? dbPrefix + database : database);
-        rtn = (dbRename != null ? dbRename : database);
+        // Set Local Value for adjustments
+        String lclDb = database;
+        // When dbp, set new value
+        lclDb = (dbPrefix != null ? dbPrefix + lclDb : lclDb);
+        // Rename overrides prefix, otherwise use lclDb as its been set.
+        rtn = (dbRename != null ? dbRename : lclDb);
         return rtn;
     }
 
