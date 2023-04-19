@@ -694,6 +694,9 @@ public class Config {
                 errors.set(RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getCode());
                 rtn = Boolean.FALSE;
             }
+            if (getTransfer().getStorageMigration().isDistcp()) {
+                warnings.set(RDL_DC_WARNING_TABLE_ALIGNMENT.getCode());
+            }
         }
 
         // When RIGHT is defined
