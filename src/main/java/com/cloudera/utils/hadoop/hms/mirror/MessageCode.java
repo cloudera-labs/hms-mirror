@@ -108,7 +108,7 @@ public enum MessageCode {
             "to be linked may not work without a `common-storage` or `intermediate-storage` option that will bridge the gap."),
     RDL_DC_WARNING_TABLE_ALIGNMENT(59, "Using the options `-dc` and `-rdl` together may yield some inconsistent results." +
             "If the 'current' table locations don't match the table name, `distcp` will NOT realign those directories to the " +
-            "table names.  Which means the adjusted tables may not align with the directories. See: https://github.com/cloudera-labs/hms-mirror/issues/35 " +
+            "table names.  Which means the adjusted tables may not align with the directories. See: [Issue #35](https://github.com/cloudera-labs/hms-mirror/issues/35) " +
             "for work going on to address this.")
 
     ;
