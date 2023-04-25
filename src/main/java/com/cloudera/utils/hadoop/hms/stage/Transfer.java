@@ -137,7 +137,7 @@ public class Transfer implements Callable<ReturnStatus> {
                                     sbDir.append(config.getCluster(Environment.RIGHT).getHcfsNamespace());
                                 }
                                 sbDir.append(config.getTransfer().getWarehouse().getExternalDirectory()).append("/");
-                                sbDir.append(dbMirror.getName()).append(".db").append("/").append(tblMirror.getName());
+                                sbDir.append(config.getResolvedDB(dbMirror.getName())).append(".db").append("/").append(tblMirror.getName());
                                 fnlLoc = sbDir.toString();
                             }
                         }
@@ -163,7 +163,7 @@ public class Transfer implements Callable<ReturnStatus> {
                             StringBuilder sbDir = new StringBuilder();
                             sbDir.append(config.getTransfer().getCommonStorage());
                             sbDir.append(config.getTransfer().getWarehouse().getExternalDirectory()).append("/");
-                            sbDir.append(dbMirror.getName()).append(".db").append("/").append(tblMirror.getName());
+                            sbDir.append(config.getResolvedDB(dbMirror.getName())).append(".db").append("/").append(tblMirror.getName());
                             newLoc = sbDir.toString();
                         }
                         config.getTranslator().addLocation(dbMirror.getName(), Environment.LEFT,
@@ -183,7 +183,7 @@ public class Transfer implements Callable<ReturnStatus> {
                                     sbDir.append(config.getCluster(Environment.RIGHT).getHcfsNamespace());
                                 }
                                 sbDir.append(config.getTransfer().getWarehouse().getExternalDirectory()).append("/");
-                                sbDir.append(dbMirror.getName()).append(".db").append("/").append(tblMirror.getName());
+                                sbDir.append(config.getResolvedDB(dbMirror.getName())).append(".db").append("/").append(tblMirror.getName());
                                 rLoc = sbDir.toString();
                             }
                             config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
@@ -199,7 +199,7 @@ public class Transfer implements Callable<ReturnStatus> {
                                     sbDir.append(config.getCluster(Environment.RIGHT).getHcfsNamespace());
                                 }
                                 sbDir.append(config.getTransfer().getWarehouse().getExternalDirectory()).append("/");
-                                sbDir.append(dbMirror.getName()).append(".db").append("/").append(tblMirror.getName());
+                                sbDir.append(config.getResolvedDB(dbMirror.getName())).append(".db").append("/").append(tblMirror.getName());
                                 rLoc = sbDir.toString();
                             }
                             config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
@@ -426,7 +426,7 @@ public class Transfer implements Callable<ReturnStatus> {
             }
             if (rtn) {
                 // Run the Transfer Scripts
-                config.getCluster(Environment.LEFT).runTableSql(let.getSql(), tblMirror, Environment.LEFT);
+                rtn = config.getCluster(Environment.LEFT).runTableSql(let.getSql(), tblMirror, Environment.LEFT);
             }
         }
         return rtn;

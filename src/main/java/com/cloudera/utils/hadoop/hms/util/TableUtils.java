@@ -810,6 +810,22 @@ public class TableUtils {
         return storageType;
     }
 
+    public static boolean hasTblProperty(String key, EnvironmentTable environmentTable) {
+        if (getTblProperty(key, environmentTable) != null) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
+    }
+
+    public static boolean hasTblProperty(String key, List<String> tblDef) {
+        if (getTblProperty(key, tblDef) != null) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
+    }
+
     public static String getTblProperty(String key, EnvironmentTable environmentTable) {
         return getTblProperty(key, environmentTable.getDefinition());
     }

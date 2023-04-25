@@ -74,7 +74,7 @@ public class ConnectionPools {
 
         for (Environment environment : environments) {
             HiveServer2Config hs2Config = hiveServerConfigs.get(environment);
-            if (!hs2Config.getDisconnected()) {
+            if (!hs2Config.isDisconnected()) {
                 ConnectionFactory connectionFactory =
                         new DriverManagerConnectionFactory(hs2Config.getUri(), hs2Config.getConnectionProperties());
 

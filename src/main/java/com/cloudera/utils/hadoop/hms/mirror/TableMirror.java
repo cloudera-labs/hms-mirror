@@ -573,7 +573,7 @@ public class TableMirror {
         let.addSql(TableUtils.USE_DESC, useDb);
         // Set Override Properties.
         if (config.getOptimization().getOverrides().getLeft().size() > 0) {
-            for (String key: config.getOptimization().getOverrides().getLeft().stringPropertyNames()) {
+            for (String key : config.getOptimization().getOverrides().getLeft().stringPropertyNames()) {
                 let.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
             }
         }
@@ -635,6 +635,12 @@ public class TableMirror {
         String origTableName = let.getName();
 
         // Rename Original Table
+        // Remove property (if exists) to prevent rename from happening.
+        if (TableUtils.hasTblProperty(MirrorConf.TRANSLATED_TO_EXTERNAL, let)) {
+            String unSetSql = MessageFormat.format(MirrorConf.REMOVE_TABLE_PROP, origTableName, MirrorConf.TRANSLATED_TO_EXTERNAL);
+            let.addSql(MirrorConf.REMOVE_TABLE_PROP_DESC, unSetSql);
+        }
+
         String newTblName = let.getName() + "_archive";
         String renameSql = MessageFormat.format(MirrorConf.RENAME_TABLE, origTableName, newTblName);
         TableUtils.changeTableName(let, newTblName);
@@ -1218,8 +1224,12 @@ public class TableMirror {
         useDb = MessageFormat.format(MirrorConf.USE, database);
 
         let.addSql(TableUtils.USE_DESC, useDb);
-
         // Alter the current table and rename.
+        // Remove property (if exists) to prevent rename from happening.
+        if (TableUtils.hasTblProperty(MirrorConf.TRANSLATED_TO_EXTERNAL, let)) {
+            String unSetSql = MessageFormat.format(MirrorConf.REMOVE_TABLE_PROP, ret.getName(), MirrorConf.TRANSLATED_TO_EXTERNAL);
+            let.addSql(MirrorConf.REMOVE_TABLE_PROP_DESC, unSetSql);
+        }
         let.setName(let.getName() + "_" + getUnique());
         String origAlterRename = MessageFormat.format(MirrorConf.RENAME_TABLE, ret.getName(), let.getName());
         let.addSql(MirrorConf.RENAME_TABLE_DESC, origAlterRename);
@@ -1377,6 +1387,11 @@ public class TableMirror {
         String origTableName = let.getName();
         if (isACIDDowngradeInPlace(config, let)) {
             // Rename original table.
+            // Remove property (if exists) to prevent rename from happening.
+            if (TableUtils.hasTblProperty(MirrorConf.TRANSLATED_TO_EXTERNAL, let)) {
+                String unSetSql = MessageFormat.format(MirrorConf.REMOVE_TABLE_PROP, origTableName, MirrorConf.TRANSLATED_TO_EXTERNAL);
+                let.addSql(MirrorConf.REMOVE_TABLE_PROP_DESC, unSetSql);
+            }
             String newTblName = let.getName() + "_archive";
             String renameSql = MessageFormat.format(MirrorConf.RENAME_TABLE, origTableName, newTblName);
             TableUtils.changeTableName(let, newTblName);
@@ -1453,7 +1468,7 @@ public class TableMirror {
     }
 
     public Boolean buildoutCOMMONSql(Config config, DBMirror dbMirror) {
-       return buildoutSCHEMA_ONLYSql(config, dbMirror);
+        return buildoutSCHEMA_ONLYSql(config, dbMirror);
     }
 
     protected Boolean buildSourceToTransferSql(Config config) {
@@ -1489,7 +1504,7 @@ public class TableMirror {
         }
         // Set Override Properties.
         if (config.getOptimization().getOverrides() != null) {
-            for (String key: config.getOptimization().getOverrides().getLeft().stringPropertyNames()) {
+            for (String key : config.getOptimization().getOverrides().getLeft().stringPropertyNames()) {
                 source.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
             }
         }
@@ -1515,7 +1530,7 @@ public class TableMirror {
                             source.getName(), transfer.getName(), partElement);
                     String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
                     source.addSql(new Pair(transferDesc, transferSql));
-                } else{
+                } else {
                     String partElement = TableUtils.getPartitionElements(source);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
                             source.getName(), transfer.getName(), partElement);
@@ -1561,7 +1576,7 @@ public class TableMirror {
             }
             // Set Override Properties.
             if (config.getOptimization().getOverrides() != null) {
-                for (String key: config.getOptimization().getOverrides().getRight().stringPropertyNames()) {
+                for (String key : config.getOptimization().getOverrides().getRight().stringPropertyNames()) {
                     target.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getRight().get(key));
                 }
             }
@@ -1586,7 +1601,7 @@ public class TableMirror {
                             shadow.getName(), target.getName(), partElement);
                     String shadowDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, source.getPartitions().size());
                     target.addSql(new Pair(shadowDesc, shadowSql));
-                } else{
+                } else {
                     String partElement = TableUtils.getPartitionElements(source);
                     String shadowSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
                             shadow.getName(), target.getName(), partElement);
@@ -1861,7 +1876,7 @@ public class TableMirror {
 
                 if (config.isTranslateLegacy()) {
                     if (config.getLegacyTranslations().fixSchema(target)) {
-                      LOG.info("Legacy Translation applied to: " + getDbName() + target.getName());
+                        LOG.info("Legacy Translation applied to: " + getDbName() + target.getName());
                     }
                 }
 

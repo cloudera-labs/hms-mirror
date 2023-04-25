@@ -752,13 +752,13 @@ public class Mirror {
         }
         try {
             connPools.init();
-            for (Environment target: hs2Envs) {
+            for (Environment target : hs2Envs) {
                 Connection conn = null;
                 Statement stmt = null;
                 try {
                     conn = connPools.getEnvironmentConnection(target);
                     if (conn == null) {
-                        if (target == Environment.RIGHT && config.getCluster(target).getHiveServer2().getDisconnected()) {
+                        if (target == Environment.RIGHT && config.getCluster(target).getHiveServer2().isDisconnected()) {
                             // Skip error.  Set Warning that we're disconnected.
                             config.getWarnings().set(ENVIRONMENT_DISCONNECTED.getCode(), new Object[]{target});
                         } else {
@@ -771,7 +771,7 @@ public class Mirror {
                         stmt.execute("SELECT 1");
                     }
                 } catch (SQLException se) {
-                    if (target == Environment.RIGHT && config.getCluster(target).getHiveServer2().getDisconnected()) {
+                    if (target == Environment.RIGHT && config.getCluster(target).getHiveServer2().isDisconnected()) {
                         // Set warning that RIGHT is disconnected.
                         config.getWarnings().set(ENVIRONMENT_DISCONNECTED.getCode(), new Object[]{target});
                     } else {
@@ -804,7 +804,7 @@ public class Mirror {
                 break;
             default:
                 // Don't set the Pools when Disconnected.
-                if (!config.getCluster(Environment.RIGHT).getHiveServer2().getDisconnected()) {
+                if (config.getCluster(Environment.RIGHT).getHiveServer2() != null && !config.getCluster(Environment.RIGHT).getHiveServer2().isDisconnected()) {
                     config.getCluster(Environment.RIGHT).setPools(connPools);
                 }
         }
@@ -977,6 +977,10 @@ public class Mirror {
                             distcpScriptSb.append("hdfs dfs -mkdir -p $HCFS_BASE_DIR").append("\n");
                             distcpScriptSb.append("\n");
 
+                            // WARNING ABOUT 'distcp' and 'table alignment'
+                            distcpWorkbookSb.append("## WARNING\n");
+                            distcpWorkbookSb.append(MessageCode.RDL_DC_WARNING_TABLE_ALIGNMENT.getDesc()).append("\n\n");
+
                             distcpWorkbookSb.append("| Database | Target | Sources |\n");
                             distcpWorkbookSb.append("|:---|:---|:---|\n");
 
@@ -1059,8 +1063,10 @@ public class Mirror {
                     runbookFile.write("Execute was **ON**, so many of the scripts have been run already.  Verify status " +
                             "in the above report.  `distcp` actions (if requested/applicable) need to be run manually. " +
                             "Some cleanup scripts may have been run if no `distcp` actions were requested.\n\n");
-                    if (config.getCluster(Environment.RIGHT).getHiveServer2().getDisconnected()) {
-                        runbookFile.write("Process ran with RIGHT environment 'disconnected'.  All RIGHT scripts will need to be run manually.\n\n");
+                    if (config.getCluster(Environment.RIGHT).getHiveServer2() != null) {
+                        if (config.getCluster(Environment.RIGHT).getHiveServer2().isDisconnected()) {
+                            runbookFile.write("Process ran with RIGHT environment 'disconnected'.  All RIGHT scripts will need to be run manually.\n\n");
+                        }
                     }
                 } else {
                     runbookFile.write("Execute was **OFF**.  All actions will need to be run manually. See below steps.\n\n");
@@ -1128,7 +1134,7 @@ public class Mirror {
                     LOG.info("RIGHT Execution Script is here: " + dbRightExecuteFile);
                     runbookFile.write(step++ + ". **RIGHT** clusters SQL script. ");
                     if (config.isExecute()) {
-                        if (!config.getCluster(Environment.RIGHT).getHiveServer2().getDisconnected()) {
+                        if (!config.getCluster(Environment.RIGHT).getHiveServer2().isDisconnected()) {
                             runbookFile.write(" (Has been executed already, check report file details)");
                         } else {
                             runbookFile.write(" (Has NOT been executed because the environment is NOT connected.  Review and run scripts manually.)");
@@ -1340,7 +1346,7 @@ public class Mirror {
         options.addOption(propertyRightOverrides);
 
         Option skipOptimizationsOption = new Option("so", "skip-optimizations", false,
-        "Skip any optimizations during data movement, like dynamic sorting or distribute by");
+                "Skip any optimizations during data movement, like dynamic sorting or distribute by");
         skipOptimizationsOption.setRequired(Boolean.FALSE);
         options.addOption(skipOptimizationsOption);
 

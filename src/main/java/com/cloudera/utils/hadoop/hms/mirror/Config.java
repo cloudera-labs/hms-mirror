@@ -903,7 +903,7 @@ public class Config {
             case EXPORT_IMPORT:
             case SQL:
                 // Only do link test when NOT using intermediate storage.
-                if (!this.getCluster(Environment.RIGHT).getHiveServer2().getDisconnected() && this.getTransfer().getIntermediateStorage() == null && this.getTransfer().getCommonStorage() == null) {
+                if (!this.getCluster(Environment.RIGHT).getHiveServer2().isDisconnected() && this.getTransfer().getIntermediateStorage() == null && this.getTransfer().getCommonStorage() == null) {
                     if (!getMigrateACID().isDowngradeInPlace() && !linkTest()) {
                         errors.set(LINK_TEST_FAILED.getCode());
                         rtn = Boolean.FALSE;
@@ -1077,7 +1077,7 @@ public class Config {
         for (Environment env : envs) {
             Cluster cluster = clusters.get(env);
             if (cluster != null && cluster.getHiveServer2() != null && cluster.getHiveServer2().isValidUri() &&
-                    !cluster.getHiveServer2().getDisconnected()) {
+                    !cluster.getHiveServer2().isDisconnected()) {
                 Connection conn = null;
                 try {
                     conn = cluster.getConnection();

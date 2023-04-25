@@ -34,7 +34,7 @@ public class HiveServer2Config {
         this.uri = uri;
     }
 
-    public Boolean getDisconnected() {
+    public Boolean isDisconnected() {
         return disconnected;
     }
 

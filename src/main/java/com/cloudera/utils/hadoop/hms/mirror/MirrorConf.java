@@ -84,6 +84,7 @@ public class MirrorConf {
     public static final String HMS_MIRROR_LEGACY_MANAGED_FLAG = "hmsMirror_LegacyManaged";
     public static final String DOWNGRADED_FROM_ACID = "downgraded_from_acid";
     public static final String DISCOVER_PARTITIONS = "discover.partitions";
+    public static final String TRANSLATED_TO_EXTERNAL = "TRANSLATED_TO_EXTERNAL";
     public static final String EXTERNAL_TABLE_PURGE = "external.table.purge";
     public static final String TRANSACTIONAL = "transactional";
     public static final String TRANSACTIONAL_PROPERTIES = "transactional_properties";
