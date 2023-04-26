@@ -1,0 +1,1075 @@
+---
+name: "sm_orders"
+filteredOut: {}
+tableMirrors:
+  mngd_order_item_orc:
+    dbName: "sm_orders"
+    name: "mngd_order_item_orc"
+    strategy: "STORAGE_MIGRATION"
+    phaseState: "SUCCESS"
+    environments:
+      SHADOW:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      TRANSFER:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      LEFT:
+        name: "mngd_order_item_orc_bba5f0beaa394d59aa64f2d715939461"
+        exists: true
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE TABLE `mngd_order_item_orc`("
+        - "`order_id` string,"
+        - "`order_item_id` string,"
+        - "`product_id` string,"
+        - "`quantity` bigint,"
+        - "`cost` double)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "LOCATION"
+        - "'hdfs://HOME90/warehouse/tablespace/managed/hive/sm_orders.db/mngd_order_item_orc'"
+        - "TBLPROPERTIES ("
+        - "'bucketing_version'='2',"
+        - "'transactional'='true',"
+        - "'transactional_properties'='insert_only',"
+        - "'transient_lastDdlTime'='1682525339')"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql:
+        - description: "Selecting DB"
+          action: "USE sm_orders"
+        - description: "Rename table"
+          action: " ALTER TABLE mngd_order_item_orc RENAME TO mngd_order_item_orc_bba5f0beaa394d59aa64f2d715939461"
+        - description: "Creating Table"
+          action: "CREATE TABLE `mngd_order_item_orc`(\n`order_id` string,\n`order_item_id`\
+            \ string,\n`product_id` string,\n`quantity` bigint,\n`cost` double)\n\
+            ROW FORMAT SERDE\n'org.apache.hadoop.hive.ql.io.orc.OrcSerde'\nSTORED\
+            \ AS INPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'\n\
+            OUTPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'\nTBLPROPERTIES\
+            \ (\n'hmsMirror_Metadata_Stage1'='2023-04-26 12:09:46',\n'bucketing_version'='2',\n\
+            'transactional'='true',\n'transactional_properties'='insert_only'\n)"
+        - description: "Moving data to new Namespace"
+          action: "FROM mngd_order_item_orc_bba5f0beaa394d59aa64f2d715939461 INSERT\
+            \ OVERWRITE TABLE mngd_order_item_orc SELECT *"
+        cleanUpSql:
+        - description: "Drop table"
+          action: "DROP TABLE IF EXISTS mngd_order_item_orc_bba5f0beaa394d59aa64f2d715939461"
+        defined: true
+      RIGHT:
+        name: "mngd_order_item_orc"
+        exists: false
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE TABLE `mngd_order_item_orc`("
+        - "`order_id` string,"
+        - "`order_item_id` string,"
+        - "`product_id` string,"
+        - "`quantity` bigint,"
+        - "`cost` double)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "TBLPROPERTIES ("
+        - "'hmsMirror_Metadata_Stage1'='2023-04-26 12:09:46',"
+        - "'bucketing_version'='2',"
+        - "'transactional'='true',"
+        - "'transactional_properties'='insert_only'"
+        - ")"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties:
+          hmsMirror_Metadata_Stage1: "2023-04-26 12:09:46"
+        issues:
+        - "Location Stripped from ACID definition.  Location element in 'CREATE' not\
+          \ allowed in Hive3+"
+        - "'reset-to-default-location' was specified.  Table definition stripped of\
+          \ LOCATION.  Location will be determined by the database or system warehouse\
+          \ settings."
+        sql: []
+        cleanUpSql: []
+        defined: true
+  mngd_order_item_small_orc:
+    dbName: "sm_orders"
+    name: "mngd_order_item_small_orc"
+    strategy: "STORAGE_MIGRATION"
+    phaseState: "SUCCESS"
+    environments:
+      SHADOW:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      TRANSFER:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      LEFT:
+        name: "mngd_order_item_small_orc_e61247eaaea945e1b332ad9ba42cc532"
+        exists: true
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE TABLE `mngd_order_item_small_orc`("
+        - "`order_id` string,"
+        - "`order_item_id` string,"
+        - "`product_id` string,"
+        - "`quantity` bigint,"
+        - "`cost` double)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "LOCATION"
+        - "'hdfs://HOME90/warehouse/tablespace/managed/hive/sm_orders.db/mngd_order_item_small_orc'"
+        - "TBLPROPERTIES ("
+        - "'bucketing_version'='2',"
+        - "'transactional'='true',"
+        - "'transactional_properties'='insert_only',"
+        - "'transient_lastDdlTime'='1682525345')"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql:
+        - description: "Selecting DB"
+          action: "USE sm_orders"
+        - description: "Rename table"
+          action: " ALTER TABLE mngd_order_item_small_orc RENAME TO mngd_order_item_small_orc_e61247eaaea945e1b332ad9ba42cc532"
+        - description: "Creating Table"
+          action: "CREATE TABLE `mngd_order_item_small_orc`(\n`order_id` string,\n\
+            `order_item_id` string,\n`product_id` string,\n`quantity` bigint,\n`cost`\
+            \ double)\nROW FORMAT SERDE\n'org.apache.hadoop.hive.ql.io.orc.OrcSerde'\n\
+            STORED AS INPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'\n\
+            OUTPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'\nTBLPROPERTIES\
+            \ (\n'hmsMirror_Metadata_Stage1'='2023-04-26 12:09:46',\n'bucketing_version'='2',\n\
+            'transactional'='true',\n'transactional_properties'='insert_only'\n)"
+        - description: "Moving data to new Namespace"
+          action: "FROM mngd_order_item_small_orc_e61247eaaea945e1b332ad9ba42cc532\
+            \ INSERT OVERWRITE TABLE mngd_order_item_small_orc SELECT *"
+        cleanUpSql:
+        - description: "Drop table"
+          action: "DROP TABLE IF EXISTS mngd_order_item_small_orc_e61247eaaea945e1b332ad9ba42cc532"
+        defined: true
+      RIGHT:
+        name: "mngd_order_item_small_orc"
+        exists: false
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE TABLE `mngd_order_item_small_orc`("
+        - "`order_id` string,"
+        - "`order_item_id` string,"
+        - "`product_id` string,"
+        - "`quantity` bigint,"
+        - "`cost` double)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "TBLPROPERTIES ("
+        - "'hmsMirror_Metadata_Stage1'='2023-04-26 12:09:46',"
+        - "'bucketing_version'='2',"
+        - "'transactional'='true',"
+        - "'transactional_properties'='insert_only'"
+        - ")"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties:
+          hmsMirror_Metadata_Stage1: "2023-04-26 12:09:46"
+        issues:
+        - "Location Stripped from ACID definition.  Location element in 'CREATE' not\
+          \ allowed in Hive3+"
+        - "'reset-to-default-location' was specified.  Table definition stripped of\
+          \ LOCATION.  Location will be determined by the database or system warehouse\
+          \ settings."
+        sql: []
+        cleanUpSql: []
+        defined: true
+  mngd_order_orc:
+    dbName: "sm_orders"
+    name: "mngd_order_orc"
+    strategy: "STORAGE_MIGRATION"
+    phaseState: "SUCCESS"
+    environments:
+      SHADOW:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      TRANSFER:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      LEFT:
+        name: "mngd_order_orc_261cc27a86dd4ab2b1a7ac38393c431e"
+        exists: true
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE TABLE `mngd_order_orc`("
+        - "`id` string,"
+        - "`user_id` string,"
+        - "`order_date` date,"
+        - "`status` string)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "LOCATION"
+        - "'hdfs://HOME90/warehouse/tablespace/managed/hive/sm_orders.db/mngd_order_orc'"
+        - "TBLPROPERTIES ("
+        - "'bucketing_version'='2',"
+        - "'transactional'='true',"
+        - "'transactional_properties'='insert_only',"
+        - "'transient_lastDdlTime'='1682525346')"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql:
+        - description: "Selecting DB"
+          action: "USE sm_orders"
+        - description: "Rename table"
+          action: " ALTER TABLE mngd_order_orc RENAME TO mngd_order_orc_261cc27a86dd4ab2b1a7ac38393c431e"
+        - description: "Creating Table"
+          action: "CREATE TABLE `mngd_order_orc`(\n`id` string,\n`user_id` string,\n\
+            `order_date` date,\n`status` string)\nROW FORMAT SERDE\n'org.apache.hadoop.hive.ql.io.orc.OrcSerde'\n\
+            STORED AS INPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'\n\
+            OUTPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'\nTBLPROPERTIES\
+            \ (\n'hmsMirror_Metadata_Stage1'='2023-04-26 12:09:46',\n'bucketing_version'='2',\n\
+            'transactional'='true',\n'transactional_properties'='insert_only'\n)"
+        - description: "Moving data to new Namespace"
+          action: "FROM mngd_order_orc_261cc27a86dd4ab2b1a7ac38393c431e INSERT OVERWRITE\
+            \ TABLE mngd_order_orc SELECT *"
+        cleanUpSql:
+        - description: "Drop table"
+          action: "DROP TABLE IF EXISTS mngd_order_orc_261cc27a86dd4ab2b1a7ac38393c431e"
+        defined: true
+      RIGHT:
+        name: "mngd_order_orc"
+        exists: false
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE TABLE `mngd_order_orc`("
+        - "`id` string,"
+        - "`user_id` string,"
+        - "`order_date` date,"
+        - "`status` string)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "TBLPROPERTIES ("
+        - "'hmsMirror_Metadata_Stage1'='2023-04-26 12:09:46',"
+        - "'bucketing_version'='2',"
+        - "'transactional'='true',"
+        - "'transactional_properties'='insert_only'"
+        - ")"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties:
+          hmsMirror_Metadata_Stage1: "2023-04-26 12:09:46"
+        issues:
+        - "Location Stripped from ACID definition.  Location element in 'CREATE' not\
+          \ allowed in Hive3+"
+        - "'reset-to-default-location' was specified.  Table definition stripped of\
+          \ LOCATION.  Location will be determined by the database or system warehouse\
+          \ settings."
+        sql: []
+        cleanUpSql: []
+        defined: true
+  mngd_order_small_orc:
+    dbName: "sm_orders"
+    name: "mngd_order_small_orc"
+    strategy: "STORAGE_MIGRATION"
+    phaseState: "SUCCESS"
+    environments:
+      SHADOW:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      TRANSFER:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      LEFT:
+        name: "mngd_order_small_orc_87fcf4d70fe644408b82ee5376d226f1"
+        exists: true
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE TABLE `mngd_order_small_orc`("
+        - "`id` string,"
+        - "`user_id` string,"
+        - "`order_date` date,"
+        - "`status` string)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "LOCATION"
+        - "'hdfs://HOME90/warehouse/tablespace/managed/hive/sm_orders.db/mngd_order_small_orc'"
+        - "TBLPROPERTIES ("
+        - "'bucketing_version'='2',"
+        - "'transactional'='true',"
+        - "'transactional_properties'='insert_only',"
+        - "'transient_lastDdlTime'='1682525349')"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql:
+        - description: "Selecting DB"
+          action: "USE sm_orders"
+        - description: "Rename table"
+          action: " ALTER TABLE mngd_order_small_orc RENAME TO mngd_order_small_orc_87fcf4d70fe644408b82ee5376d226f1"
+        - description: "Creating Table"
+          action: "CREATE TABLE `mngd_order_small_orc`(\n`id` string,\n`user_id` string,\n\
+            `order_date` date,\n`status` string)\nROW FORMAT SERDE\n'org.apache.hadoop.hive.ql.io.orc.OrcSerde'\n\
+            STORED AS INPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'\n\
+            OUTPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'\nTBLPROPERTIES\
+            \ (\n'hmsMirror_Metadata_Stage1'='2023-04-26 12:09:46',\n'bucketing_version'='2',\n\
+            'transactional'='true',\n'transactional_properties'='insert_only'\n)"
+        - description: "Moving data to new Namespace"
+          action: "FROM mngd_order_small_orc_87fcf4d70fe644408b82ee5376d226f1 INSERT\
+            \ OVERWRITE TABLE mngd_order_small_orc SELECT *"
+        cleanUpSql:
+        - description: "Drop table"
+          action: "DROP TABLE IF EXISTS mngd_order_small_orc_87fcf4d70fe644408b82ee5376d226f1"
+        defined: true
+      RIGHT:
+        name: "mngd_order_small_orc"
+        exists: false
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE TABLE `mngd_order_small_orc`("
+        - "`id` string,"
+        - "`user_id` string,"
+        - "`order_date` date,"
+        - "`status` string)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "TBLPROPERTIES ("
+        - "'hmsMirror_Metadata_Stage1'='2023-04-26 12:09:46',"
+        - "'bucketing_version'='2',"
+        - "'transactional'='true',"
+        - "'transactional_properties'='insert_only'"
+        - ")"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties:
+          hmsMirror_Metadata_Stage1: "2023-04-26 12:09:46"
+        issues:
+        - "Location Stripped from ACID definition.  Location element in 'CREATE' not\
+          \ allowed in Hive3+"
+        - "'reset-to-default-location' was specified.  Table definition stripped of\
+          \ LOCATION.  Location will be determined by the database or system warehouse\
+          \ settings."
+        sql: []
+        cleanUpSql: []
+        defined: true
+  order_item_orc:
+    dbName: "sm_orders"
+    name: "order_item_orc"
+    strategy: "STORAGE_MIGRATION"
+    phaseState: "SUCCESS"
+    environments:
+      SHADOW:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      TRANSFER:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      LEFT:
+        name: "order_item_orc_d423fe9a47a14c8a9bbab655c3649c63"
+        exists: true
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE EXTERNAL TABLE `order_item_orc`("
+        - "`order_id` string,"
+        - "`order_item_id` string,"
+        - "`product_id` string,"
+        - "`quantity` bigint,"
+        - "`cost` double)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "LOCATION"
+        - "'hdfs://HOME90/warehouse/tablespace/external/hive/sm_orders.db/order_item_orc'"
+        - "TBLPROPERTIES ("
+        - "'TRANSLATED_TO_EXTERNAL'='TRUE',"
+        - "'bucketing_version'='2',"
+        - "'external.table.purge'='false',"
+        - "'last_modified_by'='dstreev',"
+        - "'last_modified_time'='1682343559',"
+        - "'transient_lastDdlTime'='1682525320')"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql:
+        - description: "Selecting DB"
+          action: "USE sm_orders"
+        - description: "Remove table property"
+          action: "ALTER TABLE order_item_orc UNSET TBLPROPERTIES (\"TRANSLATED_TO_EXTERNAL\"\
+            )"
+        - description: "Rename table"
+          action: " ALTER TABLE order_item_orc RENAME TO order_item_orc_d423fe9a47a14c8a9bbab655c3649c63"
+        - description: "Creating Table"
+          action: "CREATE EXTERNAL TABLE `order_item_orc`(\n`order_id` string,\n`order_item_id`\
+            \ string,\n`product_id` string,\n`quantity` bigint,\n`cost` double)\n\
+            ROW FORMAT SERDE\n'org.apache.hadoop.hive.ql.io.orc.OrcSerde'\nSTORED\
+            \ AS INPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'\n\
+            OUTPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'\nTBLPROPERTIES\
+            \ (\n'hmsMirror_Metadata_Stage1'='2023-04-26 12:10:05',\n'TRANSLATED_TO_EXTERNAL'='TRUE',\n\
+            'bucketing_version'='2',\n'external.table.purge'='false'\n)"
+        - description: "Moving data to new Namespace"
+          action: "FROM order_item_orc_d423fe9a47a14c8a9bbab655c3649c63 INSERT OVERWRITE\
+            \ TABLE order_item_orc SELECT *"
+        cleanUpSql:
+        - description: "Drop table"
+          action: "DROP TABLE IF EXISTS order_item_orc_d423fe9a47a14c8a9bbab655c3649c63"
+        defined: true
+      RIGHT:
+        name: "order_item_orc"
+        exists: false
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE EXTERNAL TABLE `order_item_orc`("
+        - "`order_id` string,"
+        - "`order_item_id` string,"
+        - "`product_id` string,"
+        - "`quantity` bigint,"
+        - "`cost` double)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "TBLPROPERTIES ("
+        - "'hmsMirror_Metadata_Stage1'='2023-04-26 12:10:05',"
+        - "'TRANSLATED_TO_EXTERNAL'='TRUE',"
+        - "'bucketing_version'='2',"
+        - "'external.table.purge'='false'"
+        - ")"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties:
+          hmsMirror_Metadata_Stage1: "2023-04-26 12:10:05"
+        issues:
+        - "'reset-to-default-location' was specified.  Table definition stripped of\
+          \ LOCATION.  Location will be determined by the database or system warehouse\
+          \ settings."
+        sql: []
+        cleanUpSql: []
+        defined: true
+  order_item_small_orc:
+    dbName: "sm_orders"
+    name: "order_item_small_orc"
+    strategy: "STORAGE_MIGRATION"
+    phaseState: "SUCCESS"
+    environments:
+      SHADOW:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      TRANSFER:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      LEFT:
+        name: "order_item_small_orc_a5381521ed5d45febaddc9f0e43c8963"
+        exists: true
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE EXTERNAL TABLE `order_item_small_orc`("
+        - "`order_id` string,"
+        - "`order_item_id` string,"
+        - "`product_id` string,"
+        - "`quantity` bigint,"
+        - "`cost` double)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "LOCATION"
+        - "'hdfs://HOME90/warehouse/tablespace/external/hive/sm_orders.db/order_item_small_orc'"
+        - "TBLPROPERTIES ("
+        - "'bucketing_version'='2',"
+        - "'transient_lastDdlTime'='1682525321')"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql:
+        - description: "Selecting DB"
+          action: "USE sm_orders"
+        - description: "Rename table"
+          action: " ALTER TABLE order_item_small_orc RENAME TO order_item_small_orc_a5381521ed5d45febaddc9f0e43c8963"
+        - description: "Creating Table"
+          action: "CREATE EXTERNAL TABLE `order_item_small_orc`(\n`order_id` string,\n\
+            `order_item_id` string,\n`product_id` string,\n`quantity` bigint,\n`cost`\
+            \ double)\nROW FORMAT SERDE\n'org.apache.hadoop.hive.ql.io.orc.OrcSerde'\n\
+            STORED AS INPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'\n\
+            OUTPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'\nTBLPROPERTIES\
+            \ (\n'hmsMirror_Metadata_Stage1'='2023-04-26 12:10:05',\n'bucketing_version'='2')"
+        - description: "Moving data to new Namespace"
+          action: "FROM order_item_small_orc_a5381521ed5d45febaddc9f0e43c8963 INSERT\
+            \ OVERWRITE TABLE order_item_small_orc SELECT *"
+        cleanUpSql:
+        - description: "Drop table"
+          action: "DROP TABLE IF EXISTS order_item_small_orc_a5381521ed5d45febaddc9f0e43c8963"
+        defined: true
+      RIGHT:
+        name: "order_item_small_orc"
+        exists: false
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE EXTERNAL TABLE `order_item_small_orc`("
+        - "`order_id` string,"
+        - "`order_item_id` string,"
+        - "`product_id` string,"
+        - "`quantity` bigint,"
+        - "`cost` double)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "TBLPROPERTIES ("
+        - "'hmsMirror_Metadata_Stage1'='2023-04-26 12:10:05',"
+        - "'bucketing_version'='2')"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties:
+          hmsMirror_Metadata_Stage1: "2023-04-26 12:10:05"
+        issues:
+        - "'reset-to-default-location' was specified.  Table definition stripped of\
+          \ LOCATION.  Location will be determined by the database or system warehouse\
+          \ settings."
+        sql: []
+        cleanUpSql: []
+        defined: true
+  order_orc:
+    dbName: "sm_orders"
+    name: "order_orc"
+    strategy: "STORAGE_MIGRATION"
+    phaseState: "SUCCESS"
+    environments:
+      SHADOW:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      TRANSFER:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      LEFT:
+        name: "order_orc_20b2758e3f4441d487c4061372480263"
+        exists: true
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE EXTERNAL TABLE `order_orc`("
+        - "`id` string,"
+        - "`user_id` string,"
+        - "`order_date` date,"
+        - "`status` string)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "LOCATION"
+        - "'hdfs://HOME90/warehouse/tablespace/external/hive/sm_orders.db/order_orc'"
+        - "TBLPROPERTIES ("
+        - "'bucketing_version'='2',"
+        - "'transient_lastDdlTime'='1682525321')"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql:
+        - description: "Selecting DB"
+          action: "USE sm_orders"
+        - description: "Rename table"
+          action: " ALTER TABLE order_orc RENAME TO order_orc_20b2758e3f4441d487c4061372480263"
+        - description: "Creating Table"
+          action: "CREATE EXTERNAL TABLE `order_orc`(\n`id` string,\n`user_id` string,\n\
+            `order_date` date,\n`status` string)\nROW FORMAT SERDE\n'org.apache.hadoop.hive.ql.io.orc.OrcSerde'\n\
+            STORED AS INPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'\n\
+            OUTPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'\nTBLPROPERTIES\
+            \ (\n'hmsMirror_Metadata_Stage1'='2023-04-26 12:10:06',\n'bucketing_version'='2')"
+        - description: "Moving data to new Namespace"
+          action: "FROM order_orc_20b2758e3f4441d487c4061372480263 INSERT OVERWRITE\
+            \ TABLE order_orc SELECT *"
+        cleanUpSql:
+        - description: "Drop table"
+          action: "DROP TABLE IF EXISTS order_orc_20b2758e3f4441d487c4061372480263"
+        defined: true
+      RIGHT:
+        name: "order_orc"
+        exists: false
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE EXTERNAL TABLE `order_orc`("
+        - "`id` string,"
+        - "`user_id` string,"
+        - "`order_date` date,"
+        - "`status` string)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "TBLPROPERTIES ("
+        - "'hmsMirror_Metadata_Stage1'='2023-04-26 12:10:06',"
+        - "'bucketing_version'='2')"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties:
+          hmsMirror_Metadata_Stage1: "2023-04-26 12:10:06"
+        issues:
+        - "'reset-to-default-location' was specified.  Table definition stripped of\
+          \ LOCATION.  Location will be determined by the database or system warehouse\
+          \ settings."
+        sql: []
+        cleanUpSql: []
+        defined: true
+  order_small_orc:
+    dbName: "sm_orders"
+    name: "order_small_orc"
+    strategy: "STORAGE_MIGRATION"
+    phaseState: "SUCCESS"
+    environments:
+      SHADOW:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      TRANSFER:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      LEFT:
+        name: "order_small_orc_eb7078c838524dd79d0e6ced6500a309"
+        exists: true
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE EXTERNAL TABLE `order_small_orc`("
+        - "`id` string,"
+        - "`user_id` string,"
+        - "`order_date` date,"
+        - "`status` string)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "LOCATION"
+        - "'hdfs://HOME90/warehouse/tablespace/external/hive/sm_orders.db/order_small_orc'"
+        - "TBLPROPERTIES ("
+        - "'bucketing_version'='2',"
+        - "'transient_lastDdlTime'='1682525321')"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql:
+        - description: "Selecting DB"
+          action: "USE sm_orders"
+        - description: "Rename table"
+          action: " ALTER TABLE order_small_orc RENAME TO order_small_orc_eb7078c838524dd79d0e6ced6500a309"
+        - description: "Creating Table"
+          action: "CREATE EXTERNAL TABLE `order_small_orc`(\n`id` string,\n`user_id`\
+            \ string,\n`order_date` date,\n`status` string)\nROW FORMAT SERDE\n'org.apache.hadoop.hive.ql.io.orc.OrcSerde'\n\
+            STORED AS INPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'\n\
+            OUTPUTFORMAT\n'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'\nTBLPROPERTIES\
+            \ (\n'hmsMirror_Metadata_Stage1'='2023-04-26 12:10:08',\n'bucketing_version'='2')"
+        - description: "Moving data to new Namespace"
+          action: "FROM order_small_orc_eb7078c838524dd79d0e6ced6500a309 INSERT OVERWRITE\
+            \ TABLE order_small_orc SELECT *"
+        cleanUpSql:
+        - description: "Drop table"
+          action: "DROP TABLE IF EXISTS order_small_orc_eb7078c838524dd79d0e6ced6500a309"
+        defined: true
+      RIGHT:
+        name: "order_small_orc"
+        exists: false
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE EXTERNAL TABLE `order_small_orc`("
+        - "`id` string,"
+        - "`user_id` string,"
+        - "`order_date` date,"
+        - "`status` string)"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+        - "TBLPROPERTIES ("
+        - "'hmsMirror_Metadata_Stage1'='2023-04-26 12:10:08',"
+        - "'bucketing_version'='2')"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties:
+          hmsMirror_Metadata_Stage1: "2023-04-26 12:10:08"
+        issues:
+        - "'reset-to-default-location' was specified.  Table definition stripped of\
+          \ LOCATION.  Location will be determined by the database or system warehouse\
+          \ settings."
+        sql: []
+        cleanUpSql: []
+        defined: true
+  order_src:
+    dbName: "sm_orders"
+    name: "order_src"
+    strategy: "STORAGE_MIGRATION"
+    phaseState: "SUCCESS"
+    environments:
+      SHADOW:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      TRANSFER:
+        name: null
+        exists: false
+        createStrategy: "NOTHING"
+        definition: []
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql: []
+        cleanUpSql: []
+        defined: false
+      LEFT:
+        name: "order_src_95865504ddaf4c15ada73081e74117b7"
+        exists: true
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE EXTERNAL TABLE `order_src`("
+        - "`id` string COMMENT 'from deserializer',"
+        - "`user_id` string COMMENT 'from deserializer',"
+        - "`order_date` date COMMENT 'from deserializer',"
+        - "`status` string COMMENT 'from deserializer',"
+        - "`order_items` array<struct<`order_item_id`:string, `product_id`:string,\
+          \ `quantity`:bigint, `cost`:double>> COMMENT 'from deserializer')"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.serde2.JsonSerDe'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.mapred.TextInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'"
+        - "LOCATION"
+        - "'hdfs://HOME90/user/dstreev/datasets/orders_small'"
+        - "TBLPROPERTIES ("
+        - "'bucketing_version'='2',"
+        - "'transient_lastDdlTime'='1682525321')"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties: {}
+        issues: []
+        sql:
+        - description: "Selecting DB"
+          action: "USE sm_orders"
+        - description: "Rename table"
+          action: " ALTER TABLE order_src RENAME TO order_src_95865504ddaf4c15ada73081e74117b7"
+        - description: "Creating Table"
+          action: "CREATE EXTERNAL TABLE `order_src`(\n`id` string COMMENT 'from deserializer',\n\
+            `user_id` string COMMENT 'from deserializer',\n`order_date` date COMMENT\
+            \ 'from deserializer',\n`status` string COMMENT 'from deserializer',\n\
+            `order_items` array<struct<`order_item_id`:string, `product_id`:string,\
+            \ `quantity`:bigint, `cost`:double>> COMMENT 'from deserializer')\nROW\
+            \ FORMAT SERDE\n'org.apache.hadoop.hive.serde2.JsonSerDe'\nSTORED AS INPUTFORMAT\n\
+            'org.apache.hadoop.mapred.TextInputFormat'\nOUTPUTFORMAT\n'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'\n\
+            TBLPROPERTIES (\n'hmsMirror_Metadata_Stage1'='2023-04-26 12:10:09',\n\
+            'bucketing_version'='2')"
+        - description: "Moving data to new Namespace"
+          action: "FROM order_src_95865504ddaf4c15ada73081e74117b7 INSERT OVERWRITE\
+            \ TABLE order_src SELECT *"
+        cleanUpSql:
+        - description: "Drop table"
+          action: "DROP TABLE IF EXISTS order_src_95865504ddaf4c15ada73081e74117b7"
+        defined: true
+      RIGHT:
+        name: "order_src"
+        exists: false
+        createStrategy: "NOTHING"
+        definition:
+        - "CREATE EXTERNAL TABLE `order_src`("
+        - "`id` string COMMENT 'from deserializer',"
+        - "`user_id` string COMMENT 'from deserializer',"
+        - "`order_date` date COMMENT 'from deserializer',"
+        - "`status` string COMMENT 'from deserializer',"
+        - "`order_items` array<struct<`order_item_id`:string, `product_id`:string,\
+          \ `quantity`:bigint, `cost`:double>> COMMENT 'from deserializer')"
+        - "ROW FORMAT SERDE"
+        - "'org.apache.hadoop.hive.serde2.JsonSerDe'"
+        - "STORED AS INPUTFORMAT"
+        - "'org.apache.hadoop.mapred.TextInputFormat'"
+        - "OUTPUTFORMAT"
+        - "'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'"
+        - "TBLPROPERTIES ("
+        - "'hmsMirror_Metadata_Stage1'='2023-04-26 12:10:09',"
+        - "'bucketing_version'='2')"
+        partitioned: false
+        owner: null
+        partitions: []
+        actions: []
+        addProperties:
+          hmsMirror_Metadata_Stage1: "2023-04-26 12:10:09"
+        issues:
+        - "'reset-to-default-location' was specified.  Table definition stripped of\
+          \ LOCATION.  Location will be determined by the database or system warehouse\
+          \ settings."
+        - "Feature (STRUCT_ESCAPE) was found applicable and adjustments applied. Reserved/Key\
+          \ words in a tables field definition need to be escaped.  If they are NOT,\
+          \ this process will escape them and post a warning about the change."
+        sql: []
+        cleanUpSql: []
+        defined: true
+dbdefinitions:
+  LEFT:
+    DB_NAME: "sm_orders"
+    LOCATION: "hdfs://HOME90/warehouse/tablespace/external/hive/sm_orders.db"
+    OWNER_NAME: "dstreev"
+    OWNER_TYPE: "USER"

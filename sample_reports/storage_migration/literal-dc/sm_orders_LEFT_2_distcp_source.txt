@@ -1,0 +1,4 @@
+hdfs://HOME90/warehouse/tablespace/external/hive/sm_orders.db/order_item_orc
+hdfs://HOME90/warehouse/tablespace/external/hive/sm_orders.db/order_item_small_orc
+hdfs://HOME90/warehouse/tablespace/external/hive/sm_orders.db/order_orc
+hdfs://HOME90/warehouse/tablespace/external/hive/sm_orders.db/order_small_orc

@@ -96,3 +96,12 @@ Under normal circumstances this process will work fine.  But, if you're moving t
 - If the tables aren't set to `auto-discover` partitions, you will need to run `msck repair table <table_name> SYNC PARTITIONS` after the `distcp` job.
 
 The obvious downside to this is that the tables will be empty, until the `distcp` job is complete.  But it avoids the ACL checks in option #1 and the `CREATE` statements will run quickly.
+
+### Example Reports
+
+[Literal Translation Dry-run](../sample_reports/storage_migration/literal)
+[Literal Translation Dry-run w/ `-dc`](../sample_reports/storage_migration/literal-dc)
+[Literal Translation Exec](../sample_reports/storage_migration/literal-exec)
+
+[Reset-Default-Location Dry-run](../sample_reports/storage_migration/rdl)
+[Reset-Default-Location Exec](../sample_reports/storage_migration/rdl-exec)
