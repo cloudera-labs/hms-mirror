@@ -1539,7 +1539,7 @@ public class Mirror {
                 "Migrate AVRO Schema Files referenced in TBLPROPERTIES by 'avro.schema.url'.  Without migration " +
                         "it is expected that the file will exist on the other cluster and match the 'url' defined in the " +
                         "schema DDL.\nIf it's not present, schema creation will FAIL.\nSpecifying this option REQUIRES the " +
-                        "LEFT and RIGHT cluster to be LINKED.\nSee docs: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
+                        "LEFT and RIGHT cluster to be LINKED.\nSee docs: https://github.com/cloudera-labs/hms-mirror#linking-clusters-storage-layers");
         asmOption.setRequired(Boolean.FALSE);
         options.addOption(asmOption);
 

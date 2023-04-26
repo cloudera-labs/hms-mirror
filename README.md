@@ -784,7 +784,7 @@ Hive Metastore Migration Utility
                                                    Specifying this option REQUIRES the LEFT and
                                                    RIGHT cluster to be LINKED.
                                                    See docs:
-                                                   https://github.com/dstreev/hms-mirror#linking-clu
+                                                   https://github.com/cloudera-labs/hms-mirror#linking-clu
                                                    sters-storage-layers
  -cfg,--config <filename>                          Config with details for the HMS-Mirror.  Default:
                                                    $HOME/.hms-mirror/cfg/default.yaml

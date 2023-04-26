@@ -202,7 +202,7 @@ public class Config {
                     System.out.println("----------------------------------------------------------------------------------------");
                     System.out.println("The connection appears to be Kerberized.\n\t\tPlace the 'hive standalone' driver in '$HOME/.hms-mirror/aux_libs'");
                     System.out.println("\tSPECIAL RUN INSTRUCTIONS for Legacy Kerberos Connections.");
-                    System.out.println("\thttps://github.com/dstreev/hms-mirror#running-against-a-legacy-non-cdp-kerberized-hiveserver2");
+                    System.out.println("\thttps://github.com/cloudera-labs/hms-mirror#running-against-a-legacy-non-cdp-kerberized-hiveserver2");
                     System.out.println("----------------------------------------------------------------------------------------");
                     kerb = Boolean.TRUE;
                 } else if (response.contains("principal")) {
@@ -1054,13 +1054,13 @@ public class Config {
                 if (lcr.isError()) {
                     throw new RuntimeException("Link to RIGHT cluster FAILED.\n " + lcr.getError() +
                             "\nCheck configuration and hcfsNamespace value.  " +
-                            "Check the documentation about Linking clusters: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
+                            "Check the documentation about Linking clusters: https://github.com/cloudera-labs/hms-mirror#linking-clusters-storage-layers");
                 }
                 CommandReturn rcr = session.processInput(rightlsTestLine);
                 if (rcr.isError()) {
                     throw new RuntimeException("Link to LEFT cluster FAILED.\n " + rcr.getError() +
                             "\nCheck configuration and hcfsNamespace value.  " +
-                            "Check the documentation about Linking clusters: https://github.com/dstreev/hms-mirror#linking-clusters-storage-layers");
+                            "Check the documentation about Linking clusters: https://github.com/cloudera-labs/hms-mirror#linking-clusters-storage-layers");
                 }
                 rtn = Boolean.TRUE;
             } finally {

@@ -491,7 +491,7 @@ public class Cluster implements Comparable<Cluster> {
                     LOG.error(throwables);
                     String message = throwables.getMessage();
                     if (throwables.getMessage().contains("HiveAccessControlException Permission denied")) {
-                        message = message + " See [Hive SQL Exception / HDFS Permissions Issues](https://github.com/dstreev/hms-mirror#hive-sql-exception--hdfs-permissions-issues)";
+                        message = message + " See [Hive SQL Exception / HDFS Permissions Issues](https://github.com/cloudera-labs/hms-mirror#hive-sql-exception--hdfs-permissions-issues)";
                     }
                     if (throwables.getMessage().contains("AvroSerdeException")) {
                         message = message + ". It's possible the `avro.schema.url` referenced file doesn't exist at the target. " +
