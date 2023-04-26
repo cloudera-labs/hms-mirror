@@ -100,8 +100,11 @@ The obvious downside to this is that the tables will be empty, until the `distcp
 ### Example Reports
 
 [Literal Translation Dry-run](../sample_reports/storage_migration/literal)
+
 [Literal Translation Dry-run w/ `-dc`](../sample_reports/storage_migration/literal-dc)
+
 [Literal Translation Exec](../sample_reports/storage_migration/literal-exec)
 
 [Reset-Default-Location Dry-run](../sample_reports/storage_migration/rdl)
+
 [Reset-Default-Location Exec](../sample_reports/storage_migration/rdl-exec)
