@@ -230,6 +230,10 @@ public class Cluster implements Comparable<Cluster> {
                                 LOG.info("Database: " + database + " Table: " + tableName + " was NOT added to list.  " +
                                         "The name matches the transfer prefix and is most likely a remnant of a previous " +
                                         "event. If this is a mistake, change the 'transferPrefix' to something more unique.");
+                            } else if (tableName.endsWith("storage_migration")) {
+                                LOG.info("Database: " + database + " Table: " + tableName + " was NOT added to list.  " +
+                                        "The name is the result of a previous STORAGE_MIGRATION attempt that has not been " +
+                                        "cleaned up.");
                             } else {
                                 if (config.getTblRegEx() == null && config.getTblExcludeRegEx() == null) {
                                     TableMirror tableMirror = dbMirror.addTable(tableName);

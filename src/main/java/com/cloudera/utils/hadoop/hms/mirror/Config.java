@@ -872,8 +872,13 @@ public class Config {
         if (dataStrategy == DataStrategy.STORAGE_MIGRATION) {
             // The commonStorage and Storage Migration Namespace are the same thing.
             if (this.getTransfer().getCommonStorage() == null) {
-                errors.set(STORAGE_MIGRATION_REQUIRED_NAMESPACE.getCode());
-                rtn = Boolean.FALSE;
+                // Use the same namespace, we're assuming that was the intent.
+                this.getTransfer().setCommonStorage(getCluster(Environment.LEFT).getHcfsNamespace());
+                // Force reset to default location.
+                this.setResetToDefaultLocation(Boolean.TRUE);
+                warnings.set(STORAGE_MIGRATION_NAMESPACE_LEFT.getCode(), getCluster(Environment.LEFT).getHcfsNamespace());
+                warnings.set(STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL.getCode());
+//                rtn = Boolean.FALSE;
             }
             if (this.getTransfer().getWarehouse() == null ||
                     (this.getTransfer().getWarehouse().getManagedDirectory() == null ||

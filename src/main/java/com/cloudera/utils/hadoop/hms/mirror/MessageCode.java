@@ -88,7 +88,6 @@ public enum MessageCode {
     ENVIRONMENT_CONNECTION_ISSUE(49, "There is an issue connecting to the {0} HS2 environment.  Check jdbc setup."),
     FLIP_WITHOUT_RIGHT(80, "You can use the 'flip' option if there isn't a RIGHT cluster defined in the configuration."),
 
-
     // WARNINGS
     SYNC_TBL_FILTER(50, "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"
             + "' ON BOTH SIDES!!!"),
@@ -109,8 +108,11 @@ public enum MessageCode {
     RDL_DC_WARNING_TABLE_ALIGNMENT(59, "Using the options `-dc` and `-rdl` together may yield some inconsistent results. " +
             "__If the 'current' table locations don't match the table name__, `distcp` will NOT realign those directories to the " +
             "table names.  Which means the adjusted tables may not align with the directories. See: [Issue #35](https://github.com/cloudera-labs/hms-mirror/issues/35) " +
-            "for work going on to address this.")
-
+            "for work going on to address this."),
+    STORAGE_MIGRATION_NAMESPACE_LEFT(60,  "You didn't specify -smn or -cs for STORAGE_MIGRATION.  We're assuming you are migrating " +
+            "within the same namespace {0}."),
+    STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL(61,  "You're using the same namespace in STORAGE_MIGRATION, which " +
+                                                         "requires the use of `reset-to-default-location`.  This feature has automatically been set.")
     ;
 
 

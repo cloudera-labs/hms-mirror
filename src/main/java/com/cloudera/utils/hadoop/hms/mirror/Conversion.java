@@ -243,7 +243,8 @@ public class Conversion {
             sb.append("none\n");
         }
 
-        sb.append("\n## Table Status (").append(dbMirror.getTableMirrors().size()).append(")\n\n");
+        sb.append("\n## Table Status (").append(dbMirror.getTableMirrors().size()).append(")  ");
+        sb.append(dbMirror.getPhaseSummaryString()).append("\n\n");
 
         sb.append("*NOTE* SQL in this report may be altered by the renderer.  Do NOT COPY/PASTE from this report.  Use the LEFT|RIGHT_execution.sql files for accurate scripts\n\n");
 

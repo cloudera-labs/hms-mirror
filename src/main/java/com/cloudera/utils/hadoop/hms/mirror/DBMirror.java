@@ -67,6 +67,28 @@ public class DBMirror {
         return issues.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
     }
 
+    public Map<PhaseState, Integer> getPhaseSummary() {
+        Map<PhaseState, Integer> rtn = new HashMap<PhaseState, Integer>();
+        for (String tableName: getTableMirrors().keySet()) {
+            TableMirror tableMirror = getTableMirrors().get(tableName);
+            Integer count = rtn.get(tableMirror.getPhaseState());
+            if (count != null)
+                rtn.put(tableMirror.getPhaseState(), count+1);
+            else
+                rtn.put(tableMirror.getPhaseState(), 1);
+        }
+        return rtn;
+    }
+
+    public String getPhaseSummaryString() {
+        StringBuilder sb = new StringBuilder();
+        Map<PhaseState, Integer> psMap = getPhaseSummary();
+        for (PhaseState ps: psMap.keySet()) {
+            sb.append(ps).append("(").append(psMap.get(ps)).append(") ");
+        }
+        return sb.toString();
+    }
+
     public void addIssue(Environment environment, String issue) {
         String scrubbedIssue = issue.replace("\n", "<br/>");
         List<String> issuesList = issues.get(environment);
@@ -387,7 +409,7 @@ public class DBMirror {
                                 String alterDbMngdLoc = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, sbMngdLoc.toString());
                                 this.getSql(Environment.LEFT).add(new Pair(MirrorConf.ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
 
-                                this.addIssue(Environment.LEFT,"This process, when 'executed' will leave the original tables intact in there renamed " +
+                                this.addIssue(Environment.LEFT,"This process, when 'executed' will leave the original tables intact in their renamed " +
                                         "version.  They are NOT automatically cleaned up.  Run the produced '" +
                                         getName() + "_LEFT_CleanUp_execute.sql' " +
                                         "file to permanently remove them.  Managed and External/Purge table data will be " +

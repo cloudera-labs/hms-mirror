@@ -19,6 +19,7 @@ package com.cloudera.utils.hadoop.hms.util;
 import com.cloudera.utils.hadoop.hms.mirror.Cluster;
 import com.cloudera.utils.hadoop.hms.mirror.EnvironmentTable;
 import com.cloudera.utils.hadoop.hms.mirror.MirrorConf;
+import com.cloudera.utils.hadoop.hms.mirror.TableMirror;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -26,6 +27,8 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TableUtils {
     private static final Logger LOG = LogManager.getLogger(TableUtils.class);
@@ -65,6 +68,8 @@ public class TableUtils {
     public static final String IMPORT_TABLE = "IMPORT Table";
     public static final String RENAME_TABLE = "RENAME Table";
     public static final String ACID_NOT_ON = "This is an ACID table.  Turn on ACID migration `-ma|--migrate-acid`.";
+    public static Pattern tableCreatePattern = Pattern.compile(".*TABLE `?([a-z,A-Z,_,0-9,_]+)`?\\.?`?([a-z,A-Z,_,0-9,_]+)?");
+//    public static Pattern dbdottable = Pattern.compile(".*`?\\.`?(.*)");
 
     public static String getLocation(String tableName, List<String> tableDefinition) {
         LOG.trace("Getting table location data for: " + tableName);
@@ -74,6 +79,43 @@ public class TableUtils {
             location = tableDefinition.get(locIdx + 1).trim().replace("'", "");
         }
         return location;
+    }
+
+    public static String getTableNameFromDefinition(List<String> tableDefinition) {
+        String tableName = null;
+        for (String line: tableDefinition) {
+            LOG.debug("Tablename Check: " + line);
+            if (line.contains("CREATE")) {
+                Matcher matcher = tableCreatePattern.matcher(line);
+                if (matcher.find()) {
+                    if (matcher.groupCount() == 2) {
+                        tableName = matcher.group(1);
+                    } else if (matcher.groupCount() == 3) {
+                        tableName = matcher.group(2);
+                    }
+                    break;
+                } else {
+                    LOG.error("Couldn't locate tablename in: " + line);
+                }
+            }
+        }
+        return tableName;
+    }
+
+    public static Boolean doesTableNameMatchDirectoryName(List<String> tableDefinition) {
+        String tableName = getTableNameFromDefinition(tableDefinition);
+        return doesTableNameMatchDirectoryName(tableName, tableDefinition);
+    }
+
+    public static Boolean doesTableNameMatchDirectoryName(String tableName, List<String> tableDefinition) {
+        String location = getLocation(tableName, tableDefinition);
+        int idx = location.lastIndexOf('/');
+        String dirName = location.substring(idx+1);
+        if (tableName.equals(dirName)) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
     }
 
     public static String getSerdePath(String tableName, List<String> tableDefinition) {

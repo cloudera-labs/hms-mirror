@@ -1103,12 +1103,28 @@ public class TableMirror {
         CopySpec copySpec = null;
 
         let = getEnvironmentTable(Environment.LEFT);
-        ret = getEnvironmentTable(Environment.RIGHT);
 
-        if (TableUtils.getLocation(let.getName(), let.getDefinition()).startsWith(config.getTransfer().getCommonStorage())) {
-            addIssue(Environment.LEFT, "Table namespace already matches target MIGRATION namespace.  Nothing to do.");
+        // Check that the table isn't already in the target location.
+        StringBuilder sb = new StringBuilder();
+        sb.append(config.getTransfer().getCommonStorage());
+        String warehouseDir = null;
+        if (TableUtils.isExternal(let)) {
+            // External Location
+            warehouseDir = config.getTransfer().getWarehouse().getExternalDirectory();
+        } else {
+            // Managed Location
+            warehouseDir = config.getTransfer().getWarehouse().getManagedDirectory();
+        }
+        if (!config.getTransfer().getCommonStorage().endsWith("/") && !warehouseDir.startsWith("/")) {
+            sb.append("/");
+        }
+        sb.append(warehouseDir);
+        String lLocation = TableUtils.getLocation(this.getName(), let.getDefinition());
+        if (lLocation.startsWith(sb.toString())) {
+            addIssue(Environment.LEFT, "Table has already been migrated");
             return Boolean.FALSE;
         }
+//        ret = getEnvironmentTable(Environment.RIGHT);
 
         // Create a 'target' table definition on left cluster with right definition (used only as place holder)
         copySpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
@@ -1230,7 +1246,8 @@ public class TableMirror {
             String unSetSql = MessageFormat.format(MirrorConf.REMOVE_TABLE_PROP, ret.getName(), MirrorConf.TRANSLATED_TO_EXTERNAL);
             let.addSql(MirrorConf.REMOVE_TABLE_PROP_DESC, unSetSql);
         }
-        let.setName(let.getName() + "_" + getUnique());
+        // Set unique name for old target to rename.
+        let.setName(let.getName() + "_" + getUnique()+"storage_migration");
         String origAlterRename = MessageFormat.format(MirrorConf.RENAME_TABLE, ret.getName(), let.getName());
         let.addSql(MirrorConf.RENAME_TABLE_DESC, origAlterRename);
 
@@ -1648,6 +1665,7 @@ public class TableMirror {
     public Boolean buildTableSchema(CopySpec copySpec) {
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Config config = copySpec.getConfig();
+        Boolean rtn = Boolean.TRUE;
 
         EnvironmentTable source = getEnvironmentTable(copySpec.getSource());
         EnvironmentTable target = getEnvironmentTable(copySpec.getTarget());
@@ -1669,6 +1687,20 @@ public class TableMirror {
 
                 if (copySpec.getLocation() != null)
                     TableUtils.updateTableLocation(target, copySpec.getLocation());
+
+                if (!TableUtils.doesTableNameMatchDirectoryName(target.getDefinition())) {
+                    if (config.getResetToDefaultLocation()) {
+                        target.addIssue("Tablename does NOT match last directory name. Using `rdl` will change " +
+                                "the implied path from the original.  This may affect other applications that aren't " +
+                                "relying on the metastore.");
+                        if (config.getTransfer().getStorageMigration().isDistcp()) {
+                            // We need to FAIL the table to ensure we point out that there is a disconnect.
+                            rtn = Boolean.FALSE;
+                            target.addIssue("Tablename does NOT match last directory name.  Using `dc|distcp` will copy " +
+                                    "the data but the table will not align with the directory.");
+                        }
+                    }
+                }
 
                 // 1. If Managed, convert to EXTERNAL
                 // When coming from legacy and going to non-legacy (Hive 3).
@@ -1910,7 +1942,7 @@ public class TableMirror {
 
             TableUtils.fixTableDefinition(target);
         }
-        return Boolean.TRUE;
+        return rtn;
     }
 
     public String getCreateStatement(Environment environment) {

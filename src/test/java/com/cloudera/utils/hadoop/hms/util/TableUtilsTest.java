@@ -54,6 +54,18 @@ public class TableUtilsTest {
 
     }
 
+    @Test
+    public void testTableNameDirMatch_01() {
+        List<String> tblDef = fromStatic(table_01);
+        assertFalse(TableUtils.doesTableNameMatchDirectoryName(tblDef));
+    }
+
+    @Test
+    public void testTableNameDirMatch_02() {
+        List<String> tblDef = fromStatic(table_04);
+        assertTrue(TableUtils.doesTableNameMatchDirectoryName(tblDef));
+    }
+
     public List<String> fromStatic(List<String> source) {
         List<String> rtn = new ArrayList<String>();
         for (String line: source) {
@@ -306,7 +318,7 @@ public class TableUtilsTest {
                 , "OUTPUTFORMAT "
                 , "  'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
                 , "LOCATION"
-                , "  'hdfs://HOME90/user/dstreev/datasets/junk'"
+                , "  'hdfs://HOME90/user/dstreev/datasets/call_center'"
                 , "TBLPROPERTIES ("
                 , "  'bucketing_version'='2', "
                 , "  'transactional'='true', "

@@ -1779,9 +1779,15 @@ public class Mirror {
             System.err.println("\nSee log for stack trace ($HOME/.hms-mirror/logs)");
         } finally {
             if (config != null) {
+                if (config.getErrors().getReturnCode() != 0) {
+                    System.err.println("******* ERRORS *********");
+                }
                 for (String error : config.getErrors().getMessages()) {
                     LOG.error(error);
                     System.err.println(error);
+                }
+                if (config.getWarnings().getReturnCode() != 0) {
+                    System.err.println("******* WARNINGS *********");
                 }
                 for (String warning : config.getWarnings().getMessages()) {
                     LOG.warn(warning);
