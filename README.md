@@ -39,6 +39,8 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [No-Purge Option (`-np`)](#no-purge-option--np)
   * [Skip Optimizations (`-so`)](#skip-optimizations--so)
   * [Property Overrides (`-po[l|r] [,]...`)](#property-overrides--polr-)
+  * [Global Location Map (`-glm|--global-location-map [,...]`)](#global-location-map--glm--global-location-map-)
+  * [Force External Locations (`-fel|--force-external-location`)](#force-external-locations--fel--force-external-location)
 - [Setup](#setup)
   * [Binary Package](#binary-package)
   * [HMS-Mirror Setup from Binary Distribution](#hms-mirror-setup-from-binary-distribution)
