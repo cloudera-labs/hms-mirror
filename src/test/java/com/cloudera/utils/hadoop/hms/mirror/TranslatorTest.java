@@ -104,13 +104,14 @@ public class TranslatorTest {
     @Test
     public void translateTableLocation_03() throws IOException {
         Translator translator = deserializeResource("/translator/testcase_01.yaml");
+        TableMirror tableMirror = new TableMirror("tpcds_09", "call_center");
         translator.setOn(true);
         Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
         Config config = ConfigTest.deserializeResource("/config/default_01.yaml");
         String originalLoc = "hdfs://LEFT/apps/hive/warehouse/tpcds_09.db";
         String expectedLoc = "hdfs://RIGHT/apps/hive/warehouse/tpcds_09.db";
         String translatedLocation =
-                translator.translateTableLocation("tpcds_09", "call_center", originalLoc, config);
+                translator.translateTableLocation(tableMirror, originalLoc, config);
         Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                 translatedLocation, expectedLoc.equals(translatedLocation));
     }
@@ -118,13 +119,14 @@ public class TranslatorTest {
     @Test
     public void translateTableLocation_consolidate_01() throws IOException {
         Translator translator = deserializeResource("/translator/testcase_01.yaml");
+        TableMirror tableMirror = new TableMirror("tpcds_10", "call_center");
         translator.setOn(true);
         Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
         Config config = ConfigTest.deserializeResource("/config/default_01.yaml");
         String originalLoc = "hdfs://LEFT/tpcds_base_dir";
         String expectedLoc = "hdfs://RIGHT/alt/ext/location/new_location";
         String translatedLocation =
-                translator.translateTableLocation("tpcds_10", "call_center", originalLoc, config);
+                translator.translateTableLocation(tableMirror, originalLoc, config);
         Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                 translatedLocation, expectedLoc.equals(translatedLocation));
     }
@@ -132,13 +134,14 @@ public class TranslatorTest {
     @Test
     public void translateTableLocation_tbl_alt_02() throws IOException {
         Translator translator = deserializeResource("/translator/testcase_01.yaml");
+        TableMirror tableMirror = new TableMirror("tpcds_11", "call_center");
         translator.setOn(true);
         Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
         Config config = ConfigTest.deserializeResource("/config/default_01.yaml");
         String originalLoc = "hdfs://LEFT/tpcds_base_dir";
         String expectedLoc = "hdfs://RIGHT/myspace/alt/ext/call_center";
         String translatedLocation =
-                translator.translateTableLocation("tpcds_11", "call_center", originalLoc, config);
+                translator.translateTableLocation(tableMirror, originalLoc, config);
         Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                 translatedLocation, expectedLoc.equals(translatedLocation));
     }
@@ -150,13 +153,14 @@ public class TranslatorTest {
      */
     public void translateTableLocation_tbl_alt_03() throws IOException {
         Translator translator = deserializeResource("/translator/testcase_01.yaml");
+        TableMirror tableMirror = new TableMirror("tpcds_10", "web_sales");
         translator.setOn(true);
         Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
         Config config = ConfigTest.deserializeResource("/config/default_01.yaml");
         String originalLoc = "hdfs://LEFT/tpcds_base_dir";
         String expectedLoc = "hdfs://RIGHT/alt/ext/location/web_sales";
         String translatedLocation =
-                translator.translateTableLocation("tpcds_10", "web_sales", originalLoc, config);
+                translator.translateTableLocation(tableMirror, originalLoc, config);
         Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                 translatedLocation, expectedLoc.equals(translatedLocation));
     }
@@ -164,41 +168,44 @@ public class TranslatorTest {
     @Test
     public void translateTableLocation_tbl_alt_04() throws IOException {
         Translator translator = deserializeResource("/translator/testcase_01.yaml");
+        TableMirror tableMirror = new TableMirror("tpcds_10", "web_sales");
         translator.setOn(true);
         Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
         Config config = ConfigTest.deserializeResource("/config/default_01.yaml");
         String originalLoc = "hdfs://LEFT/tpcds_base_dir/web_sales";
         String expectedLoc = "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_10.db/web_sales";
         String translatedLocation =
-                translator.translateTableLocation("tpcds_10", "web_sales", originalLoc, config);
+                translator.translateTableLocation(tableMirror, originalLoc, config);
         Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                 translatedLocation, expectedLoc.equals(translatedLocation));
 
+        TableMirror tableMirror1 = new TableMirror("tpcds_10", "call_center");
         originalLoc = "hdfs://LEFT/tpcds_base_dir/call_center2";
         expectedLoc = "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_10.db/call_center";
         translatedLocation =
-                translator.translateTableLocation("tpcds_10", "call_center", originalLoc, config);
+                translator.translateTableLocation(tableMirror1, originalLoc, config);
         Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                 translatedLocation, expectedLoc.equals(translatedLocation));
 
+        TableMirror tableMirror2 = new TableMirror("tpcds_10", "web_returns");
         originalLoc = "hdfs://LEFT/tpcds_base_dir/web/web_returns";
         expectedLoc = "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_10.db/web_returns";
         translatedLocation =
-                translator.translateTableLocation("tpcds_10", "web_returns", originalLoc, config);
+                translator.translateTableLocation(tableMirror2, originalLoc, config);
         Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                 translatedLocation, expectedLoc.equals(translatedLocation));
-
+        TableMirror tableMirror3 = new TableMirror("tpcds_11", "web_returns");
         originalLoc = "hdfs://LEFT/tpcds_base_dir/web/web_returns2";
         expectedLoc = "hdfs://RIGHT/user/dstreev/datasets/tpcds_11.db/web_returns";
         translatedLocation =
-                translator.translateTableLocation("tpcds_11", "web_returns", originalLoc, config);
+                translator.translateTableLocation(tableMirror3, originalLoc, config);
         Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                 translatedLocation, expectedLoc.equals(translatedLocation));
-
+        TableMirror tableMirror4 = new TableMirror("tpcds_11", "call_center");
         originalLoc = "hdfs://LEFT/tpcds_base_dir/web/call_center2";
         expectedLoc = "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_11.db/call_center";
         translatedLocation =
-                translator.translateTableLocation("tpcds_11", "call_center", originalLoc, config);
+                translator.translateTableLocation(tableMirror4, originalLoc, config);
         Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                 translatedLocation, expectedLoc.equals(translatedLocation));
 
@@ -208,34 +215,35 @@ public class TranslatorTest {
     @Test
     public void translateTableLocation_tbl_alt_05() throws IOException {
         Translator translator = deserializeResource("/translator/testcase_02.yaml");
+        TableMirror tableMirror = new TableMirror("tpcds_10", "web_sales");
         translator.setOn(true);
         Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
         Config config = ConfigTest.deserializeResource("/config/default_01.yaml");
         String originalLoc = "hdfs://LEFT/tpcds_base_dir/web_sales";
         String expectedLoc = "hdfs://RIGHT/alt/ext/location/web_sales";
         String translatedLocation =
-                translator.translateTableLocation("tpcds_10", "web_sales", originalLoc, config);
+                translator.translateTableLocation(tableMirror, originalLoc, config);
         Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                 translatedLocation, expectedLoc.equals(translatedLocation));
-
+        TableMirror tableMirror1 = new TableMirror("tpcds_10", "call_center");
         originalLoc = "hdfs://LEFT/tpcds_base_dir/call_center2";
         expectedLoc = "hdfs://RIGHT/alt/ext/location/call_center2";
         translatedLocation =
-                translator.translateTableLocation("tpcds_10", "call_center", originalLoc, config);
+                translator.translateTableLocation(tableMirror1, originalLoc, config);
         Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                 translatedLocation, expectedLoc.equals(translatedLocation));
-
+        TableMirror tableMirror2 = new TableMirror("tpcds_10", "web_returns");
         originalLoc = "hdfs://LEFT/tpcds_base_dir/web/web_returns";
         expectedLoc = "hdfs://RIGHT/alt/ext/location/web_returns";
         translatedLocation =
-                translator.translateTableLocation("tpcds_10", "web_returns", originalLoc, config);
+                translator.translateTableLocation(tableMirror2, originalLoc, config);
         Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                 translatedLocation, expectedLoc.equals(translatedLocation));
-
+        TableMirror tableMirror3 = new TableMirror("tpcds_11", "web_returns");
         originalLoc = "hdfs://LEFT/tpcds_base_dir/web/web_returns";
         expectedLoc = "hdfs://RIGHT/alt/ext/location/web_returns";
         translatedLocation =
-                translator.translateTableLocation("tpcds_11", "web_returns", originalLoc, config);
+                translator.translateTableLocation(tableMirror3, originalLoc, config);
         Assert.assertTrue("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                 translatedLocation, expectedLoc.equals(translatedLocation));
 

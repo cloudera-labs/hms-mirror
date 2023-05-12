@@ -68,6 +68,7 @@ public class Transfer implements Callable<ReturnStatus> {
             tblMirror.setPhaseState(PhaseState.STARTED);
 
             tblMirror.setStrategy(config.getDataStrategy());
+            tblMirror.setResolvedDbName(config.getResolvedDB(tblMirror.getDbName()));
 
             tblMirror.incPhase();
             tblMirror.addStep("TRANSFER", config.getDataStrategy().toString());
@@ -365,7 +366,7 @@ public class Transfer implements Callable<ReturnStatus> {
             }
             // Set Override Properties.
             if (config.getOptimization().getOverrides() != null) {
-                for (String key: config.getOptimization().getOverrides().getLeft().stringPropertyNames()) {
+                for (String key: config.getOptimization().getOverrides().getLeft().keySet()) {
                     let.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
                 }
             }
@@ -592,7 +593,7 @@ public class Transfer implements Callable<ReturnStatus> {
         EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
         EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
 
-        String targetDBName = config.getResolvedDB(tblMirror.getDbName());
+        tblMirror.setResolvedDbName(config.getResolvedDB(tblMirror.getDbName()));
 
         // If RIGHT doesn't exist, run SCHEMA_ONLY.
         if (ret == null) {
@@ -604,7 +605,7 @@ public class Transfer implements Callable<ReturnStatus> {
             } else if (tblMirror.isPartitioned(Environment.LEFT)) {
                 // We need to drop the RIGHT and RECREATE.
                 ret.addIssue("Table is partitioned.  Need to change data strategy to drop and recreate.");
-                String useDb = MessageFormat.format(MirrorConf.USE, targetDBName);
+                String useDb = MessageFormat.format(MirrorConf.USE, tblMirror.getResolvedDbName());
                 ret.addSql(MirrorConf.USE_DESC, useDb);
 
                 // Make sure the table is NOT set to purge.
@@ -622,13 +623,13 @@ public class Transfer implements Callable<ReturnStatus> {
             } else {
                 // - AVRO LOCATION
                 if (AVROCheck()) {
-                    String useDb = MessageFormat.format(MirrorConf.USE, targetDBName);
+                    String useDb = MessageFormat.format(MirrorConf.USE, tblMirror.getResolvedDbName());
                     ret.addSql(MirrorConf.USE_DESC, useDb);
                     // Look at the table definition and get.
                     // - LOCATION
                     String sourceLocation = TableUtils.getLocation(ret.getName(), ret.getDefinition());
                     String targetLocation = config.getTranslator().
-                            translateTableLocation(targetDBName, tblMirror.getName(), sourceLocation, config);
+                            translateTableLocation(tblMirror, sourceLocation, config);
                     String alterLocSql = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, ret.getName(), targetLocation);
                     ret.addSql(MirrorConf.ALTER_TABLE_LOCATION_DESC, alterLocSql);
                     // TableUtils.updateTableLocation(ret, targetLocation)

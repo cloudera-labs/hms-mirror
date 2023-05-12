@@ -17,6 +17,7 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
 import com.cloudera.utils.hadoop.hms.stage.Transfer;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonIgnore;
@@ -24,17 +25,25 @@ import org.codehaus.jackson.annotate.JsonIgnore;
 import java.util.*;
 import java.util.regex.Matcher;
 
+@JsonIgnoreProperties({"on", "dbLocationMap", "distcpCompatible"})
 public class Translator {
     private static final Logger LOG = LogManager.getLogger(Translator.class);
 
-    @JsonIgnore
+    /*
+    Use this to force the location element in the external table create statements and
+    not rely on the database 'location' element.
+     */
+    private Boolean forceExternalLocation = Boolean.FALSE;
     /**
      * Flag that turns functionality on.
      */
-    private boolean on = Boolean.FALSE;
+    @JsonIgnore
+    private Boolean on = Boolean.FALSE;
 
     @JsonIgnore
     private final Map<String, EnvironmentMap> dbLocationMap = new TreeMap<String, EnvironmentMap>();
+
+    private Map<String, String> globalLocationMap = null;
 
     /**
      * When distcpCompatible mode is set, there are rules between the rename, consolidation, and location
@@ -44,15 +53,25 @@ public class Translator {
      * <p>
      * When enabled, a sourcelist of directories for a target directory is created.
      */
+    @JsonIgnore
     private Boolean distcpCompatible = Boolean.TRUE; // default TRUE
 
+    @JsonIgnore
     private Map<String, TranslationDatabase> databases;
 
-    public boolean isOn() {
+    public Boolean getForceExternalLocation() {
+        return forceExternalLocation;
+    }
+
+    public void setForceExternalLocation(Boolean forceExternalLocation) {
+        this.forceExternalLocation = forceExternalLocation;
+    }
+
+    public Boolean isOn() {
         return on;
     }
 
-    public void setOn(boolean on) {
+    public void setOn(Boolean on) {
         this.on = on;
     }
 
@@ -70,6 +89,38 @@ public class Translator {
 
     public void setDistcpCompatible(Boolean distcpCompatible) {
         this.distcpCompatible = distcpCompatible;
+    }
+
+    public Map<String, String> getGlobalLocationMap() {
+        if (globalLocationMap == null) {
+            Comparator<String> stringLengthComparator = new Comparator<String>() {
+                // return comparison of two strings, first by length then by value.
+                public int compare(String k1, String k2) {
+                    int comp = 0;
+                    if (k1.length() > k2.length()) {
+                        comp = -1;
+                    } else if (k1.length() == k2.length()) {
+                        comp = 0;
+                    } else {
+                        comp = 1;
+                    }
+                    if (comp == 0)
+                        comp = k1.compareTo(k2);
+                    return comp;
+                }
+            };
+            globalLocationMap = new TreeMap<String, String>(stringLengthComparator);
+        }
+        return globalLocationMap;
+    }
+
+    public void setGlobalLocationMap(Map<String, String> globalLocationMap) {
+        getGlobalLocationMap().putAll(globalLocationMap);
+//        this.externalLocationMaps = externalLocationMaps;
+    }
+
+    public void addGlobalLocationMap(String from, String to) {
+        getGlobalLocationMap().put(from, to);
     }
 
     public Boolean validate() {
@@ -183,39 +234,70 @@ public class Translator {
             String matchStr = matcher.group(1);
             // Remove last occurrence ONLY.
             Integer lastIndexOf = url.lastIndexOf(matchStr);
-            return url.substring(0, lastIndexOf-1);
+            return url.substring(0, lastIndexOf - 1);
         } else {
             return url;
         }
     }
 
     public static String replaceLast(String text, String regex, String replacement) {
-        return text.replaceFirst("(?s)"+regex+"(?!.*?"+regex+")", replacement);
+        return text.replaceFirst("(?s)" + regex + "(?!.*?" + regex + ")", replacement);
     }
 
     public static String reduceUrlBy(String url, int level) {
         String rtn = url.trim();
         if (rtn.endsWith("/"))
-            rtn = rtn.substring(0, rtn.length()-2);
-        for (int i=0;i<level;i++) {
-             rtn = removeLastDirFromUrl(rtn);
+            rtn = rtn.substring(0, rtn.length() - 2);
+        for (int i = 0; i < level; i++) {
+            rtn = removeLastDirFromUrl(rtn);
         }
         return rtn;
     }
 
-    public String translateTableLocation(String database, String table, String originalLocation, Config config) {
+    public String processGlobalLocationMap(String originalLocation) {
+        String newLocation = null;
+        if (getGlobalLocationMap().size() > 0) {
+            LOG.debug("Checking location: " + originalLocation + " for replacement element in " +
+                    "global location map.");
+            for (String key : getGlobalLocationMap().keySet()) {
+                if (originalLocation.startsWith(key)) {
+                    String rLoc = getGlobalLocationMap().get(key);
+                    newLocation = originalLocation.replace(key, rLoc);
+                    LOG.info("Location Map Found. " + key +
+                            ":" + rLoc + " New Location: " + newLocation);
+                    // Stop Processing
+                    break;
+                }
+            }
+        }
+        if (newLocation != null)
+            return newLocation;
+        else
+            return originalLocation;
+    }
+
+    public String translateTableLocation(TableMirror tableMirror, String originalLocation, Config config) {
         String rtn = originalLocation;
         StringBuilder dirBuilder = new StringBuilder();
+        String tableName = tableMirror.getName();
+        String dbName = tableMirror.getResolvedDbName();;
 
         String leftNS = config.getCluster(Environment.LEFT).getHcfsNamespace();
         // Set base on rightNS or Common Storage, if specified
-        String rightNS = config.getTransfer().getCommonStorage() == null?
-                config.getCluster(Environment.RIGHT).getHcfsNamespace(): config.getTransfer().getCommonStorage();
+        String rightNS = config.getTransfer().getCommonStorage() == null ?
+                config.getCluster(Environment.RIGHT).getHcfsNamespace() : config.getTransfer().getCommonStorage();
 
+        // Get the relative dir.
+        String relativeDir = rtn.replace(config.getCluster(Environment.LEFT).getHcfsNamespace(), "");
+        // Check the Global Location Map for a match.
+        String mappedDir = processGlobalLocationMap(relativeDir);
+        // If they don't match, it was reMapped!
+        Boolean reMapped = !relativeDir.equals(mappedDir);
+        if (reMapped)
+            tableMirror.setReMapped(Boolean.TRUE);
         if (isOn()) {
-            // Get the relative dir.
-            String relativeDir = rtn.replace(config.getCluster(Environment.LEFT).getHcfsNamespace(), "");
-            TranslationDatabase tdb = getDatabases().get(database);
+
+            TranslationDatabase tdb = getDatabases().get(dbName);
 
             // Depending on config, set hcfs prefix
             if (leftNS.trim().endsWith("/")) {
@@ -248,24 +330,24 @@ public class Translator {
                         // Set to the same name as the current folder
                         dirBuilder.append(tdb.getLocation()).append("/").append(removeLastDirFromUrl(originalLocation));
                     } else {
-                        dirBuilder.append(tdb.getLocation()).append("/").append(table);
+                        dirBuilder.append(tdb.getLocation()).append("/").append(tableName);
                     }
                 } else if (tdb.getLocation() != null) {
-                    if (tdb.getTables().get(table) != null && tdb.getTables().get(table).getLocation() != null) {
-                        dirBuilder.append(tdb.getTables().get(table).getLocation());
+                    if (tdb.getTables().get(tableName) != null && tdb.getTables().get(tableName).getLocation() != null) {
+                        dirBuilder.append(tdb.getTables().get(tableName).getLocation());
                     } else {
                         if (getDistcpCompatible()) {
                             dirBuilder.append(tdb.getLocation()).append("/").append(removeLastDirFromUrl(originalLocation));
                         } else {
                             dirBuilder.append(tdb.getLocation()).append("/");
-                            if (tdb.getTables().get(table) != null && tdb.getTables().get(table).getRename() != null) {
-                                dirBuilder.append(tdb.getTables().get(table).getRename());
+                            if (tdb.getTables().get(tableName) != null && tdb.getTables().get(tableName).getRename() != null) {
+                                dirBuilder.append(tdb.getTables().get(tableName).getRename());
                             }
                         }
                     }
-                } else if (tdb.getTables().get(table) != null) {
-                    if (tdb.getTables().get(table).getLocation() != null) {
-                        tblNewLocation = tdb.getTables().get(table).getLocation();
+                } else if (tdb.getTables().get(tableName) != null) {
+                    if (tdb.getTables().get(tableName).getLocation() != null) {
+                        tblNewLocation = tdb.getTables().get(tableName).getLocation();
                     }
                 } else if (tdb.getLocation() != null) {
                     // Set to the same name as the current folder
@@ -281,7 +363,7 @@ public class Translator {
                     if (tblNewLocation != null) {
                         dirBuilder.append(tblNewLocation);
                     } else {
-                        dirBuilder.append(table);
+                        dirBuilder.append(tableName);
                     }
                 } else if (tdb.getLocation() != null) {
                     dirBuilder.append(tdb.getLocation()).append("/").append(tblNewLocation);
@@ -297,17 +379,21 @@ public class Translator {
                 dirBuilder.append(relativeDir);
             }
         } else {
-            // Feature Off.  Basic translation.
+            // Feature Off.  Basic translation which includes any GlobalLocationMaps.
             String newLocation = null;
-            if (config.getResetToDefaultLocation() && config.getTransfer().getWarehouse().getExternalDirectory() != null) {
-                StringBuilder sbDir = new StringBuilder();
-                if (config.getTransfer().getCommonStorage() != null) {
-                    sbDir.append(config.getTransfer().getCommonStorage());
-                } else {
-                    sbDir.append(rightNS);
-                }
+            StringBuilder sbDir = new StringBuilder();
+            if (config.getTransfer().getCommonStorage() != null) {
+                sbDir.append(config.getTransfer().getCommonStorage());
+            } else {
+                sbDir.append(rightNS);
+            }
+            if (reMapped) {
+                sbDir.append(mappedDir);
+                newLocation = sbDir.toString();
+            } else if (config.getResetToDefaultLocation() && config.getTransfer().getWarehouse().getExternalDirectory() != null) {
+                // RDL and EWD
                 sbDir.append(config.getTransfer().getWarehouse().getExternalDirectory()).append("/");
-                sbDir.append(database).append(".db").append("/").append(table);
+                sbDir.append(dbName).append(".db").append("/").append(tableName);
                 newLocation = sbDir.toString();
             } else {
                 switch (config.getDataStrategy()) {
@@ -334,9 +420,9 @@ public class Translator {
         // TODO: Need to handle RIGHT locations.
         if (config.getTransfer().getStorageMigration().isDistcp() && config.getDataStrategy() != DataStrategy.SQL) {
             if (config.getTransfer().getStorageMigration().getDataFlow() == DistcpFlow.PULL) {
-                addLocation(database, Environment.RIGHT, originalLocation, dirBuilder.toString().trim());
+                addLocation(dbName, Environment.RIGHT, originalLocation, dirBuilder.toString().trim());
             } else {
-                addLocation(database, Environment.LEFT, originalLocation, dirBuilder.toString().trim());
+                addLocation(dbName, Environment.LEFT, originalLocation, dirBuilder.toString().trim());
             }
         }
 
@@ -370,26 +456,26 @@ public class Translator {
         Set<String> databases = dbLocationMap.keySet();
 
 //        for (String database: databases) {
-            // get the map.entry
-            Map<String, Set<String>> reverseMap = new TreeMap<String, Set<String>>();
-            Map<String, String> dbMap = getDbLocationMap(database, environment);//dbLocationMap.get(database);
-            for (Map.Entry<String, String> entry : dbMap.entrySet()) {
-                // reduce folder level by 'consolidationLevel' for key and value.
-                // Source
-                String reducedSource = Translator.reduceUrlBy(entry.getKey(), consolidationLevel);
-                // Target
-                String reducedTarget = Translator.reduceUrlBy(entry.getValue(), consolidationLevel);
+        // get the map.entry
+        Map<String, Set<String>> reverseMap = new TreeMap<String, Set<String>>();
+        Map<String, String> dbMap = getDbLocationMap(database, environment);//dbLocationMap.get(database);
+        for (Map.Entry<String, String> entry : dbMap.entrySet()) {
+            // reduce folder level by 'consolidationLevel' for key and value.
+            // Source
+            String reducedSource = Translator.reduceUrlBy(entry.getKey(), consolidationLevel);
+            // Target
+            String reducedTarget = Translator.reduceUrlBy(entry.getValue(), consolidationLevel);
 
-                if (reverseMap.get(reducedTarget) != null) {
-                    reverseMap.get(reducedTarget).add(entry.getKey());
-                } else {
-                    Set<String> sourceSet = new TreeSet<String>();
-                    sourceSet.add(entry.getKey());
-                    reverseMap.put(reducedTarget, sourceSet);
-                }
-
+            if (reverseMap.get(reducedTarget) != null) {
+                reverseMap.get(reducedTarget).add(entry.getKey());
+            } else {
+                Set<String> sourceSet = new TreeSet<String>();
+                sourceSet.add(entry.getKey());
+                reverseMap.put(reducedTarget, sourceSet);
             }
-            rtn.put(database, reverseMap);
+
+        }
+        rtn.put(database, reverseMap);
 //        }
         return rtn;
     }

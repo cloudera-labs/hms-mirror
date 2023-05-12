@@ -54,7 +54,9 @@ public class Messages {
             if (!argMap.containsKey(messageCode.getCode())) {
                 messageList.add(messageCode.getCode()+":"+messageCode.getDesc());
             } else {
-                messageList.add(messageCode.getCode()+":"+MessageFormat.format(messageCode.getDesc(), argMap.get(messageCode.getCode())));
+                Object[] vMap = argMap.get(messageCode.getCode());
+                String m = MessageFormat.format(messageCode.getDesc(), vMap);
+                messageList.add(messageCode.getCode()+":" + m);
             }
         }
         String[] rtn = messageList.toArray(new String[0]);

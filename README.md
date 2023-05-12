@@ -339,7 +339,7 @@ If you do NOT want to apply this translation, add the option `-slt|--skip-legacy
 
 ### Filtering Tables to Process
 
-The are options to filter tables included in `hms-mirror` process.  You can select `-tf|--table-filter` to "include" only tables that match this 'regular-expression'.  Inversely, use `-etf|--exclude-table-filter` to omit tables from the list.  These options are mutually exclusive.
+There are options to filter tables included in `hms-mirror` process.  You can select `-tf|--table-filter` to "include" only tables that match this 'regular-expression'.  Inversely, use `-etf|--exclude-table-filter` to omit tables from the list.  These options are mutually exclusive.
 
 The filter is expressed as a 'regular-expression'.  Complex expressions should be enclosed in quotes to ensure the commandline interpreter doesn't split them.
 
@@ -392,6 +392,45 @@ But there is a corner case where these optimizations can get in the way and caus
 You can use `-po` to set the properties for BOTH clusters or `-pol`|`-por` to set them specifically for the 'left' and/or 'right' cluster.
 
 For example: `-po hive.exec.orc.split.strategy=BI,hive.compute.query.using.stats=false`
+
+To provide a consistent list of settings for ALL jobs, add/modify the following section in the configuration file ie: `default.yaml` used for processing.  In this case you do NOT need to use the commandline option.  Although, you can set basic values in the configuration file and add other via the commandline.
+
+Notice that there are setting for the LEFT and RIGHT clusters.
+
+```yaml
+optimization:
+  overrides:
+    left:
+      tez.queue.name: "compaction"
+    right:
+      tez.queue.name: "migration"
+      
+```
+
+### Global Location Map (`-glm|--global-location-map <from=to>[,...]`)
+
+This is an opportunity to make some specific directory mappings during the migration.  You can supply a comma separated list of directory pairs to be use for evaluation.
+
+`-glm /data/my_original_location=/corp/finance_new_loc,/user/hive=/warehouse/hive`
+
+These directory mappings ONLY apply to 'EXTERNAL' and 'DOWNGRADED ACID' tables.  You can supply 'n' number of mappings to review through the commandline interface as describe above.  To provide a consistent set of mappings to ALL jobs, add/modify the following section in the configuration file ie: `default.yaml` used for processing.
+
+```yaml
+translator:
+  globalLocationMap:
+    /data/my_original_location: "/corp/finance_new_loc"
+    /user/hive: "/warehouse/hive"
+```
+
+The list will be sorted by the length of the string, then alpha-numerically.  This will ensure the deepest nested paths are evaluated FIRST. When a path is matched during evaluation, the process will NOT look and any more paths in the list.  Therefore, avoiding possible double evaluations that may result when there are nested paths in the list.
+
+Paths are evaluated with 'startsWith' on the original path (minus the original namespace). When a match is found, the path 'part' will be replaced with the value specified.  The remaining path will remain intact and regardless of the `-rdl` setting, the LOCATION element will be included in the tables new CREATE statement.
+
+### Force External Locations (`-fel|--force-external-location`)
+
+Under some conditions, the default warehouse directory hierarchy is not honored.  We've seen this in HDP 3.  The `-rdl` option collects the external tables in the default warehouse directory by omitting the LOCATION element in the CREATE statement, relying on the default location.  The default location is set at the DATABASE level by `hms-mirror`.
+
+In HDP3, the CREATE statement doesn't honor the 'database' LOCATION element and reverts to the system wide warehouse directory configurations.  The `-fel` flag will simply include the 'properly' adjusted LOCATION element in the CREATE statement to ensure the tables are created in the desired location.
 
 ## Setup
 
@@ -770,7 +809,7 @@ When you do need to move data, `hms-mirror` create a workbook of 'source' and 't
 
 ```
 usage: hms-mirror <options>
-                  version:1.5.4.2-SNAPSHOT
+                  version:1.5.5.x
 Hive Metastore Migration Utility
  -accept,--accept                                  Accept ALL confirmations and silence prompts
  -ap,--acid-partition-count <limit>                Set the limit of partitions that the ACID
@@ -784,8 +823,8 @@ Hive Metastore Migration Utility
                                                    Specifying this option REQUIRES the LEFT and
                                                    RIGHT cluster to be LINKED.
                                                    See docs:
-                                                   https://github.com/cloudera-labs/hms-mirror#linking-clu
-                                                   sters-storage-layers
+                                                   https://github.com/cloudera-labs/hms-mirror#linki
+                                                   ng-clusters-storage-layers
  -cfg,--config <filename>                          Config with details for the HMS-Mirror.  Default:
                                                    $HOME/.hms-mirror/cfg/default.yaml
  -cs,--common-storage <storage-path>               Common Storage used with Data Strategy HYBRID,
@@ -829,6 +868,28 @@ Hive Metastore Migration Utility
                                                    database option.
  -f,--flip                                         Flip the definitions for LEFT and RIGHT.  Allows
                                                    the same config to be used in reverse.
+ -fel,--force-external-location                    Under some conditions, the LOCATION element for
+                                                   EXTERNAL tables is removed (ie: -rdl).  In which
+                                                   case we rely on the settings of the database
+                                                   definition to control the EXTERNAL table data
+                                                   location.  But for some older Hive versions, the
+                                                   LOCATION element in the database is NOT honored.
+                                                   Even when the database LOCATION is set, the
+                                                   EXTERNAL table LOCATION defaults to the system
+                                                   wide warehouse settings.  This flag will ensure
+                                                   the LOCATION element remains in the CREATE
+                                                   definition of the table to force it's location.
+ -glm,--global-location-map <key=value>            Comma separated key=value pairs of Locations to
+                                                   Map. IE: /myorig/data/finance=/data/ec/finance.
+                                                   This reviews 'EXTERNAL' table locations for the
+                                                   path '/myorig/data/finance' and replaces it with
+                                                   '/data/ec/finance'.  Option can be used alone or
+                                                   with -rdl. Only applies to 'EXTERNAL' tables and
+                                                   if the tables location doesn't contain one of the
+                                                   supplied maps, it will be translated according to
+                                                   -rdl rules if -rdl is specified.  If -rdl is not
+                                                   specified, the conversion for that table is
+                                                   skipped.
  -h,--help                                         Help
  -ip,--in-place                                    Downgrade ACID tables to EXTERNAL tables with
                                                    purge.
@@ -876,6 +937,12 @@ Hive Metastore Migration Utility
                                                    config file.
  -po,--property-overrides <key=value>              Comma separated key=value pairs of Hive
                                                    properties you wish to set/override.
+ -pol,--property-overrides-left <key=value>        Comma separated key=value pairs of Hive
+                                                   properties you wish to set/override for LEFT
+                                                   cluster.
+ -por,--property-overrides-right <key=value>       Comma separated key=value pairs of Hive
+                                                   properties you wish to set/override for RIGHT
+                                                   cluster.
  -q,--quiet                                        Reduce screen reporting output.  Good for
                                                    background processes with output redirects to a
                                                    file
@@ -912,6 +979,12 @@ Hive Metastore Migration Utility
                                                    will use prescriptive sorting by adding
                                                    'DISTRIBUTE BY' to transfer SQL. default: false
  -sf,--skip-features                               Skip Features evaluation.
+ -slc,--skip-link-check                            Skip Link Check. Use when going between or to
+                                                   Cloud Storage to avoid having to configure
+                                                   hms-mirror with storage credentials and
+                                                   libraries. This does NOT preclude your Hive
+                                                   Server 2 and compute environment from such
+                                                   requirements.
  -slt,--skip-legacy-translation                    Skip Schema Upgrades and Serde Translations
  -smn,--storage-migration-namespace <namespace>    Optional: Used with the 'data strategy
                                                    STORAGE_MIGRATION to specify the target
@@ -950,6 +1023,7 @@ Hive Metastore Migration Utility
                                                    the namespace OR the database directory. This
                                                    will be used to set the MANAGEDLOCATION database
                                                    option.
+
 ```
 
 ### Running Against a LEGACY (Non-CDP) Kerberized HiveServer2

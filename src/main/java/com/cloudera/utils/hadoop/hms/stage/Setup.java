@@ -27,6 +27,8 @@ import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.*;
 
+import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.*;
+
 /*
 Using the config, go through the databases and tables and collect the current states.
 
@@ -72,7 +74,7 @@ public class Setup {
             }
         }
 
-        // Check and Build DB's First.
+        // Collect Table Information
         while (true) {
             boolean check = true;
             for (Future<ReturnStatus> sf : gtf) {
@@ -95,6 +97,12 @@ public class Setup {
                 break;
         }
         gtf.clear(); // reset
+
+        // Failure, report and exit with FALSE
+        if (!rtn) {
+            config.getErrors().set(COLLECTING_TABLES.getCode());
+            return Boolean.FALSE;
+        }
 
         // Create the databases we'll need on the LEFT and RIGHT
         Callable<ReturnStatus> createDatabases = new CreateDatabases(config, conversion);
@@ -124,6 +132,12 @@ public class Setup {
                 break;
         }
         gtf.clear(); // reset
+
+        // Failure, report and exit with FALSE
+        if (!rtn) {
+            config.getErrors().set(DATABASE_CREATION.getCode());
+            return Boolean.FALSE;
+        }
 
         // Shortcut.  Only DB's.
         if (!config.getDatabaseOnly()) {
@@ -162,6 +176,10 @@ public class Setup {
                     break;
             }
             gtf.clear(); // reset
+
+            if (!rtn) {
+                config.getErrors().set(COLLECTING_TABLE_DEFINITIONS.getCode());
+            }
 
             LOG.info("==============================");
             LOG.info(conversion.toString());

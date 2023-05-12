@@ -1,29 +1,31 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
+import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 
 public class Overrides {
     public enum Side { BOTH, LEFT, RIGHT };
-    private Properties left = null;
-    private Properties right = null;
+    private Map<String, String> left = null;
+    private Map<String, String> right = null;
 
-    public Properties getLeft() {
+    public Map<String, String> getLeft() {
         if (left == null)
-            left = new Properties();
+            left = new TreeMap<String, String>();
         return left;
     }
 
-    public void setLeft(Properties left) {
+    public void setLeft(Map<String, String> left) {
         this.left = left;
     }
 
-    public Properties getRight() {
+    public Map<String, String> getRight() {
         if (right == null)
-            right = new Properties();
+            right = new TreeMap<String, String>();
         return right;
     }
 
-    public void setRight(Properties right) {
+    public void setRight(Map<String, String> right) {
         this.right = right;
     }
 
@@ -36,14 +38,14 @@ public class Overrides {
                     if (keyValue.length == 2) {
                         switch (side) {
                             case BOTH:
-                                getLeft().setProperty(keyValue[0], keyValue[1]);
-                                getRight().setProperty(keyValue[0], keyValue[1]);
+                                getLeft().put(keyValue[0], keyValue[1]);
+                                getRight().put(keyValue[0], keyValue[1]);
                                 break;
                             case LEFT:
-                                getLeft().setProperty(keyValue[0], keyValue[1]);
+                                getLeft().put(keyValue[0], keyValue[1]);
                                 break;
                             case RIGHT:
-                                getRight().setProperty(keyValue[0], keyValue[1]);
+                                getRight().put(keyValue[0], keyValue[1]);
                                 break;
                         }
                     }

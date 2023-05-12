@@ -320,7 +320,9 @@ public class Mirror {
             if (cmd.hasOption("rdl")) {
                 config.setResetToDefaultLocation(Boolean.TRUE);
             }
-
+            if (cmd.hasOption("fel")) {
+                config.getTranslator().setForceExternalLocation(Boolean.TRUE);
+            }
             if (cmd.hasOption("slt")) {
                 config.setSkipLegacyTranslation(Boolean.TRUE);
             }
@@ -507,6 +509,13 @@ public class Mirror {
                     }
                 }
                 config.getTransfer().getWarehouse().setExternalDirectory(ewdStr);
+            }
+
+            // GLOBAL (EXTERNAL) LOCATION MAP
+            if (cmd.hasOption("glm")) {
+                String[] globalLocMap = cmd.getOptionValues("glm");
+                if (globalLocMap != null)
+                    config.setGlobalLocationMapKV(globalLocMap);
             }
 
             // When the pkey is specified, we assume the config passwords are encrytped and we'll decrypt them before continuing.
@@ -876,6 +885,7 @@ public class Mirror {
         } else {
             reporter.setVariable("run.mode", "DRY-RUN");
         }
+        Boolean setupError = Boolean.FALSE;
 
         // Skip Setup if working from 'retry'
         if (!retry) {
@@ -906,8 +916,7 @@ public class Mirror {
 //        stateMaintenance.saveState();
                 // Actions
             } else {
-                // Need to delete retry file.
-//                stateMaintenance.deleteState();
+                setupError = Boolean.TRUE;
             }
         }
 
@@ -919,267 +928,265 @@ public class Mirror {
         mapper = new ObjectMapper(new YAMLFactory());
         mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        for (String database : config.getDatabases()) {
+        if (!setupError) {
+            for (String database : config.getDatabases()) {
 
-            String dbReportOutputFile = reportOutputDir + System.getProperty("file.separator") + database + "_hms-mirror";
-            String dbLeftExecuteFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_execute.sql";
-            String dbLeftCleanUpFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_CleanUp_execute.sql";
-            String dbRightExecuteFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_execute.sql";
-            String dbRightCleanUpFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_CleanUp_execute.sql";
-            String dbRunbookFile = reportOutputDir + System.getProperty("file.separator") + database + "_runbook.md";
+                String dbReportOutputFile = reportOutputDir + System.getProperty("file.separator") + database + "_hms-mirror";
+                String dbLeftExecuteFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_execute.sql";
+                String dbLeftCleanUpFile = reportOutputDir + System.getProperty("file.separator") + database + "_LEFT_CleanUp_execute.sql";
+                String dbRightExecuteFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_execute.sql";
+                String dbRightCleanUpFile = reportOutputDir + System.getProperty("file.separator") + database + "_RIGHT_CleanUp_execute.sql";
+                String dbRunbookFile = reportOutputDir + System.getProperty("file.separator") + database + "_runbook.md";
 
-            try {
-                // Output directory maps
-                Boolean dcLeft = Boolean.FALSE;
-                Boolean dcRight = Boolean.FALSE;
-
-                if (config.canDeriveDistcpPlan()) {
-                    try {
-                        Environment[] environments = null;
-                        switch (config.getDataStrategy()) {
-
-                            case DUMP:
-                            case STORAGE_MIGRATION:
-                                environments = new Environment[]{Environment.LEFT};
-                                break;
-                            default:
-                                environments = new Environment[]{Environment.LEFT, Environment.RIGHT};
-                                break;
-                        }
-
-                        for (Environment distcpEnv : environments) {
-                            Boolean dcFound = Boolean.FALSE;
-
-                            StringBuilder distcpWorkbookSb = new StringBuilder();
-                            StringBuilder distcpScriptSb = new StringBuilder();
-
-                            distcpScriptSb.append("#!/usr/bin/env sh").append("\n");
-                            distcpScriptSb.append("\n");
-                            distcpScriptSb.append("# 1. Copy the source '*_distcp_source.txt' files to the distributed filesystem.").append("\n");
-                            distcpScriptSb.append("# 2. Export an env var 'HCFS_BASE_DIR' that represents where these files where placed.").append("\n");
-                            distcpScriptSb.append("#      NOTE: ${HCFS_BASE_DIR} must be available to the user running 'distcp'").append("\n");
-                            distcpScriptSb.append("# 3. Export an env var 'DISTCP_OPTS' with any special settings needed to run the job.").append("\n");
-                            distcpScriptSb.append("#      For large jobs, you may need to adjust memory settings.").append("\n");
-                            distcpScriptSb.append("# 4. Run the following in an order or framework that is appropriate for your environment.").append("\n");
-                            distcpScriptSb.append("#       These aren't necessarily expected to run in this shell script as is in production.").append("\n");
-                            distcpScriptSb.append("\n");
-                            distcpScriptSb.append("\n");
-                            distcpScriptSb.append("if [ -z ${HCFS_BASE_DIR+x} ]; then").append("\n");
-                            distcpScriptSb.append("  echo \"HCFS_BASE_DIR is unset\"").append("\n");
-                            distcpScriptSb.append("  echo \"What is the 'HCFS_BASE_DIR':\"").append("\n");
-                            distcpScriptSb.append("  read HCFS_BASE_DIR").append("\n");
-                            distcpScriptSb.append("  echo \"HCFS_BASE_DIR is set to '$HCFS_BASE_DIR'\"").append("\n");
-                            distcpScriptSb.append("else").append("\n");
-                            distcpScriptSb.append("  echo \"HCFS_BASE_DIR is set to '$HCFS_BASE_DIR'\"").append("\n");
-                            distcpScriptSb.append("fi").append("\n");
-                            distcpScriptSb.append("\n");
-                            distcpScriptSb.append("echo \"Creating HCFS directory: $HCFS_BASE_DIR\"").append("\n");
-                            distcpScriptSb.append("hdfs dfs -mkdir -p $HCFS_BASE_DIR").append("\n");
-                            distcpScriptSb.append("\n");
-
-                            // WARNING ABOUT 'distcp' and 'table alignment'
-                            distcpWorkbookSb.append("## WARNING\n");
-                            distcpWorkbookSb.append(MessageCode.RDL_DC_WARNING_TABLE_ALIGNMENT.getDesc()).append("\n\n");
-
-                            distcpWorkbookSb.append("| Database | Target | Sources |\n");
-                            distcpWorkbookSb.append("|:---|:---|:---|\n");
-
-                            FileWriter distcpSourceFW = null;
-                            for (Map.Entry<String, Map<String, Set<String>>> entry :
-                                    config.getTranslator().buildDistcpList(database, distcpEnv, 1).entrySet()) {
-
-                                distcpWorkbookSb.append("| " + entry.getKey() + " | | |\n");
-                                Map<String, Set<String>> value = entry.getValue();
-                                int i = 1;
-                                for (Map.Entry<String, Set<String>> dbMap : value.entrySet()) {
-                                    String distcpSourceFile = entry.getKey() + "_" + distcpEnv.toString() + "_" + i++ + "_distcp_source.txt";
-                                    String distcpSourceFileFull = reportOutputDir + System.getProperty("file.separator") + distcpSourceFile;
-                                    distcpSourceFW = new FileWriter(distcpSourceFileFull);
-
-                                    StringBuilder line = new StringBuilder();
-                                    line.append("| | ").append(dbMap.getKey()).append(" | ");
-
-                                    for (String source : dbMap.getValue()) {
-                                        line.append(source).append("<br>");
-                                        distcpSourceFW.append(source).append("\n");
-                                    }
-                                    line.append(" | ").append("\n");
-                                    distcpWorkbookSb.append(line);
-
-                                    distcpScriptSb.append("\n");
-                                    distcpScriptSb.append("echo \"Copying 'distcp' source file to $HCFS_BASE_DIR\"").append("\n");
-                                    distcpScriptSb.append("\n");
-                                    distcpScriptSb.append("hdfs dfs -copyFromLocal -f " + distcpSourceFile + " ${HCFS_BASE_DIR}").append("\n");
-                                    distcpScriptSb.append("\n");
-                                    distcpScriptSb.append("echo \"Running 'distcp'\"").append("\n");
-                                    distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} -f ${HCFS_BASE_DIR}/" + distcpSourceFile + " " +
-                                            dbMap.getKey() + "\n").append("\n");
-
-                                    distcpSourceFW.close();
-
-                                    dcFound = Boolean.TRUE;
-                                }
-                            }
-
-                            if (dcFound) {
-                                // Set flags for report and workplan
-                                switch (distcpEnv) {
-                                    case LEFT:
-                                        dcLeft = Boolean.TRUE;
-                                        break;
-                                    case RIGHT:
-                                        dcRight = Boolean.TRUE;
-                                        break;
-                                }
-
-                                String distcpWorkbookFile = reportOutputDir + System.getProperty("file.separator") + database +
-                                        "_" + distcpEnv + "_distcp_workbook.md";
-                                String distcpScriptFile = reportOutputDir + System.getProperty("file.separator") + database +
-                                        "_" + distcpEnv + "_distcp_script.sh";
-
-                                FileWriter distcpWorkbookFW = new FileWriter(distcpWorkbookFile);
-                                FileWriter distcpScriptFW = new FileWriter(distcpScriptFile);
-
-                                distcpScriptFW.write(distcpScriptSb.toString());
-                                distcpWorkbookFW.write(distcpWorkbookSb.toString());
-
-                                distcpScriptFW.close();
-                                distcpWorkbookFW.close();
-                            }
-                        }
-                    } catch (IOException ioe) {
-                        LOG.error("Issue writing distcp workbook", ioe);
-                    }
-                }
-
-
-                FileWriter runbookFile = new FileWriter(dbRunbookFile);
-                runbookFile.write("# Runbook for database: " + database);
-                runbookFile.write("\n\nYou'll find the **run report** in the file:\n\n`" + dbReportOutputFile + ".md|html` " +
-                        "\n\nThis file includes details about the configuration at the time this was run and the " +
-                        "output/actions on each table in the database that was included.\n\n");
-                runbookFile.write("## Steps\n\n");
-                if (config.isExecute()) {
-                    runbookFile.write("Execute was **ON**, so many of the scripts have been run already.  Verify status " +
-                            "in the above report.  `distcp` actions (if requested/applicable) need to be run manually. " +
-                            "Some cleanup scripts may have been run if no `distcp` actions were requested.\n\n");
-                    if (config.getCluster(Environment.RIGHT).getHiveServer2() != null) {
-                        if (config.getCluster(Environment.RIGHT).getHiveServer2().isDisconnected()) {
-                            runbookFile.write("Process ran with RIGHT environment 'disconnected'.  All RIGHT scripts will need to be run manually.\n\n");
-                        }
-                    }
-                } else {
-                    runbookFile.write("Execute was **OFF**.  All actions will need to be run manually. See below steps.\n\n");
-                }
-                int step = 1;
-                FileWriter reportFile = new FileWriter(dbReportOutputFile + ".md");
-                String mdReportStr = conversion.toReport(config, database);
-
-
-                File dbYamlFile = new File(dbReportOutputFile + ".yaml");
-                FileWriter dbYamlFileWriter = new FileWriter(dbYamlFile);
-
-                DBMirror yamlDb = conversion.getDatabase(database);
-
-                String dbYamlStr = mapper.writeValueAsString(yamlDb);
                 try {
-                    dbYamlFileWriter.write(dbYamlStr);
-                    LOG.info("Database (" + database + ") yaml 'saved' to: " + dbYamlFile.getPath());
-                } catch (IOException ioe) {
-                    LOG.error("Problem 'writing' database yaml", ioe);
-                } finally {
-                    dbYamlFileWriter.close();
-                }
+                    // Output directory maps
+                    Boolean dcLeft = Boolean.FALSE;
+                    Boolean dcRight = Boolean.FALSE;
 
-                reportFile.write(mdReportStr);
-                reportFile.close();
-                // Convert to HTML
-                List<Extension> extensions = Arrays.asList(TablesExtension.create(), YamlFrontMatterExtension.create());
+                    if (config.canDeriveDistcpPlan()) {
+                        try {
+                            Environment[] environments = null;
+                            switch (config.getDataStrategy()) {
 
-                org.commonmark.parser.Parser parser = org.commonmark.parser.Parser.builder().extensions(extensions).build();
-                Node document = parser.parse(mdReportStr);
-                HtmlRenderer renderer = HtmlRenderer.builder().extensions(extensions).build();
-                String htmlReportStr = renderer.render(document);  // "<p>This is <em>Sparta</em></p>\n"
-                reportFile = new FileWriter(dbReportOutputFile + ".html");
-                reportFile.write(htmlReportStr);
-                reportFile.close();
+                                case DUMP:
+                                case STORAGE_MIGRATION:
+                                    environments = new Environment[]{Environment.LEFT};
+                                    break;
+                                default:
+                                    environments = new Environment[]{Environment.LEFT, Environment.RIGHT};
+                                    break;
+                            }
 
-                LOG.info("Status Report of 'hms-mirror' is here: " + dbReportOutputFile + ".md|html");
+                            for (Environment distcpEnv : environments) {
+                                Boolean dcFound = Boolean.FALSE;
 
-                String les = conversion.executeSql(Environment.LEFT, database);
-                if (les != null) {
-                    FileWriter leftExecOutput = new FileWriter(dbLeftExecuteFile);
-                    leftExecOutput.write(les);
-                    leftExecOutput.close();
-                    LOG.info("LEFT Execution Script is here: " + dbLeftExecuteFile);
-                    runbookFile.write(step++ + ". **LEFT** clusters SQL script. ");
-                    if (config.isExecute()) {
-                        runbookFile.write(" (Has been executed already, check report file details)");
-                    } else {
-                        runbookFile.write("(Has NOT been executed yet)");
+                                StringBuilder distcpWorkbookSb = new StringBuilder();
+                                StringBuilder distcpScriptSb = new StringBuilder();
+
+                                distcpScriptSb.append("#!/usr/bin/env sh").append("\n");
+                                distcpScriptSb.append("\n");
+                                distcpScriptSb.append("# 1. Copy the source '*_distcp_source.txt' files to the distributed filesystem.").append("\n");
+                                distcpScriptSb.append("# 2. Export an env var 'HCFS_BASE_DIR' that represents where these files where placed.").append("\n");
+                                distcpScriptSb.append("#      NOTE: ${HCFS_BASE_DIR} must be available to the user running 'distcp'").append("\n");
+                                distcpScriptSb.append("# 3. Export an env var 'DISTCP_OPTS' with any special settings needed to run the job.").append("\n");
+                                distcpScriptSb.append("#      For large jobs, you may need to adjust memory settings.").append("\n");
+                                distcpScriptSb.append("# 4. Run the following in an order or framework that is appropriate for your environment.").append("\n");
+                                distcpScriptSb.append("#       These aren't necessarily expected to run in this shell script as is in production.").append("\n");
+                                distcpScriptSb.append("\n");
+                                distcpScriptSb.append("\n");
+                                distcpScriptSb.append("if [ -z ${HCFS_BASE_DIR+x} ]; then").append("\n");
+                                distcpScriptSb.append("  echo \"HCFS_BASE_DIR is unset\"").append("\n");
+                                distcpScriptSb.append("  echo \"What is the 'HCFS_BASE_DIR':\"").append("\n");
+                                distcpScriptSb.append("  read HCFS_BASE_DIR").append("\n");
+                                distcpScriptSb.append("  echo \"HCFS_BASE_DIR is set to '$HCFS_BASE_DIR'\"").append("\n");
+                                distcpScriptSb.append("else").append("\n");
+                                distcpScriptSb.append("  echo \"HCFS_BASE_DIR is set to '$HCFS_BASE_DIR'\"").append("\n");
+                                distcpScriptSb.append("fi").append("\n");
+                                distcpScriptSb.append("\n");
+                                distcpScriptSb.append("echo \"Creating HCFS directory: $HCFS_BASE_DIR\"").append("\n");
+                                distcpScriptSb.append("hdfs dfs -mkdir -p $HCFS_BASE_DIR").append("\n");
+                                distcpScriptSb.append("\n");
+
+                                // WARNING ABOUT 'distcp' and 'table alignment'
+                                distcpWorkbookSb.append("## WARNING\n");
+                                distcpWorkbookSb.append(MessageCode.RDL_DC_WARNING_TABLE_ALIGNMENT.getDesc()).append("\n\n");
+
+                                distcpWorkbookSb.append("| Database | Target | Sources |\n");
+                                distcpWorkbookSb.append("|:---|:---|:---|\n");
+
+                                FileWriter distcpSourceFW = null;
+                                for (Map.Entry<String, Map<String, Set<String>>> entry :
+                                        config.getTranslator().buildDistcpList(database, distcpEnv, 1).entrySet()) {
+
+                                    distcpWorkbookSb.append("| " + entry.getKey() + " | | |\n");
+                                    Map<String, Set<String>> value = entry.getValue();
+                                    int i = 1;
+                                    for (Map.Entry<String, Set<String>> dbMap : value.entrySet()) {
+                                        String distcpSourceFile = entry.getKey() + "_" + distcpEnv.toString() + "_" + i++ + "_distcp_source.txt";
+                                        String distcpSourceFileFull = reportOutputDir + System.getProperty("file.separator") + distcpSourceFile;
+                                        distcpSourceFW = new FileWriter(distcpSourceFileFull);
+
+                                        StringBuilder line = new StringBuilder();
+                                        line.append("| | ").append(dbMap.getKey()).append(" | ");
+
+                                        for (String source : dbMap.getValue()) {
+                                            line.append(source).append("<br>");
+                                            distcpSourceFW.append(source).append("\n");
+                                        }
+                                        line.append(" | ").append("\n");
+                                        distcpWorkbookSb.append(line);
+
+                                        distcpScriptSb.append("\n");
+                                        distcpScriptSb.append("echo \"Copying 'distcp' source file to $HCFS_BASE_DIR\"").append("\n");
+                                        distcpScriptSb.append("\n");
+                                        distcpScriptSb.append("hdfs dfs -copyFromLocal -f " + distcpSourceFile + " ${HCFS_BASE_DIR}").append("\n");
+                                        distcpScriptSb.append("\n");
+                                        distcpScriptSb.append("echo \"Running 'distcp'\"").append("\n");
+                                        distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} -f ${HCFS_BASE_DIR}/" + distcpSourceFile + " " +
+                                                dbMap.getKey() + "\n").append("\n");
+
+                                        distcpSourceFW.close();
+
+                                        dcFound = Boolean.TRUE;
+                                    }
+                                }
+
+                                if (dcFound) {
+                                    // Set flags for report and workplan
+                                    switch (distcpEnv) {
+                                        case LEFT:
+                                            dcLeft = Boolean.TRUE;
+                                            break;
+                                        case RIGHT:
+                                            dcRight = Boolean.TRUE;
+                                            break;
+                                    }
+
+                                    String distcpWorkbookFile = reportOutputDir + System.getProperty("file.separator") + database +
+                                            "_" + distcpEnv + "_distcp_workbook.md";
+                                    String distcpScriptFile = reportOutputDir + System.getProperty("file.separator") + database +
+                                            "_" + distcpEnv + "_distcp_script.sh";
+
+                                    FileWriter distcpWorkbookFW = new FileWriter(distcpWorkbookFile);
+                                    FileWriter distcpScriptFW = new FileWriter(distcpScriptFile);
+
+                                    distcpScriptFW.write(distcpScriptSb.toString());
+                                    distcpWorkbookFW.write(distcpWorkbookSb.toString());
+
+                                    distcpScriptFW.close();
+                                    distcpWorkbookFW.close();
+                                }
+                            }
+                        } catch (IOException ioe) {
+                            LOG.error("Issue writing distcp workbook", ioe);
+                        }
                     }
-                    runbookFile.write("\n");
-                }
 
-                if (dcLeft) {
-                    runbookFile.write(step++ + ". **LEFT** cluster `distcp` actions.  Needs to be performed manually.  Use 'distcp' report/template.");
-                    runbookFile.write("\n");
-                }
 
-                String res = conversion.executeSql(Environment.RIGHT, database);
-                if (res != null) {
-                    FileWriter rightExecOutput = new FileWriter(dbRightExecuteFile);
-                    rightExecOutput.write(res);
-                    rightExecOutput.close();
-                    LOG.info("RIGHT Execution Script is here: " + dbRightExecuteFile);
-                    runbookFile.write(step++ + ". **RIGHT** clusters SQL script. ");
+                    FileWriter runbookFile = new FileWriter(dbRunbookFile);
+                    runbookFile.write("# Runbook for database: " + database);
+                    runbookFile.write("\n\nYou'll find the **run report** in the file:\n\n`" + dbReportOutputFile + ".md|html` " +
+                            "\n\nThis file includes details about the configuration at the time this was run and the " +
+                            "output/actions on each table in the database that was included.\n\n");
+                    runbookFile.write("## Steps\n\n");
                     if (config.isExecute()) {
-                        if (!config.getCluster(Environment.RIGHT).getHiveServer2().isDisconnected()) {
+                        runbookFile.write("Execute was **ON**, so many of the scripts have been run already.  Verify status " +
+                                "in the above report.  `distcp` actions (if requested/applicable) need to be run manually. " +
+                                "Some cleanup scripts may have been run if no `distcp` actions were requested.\n\n");
+                        if (config.getCluster(Environment.RIGHT).getHiveServer2() != null) {
+                            if (config.getCluster(Environment.RIGHT).getHiveServer2().isDisconnected()) {
+                                runbookFile.write("Process ran with RIGHT environment 'disconnected'.  All RIGHT scripts will need to be run manually.\n\n");
+                            }
+                        }
+                    } else {
+                        runbookFile.write("Execute was **OFF**.  All actions will need to be run manually. See below steps.\n\n");
+                    }
+                    int step = 1;
+                    FileWriter reportFile = new FileWriter(dbReportOutputFile + ".md");
+                    String mdReportStr = conversion.toReport(config, database);
+
+
+                    File dbYamlFile = new File(dbReportOutputFile + ".yaml");
+                    FileWriter dbYamlFileWriter = new FileWriter(dbYamlFile);
+
+                    DBMirror yamlDb = conversion.getDatabase(database);
+
+                    String dbYamlStr = mapper.writeValueAsString(yamlDb);
+                    try {
+                        dbYamlFileWriter.write(dbYamlStr);
+                        LOG.info("Database (" + database + ") yaml 'saved' to: " + dbYamlFile.getPath());
+                    } catch (IOException ioe) {
+                        LOG.error("Problem 'writing' database yaml", ioe);
+                    } finally {
+                        dbYamlFileWriter.close();
+                    }
+
+                    reportFile.write(mdReportStr);
+                    reportFile.close();
+                    // Convert to HTML
+                    List<Extension> extensions = Arrays.asList(TablesExtension.create(), YamlFrontMatterExtension.create());
+
+                    org.commonmark.parser.Parser parser = org.commonmark.parser.Parser.builder().extensions(extensions).build();
+                    Node document = parser.parse(mdReportStr);
+                    HtmlRenderer renderer = HtmlRenderer.builder().extensions(extensions).build();
+                    String htmlReportStr = renderer.render(document);  // "<p>This is <em>Sparta</em></p>\n"
+                    reportFile = new FileWriter(dbReportOutputFile + ".html");
+                    reportFile.write(htmlReportStr);
+                    reportFile.close();
+
+                    LOG.info("Status Report of 'hms-mirror' is here: " + dbReportOutputFile + ".md|html");
+
+                    String les = conversion.executeSql(Environment.LEFT, database);
+                    if (les != null) {
+                        FileWriter leftExecOutput = new FileWriter(dbLeftExecuteFile);
+                        leftExecOutput.write(les);
+                        leftExecOutput.close();
+                        LOG.info("LEFT Execution Script is here: " + dbLeftExecuteFile);
+                        runbookFile.write(step++ + ". **LEFT** clusters SQL script. ");
+                        if (config.isExecute()) {
                             runbookFile.write(" (Has been executed already, check report file details)");
                         } else {
-                            runbookFile.write(" (Has NOT been executed because the environment is NOT connected.  Review and run scripts manually.)");
+                            runbookFile.write("(Has NOT been executed yet)");
                         }
-                    } else {
-                        runbookFile.write("(Has NOT been executed yet)");
+                        runbookFile.write("\n");
                     }
-                    runbookFile.write("\n");
+
+                    if (dcLeft) {
+                        runbookFile.write(step++ + ". **LEFT** cluster `distcp` actions.  Needs to be performed manually.  Use 'distcp' report/template.");
+                        runbookFile.write("\n");
+                    }
+
+                    String res = conversion.executeSql(Environment.RIGHT, database);
+                    if (res != null) {
+                        FileWriter rightExecOutput = new FileWriter(dbRightExecuteFile);
+                        rightExecOutput.write(res);
+                        rightExecOutput.close();
+                        LOG.info("RIGHT Execution Script is here: " + dbRightExecuteFile);
+                        runbookFile.write(step++ + ". **RIGHT** clusters SQL script. ");
+                        if (config.isExecute()) {
+                            if (!config.getCluster(Environment.RIGHT).getHiveServer2().isDisconnected()) {
+                                runbookFile.write(" (Has been executed already, check report file details)");
+                            } else {
+                                runbookFile.write(" (Has NOT been executed because the environment is NOT connected.  Review and run scripts manually.)");
+                            }
+                        } else {
+                            runbookFile.write("(Has NOT been executed yet)");
+                        }
+                        runbookFile.write("\n");
+                    }
+
+                    if (dcRight) {
+                        runbookFile.write(step++ + ". **RIGHT** cluster `distcp` actions.  Needs to be performed manually.  Use 'distcp' report/template.");
+                        runbookFile.write("\n");
+                    }
+
+                    String lcu = conversion.executeCleanUpSql(Environment.LEFT, database);
+                    if (lcu != null) {
+                        FileWriter leftCleanUpOutput = new FileWriter(dbLeftCleanUpFile);
+                        leftCleanUpOutput.write(lcu);
+                        leftCleanUpOutput.close();
+                        LOG.info("LEFT CleanUp Execution Script is here: " + dbLeftCleanUpFile);
+                        runbookFile.write(step++ + ". **LEFT** clusters CLEANUP SQL script. ");
+                        runbookFile.write("(Has NOT been executed yet)");
+                        runbookFile.write("\n");
+                    }
+
+                    String rcu = conversion.executeCleanUpSql(Environment.RIGHT, database);
+                    if (rcu != null) {
+                        FileWriter rightCleanUpOutput = new FileWriter(dbRightCleanUpFile);
+                        rightCleanUpOutput.write(rcu);
+                        rightCleanUpOutput.close();
+                        LOG.info("RIGHT CleanUp Execution Script is here: " + dbRightCleanUpFile);
+                        runbookFile.write(step++ + ". **RIGHT** clusters CLEANUP SQL script. ");
+                        runbookFile.write("(Has NOT been executed yet)");
+                        runbookFile.write("\n");
+                    }
+                    LOG.info("Runbook here: " + dbRunbookFile);
+                    runbookFile.close();
+                } catch (IOException ioe) {
+                    LOG.error("Issue writing report for: " + database, ioe);
                 }
-
-                if (dcRight) {
-                    runbookFile.write(step++ + ". **RIGHT** cluster `distcp` actions.  Needs to be performed manually.  Use 'distcp' report/template.");
-                    runbookFile.write("\n");
-                }
-
-                String lcu = conversion.executeCleanUpSql(Environment.LEFT, database);
-                if (lcu != null) {
-                    FileWriter leftCleanUpOutput = new FileWriter(dbLeftCleanUpFile);
-                    leftCleanUpOutput.write(lcu);
-                    leftCleanUpOutput.close();
-                    LOG.info("LEFT CleanUp Execution Script is here: " + dbLeftCleanUpFile);
-                    runbookFile.write(step++ + ". **LEFT** clusters CLEANUP SQL script. ");
-                    runbookFile.write("(Has NOT been executed yet)");
-                    runbookFile.write("\n");
-                }
-
-                String rcu = conversion.executeCleanUpSql(Environment.RIGHT, database);
-                if (rcu != null) {
-                    FileWriter rightCleanUpOutput = new FileWriter(dbRightCleanUpFile);
-                    rightCleanUpOutput.write(rcu);
-                    rightCleanUpOutput.close();
-                    LOG.info("RIGHT CleanUp Execution Script is here: " + dbRightCleanUpFile);
-                    runbookFile.write(step++ + ". **RIGHT** clusters CLEANUP SQL script. ");
-                    runbookFile.write("(Has NOT been executed yet)");
-                    runbookFile.write("\n");
-                }
-                LOG.info("Runbook here: " + dbRunbookFile);
-
-                runbookFile.close();
-
-            } catch (IOException ioe) {
-                LOG.error("Issue writing report for: " + database, ioe);
             }
-
-
         }
         Date endTime = new Date();
         DecimalFormat decf = new DecimalFormat("#.###");
@@ -1350,6 +1357,28 @@ public class Mirror {
         skipOptimizationsOption.setRequired(Boolean.FALSE);
         options.addOption(skipOptimizationsOption);
 
+        Option forceExternalLocationOption = new Option("fel", "force-external-location", false,
+                "Under some conditions, the LOCATION element for EXTERNAL tables is removed (ie: -rdl).  " +
+                        "In which case we rely on the settings of the database definition to control the " +
+                        "EXTERNAL table data location.  But for some older Hive versions, the LOCATION element in " +
+                        "the database is NOT honored.  Even when the database LOCATION is set, the EXTERNAL table LOCATION " +
+                        "defaults to the system wide warehouse settings.  This flag will ensure the LOCATION element " +
+                        "remains in the CREATE definition of the table to force it's location.");
+        forceExternalLocationOption.setRequired(Boolean.FALSE);
+        options.addOption(forceExternalLocationOption);
+
+        Option glblLocationMapOption = new Option("glm", "global-location-map", true,
+                "Comma separated key=value pairs of Locations to Map. IE: /myorig/data/finance=/data/ec/finance. " +
+                        "This reviews 'EXTERNAL' table locations for the path '/myorig/data/finance' and replaces it " +
+                        "with '/data/ec/finance'.  Option can be used alone or with -rdl. Only applies to 'EXTERNAL' tables " +
+                        "and if the tables location doesn't contain one of the supplied maps, it will be translated according " +
+                        "to -rdl rules if -rdl is specified.  If -rdl is not specified, the conversion for that table is skipped. ");
+        glblLocationMapOption.setArgName("key=value");
+        glblLocationMapOption.setRequired(Boolean.FALSE);
+        glblLocationMapOption.setValueSeparator(',');
+        glblLocationMapOption.setArgs(1000);
+        options.addOption(glblLocationMapOption);
+
         OptionGroup storageOptionsGroup = new OptionGroup();
         storageOptionsGroup.setRequired(Boolean.FALSE);
 
@@ -1400,6 +1429,7 @@ public class Mirror {
         // Migration Options - Only one of these can be selected at a time, but isn't required.
         OptionGroup migrationOptionsGroup = new OptionGroup();
         migrationOptionsGroup.setRequired(Boolean.FALSE);
+
 
         Option dboOption = new Option("dbo", "database-only", false,
                 "Migrate the Database definitions as they exist from LEFT to RIGHT");
@@ -1705,11 +1735,13 @@ public class Mirror {
                 if (leftSql != null && leftSql.size() > 0) {
                     if (!setupSql(Environment.LEFT, leftSql)) {
                         LOG.error("Failed to run LEFT SQL, check Logs");
+                        returnCode = -1;
                     }
                 }
                 if (rightSql != null && rightSql.size() > 0) {
                     if (!setupSql(Environment.RIGHT, rightSql)) {
                         LOG.error("Failed to run RIGHT SQL, check Logs");
+                        returnCode = -1;
                     }
                 }
             } catch (RuntimeException rte) {

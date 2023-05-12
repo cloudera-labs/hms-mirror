@@ -1,5 +1,8 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
+import java.util.Map;
+import java.util.TreeMap;
+
 public class StorageMigration {
 
     private DataStrategy strategy = DataStrategy.SQL;

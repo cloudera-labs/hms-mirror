@@ -150,7 +150,7 @@ public class Config {
     private ScheduledExecutorService transferThreadPool;
     @JsonIgnore
     private ScheduledExecutorService metadataThreadPool;
-    @JsonIgnore
+//    @JsonIgnore
     private Translator translator = new Translator();
     @JsonIgnore
     private final Messages warnings = new Messages(100);
@@ -533,6 +533,23 @@ public class Config {
         this.dbRename = dbRename;
     }
 
+    public Boolean setGlobalLocationMapKV(String[] extLocs) {
+        Boolean set = Boolean.TRUE;
+        if (extLocs != null) {
+            for (String property : extLocs) {
+                try {
+                    String[] keyValue = property.split("=");
+                    if (keyValue.length == 2) {
+                        getTranslator().addGlobalLocationMap(keyValue[0], keyValue[1]);
+                    }
+                } catch (Throwable t) {
+                    set = Boolean.FALSE;
+                }
+            }
+        }
+        return set;
+    }
+
     public String getResolvedDB(String database) {
         String rtn = null;
         // Set Local Value for adjustments
@@ -738,20 +755,20 @@ public class Config {
             // We need to pass on a few scale parameters to the hs2 configs so the connection pools can handle the scale requested.
             if (getCluster(Environment.LEFT) != null) {
                 Cluster cluster = getCluster(Environment.LEFT);
-                cluster.getHiveServer2().getConnectionProperties().setProperty( "initialSize", Integer.toString((Integer)getTransfer().getConcurrency()/2));
-                cluster.getHiveServer2().getConnectionProperties().setProperty( "maxTotal", Integer.toString(getTransfer().getConcurrency() + 1));
-                cluster.getHiveServer2().getConnectionProperties().setProperty( "maxIdle", Integer.toString(getTransfer().getConcurrency()));
-                cluster.getHiveServer2().getConnectionProperties().setProperty( "minIdle", Integer.toString((Integer)getTransfer().getConcurrency()/2));
-                cluster.getHiveServer2().getConnectionProperties().setProperty( "maxWaitMillis", "10000" );
+                cluster.getHiveServer2().getConnectionProperties().setProperty("initialSize", Integer.toString((Integer) getTransfer().getConcurrency() / 2));
+                cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency() + 1));
+                cluster.getHiveServer2().getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency()));
+                cluster.getHiveServer2().getConnectionProperties().setProperty("minIdle", Integer.toString((Integer) getTransfer().getConcurrency() / 2));
+                cluster.getHiveServer2().getConnectionProperties().setProperty("maxWaitMillis", "10000");
 //                cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", "-1");
             }
             if (getCluster(Environment.RIGHT) != null) {
                 Cluster cluster = getCluster(Environment.RIGHT);
-                cluster.getHiveServer2().getConnectionProperties().setProperty( "initialSize", Integer.toString((Integer)getTransfer().getConcurrency()/2));
-                cluster.getHiveServer2().getConnectionProperties().setProperty( "maxTotal", Integer.toString(getTransfer().getConcurrency() + 1));
-                cluster.getHiveServer2().getConnectionProperties().setProperty( "maxIdle", Integer.toString(getTransfer().getConcurrency()));
-                cluster.getHiveServer2().getConnectionProperties().setProperty( "minIdle", Integer.toString((Integer)getTransfer().getConcurrency()/2));
-                cluster.getHiveServer2().getConnectionProperties().setProperty( "maxWaitMillis", "10000" );
+                cluster.getHiveServer2().getConnectionProperties().setProperty("initialSize", Integer.toString((Integer) getTransfer().getConcurrency() / 2));
+                cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency() + 1));
+                cluster.getHiveServer2().getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency()));
+                cluster.getHiveServer2().getConnectionProperties().setProperty("minIdle", Integer.toString((Integer) getTransfer().getConcurrency() / 2));
+                cluster.getHiveServer2().getConnectionProperties().setProperty("maxWaitMillis", "10000");
 //                cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", "-1");
             }
         }
@@ -888,6 +905,17 @@ public class Config {
             }
         }
 
+        // Because some just don't get you can't do this...
+        if (this.getTransfer().getWarehouse().getManagedDirectory() != null &&
+                this.getTransfer().getWarehouse().getExternalDirectory() != null) {
+            // Make sure these aren't set to the same location.
+            if (this.getTransfer().getWarehouse().getManagedDirectory().equals(this.getTransfer().getWarehouse().getExternalDirectory())) {
+                errors.set(WAREHOUSE_DIRS_SAME_DIR.getCode(), this.getTransfer().getWarehouse().getExternalDirectory()
+                        , this.getTransfer().getWarehouse().getManagedDirectory());
+                rtn = Boolean.FALSE;
+            }
+        }
+
         if (dataStrategy == DataStrategy.ACID) {
             errors.set(ACID_NOT_TOP_LEVEL_STRATEGY.getCode());
             rtn = Boolean.FALSE;
@@ -961,6 +989,14 @@ public class Config {
                     rtn = Boolean.FALSE;
                 }
             }
+        }
+
+        if (this.getTranslator().getGlobalLocationMap() != null) {
+            // Validate that none of the 'from' maps overlap.  IE: can't have /data and /data/mydir as from locations.
+            //    For items that match /data/mydir maybe confusing as to which one to adjust.
+            //   OR we move this to a TreeMap and supply a custom comparator the sorts by length, then natural.  This
+            //      will push longer paths to be evaluated first and once a match is found, skip further checks.
+
         }
 
         // TODO: Check the connections.

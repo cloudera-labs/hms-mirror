@@ -35,6 +35,8 @@ public class TableMirror {
     private static final Logger LOG = LogManager.getLogger(TableMirror.class);
 
     private String dbName;
+    private String resolvedDbName;
+
     private String name;
     private Date start = new Date();
     /*
@@ -50,6 +52,8 @@ public class TableMirror {
     private final DateFormat tdf = new SimpleDateFormat("HH:mm:ss.SSS");
     @JsonIgnore
     private final List<Marker> steps = new ArrayList<Marker>();
+
+    private Boolean reMapped = Boolean.FALSE;
 
     private DataStrategy strategy = null;
 
@@ -90,6 +94,17 @@ public class TableMirror {
         this.dbName = dbName;
     }
 
+    public String getResolvedDbName() {
+        if (resolvedDbName == null)
+            return dbName;
+        else
+            return resolvedDbName;
+    }
+
+    public void setResolvedDbName(String resolvedDbName) {
+        this.resolvedDbName = resolvedDbName;
+    }
+
     public boolean isRemove() {
         return remove;
     }
@@ -112,6 +127,14 @@ public class TableMirror {
 
     public void setPhaseState(PhaseState phaseState) {
         this.phaseState = phaseState;
+    }
+
+    public Boolean getReMapped() {
+        return reMapped;
+    }
+
+    public void setReMapped(Boolean reMapped) {
+        this.reMapped = reMapped;
     }
 
     public Long getStageDuration() {
@@ -573,7 +596,7 @@ public class TableMirror {
         let.addSql(TableUtils.USE_DESC, useDb);
         // Set Override Properties.
         if (config.getOptimization().getOverrides().getLeft().size() > 0) {
-            for (String key : config.getOptimization().getOverrides().getLeft().stringPropertyNames()) {
+            for (String key : config.getOptimization().getOverrides().getLeft().keySet()) {
                 let.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
             }
         }
@@ -1432,7 +1455,7 @@ public class TableMirror {
         }
 
         String sourceLocation = TableUtils.getLocation(let.getName(), let.getDefinition());
-        String targetLocation = config.getTranslator().translateTableLocation(database, let.getName(), sourceLocation, config);
+        String targetLocation = config.getTranslator().translateTableLocation(this, sourceLocation, config);
         String importSql;
         if (TableUtils.isACID(let.getName(), let.getDefinition())) {
             if (!config.getMigrateACID().isDowngrade()) {
@@ -1521,7 +1544,7 @@ public class TableMirror {
         }
         // Set Override Properties.
         if (config.getOptimization().getOverrides() != null) {
-            for (String key : config.getOptimization().getOverrides().getLeft().stringPropertyNames()) {
+            for (String key : config.getOptimization().getOverrides().getLeft().keySet()) {
                 source.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
             }
         }
@@ -1593,7 +1616,7 @@ public class TableMirror {
             }
             // Set Override Properties.
             if (config.getOptimization().getOverrides() != null) {
-                for (String key : config.getOptimization().getOverrides().getRight().stringPropertyNames()) {
+                for (String key : config.getOptimization().getOverrides().getRight().keySet()) {
                     target.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getRight().get(key));
                 }
             }
@@ -1761,7 +1784,7 @@ public class TableMirror {
                     if (copySpec.getStripLocation()) {
                         if (config.getMigrateACID().isDowngrade()) {
                             target.addIssue("Location Stripped from 'Downgraded' ACID definition.  Location will be the default " +
-                                    "external location as configured by the environment.");
+                                    "external location as configured by the database/environment.");
                         } else {
                             target.addIssue("Location Stripped from ACID definition.  Location element in 'CREATE' " +
                                     "not allowed in Hive3+");
@@ -1830,17 +1853,20 @@ public class TableMirror {
                         if (copySpec.getReplaceLocation() && (!TableUtils.isACID(source) || config.getMigrateACID().isDowngrade())) {
                             String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
                             String targetLocation = copySpec.getConfig().getTranslator().
-                                    translateTableLocation(this.getDbName(), getName(), sourceLocation, copySpec.getConfig());
+                                    translateTableLocation(this, sourceLocation, copySpec.getConfig());
                             TableUtils.updateTableLocation(target, targetLocation);
                         }
-                        if (copySpec.getStripLocation()) {
-                            TableUtils.stripLocation(target);
-                        }
-                        if (config.getResetToDefaultLocation()) {
+//                        if (copySpec.getStripLocation()) {
+//                            TableUtils.stripLocation(target);
+//                        }
+                        if (getReMapped()) {
+                            target.addIssue(MessageCode.TABLE_LOCATION_REMAPPED.getDesc());
+                        } else if (config.getTranslator().getForceExternalLocation()) {
+                            target.addIssue(MessageCode.TABLE_LOCATION_FORCED.getDesc());
+                        } else if (config.getResetToDefaultLocation()) {
                             TableUtils.stripLocation(target);
                             target.addIssue(MessageCode.RESET_TO_DEFAULT_LOCATION_WARNING.getDesc());
                         }
-
                         break;
                     case SHADOW:
                     case TRANSFER:
@@ -1860,7 +1886,7 @@ public class TableMirror {
                             } else if (config.getTransfer().getCommonStorage() != null) {
                                 String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
                                 String targetLocation = copySpec.getConfig().getTranslator().
-                                        translateTableLocation(this.getDbName(), getName(), sourceLocation, copySpec.getConfig());
+                                        translateTableLocation(this, sourceLocation, copySpec.getConfig());
                                 TableUtils.updateTableLocation(target, targetLocation);
                             } else if (copySpec.getStripLocation()) {
                                 TableUtils.stripLocation(target);

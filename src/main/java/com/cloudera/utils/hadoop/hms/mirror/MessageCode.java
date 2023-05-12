@@ -87,7 +87,10 @@ public enum MessageCode {
     DB_RENAME_ONLY_WITH_SINGLE_DB_OPTION(48, "DB Rename can only be used for a single DB `-db`."),
     ENVIRONMENT_CONNECTION_ISSUE(49, "There is an issue connecting to the {0} HS2 environment.  Check jdbc setup."),
     FLIP_WITHOUT_RIGHT(80, "You can use the 'flip' option if there isn't a RIGHT cluster defined in the configuration."),
-
+    WAREHOUSE_DIRS_SAME_DIR(81, "You can't use the same location for EXTERNAL {0} and MANAGED {1} warehouse locations."),
+    COLLECTING_TABLE_DEFINITIONS(82, "There was an issue collecting table definitions.  Please check logs."),
+    DATABASE_CREATION(83, "There was an issue creating/modifying databases.  Please check logs."),
+    COLLECTING_TABLES(84, "There was an issue collecting tables.  Please check logs."),
     // WARNINGS
     SYNC_TBL_FILTER(50, "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"
             + "' ON BOTH SIDES!!!"),
@@ -112,8 +115,11 @@ public enum MessageCode {
     STORAGE_MIGRATION_NAMESPACE_LEFT(60,  "You didn't specify -smn or -cs for STORAGE_MIGRATION.  We're assuming you are migrating " +
             "within the same namespace {0}."),
     STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL(61,  "You're using the same namespace in STORAGE_MIGRATION, which " +
-                                                         "requires the use of `reset-to-default-location`.  This feature has automatically been set.")
-    ;
+                                                         "requires the use of `reset-to-default-location`.  This feature has automatically been set."),
+    TABLE_LOCATION_REMAPPED(62, "The tables location matched one of the 'global location map' directories. " +
+            "The LOCATION element was adjusted and will be explicitly set during table creation."),
+    TABLE_LOCATION_FORCED(63, "You've request the table location be explicitly set.")
+            ;
 
 
     private int code = 0;

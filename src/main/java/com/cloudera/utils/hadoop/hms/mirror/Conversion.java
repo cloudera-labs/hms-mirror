@@ -114,9 +114,10 @@ public class Conversion {
         sb.append("-- EXECUTION CLEANUP script for ").append(database).append(" on ").append(environment).append(" cluster\n\n");
         sb.append("-- ").append(new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date())).append("\n\n");
 //        sb.append("-- These are the command run on the " + environment + " cluster when `-e` is used.\n");
+        String rDb = config.getResolvedDB(database);
         DBMirror dbMirror = databases.get(database);
 
-        sb.append("USE ").append(database).append(";\n");
+        sb.append("USE ").append(rDb).append(";\n");
 
         Set<String> tables = dbMirror.getTableMirrors().keySet();
         for (String table : tables) {
