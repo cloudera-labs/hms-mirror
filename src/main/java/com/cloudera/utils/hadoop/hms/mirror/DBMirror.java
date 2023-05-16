@@ -29,6 +29,7 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.*;
 
+import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.HDPHIVE3_DB_LOCATION;
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.RO_DB_DOESNT_EXIST;
 
 public class DBMirror {
@@ -158,15 +159,21 @@ public class DBMirror {
                         location = dbDef.get(MirrorConf.DB_LOCATION);
                         managedLocation = dbDef.get(MirrorConf.DB_MANAGED_LOCATION);
 
-                        if (location != null) {
+                        if (location != null && !config.getCluster(Environment.RIGHT).isHdpHive3()) {
                             location = location.replace(leftNamespace, rightNamespace);
                             String alterDB_location = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, location);
                             this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDB_location));
                         }
                         if (managedLocation != null) {
                             managedLocation = managedLocation.replace(leftNamespace, rightNamespace);
-                            String alterDBMngdLocationSql = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, managedLocation);
-                            this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_MNGD_LOCATION_DESC, alterDBMngdLocationSql));
+                            if (!config.getCluster(Environment.RIGHT).isHdpHive3()) {
+                                String alterDBMngdLocationSql = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, managedLocation);
+                                this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_MNGD_LOCATION_DESC, alterDBMngdLocationSql));
+                            } else {
+                                String alterDBMngdLocationSql = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, managedLocation);
+                                this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDBMngdLocationSql));
+                                this.addIssue(Environment.RIGHT, HDPHIVE3_DB_LOCATION.getDesc());
+                            }
                         }
                         break;
                     default:
@@ -348,13 +355,20 @@ public class DBMirror {
                                 // TODO: DB Properties.
                                 this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.CREATE_DB_DESC, sbL.toString()));
 
-                                if (location != null) {
+                                if (location != null && !config.getCluster(Environment.RIGHT).isHdpHive3()) {
                                     String alterDbLoc = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, location);
                                     this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDbLoc));
                                 }
                                 if (managedLocation != null) {
-                                    String alterDbMngdLoc = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, managedLocation);
-                                    this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
+                                    if (!config.getCluster(Environment.RIGHT).isHdpHive3()) {
+                                        String alterDbMngdLoc = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, managedLocation);
+                                        this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
+                                    } else {
+                                        String alterDbMngdLoc = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, managedLocation);
+                                        this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
+                                        this.addIssue(Environment.RIGHT, HDPHIVE3_DB_LOCATION.getDesc());
+
+                                    }
                                 }
 
                                 break;
@@ -397,8 +411,10 @@ public class DBMirror {
                                 sbLoc.append("/");
                                 sbLoc.append(database);
                                 sbLoc.append(".db");
-                                String alterDbLoc = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, sbLoc.toString());
-                                this.getSql(Environment.LEFT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDbLoc));
+                                if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
+                                    String alterDbLoc = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, sbLoc.toString());
+                                    this.getSql(Environment.LEFT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDbLoc));
+                                }
 
                                 StringBuilder sbMngdLoc = new StringBuilder();
                                 sbMngdLoc.append(config.getTransfer().getCommonStorage());
@@ -406,8 +422,14 @@ public class DBMirror {
                                 sbMngdLoc.append("/");
                                 sbMngdLoc.append(database);
                                 sbMngdLoc.append(".db");
-                                String alterDbMngdLoc = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, sbMngdLoc.toString());
-                                this.getSql(Environment.LEFT).add(new Pair(MirrorConf.ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
+                                if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
+                                    String alterDbMngdLoc = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, sbMngdLoc.toString());
+                                    this.getSql(Environment.LEFT).add(new Pair(MirrorConf.ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
+                                } else {
+                                    String alterDbMngdLoc = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, sbMngdLoc.toString());
+                                    this.getSql(Environment.LEFT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
+                                    this.addIssue(Environment.LEFT, HDPHIVE3_DB_LOCATION.getDesc());
+                                }
 
                                 this.addIssue(Environment.LEFT,"This process, when 'executed' will leave the original tables intact in their renamed " +
                                         "version.  They are NOT automatically cleaned up.  Run the produced '" +

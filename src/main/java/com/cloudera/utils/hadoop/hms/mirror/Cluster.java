@@ -41,6 +41,24 @@ public class Cluster implements Comparable<Cluster> {
 
     private Environment environment = null;
     private Boolean legacyHive = Boolean.TRUE;
+
+    /*
+    HDP Hive 3 and Manage table creation and location methods weren't mature and had a lot of
+    bugs/incomplete features.
+
+    Hive 3 Databases have an MANAGEDLOCATION attribute used to override the 'warehouse' location
+    specified in the hive metastore as the basis for the root directory of ACID tables in Hive.
+    Unfortunately, this setting isn't available in HDP Hive 3.  It was added later in CDP Hive 3.
+
+    In lew of this, when this flag is set to true (default is false), we will NOT strip the location
+    element from the tables CREATE for ACID tables.  This is the only method we have to control the
+    tables location.  THe DATABASE doesn't yet support the MANAGEDLOCATION attribute, so we will not
+    build/run the ALTER DATABASE ...  SET MANAGEDLOCATION ... for this configuration.
+
+    We will add a DB properties that can be used later on to set the DATABASE's MANAGEDLOCATION property
+    after you've upgraded to CDP Hive 3.
+     */
+    private Boolean hdpHive3 = Boolean.FALSE;
     private String hcfsNamespace = null;
     private HiveServer2Config hiveServer2 = null;
     private PartitionDiscovery partitionDiscovery = new PartitionDiscovery();
@@ -74,6 +92,18 @@ public class Cluster implements Comparable<Cluster> {
 
     public void setLegacyHive(Boolean legacyHive) {
         this.legacyHive = legacyHive;
+    }
+
+    public Boolean isHdpHive3() {
+        return hdpHive3;
+    }
+
+    public Boolean getHdpHive3() {
+        return hdpHive3;
+    }
+
+    public void setHdpHive3(Boolean hdpHive3) {
+        this.hdpHive3 = hdpHive3;
     }
 
     public String getHcfsNamespace() {

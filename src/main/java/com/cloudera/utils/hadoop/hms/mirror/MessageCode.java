@@ -91,6 +91,7 @@ public enum MessageCode {
     COLLECTING_TABLE_DEFINITIONS(82, "There was an issue collecting table definitions.  Please check logs."),
     DATABASE_CREATION(83, "There was an issue creating/modifying databases.  Please check logs."),
     COLLECTING_TABLES(84, "There was an issue collecting tables.  Please check logs."),
+    LEGACY_AND_HIVE3(85, "Setting legacyHive=true and hdpHive3=true is a conflicting configuration"),
     // WARNINGS
     SYNC_TBL_FILTER(50, "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"
             + "' ON BOTH SIDES!!!"),
@@ -118,7 +119,14 @@ public enum MessageCode {
                                                          "requires the use of `reset-to-default-location`.  This feature has automatically been set."),
     TABLE_LOCATION_REMAPPED(62, "The tables location matched one of the 'global location map' directories. " +
             "The LOCATION element was adjusted and will be explicitly set during table creation."),
-    TABLE_LOCATION_FORCED(63, "You've request the table location be explicitly set.")
+    TABLE_LOCATION_FORCED(63, "You've request the table location be explicitly set."),
+    HDPHIVE3_DB_LOCATION(64, "HDP3 Hive did NOT have a MANAGEDLOCATION attribute for Databases.  The LOCATION " +
+            "element tracked the Manage ACID tables and will control where they go.  This LOCATION will need to be transferred to " +
+            "MANAGEDLOCATION 'after' upgrading to CDP to ensure ACID tables maintain the same behavior.  EXTERNAL tables will " +
+            "explicity set there LOCATION element to match the setting in `-ewd`.  Future external tables, when no location is " +
+            "specified, will be created in the `hive.metastore.warehouse.external.dir`.  This value is global in HDP Hive3 and " +
+            "can NOT be set for individual databases.  Post upgrade to CDP, you should add a specific directory value at the " +
+            "database level for better control.")
             ;
 
 

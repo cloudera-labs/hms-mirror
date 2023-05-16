@@ -434,6 +434,29 @@ Under some conditions, the default warehouse directory hierarchy is not honored.
 
 In HDP3, the CREATE statement doesn't honor the 'database' LOCATION element and reverts to the system wide warehouse directory configurations.  The `-fel` flag will simply include the 'properly' adjusted LOCATION element in the CREATE statement to ensure the tables are created in the desired location.
 
+### HDP 3 Hive
+
+HDP 3 (Hive 3) was an incomplete implementation with regards to complex table 'location' management.  When you are working in this environment, add to the cluster configuration (LEFT or RIGHT) the setting: `hdpHive3: true`.  There is NOT a commandline switch for this.  JUst add it to the configuration file you're using to run the application.
+
+```yaml
+clusters:
+  LEFT:
+    environment: "LEFT"
+    legacyHive: false
+    hdpHive3: true
+```
+
+HDP3 Hive did NOT have a MANAGEDLOCATION attribute for Databases.  
+
+The LOCATION element tracked the Manage ACID tables and will control where they go.  
+
+This LOCATION will need to be transferred to MANAGEDLOCATION 'after' upgrading to CDP to ensure ACID tables maintain the same behavior.  EXTERNAL tables will explicity set there LOCATION element to match the setting in `-ewd`.  
+
+Future external tables, when no location is specified, will be created in the `hive.metastore.warehouse.external.dir`.  This value is global in HDP Hive3 and can NOT be set for individual databases.  
+
+Post upgrade to CDP, you should add a specific directory value at the
+database level for better control.
+
 ## Setup
 
 ### Binary Package

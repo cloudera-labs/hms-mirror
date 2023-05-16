@@ -691,11 +691,28 @@ public class Config {
                 case STORAGE_MIGRATION:
                     break;
                 default:
+                    if (getCluster(Environment.RIGHT).isHdpHive3()) {
+                        this.getTranslator().setForceExternalLocation(Boolean.TRUE);
+                    }
                     if (getCluster(Environment.RIGHT).getLegacyHive() && !getCluster(Environment.LEFT).getLegacyHive()) {
                         errors.set(LEGACY_TO_NON_LEGACY.getCode());
                         rtn = Boolean.FALSE;
                     }
             }
+        }
+
+        if (getCluster(Environment.LEFT).isHdpHive3() && getCluster(Environment.LEFT).getLegacyHive()) {
+            errors.set(LEGACY_AND_HIVE3.getCode());
+            rtn = Boolean.FALSE;
+        }
+
+        if (getCluster(Environment.RIGHT).isHdpHive3() && getCluster(Environment.RIGHT).getLegacyHive()) {
+            errors.set(LEGACY_AND_HIVE3.getCode());
+            rtn = Boolean.FALSE;
+        }
+
+        if (getCluster(Environment.LEFT).isHdpHive3() && this.getDataStrategy() == DataStrategy.STORAGE_MIGRATION) {
+            this.getTranslator().setForceExternalLocation(Boolean.TRUE);
         }
 
         if (resetToDefaultLocation) {
