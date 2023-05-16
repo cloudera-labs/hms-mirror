@@ -36,11 +36,12 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Migrations between Clusters WITHOUT line of Site](#migrations-between-clusters-without-line-of-site)
   * [Shared Storage Models (Isilon, Spectrum-Scale, etc.)](#shared-storage-models-isilon-spectrum-scale-etc)
   * [Disconnected Mode](#disconnected-mode)
-  * [No-Purge Option (`-np`)](#no-purge-option--np)
-  * [Skip Optimizations (`-so`)](#skip-optimizations--so)
-  * [Property Overrides (`-po[l|r] [,]...`)](#property-overrides--polr-)
-  * [Global Location Map (`-glm|--global-location-map [,...]`)](#global-location-map--glm--global-location-map-)
-  * [Force External Locations (`-fel|--force-external-location`)](#force-external-locations--fel--force-external-location)
+  * [No-Purge Option](#no-purge-option)
+  * [Skip Optimizations](#skip-optimizations)
+  * [Property Overrides](#property-overrides)
+  * [Global Location Map](#global-location-map)
+  * [Force External Locations](#force-external-locations)
+  * [HDP 3 Hive](#hdp-3-hive)
 - [Setup](#setup)
   * [Binary Package](#binary-package)
   * [HMS-Mirror Setup from Binary Distribution](#hms-mirror-setup-from-binary-distribution)
@@ -375,11 +376,15 @@ The RIGHT_ 'execution' scripts and distcp commands will need to be run MANUALLY 
 
 Note: This will be know as the "right-is-disconnected" option. Which means the process should be run from a node that has access to the "left" cluster. This is 'counter' to our general recommendation that the process should be run from the 'right' cluster.
 
-### No-Purge Option (`-np`)
+### No-Purge Option 
+
+`-np`
 
 [Feature Request #25](https://github.com/cloudera-labs/hms-mirror/issues/25) was introduced in v1.5.4.2 and gives the user to option to remove the `external.table.purge` option that is added when converting legacy managed tables to external table (Hive 1/2 to 3).  This does affect the behavior of the table from the older platforms.
 
-### Skip Optimizations (`-so`)
+### Skip Optimizations 
+
+`-so`
 
 [Feature Request #23](https://github.com/cloudera-labs/hms-mirror/issues/23) was introduced in v1.5.4.2 and give an option to **Skip Optimizations**.
 
@@ -387,7 +392,9 @@ When migrating data via SQL with partitioned tables (OR downgrading an ACID tabl
 
 But there is a corner case where these optimizations can get in the way and cause long-running tasks.  If the source table has already been organized into large files (which would be within the partitions already), adding the optimizations above force a single reducer per partition.  If the partitions are large and already have good file sizes, we want to skip these optimizations and let hive run the process with only a map task.
 
-### Property Overrides (`-po[l|r] <key=value>[,<key=value>]...`)
+### Property Overrides 
+
+`-po[l|r] <key=value>[,<key=value>]...`
 
 [Feature Request #27](https://github.com/cloudera-labs/hms-mirror/issues/27) introduced in v1.5.4.2 provides the ability to set a hive properties at the beginning of each migration part.  This is a comma separated list of key=value pairs  with no space.  If spaces are needed, quote the parameter on the commandline.
 
@@ -409,7 +416,9 @@ optimization:
       
 ```
 
-### Global Location Map (`-glm|--global-location-map <from=to>[,...]`)
+### Global Location Map 
+
+`-glm|--global-location-map <from=to>[,...]`
 
 This is an opportunity to make some specific directory mappings during the migration.  You can supply a comma separated list of directory pairs to be use for evaluation.
 
@@ -428,7 +437,9 @@ The list will be sorted by the length of the string, then alpha-numerically.  Th
 
 Paths are evaluated with 'startsWith' on the original path (minus the original namespace). When a match is found, the path 'part' will be replaced with the value specified.  The remaining path will remain intact and regardless of the `-rdl` setting, the LOCATION element will be included in the tables new CREATE statement.
 
-### Force External Locations (`-fel|--force-external-location`)
+### Force External Locations 
+
+`-fel|--force-external-location`
 
 Under some conditions, the default warehouse directory hierarchy is not honored.  We've seen this in HDP 3.  The `-rdl` option collects the external tables in the default warehouse directory by omitting the LOCATION element in the CREATE statement, relying on the default location.  The default location is set at the DATABASE level by `hms-mirror`.
 
