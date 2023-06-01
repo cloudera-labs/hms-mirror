@@ -15,37 +15,21 @@
  *
  */
 
-package com.cloudera.utils.hadoop.hms;
+package com.cloudera.utils.hadoop.hms.datastrategy;
 
-import com.cloudera.utils.hadoop.hms.mirror.Pair;
-import org.junit.After;
-import org.junit.AfterClass;
+import com.cloudera.utils.hadoop.hms.DataState;
+import com.cloudera.utils.hadoop.hms.Mirror;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static com.cloudera.utils.hadoop.hms.TestSQL.*;
 import static org.junit.Assert.assertTrue;
 
 public class LegacyExpImpDataMigrationTest extends MirrorTestBase {
 
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-        dataCleanup(DATACLEANUP.BOTH);
-    }
-
     @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        DataState.getInstance().setConfiguration(HDP2_CDP);
+    public void init() throws Exception {
+        super.init(HDP2_CDP);
         dataSetup01();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        dataCleanup(DATACLEANUP.RIGHT);
     }
 
     @Test

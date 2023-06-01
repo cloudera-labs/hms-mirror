@@ -53,7 +53,7 @@ public interface TestSQL {
             "STORED AS ORC";
 
     // Escape single quotes with another quote when using MessageFormat.format IE: ' to '' .
-    String CREATE_AVRO_TBL_SHORT = "CREATE TABLE {0} IF NOT EXISTS " +
+    String CREATE_AVRO_TBL_SHORT = "CREATE TABLE IF NOT EXISTS {0} " +
             "STORED AS AVRO " +
             "TBLPROPERTIES (" +
             "''avro.schema.url''=''{1}'')";

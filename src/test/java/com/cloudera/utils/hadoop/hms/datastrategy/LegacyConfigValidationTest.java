@@ -15,151 +15,23 @@
  *
  */
 
-package com.cloudera.utils.hadoop.hms;
+package com.cloudera.utils.hadoop.hms.datastrategy;
 
+import com.cloudera.utils.hadoop.hms.DataState;
+import com.cloudera.utils.hadoop.hms.Mirror;
 import com.cloudera.utils.hadoop.hms.mirror.MessageCode;
-import com.cloudera.utils.hadoop.hms.mirror.Pair;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static com.cloudera.utils.hadoop.hms.TestSQL.*;
 import static org.junit.Assert.assertTrue;
 
 public class LegacyConfigValidationTest extends MirrorTestBase {
 
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-        dataCleanup(DATACLEANUP.BOTH);
-    }
-
     @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        DataState.getInstance().setConfiguration(HDP2_CDP);
+    public void init() throws Exception {
+        super.init(HDP2_CDP);
         dataSetup01();
     }
-
-    @After
-    public void tearDown() throws Exception {
-        dataCleanup(DATACLEANUP.RIGHT);
-    }
-
-// `-r` Feature removed for now..
-//    @Test
-//    public void test_acid_hybrid_da_cs_r_all_leg() {
-//        String nameofCurrMethod = new Throwable()
-//                .getStackTrace()[0]
-//                .getMethodName();
-//
-//        String outputDir = outputDirBase + nameofCurrMethod;
-//
-//        String[] args = new String[]{"-d", "HYBRID", "-db", DataState.getInstance().getWorking_db(),
-//                "-ma", "-da", "-r", "-cs", common_storage,
-//                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-//        args = toExecute(args, execArgs, Boolean.FALSE);
-//
-//        long rtn = 0;
-//        Mirror mirror = new Mirror();
-//        rtn = mirror.go(args);
-//        long check = MessageCode.REPLACE_ONLY_WITH_SQL.getLong();
-//
-//        assertTrue("Return Code Failure: " + rtn + " expecting: " + check, rtn == check);
-//    }
-
-// `-r` Feature removed for now..
-//    @Test
-//    public void test_acid_hybrid_da_cs_r_leg() {
-//        String nameofCurrMethod = new Throwable()
-//                .getStackTrace()[0]
-//                .getMethodName();
-//
-//        String outputDir = outputDirBase + nameofCurrMethod;
-//
-//        String[] args = new String[]{"-d", "HYBRID", "-db", DataState.getInstance().getWorking_db(),
-//                "-mao", "-da", "-r", "-cs", common_storage,
-//                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-//        args = toExecute(args, execArgs, Boolean.FALSE);
-//
-//        long rtn = 0;
-//        Mirror mirror = new Mirror();
-//        rtn = mirror.go(args);
-//
-//        long check = MessageCode.REPLACE_ONLY_WITH_SQL.getLong();
-//
-//        assertTrue("Return Code Failure: " + rtn + " expecting: " + check, rtn == check);
-//    }
-
-// `-r` Feature removed for now..
-//    @Test
-//    public void test_acid_hybrid_da_r_leg() {
-//        String nameofCurrMethod = new Throwable()
-//                .getStackTrace()[0]
-//                .getMethodName();
-//
-//        String outputDir = outputDirBase + nameofCurrMethod;
-//
-//        String[] args = new String[]{"-d", "HYBRID", "-db", DataState.getInstance().getWorking_db(),
-//                "-mao", "-da", "-r",
-//                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-//        args = toExecute(args, execArgs, Boolean.FALSE);
-//
-//        long rtn = 0;
-//        Mirror mirror = new Mirror();
-//        rtn = mirror.go(args);
-//
-//        long check = MessageCode.REPLACE_ONLY_WITH_SQL.getLong();
-//
-//        assertTrue("Return Code Failure: " + rtn + " expecting: " + check, rtn == check);
-//    }
-
-// `-r` Feature removed for now..
-//    @Test
-//    public void test_acid_hybrid_r_leg() {
-//        String nameofCurrMethod = new Throwable()
-//                .getStackTrace()[0]
-//                .getMethodName();
-//
-//        String outputDir = outputDirBase + nameofCurrMethod;
-//
-//        String[] args = new String[]{"-d", "HYBRID", "-db", DataState.getInstance().getWorking_db(),
-//                "-mao", "-r",
-//                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-//        args = toExecute(args, execArgs, Boolean.FALSE);
-//
-//        long rtn = 0;
-//        Mirror mirror = new Mirror();
-//        rtn = mirror.go(args);
-//
-//        long check = MessageCode.REPLACE_ONLY_WITH_SQL.getLong();
-//        check = check | MessageCode.REPLACE_ONLY_WITH_DA.getLong();
-//        assertTrue("Return Code Failure: " + rtn + " expecting: " + check, rtn == check);
-//    }
-
-// `-r` Feature removed for now..
-//    @Test
-//    public void test_acid_sql_r_leg() {
-//        String nameofCurrMethod = new Throwable()
-//                .getStackTrace()[0]
-//                .getMethodName();
-//
-//        String outputDir = outputDirBase + nameofCurrMethod;
-//
-//        String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
-//                "-mao", "-r",
-//                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-//        args = toExecute(args, execArgs, Boolean.FALSE);
-//
-//        long rtn = 0;
-//        Mirror mirror = new Mirror();
-//        rtn = mirror.go(args);
-//        long check = MessageCode.REPLACE_ONLY_WITH_DA.getLong();
-//        assertTrue("Return Code Failure: " + rtn + " expecting: " + check, rtn == check);
-//    }
 
     @Test
     public void test_so_ro_leg() {

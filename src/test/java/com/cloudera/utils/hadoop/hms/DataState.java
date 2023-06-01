@@ -17,6 +17,16 @@
 
 package com.cloudera.utils.hadoop.hms;
 
+import com.cloudera.utils.hadoop.hms.mirror.Config;
+import com.cloudera.utils.hadoop.hms.mirror.Environment;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import org.apache.commons.io.FileUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
@@ -27,9 +37,9 @@ public class DataState {
     private static DataState instance = null;
 
     protected String configuration = null;
-
 //    protected Boolean dataCreated = Boolean.FALSE;
-    protected Map<String, Boolean> dataCreated = new TreeMap<String, Boolean>();
+    protected Map<String, Map<String, Boolean>> dataCreated = new TreeMap<>();
+//    protected Map<String, Boolean> dataCreated = new TreeMap<String, Boolean>();
     private Boolean skipAdditionDataCreation = Boolean.FALSE;
 
     protected Boolean execute = Boolean.FALSE;
@@ -59,9 +69,15 @@ public class DataState {
         return configuration;
     }
 
-    public void setConfiguration(String configuration) {
+    public void setConfiguration(String configuration) throws IOException {
         this.configuration = System.getProperty("user.home") +
                 "/.hms-mirror/cfg/" + configuration;
+        File cfgFile = new File(this.configuration);
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        String yamlCfgFile = FileUtils.readFileToString(cfgFile, StandardCharsets.UTF_8);
+        Config cfg = mapper.readerFor(Config.class).readValue(yamlCfgFile);
+        Context.getInstance().setConfig(cfg);
     }
 
     public String getTable_filter() {
@@ -109,8 +125,16 @@ public class DataState {
     public Boolean isDataCreated(String dataset) {
         Boolean rtn = Boolean.FALSE;
         if (!skipAdditionDataCreation) {
-            if (dataCreated.containsKey(dataset))
-                rtn = dataCreated.get(dataset);
+            Config cfg = Context.getInstance().getConfig();
+            String namespace = cfg.getCluster(Environment.LEFT).getHcfsNamespace();
+            Map<String, Boolean> nsCreatedDataset = dataCreated.get(namespace);
+            if (nsCreatedDataset == null) {
+                nsCreatedDataset = new TreeMap<String, Boolean>();
+                dataCreated.put(namespace, nsCreatedDataset);
+            }
+            if (nsCreatedDataset.containsKey(dataset)) {
+                rtn = Boolean.TRUE;
+            }
         } else {
             rtn = Boolean.TRUE;
         }
@@ -125,9 +149,15 @@ public class DataState {
         this.cleanUp = cleanUp;
     }
 
-    public void setDataCreated(String dataset, Boolean dataCreated) {
-        this.dataCreated.put(dataset, dataCreated);
-//        this.dataCreated = dataCreated;
+    public void setDataCreated(String dataset, Boolean dataCreatedFlag) {
+        Config cfg = Context.getInstance().getConfig();
+        String namespace = cfg.getCluster(Environment.LEFT).getHcfsNamespace();
+        Map<String, Boolean> nsCreatedDataset = dataCreated.get(namespace);
+        if (nsCreatedDataset == null) {
+            nsCreatedDataset = new TreeMap<String, Boolean>();
+            dataCreated.put(namespace, nsCreatedDataset);
+        }
+        nsCreatedDataset.put(dataset, dataCreatedFlag);
     }
 
     public void setExecute(Boolean execute) {

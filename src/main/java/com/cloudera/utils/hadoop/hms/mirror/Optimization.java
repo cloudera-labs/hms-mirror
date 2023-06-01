@@ -14,10 +14,11 @@ public class Optimization {
     - But do include additional settings specified by user in 'overrides'.
      */
     private Boolean skip = Boolean.FALSE;
+    private Boolean autoTune = Boolean.FALSE;
+    private Boolean compressTextOutput = Boolean.FALSE;
+
     private Overrides overrides = new Overrides();
     private Boolean buildShadowStatistics = Boolean.FALSE;
-//    private Boolean smallFiles = Boolean.FALSE;
-//    private Integer tezGroupingMaxSizeMb = 128;
 
     public Boolean getSortDynamicPartitionInserts() {
         return sortDynamicPartitionInserts;
@@ -35,6 +36,21 @@ public class Optimization {
         this.skip = skip;
     }
 
+    public Boolean getAutoTune() {
+        return autoTune;
+    }
+
+    public void setAutoTune(Boolean autoTune) {
+        this.autoTune = autoTune;
+    }
+
+    public Boolean getCompressTextOutput() {
+        return compressTextOutput;
+    }
+
+    public void setCompressTextOutput(Boolean compressTextOutput) {
+        this.compressTextOutput = compressTextOutput;
+    }
 
     public Boolean getBuildShadowStatistics() {
         return buildShadowStatistics;
@@ -52,19 +68,4 @@ public class Optimization {
         this.overrides = overrides;
     }
 
-//    public Boolean getSmallFiles() {
-//        return smallFiles;
-//    }
-//
-//    public void setSmallFiles(Boolean smallFiles) {
-//        this.smallFiles = smallFiles;
-//    }
-//
-//    public Integer getTezGroupingMaxSizeMb() {
-//        return tezGroupingMaxSizeMb;
-//    }
-//
-//    public void setTezGroupingMaxSizeMb(Integer tezGroupingMaxSizeMb) {
-//        this.tezGroupingMaxSizeMb = tezGroupingMaxSizeMb;
-//    }
 }

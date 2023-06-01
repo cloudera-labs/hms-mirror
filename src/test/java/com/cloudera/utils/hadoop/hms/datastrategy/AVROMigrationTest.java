@@ -15,16 +15,14 @@
  *
  */
 
-package com.cloudera.utils.hadoop.hms;
+package com.cloudera.utils.hadoop.hms.datastrategy;
 
-import com.cloudera.utils.hadoop.hms.mirror.MirrorConf;
+import com.cloudera.utils.hadoop.hms.DataState;
+import com.cloudera.utils.hadoop.hms.Mirror;
 import com.cloudera.utils.hadoop.hms.mirror.Pair;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,23 +31,13 @@ import static com.cloudera.utils.hadoop.hms.TestSQL.TBL_INSERT;
 import static org.junit.Assert.assertTrue;
 
 public class AVROMigrationTest  extends MirrorTestBase {
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-        dataCleanup(DATACLEANUP.BOTH);
-    }
 
     @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        DataState.getInstance().setConfiguration(HDP2_CDP);
-//        dataSetupAvro();
+    public void init() throws Exception {
+        super.init(HDP2_CDP);
+//        DataState.getInstance().setConfiguration(HDP2_CDP);
+        dataSetupAvro();
     }
-
-    @After
-    public void tearDown() throws Exception {
-        dataCleanup(DATACLEANUP.RIGHT);
-    }
-
 
     public Boolean dataSetupAvro() {
         if (!DataState.getInstance().isDataCreated("avro")) {

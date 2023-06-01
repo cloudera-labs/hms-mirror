@@ -24,6 +24,7 @@ import com.cloudera.utils.hadoop.hms.stage.Transfer;
 import com.cloudera.utils.hadoop.hms.util.Protect;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.Sets;
 import org.apache.commons.cli.*;
@@ -224,14 +225,18 @@ public class Mirror {
             System.out.println("Using Config: " + configFile);
             String yamlCfgFile = FileUtils.readFileToString(cfgFile, StandardCharsets.UTF_8);
             config = mapper.readerFor(Config.class).readValue(yamlCfgFile);
+            Context.getInstance().setConfig(config);
+        } catch (UnrecognizedPropertyException upe) {
+            System.out.println("\n>>>>>   READ THIS BEFORE CONTINUING.  Minor configuration fix REQUIRED.  <<<<<");
+            throw new RuntimeException("\nThere may have been a breaking change in the configuration since the previous " +
+                    "release. Review the note below and remove the 'Unrecognized field' from the configuration and try " +
+                    "again.\n\n", upe);
         } catch (Throwable t) {
             // Look for yaml update errors.
             if (t.toString().contains("MismatchedInputException")) {
                 throw new RuntimeException("The format of the 'config' yaml file MAY HAVE CHANGED from the last release.  Please make a copy and run " +
                         "'-su|--setup' again to recreate in the new format", t);
             } else {
-//                config = new Config();
-//                config.getErrors().set(CONFIGURATION_REMOVED_OR_INVALID.getCode(), t.getMessage());
                 LOG.error(t);
                 throw new RuntimeException("A configuration element is no longer valid, progress.  Please remove the element from the configuration yaml and try again.", t);
             }
@@ -389,8 +394,22 @@ public class Mirror {
                 }
             }
 
+            // Skip Optimizations.
+            if (cmd.hasOption("so")) {
+                config.getOptimization().setSkip(Boolean.TRUE);
+            }
+            // Sort Dynamic Partitions
             if (cmd.hasOption("sdpi")) {
                 config.getOptimization().setSortDynamicPartitionInserts(Boolean.TRUE);
+            }
+            // AutoTune.
+            if (cmd.hasOption("at")) {
+                config.getOptimization().setAutoTune(Boolean.TRUE);
+            }
+
+            //Compress TEXT Output.
+            if (cmd.hasOption("cto")) {
+                config.getOptimization().setCompressTextOutput(Boolean.TRUE);
             }
 
             if (cmd.hasOption("po")) {
@@ -412,11 +431,6 @@ public class Mirror {
                 String[] overrides = cmd.getOptionValues("por");
                 if (overrides != null)
                     config.getOptimization().getOverrides().setPropertyOverridesStr(overrides, Overrides.Side.RIGHT);
-            }
-
-            // Skip Optimizations.
-            if (cmd.hasOption("so")) {
-                config.getOptimization().setSkip(Boolean.TRUE);
             }
 
             if (cmd.hasOption("mnn")) {
@@ -606,15 +620,23 @@ public class Mirror {
             }
 
             if (cmd.hasOption("dbRegEx")) {
-                config.setDbRegEx(cmd.getOptionValue("dbRegEx"));
+                config.getFilter().setDbRegEx(cmd.getOptionValue("dbRegEx"));
             }
 
             if (cmd.hasOption("tf")) {
-                config.setTblRegEx(cmd.getOptionValue("tf"));
+                config.getFilter().setTblRegEx(cmd.getOptionValue("tf"));
             }
 
             if (cmd.hasOption("tef")) {
-                config.setTblExcludeRegEx(cmd.getOptionValue("tef"));
+                config.getFilter().setTblExcludeRegEx(cmd.getOptionValue("tef"));
+            }
+
+            if (cmd.hasOption("tfs")) {
+                config.getFilter().setTblSizeLimit(Long.parseLong(cmd.getOptionValue("tfs")));
+            }
+
+            if (cmd.hasOption("tfp")) {
+                config.getFilter().setTblPartitionLimit(Integer.parseInt(cmd.getOptionValue("tfp")));
             }
 
         }
@@ -663,10 +685,6 @@ public class Mirror {
             String[] databases = cmd.getOptionValues("db");
             if (databases != null)
                 config.setDatabases(databases);
-        }
-
-        if (config.getDatabases() == null || config.getDatabases().length == 0) {
-            throw new RuntimeException("No databases specified");
         }
 
         if (cmd.hasOption("e") && config.getDataStrategy() != DataStrategy.DUMP) {
@@ -1102,6 +1120,7 @@ public class Mirror {
                     }
 
                     reportFile.write(mdReportStr);
+                    reportFile.flush();
                     reportFile.close();
                     // Convert to HTML
                     List<Extension> extensions = Arrays.asList(TablesExtension.create(), YamlFrontMatterExtension.create());
@@ -1352,10 +1371,33 @@ public class Mirror {
         propertyRightOverrides.setArgs(100);
         options.addOption(propertyRightOverrides);
 
+        OptionGroup optimizationsGroup = new OptionGroup();
+        optimizationsGroup.setRequired(Boolean.FALSE);
+
         Option skipOptimizationsOption = new Option("so", "skip-optimizations", false,
                 "Skip any optimizations during data movement, like dynamic sorting or distribute by");
         skipOptimizationsOption.setRequired(Boolean.FALSE);
-        options.addOption(skipOptimizationsOption);
+        optimizationsGroup.addOption(skipOptimizationsOption);
+
+        Option sdpiOption = new Option("sdpi", "sort-dynamic-partition-inserts", false,
+                "Used to set `hive.optimize.sort.dynamic.partition` in TEZ for optimal partition inserts.  " +
+                        "When not specified, will use prescriptive sorting by adding 'DISTRIBUTE BY' to transfer SQL. " +
+                        "default: false");
+        sdpiOption.setRequired(Boolean.FALSE);
+        optimizationsGroup.addOption(sdpiOption);
+
+        Option autoTuneOption = new Option("at", "auto-tune", false,
+                "Auto-tune Session Settings for SELECT's and DISTRIBUTION for Partition INSERT's.");
+        autoTuneOption.setRequired(Boolean.FALSE);
+        optimizationsGroup.addOption(autoTuneOption);
+
+        options.addOptionGroup(optimizationsGroup);
+
+        Option compressTextOutputOption = new Option("cto", "compress-test-output", false,
+                "Data movement (SQL/STORAGE_MIGRATION) of TEXT based file formats will be compressed in the new " +
+                        "table.");
+        compressTextOutputOption.setRequired(Boolean.FALSE);
+        options.addOption(compressTextOutputOption);
 
         Option forceExternalLocationOption = new Option("fel", "force-external-location", false,
                 "Under some conditions, the LOCATION element for EXTERNAL tables is removed (ie: -rdl).  " +
@@ -1451,13 +1493,6 @@ public class Mirror {
                         "external connection to systems like: HBase, Kafka, JDBC");
         mnnoOption.setRequired(Boolean.FALSE);
         migrationOptionsGroup.addOption(mnnoOption);
-
-        Option sdpiOption = new Option("sdpi", "sort-dynamic-partition-inserts", false,
-                "Used to set `hive.optimize.sort.dynamic.partition` in TEZ for optimal partition inserts.  " +
-                        "When not specified, will use prescriptive sorting by adding 'DISTRIBUTE BY' to transfer SQL. " +
-                        "default: false");
-        sdpiOption.setRequired(Boolean.FALSE);
-        options.addOption(sdpiOption);
 
         Option viewOption = new Option("v", "views-only", false,
                 "Process VIEWs ONLY");
@@ -1617,6 +1652,11 @@ public class Mirror {
         dbOption.setArgName("databases");
         dbOption.setArgs(100);
 
+        Option dbRegExOption = new Option("dbRegEx", "database-regex", true,
+                "RegEx of Database to include in process.");
+        dbRegExOption.setRequired(Boolean.FALSE);
+        dbRegExOption.setArgName("regex");
+
         Option helpOption = new Option("h", "help", false,
                 "Help");
         helpOption.setRequired(Boolean.FALSE);
@@ -1643,6 +1683,7 @@ public class Mirror {
 
         OptionGroup dbGroup = new OptionGroup();
         dbGroup.addOption(dbOption);
+        dbGroup.addOption(dbRegExOption);
         dbGroup.addOption(helpOption);
         dbGroup.addOption(setupOption);
         dbGroup.addOption(pwOption);
@@ -1694,6 +1735,19 @@ public class Mirror {
 
         options.addOptionGroup(filterGroup);
 
+        Option tableSizeFilterOption = new Option("tfs", "table-filter-size-limit", true,
+                "Filter tables OUT that are above the indicated size.  Expressed in MB");
+        tableSizeFilterOption.setRequired(Boolean.FALSE);
+        tableSizeFilterOption.setArgName("size MB");
+        options.addOption(tableSizeFilterOption);
+
+        Option tablePartitionCountFilterOption = new Option("tfp", "table-filter-partition-count-limit", true,
+                "Filter partition tables OUT that are have more than specified here. Non Partitioned table aren't " +
+                        "filtered.");
+        tablePartitionCountFilterOption.setRequired(Boolean.FALSE);
+        tablePartitionCountFilterOption.setArgName("partition-count");
+        options.addOption(tablePartitionCountFilterOption);
+
         Option cfgOption = new Option("cfg", "config", true,
                 "Config with details for the HMS-Mirror.  Default: $HOME/.hms-mirror/cfg/default.yaml");
         cfgOption.setRequired(false);
@@ -1703,19 +1757,19 @@ public class Mirror {
         return options;
     }
 
-    protected Boolean setupSql(Environment environment, List<Pair> sqlPairList) {
+    public Boolean setupSql(Environment environment, List<Pair> sqlPairList) {
         Boolean rtn = Boolean.TRUE;
         rtn = config.getCluster(environment).runClusterSql(sqlPairList);
         return rtn;
     }
 
-    protected long setupSqlLeft(String[] args, List<Pair> sqlPairList) {
+    public long setupSqlLeft(String[] args, List<Pair> sqlPairList) {
         long rtn = 0l;
         rtn = setupSql(args, sqlPairList, null);
         return rtn;
     }
 
-    protected long setupSqlRight(String[] args, List<Pair> sqlPairList) {
+    public long setupSqlRight(String[] args, List<Pair> sqlPairList) {
         long rtn = 0l;
         rtn = setupSql(args, null, sqlPairList);
         return rtn;
@@ -1806,7 +1860,6 @@ public class Mirror {
             } else {
                 returnCode = -1;
             }
-            System.err.println(e.getMessage());
             e.printStackTrace();
             System.err.println("\nSee log for stack trace ($HOME/.hms-mirror/logs)");
         } finally {

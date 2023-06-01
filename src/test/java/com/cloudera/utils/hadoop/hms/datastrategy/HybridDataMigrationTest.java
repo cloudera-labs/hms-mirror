@@ -15,47 +15,33 @@
  *
  */
 
-package com.cloudera.utils.hadoop.hms;
+package com.cloudera.utils.hadoop.hms.datastrategy;
 
-import org.junit.After;
-import org.junit.AfterClass;
+import com.cloudera.utils.hadoop.hms.DataState;
+import com.cloudera.utils.hadoop.hms.Mirror;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
-public class DistcpMigrationTest extends MirrorTestBase {
-
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-        dataCleanup(DATACLEANUP.BOTH);
-    }
+public class HybridDataMigrationTest extends MirrorTestBase {
 
     @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        DataState.getInstance().setConfiguration(CDP_CDP);
-        if (DataState.getInstance().getPopulate() == null) {
-            DataState.getInstance().setPopulate(Boolean.FALSE);
-        }
+    public void init() throws Exception {
+        super.init(CDP_CDP);
         dataSetup01();
     }
 
-    @After
-    public void tearDown() throws Exception {
-        dataCleanup(DATACLEANUP.RIGHT);
-    }
-
     @Test
-    public void test_so_distcp_leg() {
+    public void test_acid_hybrid_da_cs_all() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = outputDirBase + nameofCurrMethod;
 
-        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
-                "--distcp",
+        String[] args = new String[]{"-d", "HYBRID", "-db", DataState.getInstance().getWorking_db(),
+                "-ma", "-da", "-cs", common_storage,
                 "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
         args = toExecute(args, execArgs, Boolean.FALSE);
 
@@ -67,16 +53,15 @@ public class DistcpMigrationTest extends MirrorTestBase {
     }
 
     @Test
-    public void test_so_is_distcp_leg() {
+    public void test_acid_hybrid_da_cs() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = outputDirBase + nameofCurrMethod;
 
-        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
-                "-is", "s3a://my_intermediate_bucket",
-                "--distcp",
+        String[] args = new String[]{"-d", "HYBRID", "-db", DataState.getInstance().getWorking_db(),
+                "-mao", "-da", "-cs", common_storage,
                 "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
         args = toExecute(args, execArgs, Boolean.FALSE);
 
@@ -88,16 +73,15 @@ public class DistcpMigrationTest extends MirrorTestBase {
     }
 
     @Test
-    public void test_so_cs_distcp_leg() {
+    public void test_acid_hybrid_da_cs_ro() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = outputDirBase + nameofCurrMethod;
 
-        String[] args = new String[]{"-db", DataState.getInstance().getWorking_db(),
-                "-cs", "s3a://my_common_bucket",
-                "--distcp",
+        String[] args = new String[]{"-d", "HYBRID", "-db", DataState.getInstance().getWorking_db(),
+                "-mao", "-da", "-ro", "-cs", common_storage,
                 "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
         args = toExecute(args, execArgs, Boolean.FALSE);
 
@@ -109,20 +93,96 @@ public class DistcpMigrationTest extends MirrorTestBase {
     }
 
     @Test
-    public void test_acid_sql_da_distcp_rdl() {
+    public void test_acid_hybrid_da_is_all() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = outputDirBase + nameofCurrMethod;
 
-        String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
+        String[] args = new String[]{"-d", "HYBRID", "-db", DataState.getInstance().getWorking_db(),
+                "-ma", "-da", "-is", intermediate_storage,
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+    }
+
+    @Test
+    public void test_acid_hybrid_da_is() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID", "-db", DataState.getInstance().getWorking_db(),
+                "-mao", "-da", "-is", intermediate_storage,
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+    }
+
+    @Test
+    public void test_acid_hybrid_da() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID", "-db", DataState.getInstance().getWorking_db(),
+                "-mao", "-da",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+    }
+
+    @Test
+    public void test_acid_hybrid_da_w() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID", "-db", DataState.getInstance().getWorking_db(),
+                "-mao", "-da",
+                "-wd", "/warehouse/managed", "-ewd", "/warehouse/external",
+                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
+        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+    }
+
+    @Test
+    public void test_acid_hybrid() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = outputDirBase + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID", "-db", DataState.getInstance().getWorking_db(),
                 "-mao",
-                "-da",
-                "-rdl",
-                "--distcp",
-                "-ewd", "/warehouse/external",
-                "-wd","/warehouse/managed",
                 "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
         args = toExecute(args, execArgs, Boolean.FALSE);
 
@@ -134,69 +194,15 @@ public class DistcpMigrationTest extends MirrorTestBase {
     }
 
     @Test
-    public void test_acid_sql_da_distcp() {
+    public void test_hybrid() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = outputDirBase + nameofCurrMethod;
 
-        String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
-                "-mao",
-                "-da",
-                "--distcp",
-                "-ewd", "/warehouse/external",
-                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-        args = toExecute(args, execArgs, Boolean.FALSE);
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        int check = 0;
-        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
-    }
-
-    @Test
-    public void test_acid_sql_da_w_rdl_distcp() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = outputDirBase + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
-                "-mao",
-                "-ewd", "/warehouse/external",
-                "-wd", "/warehouse/managed",
-                "-da",
-                "-rdl",
-                "--distcp",
-                "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
-        args = toExecute(args, execArgs, Boolean.FALSE);
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        int check = 0;
-        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
-    }
-
-    @Test
-    public void test_acid_sql_da_w_rdl_distcp_is() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = outputDirBase + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "SQL", "-db", DataState.getInstance().getWorking_db(),
-                "-mao",
-                "-ewd", "/warehouse/external",
-                "-wd", "/warehouse/managed",
-                "-da",
-                "-rdl",
-                "-is", "s3a://my_is_bucket",
-                "--distcp",
+        String[] args = new String[]{"-d", "HYBRID", "-db", DataState.getInstance().getWorking_db(),
+                "-sql",
                 "-o", outputDir, "-cfg", DataState.getInstance().getConfiguration()};
         args = toExecute(args, execArgs, Boolean.FALSE);
 

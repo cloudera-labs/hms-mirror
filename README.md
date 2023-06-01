@@ -22,6 +22,8 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [`--intermediate-storage` Workflow Patterns and Where to Run From](#--intermediate-storage-workflow-patterns-and-where-to-run-from)
   * [`--common-storage` Workflow Patterns and Where to Run From](#--common-storage-workflow-patterns-and-where-to-run-from)
 - [Features](#features)
+  * [Optimizations](#optimizations)
+  * [Compress Text Output](#compress-text-output)
   * [VIEWS](#views)
   * [ACID Tables](#acid-tables)
   * [Intermediate/Common Storage Options](#intermediatecommon-storage-options)
@@ -37,7 +39,6 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Shared Storage Models (Isilon, Spectrum-Scale, etc.)](#shared-storage-models-isilon-spectrum-scale-etc)
   * [Disconnected Mode](#disconnected-mode)
   * [No-Purge Option](#no-purge-option)
-  * [Skip Optimizations](#skip-optimizations)
   * [Property Overrides](#property-overrides)
   * [Global Location Map](#global-location-map)
   * [Force External Locations](#force-external-locations)
@@ -47,7 +48,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [HMS-Mirror Setup from Binary Distribution](#hms-mirror-setup-from-binary-distribution)
   * [Quick Start](#quick-start)
   * [General Guidance](#general-guidance)
-- [Optimizations](#optimizations)
+- [Optimizations](#optimizations-1)
   * [Controlling the YARN Queue that runs the SQL queries from `hms-mirror`](#controlling-the-yarn-queue-that-runs-the-sql-queries-from-hms-mirror)
   * [Make Backups before running `hms-mirror`](#make-backups-before-running-hms-mirror)
   * [Isolate Migration Activities](#isolate-migration-activities)
@@ -210,6 +211,61 @@ For On-Prem to Cloud migrations, we typically use a `PUSH` model because that is
 
 Under certain conditions, `hms-mirror` will 'move' data too.  Using the data strategies `-d SQL|EXPORT_IMPORT|HYBRID` well use a combination of SQL temporary tables and [Linking Clusters Storage Layers](#linking-clusters-storage-layers) to facilitate this.
 
+### Optimizations
+
+The following configuration settings control the various optimizations taken by `hms-mirror`. These settings are mutually exclusive.
+
+- `-at|--auto-tune`
+- `-so|--skip-optimizations`
+- `-sdpi|--sort-dynamic-partition-inserts`
+
+#### Auto-Tune
+
+`-at|--auto-tune`
+
+Auto-tuning will use some basic file level statistics about tables/partitions to provide overrides for the following settings:
+
+- `tez.grouping.max-size`
+- `hive.exec.max.dynamic.partitions`
+- `hive.exec.reducers.max`
+
+in addition to these session level setting, we'll use those basic file statistics to construct migration scripts that address things like 'small-files' and 'large' partition datasets.
+
+We'll set `hive.optimize.sort.dynamic.partition.threshold=-1` and append `DISTRIBUTE BY` to the SQL migration sql statement, just like we do with `-sdpi`.  But we'll go one step further and review the average partition size and add an additional 'grouping' element to the SQL to ensure we get efficient writers to a partition.  The means that tables with large partition datasets will have more than the standard single writer per partition, preventing the LONG running hanging task that is trying to write a very large partition.
+
+#### Sort Dynamic Partition Inserts
+
+`-sdpi|--sort-dynamic-partition-inserts`
+
+This will set the session property `hive.optimize.sort.dynamic.partition.threshold=0`, which will enable plans to distribute multi partition inserts by the partition key, therefore reducing partitions writes to a single 'writer/reducer'.
+
+When this isn't set, we set `hive.optimize.sort.dynamic.partition.threshold=-1`, and append `DISTRIBUTE BY` to the SQL migration sql statement to ensure the same behavior of grouping reducers by partition values.
+
+#### Skip Optimizations
+
+`-so`
+
+[Feature Request #23](https://github.com/cloudera-labs/hms-mirror/issues/23) was introduced in v1.5.4.2 and give an option to **Skip Optimizations**.
+
+When migrating data via SQL with partitioned tables (OR downgrading an ACID table), there are optimizations that we apply to help hive distribute data more efficiently.  One method is to use `hive.optimize.sort.dynamic.partition=true` which will "DISTRIBUTE" data along the partitions via a Reduction task.  Another is to declare this in SQL with a `DISTRIBUTE BY` clause.
+
+But there is a corner case where these optimizations can get in the way and cause long-running tasks.  If the source table has already been organized into large files (which would be within the partitions already), adding the optimizations above force a single reducer per partition.  If the partitions are large and already have good file sizes, we want to skip these optimizations and let hive run the process with only a map task.
+
+### HDP3 MANAGEDLOCATION Database Property
+
+[HDP3 doesn't support MAANGEDLOCATION](https://github.com/cloudera-labs/hms-mirror/issues/52) so we've added a property to the cluster configuration to allow the system to *SKIP* setting the `MANAGEDLOCATION` database property in HDP 3 / Hive 3 environments.
+
+```yaml
+clusters:
+  LEFT:
+    legacyHive: false
+    hdpHive3: true
+```
+
+### Compress Text Output
+
+`-cto` will control the session level setting for `hive.exec.compress.output'.
+
 ### VIEWS
 
 `hms-mirror` now supports the migration of VIEWs between two environments.  Use the `-v|--views-only` option to execute this path.  VIEW creation requires dependent tables to exist.
@@ -344,7 +400,9 @@ If you do NOT want to apply this translation, add the option `-slt|--skip-legacy
 
 There are options to filter tables included in `hms-mirror` process.  You can select `-tf|--table-filter` to "include" only tables that match this 'regular-expression'.  Inversely, use `-etf|--exclude-table-filter` to omit tables from the list.  These options are mutually exclusive.
 
-The filter is expressed as a 'regular-expression'.  Complex expressions should be enclosed in quotes to ensure the commandline interpreter doesn't split them.
+The filters for `-tf` and `-tef` are expressed as a 'regular-expression'.  Complex expressions should be enclosed in quotes to ensure the commandline interpreter doesn't split them.
+
+Additional table filters (`-tfs|--table-filter-size-limit` and `-tfp|--table-filter-partition-count-limit`) that check a tables data size and partition count limits can also be applied to narrow the range of tables you'll process. 
 
 The filter does NOT override the requirement for options like `-ma|-mao`.  It is used as an additional filter.
 
@@ -381,16 +439,6 @@ Note: This will be know as the "right-is-disconnected" option. Which means the p
 `-np`
 
 [Feature Request #25](https://github.com/cloudera-labs/hms-mirror/issues/25) was introduced in v1.5.4.2 and gives the user to option to remove the `external.table.purge` option that is added when converting legacy managed tables to external table (Hive 1/2 to 3).  This does affect the behavior of the table from the older platforms.
-
-### Skip Optimizations 
-
-`-so`
-
-[Feature Request #23](https://github.com/cloudera-labs/hms-mirror/issues/23) was introduced in v1.5.4.2 and give an option to **Skip Optimizations**.
-
-When migrating data via SQL with partitioned tables (OR downgrading an ACID table), there are optimizations that we apply to help hive distribute data more efficiently.  One method is to use `hive.optimize.sort.dynamic.partition=true` which will "DISTRIBUTE" data along the partitions via a Reduction task.  Another is to declare this in SQL with a `DISTRIBUTE BY` clause.
-
-But there is a corner case where these optimizations can get in the way and cause long-running tasks.  If the source table has already been organized into large files (which would be within the partitions already), adding the optimizations above force a single reducer per partition.  If the partitions are large and already have good file sizes, we want to skip these optimizations and let hive run the process with only a map task.
 
 ### Property Overrides 
 
@@ -524,6 +572,8 @@ Use the jdbc url defined in `default.yaml` to set a queue.
 
 `jdbc:hive2://host:10000/.....;...?tez.queue.name=batch`
 
+The commandline properties `-po`, `-pol`, and `-por` can be used to override the queue name as well. For example: `-pol tez.queue.name=batch` will set the queue for the "LEFT" cluster while `-por tez.queue.name=migration` will set the queue for the "RIGHT" cluster.
+
 ### Make Backups before running `hms-mirror`
 
 Take snapshots of areas you'll touch:
@@ -531,7 +581,6 @@ Take snapshots of areas you'll touch:
 - A snapshot of the HDFS directories on BOTH the LEFT and RIGHT clusters will be used/touched.
   > NOTE: If you are testing and "DROPPING" dbs, Snapshots of those data directories could protect you from accidental deletions if you don't manage purge options correctly.  Don't skip this...
   > A snapshot of the db directory on HDFS will prevent `DROP DATABASE x CASCADE` from removing the DB directory (observed in CDP 7.1.4+ as tested, check your version) and all sub-directories even though tables were NOT configured with `purge` options.
-
 
 ### Isolate Migration Activities
 
@@ -587,6 +636,14 @@ hive.metastore.fshandler.threads
 The default batch size for partition discovery via `msck` is 3000.  Adjustments to this can be made via the `hive.msck.repair.batch.size` property in HS2.
 
 ## Pre-Requisites
+
+### Hive/TEZ Properties Whitelist Requirements
+
+HiveServer2 has restrictions on what properties can be set by the user in a session.  To ensure that `hms-mirror` will be able to set the properties it needs, add [`hive.security.authorization.sqlstd.confwhitelist.append`](https://cwiki.apache.org/confluence/display/Hive/Configuration+Properties#ConfigurationProperties-hive.security.authorization.sqlstd.confwhitelist.append) property in the HiveServer2 Advanced Configuration Snippet (Safety Valve) for `hive-site.xml` with at least the following value(s) so `hms-mirror` can set the properties it needs:
+
+```
+tez\.grouping\..*
+```
 
 ### Backups
 
@@ -845,221 +902,294 @@ When you do need to move data, `hms-mirror` create a workbook of 'source' and 't
 
 ```
 usage: hms-mirror <options>
-                  version:1.5.5.x
+                  version:1.5.6.0+
 Hive Metastore Migration Utility
- -accept,--accept                                  Accept ALL confirmations and silence prompts
- -ap,--acid-partition-count <limit>                Set the limit of partitions that the ACID
-                                                   strategy will work with. '-1' means no-limit.
- -asm,--avro-schema-migration                      Migrate AVRO Schema Files referenced in
-                                                   TBLPROPERTIES by 'avro.schema.url'.  Without
-                                                   migration it is expected that the file will exist
-                                                   on the other cluster and match the 'url' defined
-                                                   in the schema DDL.
-                                                   If it's not present, schema creation will FAIL.
-                                                   Specifying this option REQUIRES the LEFT and
-                                                   RIGHT cluster to be LINKED.
-                                                   See docs:
-                                                   https://github.com/cloudera-labs/hms-mirror#linki
-                                                   ng-clusters-storage-layers
- -cfg,--config <filename>                          Config with details for the HMS-Mirror.  Default:
-                                                   $HOME/.hms-mirror/cfg/default.yaml
- -cs,--common-storage <storage-path>               Common Storage used with Data Strategy HYBRID,
-                                                   SQL, EXPORT_IMPORT.  This will change the way
-                                                   these methods are implemented by using the
-                                                   specified storage location as an 'common' storage
-                                                   point between two clusters.  In this case, the
-                                                   cluster do NOT need to be 'linked'.  Each cluster
-                                                   DOES need to have access to the location and
-                                                   authorization to interact with the location.
-                                                   This may mean additional configuration
-                                                   requirements for 'hdfs' to ensure this seamless
-                                                   access.
- -d,--data-strategy <strategy>                     Specify how the data will follow the schema.
-                                                   [DUMP, SCHEMA_ONLY, LINKED, SQL, EXPORT_IMPORT,
-                                                   HYBRID, CONVERT_LINKED, STORAGE_MIGRATION,
-                                                   COMMON]
- -da,--downgrade-acid                              Downgrade ACID tables to EXTERNAL tables with
-                                                   purge.
- -db,--database <databases>                        Comma separated list of Databases (upto 100).
- -dbo,--database-only                              Migrate the Database definitions as they exist
-                                                   from LEFT to RIGHT
- -dbp,--db-prefix <prefix>                         Optional: A prefix to add to the RIGHT cluster DB
-                                                   Name. Usually used for testing.
- -dbr,--db-rename <rename>                         Optional: Rename target db to ...  This option is
-                                                   only valid when '1' database is listed in `-db`.
- -dc,--distcp <flow-direction default:PULL>        Build the 'distcp' workplans.  Optional argument
-                                                   (PULL, PUSH) to define which cluster is running
-                                                   the distcp commands.  Default is PULL.
- -dp,--decrypt-password <encrypted-password>       Used this in conjunction with '-pkey' to decrypt
-                                                   the generated passcode from `-p`.
- -ds,--dump-source <source>                        Specify which 'cluster' is the source for the
-                                                   DUMP strategy (LEFT|RIGHT).
- -e,--execute                                      Execute actions request, without this flag the
-                                                   process is a dry-run.
- -ep,--export-partition-count <limit>              Set the limit of partitions that the
-                                                   EXPORT_IMPORT strategy will work with.
- -ewd,--external-warehouse-directory <path>        The external warehouse directory path.  Should
-                                                   not include the namespace OR the database
-                                                   directory. This will be used to set the LOCATION
-                                                   database option.
- -f,--flip                                         Flip the definitions for LEFT and RIGHT.  Allows
-                                                   the same config to be used in reverse.
- -fel,--force-external-location                    Under some conditions, the LOCATION element for
-                                                   EXTERNAL tables is removed (ie: -rdl).  In which
-                                                   case we rely on the settings of the database
-                                                   definition to control the EXTERNAL table data
-                                                   location.  But for some older Hive versions, the
-                                                   LOCATION element in the database is NOT honored.
-                                                   Even when the database LOCATION is set, the
-                                                   EXTERNAL table LOCATION defaults to the system
-                                                   wide warehouse settings.  This flag will ensure
-                                                   the LOCATION element remains in the CREATE
-                                                   definition of the table to force it's location.
- -glm,--global-location-map <key=value>            Comma separated key=value pairs of Locations to
-                                                   Map. IE: /myorig/data/finance=/data/ec/finance.
-                                                   This reviews 'EXTERNAL' table locations for the
-                                                   path '/myorig/data/finance' and replaces it with
-                                                   '/data/ec/finance'.  Option can be used alone or
-                                                   with -rdl. Only applies to 'EXTERNAL' tables and
-                                                   if the tables location doesn't contain one of the
-                                                   supplied maps, it will be translated according to
-                                                   -rdl rules if -rdl is specified.  If -rdl is not
-                                                   specified, the conversion for that table is
-                                                   skipped.
- -h,--help                                         Help
- -ip,--in-place                                    Downgrade ACID tables to EXTERNAL tables with
-                                                   purge.
- -is,--intermediate-storage <storage-path>         Intermediate Storage used with Data Strategy
-                                                   HYBRID, SQL, EXPORT_IMPORT.  This will change the
-                                                   way these methods are implemented by using the
-                                                   specified storage location as an intermediate
-                                                   transfer point between two clusters.  In this
-                                                   case, the cluster do NOT need to be 'linked'.
-                                                   Each cluster DOES need to have access to the
-                                                   location and authorization to interact with the
-                                                   location.  This may mean additional configuration
-                                                   requirements for 'hdfs' to ensure this seamless
-                                                   access.
- -ma,--migrate-acid <bucket-threshold (2)>         Migrate ACID tables (if strategy allows).
-                                                   Optional: ArtificialBucketThreshold count that
-                                                   will remove the bucket definition if it's below
-                                                   this.  Use this as a way to remove artificial
-                                                   bucket definitions that were added 'artificially'
-                                                   in legacy Hive. (default: 2)
- -mao,--migrate-acid-only <bucket-threshold (2)>   Migrate ACID tables ONLY (if strategy allows).
-                                                   Optional: ArtificialBucketThreshold count that
-                                                   will remove the bucket definition if it's below
-                                                   this.  Use this as a way to remove artificial
-                                                   bucket definitions that were added 'artificially'
-                                                   in legacy Hive. (default: 2)
- -mnn,--migrate-non-native <arg>                   Migrate Non-Native tables (if strategy allows).
-                                                   These include table definitions that rely on
-                                                   external connection to systems like: HBase,
-                                                   Kafka, JDBC
- -mnno,--migrate-non-native-only                   Migrate Non-Native tables (if strategy allows).
-                                                   These include table definitions that rely on
-                                                   external connection to systems like: HBase,
-                                                   Kafka, JDBC
- -np,--no-purge                                    For SCHEMA_ONLY, COMMON, and LINKED data
-                                                   strategies set RIGHT table to NOT purge on DROP
- -o,--output-dir <outputdir>                       Output Directory (default:
-                                                   $HOME/.hms-mirror/reports/<yyyy-MM-dd_HH-mm-ss>
- -p,--password <password>                          Used this in conjunction with '-pkey' to generate
-                                                   the encrypted password that you'll add to the
-                                                   configs for the JDBC connections.
- -pkey,--password-key <password-key>               The key used to encrypt / decrypt the cluster
-                                                   jdbc passwords.  If not present, the passwords
-                                                   will be processed as is (clear text) from the
-                                                   config file.
- -po,--property-overrides <key=value>              Comma separated key=value pairs of Hive
-                                                   properties you wish to set/override.
- -pol,--property-overrides-left <key=value>        Comma separated key=value pairs of Hive
-                                                   properties you wish to set/override for LEFT
-                                                   cluster.
- -por,--property-overrides-right <key=value>       Comma separated key=value pairs of Hive
-                                                   properties you wish to set/override for RIGHT
-                                                   cluster.
- -q,--quiet                                        Reduce screen reporting output.  Good for
-                                                   background processes with output redirects to a
-                                                   file
- -rdl,--reset-to-default-location                  Strip 'LOCATION' from all target cluster
-                                                   definitions.  This will allow the system defaults
-                                                   to take over and define the location of the new
-                                                   datasets.
- -rid,--right-is-disconnected                      Don't attempt to connect to the 'right' cluster
-                                                   and run in this mode
- -ro,--read-only                                   For SCHEMA_ONLY, COMMON, and LINKED data
-                                                   strategies set RIGHT table to NOT purge on DROP.
-                                                   Intended for use with replication distcp
-                                                   strategies and has restrictions about existing
-                                                   DB's on RIGHT and PATH elements.  To simply NOT
-                                                   set the purge flag for applicable tables, use
-                                                   -np.
- -rr,--reset-right                                 Use this for testing to remove the database on
-                                                   the RIGHT using CASCADE.
- -s,--sync                                         For SCHEMA_ONLY, COMMON, and LINKED data
-                                                   strategies.  Drop and Recreate Schema's when
-                                                   different.  Best to use with RO to ensure
-                                                   table/partition drops don't delete data. When
-                                                   used WITHOUT `-tf` it will compare all the tables
-                                                   in a database and sync (bi-directional).  Meaning
-                                                   it will DROP tables on the RIGHT that aren't in
-                                                   the LEFT and ADD tables to the RIGHT that are
-                                                   missing.  When used with `-ro`, table schemas can
-                                                   be updated by dropping and recreating.  When used
-                                                   with `-tf`, only the tables that match the filter
-                                                   (on both sides) will be considered.
- -sdpi,--sort-dynamic-partition-inserts            Used to set
-                                                   `hive.optimize.sort.dynamic.partition` in TEZ for
-                                                   optimal partition inserts.  When not specified,
-                                                   will use prescriptive sorting by adding
-                                                   'DISTRIBUTE BY' to transfer SQL. default: false
- -sf,--skip-features                               Skip Features evaluation.
- -slc,--skip-link-check                            Skip Link Check. Use when going between or to
-                                                   Cloud Storage to avoid having to configure
-                                                   hms-mirror with storage credentials and
-                                                   libraries. This does NOT preclude your Hive
-                                                   Server 2 and compute environment from such
-                                                   requirements.
- -slt,--skip-legacy-translation                    Skip Schema Upgrades and Serde Translations
- -smn,--storage-migration-namespace <namespace>    Optional: Used with the 'data strategy
-                                                   STORAGE_MIGRATION to specify the target
-                                                   namespace.
- -so,--skip-optimizations                          Skip any optimizations during data movement, like
-                                                   dynamic sorting or distribute by
- -sp,--sql-partition-count <limit>                 Set the limit of partitions that the SQL strategy
-                                                   will work with. '-1' means no-limit.
- -sql,--sql-output                                 <deprecated>.  This option is no longer required
-                                                   to get SQL out in a report.  That is the default
-                                                   behavior.
- -su,--setup                                       Setup a default configuration file through a
-                                                   series of questions
- -tef,--table-exclude-filter <regex>               Filter tables (excludes) with name matching
-                                                   RegEx. Comparison done with 'show tables'
-                                                   results.  Check case, that's important.  Hive
-                                                   tables are generally stored in LOWERCASE. Make
-                                                   sure you double-quote the expression on the
-                                                   commandline.
- -tf,--table-filter <regex>                        Filter tables (inclusive) with name matching
-                                                   RegEx. Comparison done with 'show tables'
-                                                   results.  Check case, that's important.  Hive
-                                                   tables are generally stored in LOWERCASE. Make
-                                                   sure you double-quote the expression on the
-                                                   commandline.
- -to,--transfer-ownership                          If available (supported) on LEFT cluster, extract
-                                                   and transfer the tables owner to the RIGHT
-                                                   cluster. Note: This will make an 'exta' SQL call
-                                                   on the LEFT cluster to determine the ownership.
-                                                   This won't be supported on CDH 5 and some other
-                                                   legacy Hive platforms. Beware the cost of this
-                                                   extra call for EVERY table, as it may slow down
-                                                   the process for a large volume of tables.
- -v,--views-only                                   Process VIEWs ONLY
- -wd,--warehouse-directory <path>                  The warehouse directory path.  Should not include
-                                                   the namespace OR the database directory. This
-                                                   will be used to set the MANAGEDLOCATION database
-                                                   option.
-
+ -accept,--accept                                              Accept ALL confirmations and silence
+                                                               prompts
+ -ap,--acid-partition-count <limit>                            Set the limit of partitions that the
+                                                               ACID strategy will work with. '-1'
+                                                               means no-limit.
+ -asm,--avro-schema-migration                                  Migrate AVRO Schema Files referenced
+                                                               in TBLPROPERTIES by
+                                                               'avro.schema.url'.  Without migration
+                                                               it is expected that the file will
+                                                               exist on the other cluster and match
+                                                               the 'url' defined in the schema DDL.
+                                                               If it's not present, schema creation
+                                                               will FAIL.
+                                                               Specifying this option REQUIRES the
+                                                               LEFT and RIGHT cluster to be LINKED.
+                                                               See docs:
+                                                               https://github.com/cloudera-labs/hms-
+                                                               mirror#linking-clusters-storage-layer
+                                                               s
+ -at,--auto-tune                                               Auto-tune Session Settings for
+                                                               SELECT's and DISTRIBUTION for
+                                                               Partition INSERT's.
+ -cfg,--config <filename>                                      Config with details for the
+                                                               HMS-Mirror.  Default:
+                                                               $HOME/.hms-mirror/cfg/default.yaml
+ -cs,--common-storage <storage-path>                           Common Storage used with Data
+                                                               Strategy HYBRID, SQL, EXPORT_IMPORT.
+                                                               This will change the way these
+                                                               methods are implemented by using the
+                                                               specified storage location as an
+                                                               'common' storage point between two
+                                                               clusters.  In this case, the cluster
+                                                               do NOT need to be 'linked'.  Each
+                                                               cluster DOES need to have access to
+                                                               the location and authorization to
+                                                               interact with the location.  This may
+                                                               mean additional configuration
+                                                               requirements for 'hdfs' to ensure
+                                                               this seamless access.
+ -cto,--compress-test-output                                   Data movement (SQL/STORAGE_MIGRATION)
+                                                               of TEXT based file formats will be
+                                                               compressed in the new table.
+ -d,--data-strategy <strategy>                                 Specify how the data will follow the
+                                                               schema. [DUMP, SCHEMA_ONLY, LINKED,
+                                                               SQL, EXPORT_IMPORT, HYBRID,
+                                                               CONVERT_LINKED, STORAGE_MIGRATION,
+                                                               COMMON]
+ -da,--downgrade-acid                                          Downgrade ACID tables to EXTERNAL
+                                                               tables with purge.
+ -db,--database <databases>                                    Comma separated list of Databases
+                                                               (upto 100).
+ -dbo,--database-only                                          Migrate the Database definitions as
+                                                               they exist from LEFT to RIGHT
+ -dbp,--db-prefix <prefix>                                     Optional: A prefix to add to the
+                                                               RIGHT cluster DB Name. Usually used
+                                                               for testing.
+ -dbr,--db-rename <rename>                                     Optional: Rename target db to ...
+                                                               This option is only valid when '1'
+                                                               database is listed in `-db`.
+ -dbRegEx,--database-regex <regex>                             RegEx of Database to include in
+                                                               process.
+ -dc,--distcp <flow-direction default:PULL>                    Build the 'distcp' workplans.
+                                                               Optional argument (PULL, PUSH) to
+                                                               define which cluster is running the
+                                                               distcp commands.  Default is PULL.
+ -dp,--decrypt-password <encrypted-password>                   Used this in conjunction with '-pkey'
+                                                               to decrypt the generated passcode
+                                                               from `-p`.
+ -ds,--dump-source <source>                                    Specify which 'cluster' is the source
+                                                               for the DUMP strategy (LEFT|RIGHT).
+ -e,--execute                                                  Execute actions request, without this
+                                                               flag the process is a dry-run.
+ -ep,--export-partition-count <limit>                          Set the limit of partitions that the
+                                                               EXPORT_IMPORT strategy will work
+                                                               with.
+ -ewd,--external-warehouse-directory <path>                    The external warehouse directory
+                                                               path.  Should not include the
+                                                               namespace OR the database directory.
+                                                               This will be used to set the LOCATION
+                                                               database option.
+ -f,--flip                                                     Flip the definitions for LEFT and
+                                                               RIGHT.  Allows the same config to be
+                                                               used in reverse.
+ -fel,--force-external-location                                Under some conditions, the LOCATION
+                                                               element for EXTERNAL tables is
+                                                               removed (ie: -rdl).  In which case we
+                                                               rely on the settings of the database
+                                                               definition to control the EXTERNAL
+                                                               table data location.  But for some
+                                                               older Hive versions, the LOCATION
+                                                               element in the database is NOT
+                                                               honored.  Even when the database
+                                                               LOCATION is set, the EXTERNAL table
+                                                               LOCATION defaults to the system wide
+                                                               warehouse settings.  This flag will
+                                                               ensure the LOCATION element remains
+                                                               in the CREATE definition of the table
+                                                               to force it's location.
+ -glm,--global-location-map <key=value>                        Comma separated key=value pairs of
+                                                               Locations to Map. IE:
+                                                               /myorig/data/finance=/data/ec/finance
+                                                               . This reviews 'EXTERNAL' table
+                                                               locations for the path
+                                                               '/myorig/data/finance' and replaces
+                                                               it with '/data/ec/finance'.  Option
+                                                               can be used alone or with -rdl. Only
+                                                               applies to 'EXTERNAL' tables and if
+                                                               the tables location doesn't contain
+                                                               one of the supplied maps, it will be
+                                                               translated according to -rdl rules if
+                                                               -rdl is specified.  If -rdl is not
+                                                               specified, the conversion for that
+                                                               table is skipped.
+ -h,--help                                                     Help
+ -ip,--in-place                                                Downgrade ACID tables to EXTERNAL
+                                                               tables with purge.
+ -is,--intermediate-storage <storage-path>                     Intermediate Storage used with Data
+                                                               Strategy HYBRID, SQL, EXPORT_IMPORT.
+                                                               This will change the way these
+                                                               methods are implemented by using the
+                                                               specified storage location as an
+                                                               intermediate transfer point between
+                                                               two clusters.  In this case, the
+                                                               cluster do NOT need to be 'linked'.
+                                                               Each cluster DOES need to have access
+                                                               to the location and authorization to
+                                                               interact with the location.  This may
+                                                               mean additional configuration
+                                                               requirements for 'hdfs' to ensure
+                                                               this seamless access.
+ -ma,--migrate-acid <bucket-threshold (2)>                     Migrate ACID tables (if strategy
+                                                               allows). Optional:
+                                                               ArtificialBucketThreshold count that
+                                                               will remove the bucket definition if
+                                                               it's below this.  Use this as a way
+                                                               to remove artificial bucket
+                                                               definitions that were added
+                                                               'artificially' in legacy Hive.
+                                                               (default: 2)
+ -mao,--migrate-acid-only <bucket-threshold (2)>               Migrate ACID tables ONLY (if strategy
+                                                               allows). Optional:
+                                                               ArtificialBucketThreshold count that
+                                                               will remove the bucket definition if
+                                                               it's below this.  Use this as a way
+                                                               to remove artificial bucket
+                                                               definitions that were added
+                                                               'artificially' in legacy Hive.
+                                                               (default: 2)
+ -mnn,--migrate-non-native <arg>                               Migrate Non-Native tables (if
+                                                               strategy allows). These include table
+                                                               definitions that rely on external
+                                                               connection to systems like: HBase,
+                                                               Kafka, JDBC
+ -mnno,--migrate-non-native-only                               Migrate Non-Native tables (if
+                                                               strategy allows). These include table
+                                                               definitions that rely on external
+                                                               connection to systems like: HBase,
+                                                               Kafka, JDBC
+ -np,--no-purge                                                For SCHEMA_ONLY, COMMON, and LINKED
+                                                               data strategies set RIGHT table to
+                                                               NOT purge on DROP
+ -o,--output-dir <outputdir>                                   Output Directory (default:
+                                                               $HOME/.hms-mirror/reports/<yyyy-MM-dd
+                                                               _HH-mm-ss>
+ -p,--password <password>                                      Used this in conjunction with '-pkey'
+                                                               to generate the encrypted password
+                                                               that you'll add to the configs for
+                                                               the JDBC connections.
+ -pkey,--password-key <password-key>                           The key used to encrypt / decrypt the
+                                                               cluster jdbc passwords.  If not
+                                                               present, the passwords will be
+                                                               processed as is (clear text) from the
+                                                               config file.
+ -po,--property-overrides <key=value>                          Comma separated key=value pairs of
+                                                               Hive properties you wish to
+                                                               set/override.
+ -pol,--property-overrides-left <key=value>                    Comma separated key=value pairs of
+                                                               Hive properties you wish to
+                                                               set/override for LEFT cluster.
+ -por,--property-overrides-right <key=value>                   Comma separated key=value pairs of
+                                                               Hive properties you wish to
+                                                               set/override for RIGHT cluster.
+ -q,--quiet                                                    Reduce screen reporting output.  Good
+                                                               for background processes with output
+                                                               redirects to a file
+ -rdl,--reset-to-default-location                              Strip 'LOCATION' from all target
+                                                               cluster definitions.  This will allow
+                                                               the system defaults to take over and
+                                                               define the location of the new
+                                                               datasets.
+ -rid,--right-is-disconnected                                  Don't attempt to connect to the
+                                                               'right' cluster and run in this mode
+ -ro,--read-only                                               For SCHEMA_ONLY, COMMON, and LINKED
+                                                               data strategies set RIGHT table to
+                                                               NOT purge on DROP. Intended for use
+                                                               with replication distcp strategies
+                                                               and has restrictions about existing
+                                                               DB's on RIGHT and PATH elements.  To
+                                                               simply NOT set the purge flag for
+                                                               applicable tables, use -np.
+ -rr,--reset-right                                             Use this for testing to remove the
+                                                               database on the RIGHT using CASCADE.
+ -s,--sync                                                     For SCHEMA_ONLY, COMMON, and LINKED
+                                                               data strategies.  Drop and Recreate
+                                                               Schema's when different.  Best to use
+                                                               with RO to ensure table/partition
+                                                               drops don't delete data. When used
+                                                               WITHOUT `-tf` it will compare all the
+                                                               tables in a database and sync
+                                                               (bi-directional).  Meaning it will
+                                                               DROP tables on the RIGHT that aren't
+                                                               in the LEFT and ADD tables to the
+                                                               RIGHT that are missing.  When used
+                                                               with `-ro`, table schemas can be
+                                                               updated by dropping and recreating.
+                                                               When used with `-tf`, only the tables
+                                                               that match the filter (on both sides)
+                                                               will be considered.
+ -sdpi,--sort-dynamic-partition-inserts                        Used to set
+                                                               `hive.optimize.sort.dynamic.partition
+                                                               ` in TEZ for optimal partition
+                                                               inserts.  When not specified, will
+                                                               use prescriptive sorting by adding
+                                                               'DISTRIBUTE BY' to transfer SQL.
+                                                               default: false
+ -sf,--skip-features                                           Skip Features evaluation.
+ -slc,--skip-link-check                                        Skip Link Check. Use when going
+                                                               between or to Cloud Storage to avoid
+                                                               having to configure hms-mirror with
+                                                               storage credentials and libraries.
+                                                               This does NOT preclude your Hive
+                                                               Server 2 and compute environment from
+                                                               such requirements.
+ -slt,--skip-legacy-translation                                Skip Schema Upgrades and Serde
+                                                               Translations
+ -smn,--storage-migration-namespace <namespace>                Optional: Used with the 'data
+                                                               strategy STORAGE_MIGRATION to specify
+                                                               the target namespace.
+ -so,--skip-optimizations                                      Skip any optimizations during data
+                                                               movement, like dynamic sorting or
+                                                               distribute by
+ -sp,--sql-partition-count <limit>                             Set the limit of partitions that the
+                                                               SQL strategy will work with. '-1'
+                                                               means no-limit.
+ -sql,--sql-output                                             <deprecated>.  This option is no
+                                                               longer required to get SQL out in a
+                                                               report.  That is the default
+                                                               behavior.
+ -su,--setup                                                   Setup a default configuration file
+                                                               through a series of questions
+ -tef,--table-exclude-filter <regex>                           Filter tables (excludes) with name
+                                                               matching RegEx. Comparison done with
+                                                               'show tables' results.  Check case,
+                                                               that's important.  Hive tables are
+                                                               generally stored in LOWERCASE. Make
+                                                               sure you double-quote the expression
+                                                               on the commandline.
+ -tf,--table-filter <regex>                                    Filter tables (inclusive) with name
+                                                               matching RegEx. Comparison done with
+                                                               'show tables' results.  Check case,
+                                                               that's important.  Hive tables are
+                                                               generally stored in LOWERCASE. Make
+                                                               sure you double-quote the expression
+                                                               on the commandline.
+ -tfp,--table-filter-partition-count-limit <partition-count>   Filter partition tables OUT that are
+                                                               have more than specified here. Non
+                                                               Partitioned table aren't filtered.
+ -tfs,--table-filter-size-limit <size MB>                      Filter tables OUT that are above the
+                                                               indicated size.  Expressed in MB
+ -to,--transfer-ownership                                      If available (supported) on LEFT
+                                                               cluster, extract and transfer the
+                                                               tables owner to the RIGHT cluster.
+                                                               Note: This will make an 'exta' SQL
+                                                               call on the LEFT cluster to determine
+                                                               the ownership.  This won't be
+                                                               supported on CDH 5 and some other
+                                                               legacy Hive platforms. Beware the
+                                                               cost of this extra call for EVERY
+                                                               table, as it may slow down the
+                                                               process for a large volume of tables.
+ -v,--views-only                                               Process VIEWs ONLY
+ -wd,--warehouse-directory <path>                              The warehouse directory path.  Should
+                                                               not include the namespace OR the
+                                                               database directory. This will be used
+                                                               to set the MANAGEDLOCATION database
+                                                               option.
 ```
 
 ### Running Against a LEGACY (Non-CDP) Kerberized HiveServer2

@@ -31,6 +31,8 @@ import java.util.*;
 
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.HDPHIVE3_DB_LOCATION;
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.RO_DB_DOESNT_EXIST;
+import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.EXT_DB_LOCATION_PROP;
+import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.LEGACY_DB_LOCATION_PROP;
 
 public class DBMirror {
     private static final Logger LOG = LogManager.getLogger(DBMirror.class);
@@ -267,9 +269,9 @@ public class DBMirror {
                                             //     SQL query to get default from Hive.
                                             String defaultDBLocProp = null;
                                             if (config.getCluster(Environment.RIGHT).getLegacyHive()) {
-                                                defaultDBLocProp = MirrorConf.LEGACY_DB_LOCATION_PROP;
+                                                defaultDBLocProp = LEGACY_DB_LOCATION_PROP;
                                             } else {
-                                                defaultDBLocProp = MirrorConf.EXT_DB_LOCATION_PROP;
+                                                defaultDBLocProp = EXT_DB_LOCATION_PROP;
                                             }
 
                                             Connection conn = null;
@@ -491,6 +493,15 @@ public class DBMirror {
         Boolean rtn = Boolean.FALSE;
         for (Map.Entry<String, TableMirror> entry : tableMirrors.entrySet()) {
             if (entry.getValue().hasAddedProperties())
+                rtn = Boolean.TRUE;
+        }
+        return rtn;
+    }
+
+    public Boolean hasStatistics() {
+        Boolean rtn = Boolean.FALSE;
+        for (Map.Entry<String, TableMirror> entry : tableMirrors.entrySet()) {
+            if (entry.getValue().hasStatistics())
                 rtn = Boolean.TRUE;
         }
         return rtn;

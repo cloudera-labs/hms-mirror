@@ -15,34 +15,21 @@
  *
  */
 
-package com.cloudera.utils.hadoop.hms;
+package com.cloudera.utils.hadoop.hms.datastrategy;
 
-import org.junit.After;
-import org.junit.AfterClass;
+import com.cloudera.utils.hadoop.hms.DataState;
+import com.cloudera.utils.hadoop.hms.Mirror;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
 public class DumpTest extends MirrorTestBase {
+
     @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        DataState.getInstance().setConfiguration(CDP);
-        if (DataState.getInstance().getPopulate() == null) {
-            DataState.getInstance().setPopulate(Boolean.FALSE);
-        }
+    public void init() throws Exception {
+        super.init(HDP2_CDP);
         dataSetup01();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        dataCleanup(DATACLEANUP.RIGHT);
-    }
-
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-        dataCleanup(DATACLEANUP.BOTH);
     }
 
     @Test

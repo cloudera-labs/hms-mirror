@@ -16,6 +16,7 @@
 
 package com.cloudera.utils.hadoop.hms.stage;
 
+import com.cloudera.utils.hadoop.hms.Context;
 import com.cloudera.utils.hadoop.hms.mirror.*;
 import com.cloudera.utils.hadoop.HadoopSession;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
@@ -28,6 +29,9 @@ import java.util.Date;
 import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.*;
+import static com.cloudera.utils.hadoop.hms.mirror.TablePropertyVars.EXTERNAL_TABLE_PURGE;
 
 public class Transfer implements Callable<ReturnStatus> {
     private static final Logger LOG = LogManager.getLogger(Transfer.class);
@@ -250,9 +254,9 @@ public class Transfer implements Callable<ReturnStatus> {
             rtn = doSQLACIDDowngradeInplace();
         } else if (config.getTransfer().getIntermediateStorage() != null
                 || config.getTransfer().getCommonStorage() != null
-                || (TableUtils.isACID(let.getName(), let.getDefinition())
+                || (TableUtils.isACID(let)
                 && config.getMigrateACID().isOn())) {
-            if (TableUtils.isACID(let.getName(), let.getDefinition())) {
+            if (TableUtils.isACID(let)) {
                 tblMirror.setStrategy(DataStrategy.ACID);
             }
             rtn = doIntermediateTransfer();
@@ -300,7 +304,7 @@ public class Transfer implements Callable<ReturnStatus> {
             // Construct Transfer SQL
             if (config.getCluster(Environment.LEFT).getLegacyHive()) {
                 // We need to ensure that 'tez' is the execution engine.
-                let.addSql(new Pair(MirrorConf.TEZ_EXECUTION_DESC, MirrorConf.SET_TEZ_AS_EXECUTION_ENGINE));
+                let.addSql(new Pair(TEZ_EXECUTION_DESC, SET_TEZ_AS_EXECUTION_ENGINE));
             }
 
             Pair cleanUp = new Pair("Post Migration Cleanup", "-- To be run AFTER final RIGHT SQL statements.");
@@ -362,7 +366,7 @@ public class Transfer implements Callable<ReturnStatus> {
             // Construct Transfer SQL
             if (config.getCluster(Environment.LEFT).getLegacyHive()) {
                 // We need to ensure that 'tez' is the execution engine.
-                let.addSql(new Pair(MirrorConf.TEZ_EXECUTION_DESC, MirrorConf.SET_TEZ_AS_EXECUTION_ENGINE));
+                let.addSql(new Pair(TEZ_EXECUTION_DESC, SET_TEZ_AS_EXECUTION_ENGINE));
             }
             // Set Override Properties.
             if (config.getOptimization().getOverrides() != null) {
@@ -371,13 +375,16 @@ public class Transfer implements Callable<ReturnStatus> {
                 }
             }
 
+            // TODO: Need to set this for SQL DataStrategy too..
+            StatsCalculator.setSessionOptions(let, let);
+
             // Need to see if the table has partitions.
             if (let.getPartitioned()) {
                 // Check that the partition count doesn't exceed the configuration limit.
                 // Build Partition Elements.
                 if (config.getOptimization().getSkip()) {
                     if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
-                        let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=false");
+                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
                     }
                     String partElement = TableUtils.getPartitionElements(let);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
@@ -385,9 +392,10 @@ public class Transfer implements Callable<ReturnStatus> {
                     String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
                     let.addSql(new Pair(transferDesc, transferSql));
                 } else if (config.getOptimization().getSortDynamicPartitionInserts()) {
+                    // Declarative
                     if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
-                        let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION, "set " + MirrorConf.SORT_DYNAMIC_PARTITION + "=true");
-                        let.addSql("Setting " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + MirrorConf.SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
+                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
                     }
                     String partElement = TableUtils.getPartitionElements(let);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
@@ -395,9 +403,21 @@ public class Transfer implements Callable<ReturnStatus> {
                     String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
                     let.addSql(new Pair(transferDesc, transferSql));
                 } else{
+                    // Prescriptive
+                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
+                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                    }
+                    String transferSql = null;
                     String partElement = TableUtils.getPartitionElements(let);
-                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
-                            let.getName(), ret.getName(), partElement);
+                    String distPartElemant = null;
+                    if (Context.getInstance().getConfig().getOptimization().getAutoTune()) {
+                        distPartElemant = StatsCalculator.getAdditionalPartitionDistribution(let);
+                    } else {
+                        distPartElemant = TableUtils.getPartitionElements(let);
+                    }
+                    transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
+                            let.getName(), ret.getName(), partElement, distPartElemant);
                     String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
                     let.addSql(new Pair(transferDesc, transferSql));
                 }
@@ -492,6 +512,10 @@ public class Transfer implements Callable<ReturnStatus> {
         Boolean rtn = Boolean.FALSE;
 
         rtn = tblMirror.buildoutSCHEMA_ONLYDefinition(config, dbMirror);
+
+        if (rtn) {
+            rtn = AVROCheck();
+        }
         if (rtn) {
             rtn = tblMirror.buildoutSCHEMA_ONLYSql(config, dbMirror);
         }
@@ -509,7 +533,7 @@ public class Transfer implements Callable<ReturnStatus> {
         EnvironmentTable set = tblMirror.getEnvironmentTable(Environment.SHADOW);
         EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
 
-        if (TableUtils.isACID(let.getName(), let.getDefinition())) {
+        if (TableUtils.isACID(let)) {
             tblMirror.addIssue(Environment.LEFT, "You can't 'LINK' ACID tables.");
             rtn = Boolean.FALSE;
         } else {
@@ -535,7 +559,7 @@ public class Transfer implements Callable<ReturnStatus> {
 
         EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
 
-        if (TableUtils.isACID(let.getName(), let.getDefinition())) {
+        if (TableUtils.isACID(let)) {
             rtn = Boolean.FALSE;
             tblMirror.addIssue(Environment.RIGHT,
                     "Can't transfer SCHEMA reference on COMMON storage for ACID tables.");
@@ -560,7 +584,7 @@ public class Transfer implements Callable<ReturnStatus> {
         if (tblMirror.isACIDDowngradeInPlace(config, let)) {
             rtn = doEXPORTIMPORTACIDInplaceDowngrade();
         } else {
-            if (TableUtils.isACID(let.getName(), let.getDefinition())) {
+            if (TableUtils.isACID(let)) {
                 if (config.getCluster(Environment.LEFT).getLegacyHive() != config.getCluster(Environment.RIGHT).getLegacyHive()) {
                     rtn = Boolean.FALSE;
                     tblMirror.addIssue(Environment.LEFT, "ACID table EXPORTs are NOT compatible for IMPORT to clusters on a different major version of Hive.");
@@ -610,7 +634,7 @@ public class Transfer implements Callable<ReturnStatus> {
 
                 // Make sure the table is NOT set to purge.
                 if (TableUtils.isExternalPurge(ret)) {
-                    String purgeSql = MessageFormat.format(MirrorConf.REMOVE_TABLE_PROP, ret.getName(), MirrorConf.EXTERNAL_TABLE_PURGE);
+                    String purgeSql = MessageFormat.format(MirrorConf.REMOVE_TABLE_PROP, ret.getName(), EXTERNAL_TABLE_PURGE);
                     ret.addSql(MirrorConf.REMOVE_TABLE_PROP_DESC, purgeSql);
                 }
 
@@ -635,9 +659,9 @@ public class Transfer implements Callable<ReturnStatus> {
                     // TableUtils.updateTableLocation(ret, targetLocation)
                     // - Check Comments for "legacy.managed" setting.
                     //    - MirrorConf.HMS_MIRROR_LEGACY_MANAGED_FLAG (if so, set purge flag MirrorConf.EXTERNAL_TABLE_PURGE)
-                    if (TableUtils.isHMSLegacyManaged(tblMirror.getName(), ret.getDefinition())) {
+                    if (TableUtils.isHMSLegacyManaged(ret)) {
                         // ALTER TABLE x SET TBLPROPERTIES ('purge flag').
-                        String purgeSql = MessageFormat.format(MirrorConf.ADD_TABLE_PROP, ret.getName(), MirrorConf.EXTERNAL_TABLE_PURGE, "true");
+                        String purgeSql = MessageFormat.format(MirrorConf.ADD_TABLE_PROP, ret.getName(), EXTERNAL_TABLE_PURGE, "true");
                         ret.addSql(MirrorConf.ADD_TABLE_PROP_DESC, purgeSql);
                     }
                     rtn = Boolean.TRUE;

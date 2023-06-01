@@ -16,17 +16,22 @@
 
 package com.cloudera.utils.hadoop.hms.mirror;
 
+import com.cloudera.utils.hadoop.HadoopSession;
+import com.cloudera.utils.hadoop.hms.Context;
+import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.sql.*;
-import java.text.DateFormat;
-import java.text.MessageFormat;
-import java.text.SimpleDateFormat;
+import java.text.*;
 import java.util.*;
 import java.util.regex.Matcher;
+
+import static com.cloudera.utils.hadoop.hms.mirror.DataStrategy.DUMP;
+import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.*;
+import static com.cloudera.utils.hadoop.hms.mirror.TablePropertyVars.HMS_STORAGE_MIGRATION_FLAG;
 
 public class Cluster implements Comparable<Cluster> {
     private static final Logger LOG = LogManager.getLogger(Cluster.class);
@@ -243,7 +248,7 @@ public class Cluster implements Comparable<Cluster> {
                     if (!this.getLegacyHive()) {
                         if (config.getMigrateVIEW().isOn()) {
                             shows.add(MirrorConf.SHOW_VIEWS);
-                            if (config.getDataStrategy() == DataStrategy.DUMP) {
+                            if (config.getDataStrategy() == DUMP) {
                                 shows.add(MirrorConf.SHOW_TABLES);
                             }
                         } else {
@@ -265,20 +270,20 @@ public class Cluster implements Comparable<Cluster> {
                                         "The name is the result of a previous STORAGE_MIGRATION attempt that has not been " +
                                         "cleaned up.");
                             } else {
-                                if (config.getTblRegEx() == null && config.getTblExcludeRegEx() == null) {
+                                if (config.getFilter().getTblRegEx() == null && config.getFilter().getTblExcludeRegEx() == null) {
                                     TableMirror tableMirror = dbMirror.addTable(tableName);
                                     tableMirror.setMigrationStageMessage("Added to evaluation inventory");
-                                } else if (config.getTblRegEx() != null) {
+                                } else if (config.getFilter().getTblRegEx() != null) {
                                     // Filter Tables
-                                    assert (config.getTblFilterPattern() != null);
-                                    Matcher matcher = config.getTblFilterPattern().matcher(tableName);
+                                    assert (config.getFilter().getTblFilterPattern() != null);
+                                    Matcher matcher = config.getFilter().getTblFilterPattern().matcher(tableName);
                                     if (matcher.matches()) {
                                         TableMirror tableMirror = dbMirror.addTable(tableName);
                                         tableMirror.setMigrationStageMessage("Added to evaluation inventory");
                                     }
-                                } else if (config.getTblExcludeRegEx() != null) {
-                                    assert (config.getTblExcludeFilterPattern() != null);
-                                    Matcher matcher = config.getTblExcludeFilterPattern().matcher(tableName);
+                                } else if (config.getFilter().getTblExcludeRegEx() != null) {
+                                    assert (config.getFilter().getTblExcludeFilterPattern() != null);
+                                    Matcher matcher = config.getFilter().getTblExcludeFilterPattern().matcher(tableName);
                                     if (!matcher.matches()) { // ANTI-MATCH
                                         TableMirror tableMirror = dbMirror.addTable(tableName);
                                         tableMirror.setMigrationStageMessage("Added to evaluation inventory");
@@ -322,8 +327,9 @@ public class Cluster implements Comparable<Cluster> {
     }
 
 
-    public void getTableDefinition(Config config, String database, TableMirror tableMirror) throws SQLException {
+    public void getTableDefinition(String database, TableMirror tableMirror) throws SQLException {
         // The connection should already be in the database;
+        Config config = Context.getInstance().getConfig();
         Connection conn = null;
         try {
             conn = getConnection();
@@ -363,7 +369,7 @@ public class Cluster implements Comparable<Cluster> {
                     tableMirror.addStep(getEnvironment().toString(), "Fetched Schema");
 
                     if (this.environment == Environment.LEFT) {
-                        if (config.getMigrateVIEW().isOn() && config.getDataStrategy() != DataStrategy.DUMP) {
+                        if (config.getMigrateVIEW().isOn() && config.getDataStrategy() != DUMP) {
                             if (!TableUtils.isView(et)) {
                                 tableMirror.setRemove(Boolean.TRUE);
                                 tableMirror.setRemoveReason("VIEW's only processing selected.");
@@ -386,7 +392,7 @@ public class Cluster implements Comparable<Cluster> {
                                     tableMirror.setRemoveReason("Non-ACID table and ACID only processing selected `-mao`");
                                 }
                             } else if (TableUtils.isView(et)) {
-                                if (config.getDataStrategy() != DataStrategy.DUMP) {
+                                if (config.getDataStrategy() != DUMP) {
                                     tableMirror.setRemove(Boolean.TRUE);
                                     tableMirror.setRemoveReason("This is a VIEW and VIEW processing wasn't selected.");
                                 }
@@ -399,9 +405,58 @@ public class Cluster implements Comparable<Cluster> {
                                 }
                             }
                         }
-                        Boolean partitioned = TableUtils.isPartitioned(et.getName(), et.getDefinition());
+                        Boolean partitioned = TableUtils.isPartitioned(et);
                         if (partitioned) {
                             loadTablePartitionMetadata(conn, database, et);
+                            // Check for table partition count filter
+                            if (config.getFilter().getTblPartitionLimit() != null) {
+                                Integer partLimit = config.getFilter().getTblPartitionLimit();
+                                if (et.getPartitions().size() > partLimit) {
+                                    tableMirror.setRemove(Boolean.TRUE);
+                                    tableMirror.setRemoveReason("The table partition count exceeds the specified table filter partition limit: " +
+                                            config.getFilter().getTblPartitionLimit() + " < " + et.getPartitions().size());
+
+                                }
+                            }
+                        }
+                        // Check for table size filter
+                        if (config.getFilter().getTblSizeLimit() != null) {
+                            Long dataSize = (Long)et.getStatistics().get(DATA_SIZE);
+                            if (dataSize != null) {
+                                if (config.getFilter().getTblSizeLimit() * (1024*1024) < dataSize) {
+                                    tableMirror.setRemove(Boolean.TRUE);
+                                    tableMirror.setRemoveReason("The table dataset size exceeds the specified table filter size limit: " +
+                                            config.getFilter().getTblSizeLimit() + "Mb < " + dataSize);
+                                }
+                            }
+                        }
+                        // Check for tables migration flag, to avoid 're-migration'.
+                        String smFlag = TableUtils.getTblProperty(HMS_STORAGE_MIGRATION_FLAG, et);
+                        if (smFlag != null) {
+                            tableMirror.setRemove(Boolean.TRUE);
+                            tableMirror.setRemoveReason("The table has already gone through the STORAGE_MIGRATION process on " +
+                                    smFlag + " If this isn't correct, remove the TBLPROPERTY '" + HMS_STORAGE_MIGRATION_FLAG + "' " +
+                                    "from the table and try again.");
+                        }
+                        if (!tableMirror.isRemove()) {
+                            switch (config.getDataStrategy()) {
+                                case SCHEMA_ONLY:
+                                case CONVERT_LINKED:
+                                case DUMP:
+                                case LINKED:
+                                    // These scenario don't require stats.
+                                    break;
+                                case SQL:
+                                case HYBRID:
+                                case EXPORT_IMPORT:
+                                case STORAGE_MIGRATION:
+                                case COMMON:
+                                case ACID:
+                                    if (!TableUtils.isView(et) && TableUtils.isHiveNative(et)) {
+                                        loadTableStats(et);
+                                    }
+                                    break;
+                            }
                         }
                     }
 
@@ -427,7 +482,7 @@ public class Cluster implements Comparable<Cluster> {
                             if (owner != null) {
                                 et.setOwner(owner);
                             }
-                        }  catch (SQLException sed) {
+                        } catch (SQLException sed) {
                             // Failed to gather owner details.
                         }
                     }
@@ -654,51 +709,84 @@ public class Cluster implements Comparable<Cluster> {
     }
 
     protected void loadTablePartitionMetadata(Connection conn, String database, EnvironmentTable envTable) throws SQLException {
-//        Connection conn = null;
+        Statement stmt = null;
+        ResultSet resultSet = null;
+        try {
+            stmt = conn.createStatement();
+            LOG.debug(getEnvironment() + ":" + database + "." + envTable.getName() +
+                    ": Loading Partitions");
 
-//        try {
-//            conn = getConnection();
-//            if (conn != null) {
-
-                Statement stmt = null;
-                ResultSet resultSet = null;
+            resultSet = stmt.executeQuery(MessageFormat.format(MirrorConf.SHOW_PARTITIONS, database, envTable.getName()));
+            List<String> partDef = new ArrayList<String>();
+            while (resultSet.next()) {
+                partDef.add(resultSet.getString(1));
+            }
+            envTable.setPartitions(partDef);
+        } finally {
+            if (resultSet != null) {
                 try {
-                    stmt = conn.createStatement();
-                    LOG.debug(getEnvironment() + ":" + database + "." + envTable.getName() +
-                            ": Loading Partitions");
-
-                    resultSet = stmt.executeQuery(MessageFormat.format(MirrorConf.SHOW_PARTITIONS, database, envTable.getName()));
-                    List<String> partDef = new ArrayList<String>();
-                    while (resultSet.next()) {
-                        partDef.add(resultSet.getString(1));
-                    }
-                    envTable.setPartitions(partDef);
-                } finally {
-                    if (resultSet != null) {
-                        try {
-                            resultSet.close();
-                        } catch (SQLException sqlException) {
-                            // ignore
-                        }
-                    }
-                    if (stmt != null) {
-                        try {
-                            stmt.close();
-                        } catch (SQLException sqlException) {
-                            // ignore
-                        }
-                    }
+                    resultSet.close();
+                } catch (SQLException sqlException) {
+                    // ignore
                 }
-//            }
-//        } finally {
-//            try {
-//                if (conn != null)
-//                    conn.close();
-//            } catch (SQLException throwables) {
-//                //
-//            }
-//        }
+            }
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException sqlException) {
+                    // ignore
+                }
+            }
+        }
+    }
 
+    protected void loadTableStats(EnvironmentTable envTable) throws SQLException {
+        // Determine File sizes in table or partitions.
+        /*
+        - Get Base location for table
+        - Get HadoopSession
+        - Do a 'count' of the location.
+         */
+        String location = TableUtils.getLocation(envTable.getName(), envTable.getDefinition());
+        // Only run checks against hdfs and ozone namespaces.
+        String[] locationParts = location.split(":");
+        String protocol = locationParts[0];
+        if (Context.getInstance().getSupportFileSystems().contains(protocol)) {
+            HadoopSession cli = null;
+            try {
+                cli = config.getCliPool().borrow();
+                String countCmd = "count " + location;
+                CommandReturn cr = cli.processInput(countCmd);
+                if (!cr.isError() && cr.getRecords().size() == 1) {
+                    // We should only get back one record.
+                    List<Object> countRecord = cr.getRecords().get(0);
+                    // 0 = Folder Count
+                    // 1 = File Count
+                    // 2 = Size Summary
+                    try {
+                        Double avgFileSize = (double) (Long.valueOf(countRecord.get(2).toString()) /
+                                Integer.valueOf(countRecord.get(1).toString()));
+                        envTable.getStatistics().put(DIR_COUNT, Integer.valueOf(countRecord.get(0).toString()));
+                        envTable.getStatistics().put(FILE_COUNT, Integer.valueOf(countRecord.get(1).toString()));
+                        envTable.getStatistics().put(DATA_SIZE, Long.valueOf(countRecord.get(2).toString()));
+                        envTable.getStatistics().put(AVG_FILE_SIZE, avgFileSize);
+                        envTable.getStatistics().put(TABLE_EMPTY, Boolean.FALSE);
+                    } catch (ArithmeticException ae) {
+                        // Directory is probably empty.
+                        envTable.getStatistics().put(TABLE_EMPTY, Boolean.TRUE);
+                    }
+                } else {
+                    // Issue getting count.
+
+                }
+            } finally {
+                if (cli != null) {
+                    config.getCliPool().returnSession(cli);
+                }
+            }
+        }
+        // Determine Table File Format
+        TableUtils.getSerdeType(envTable);
     }
 
     @Override

@@ -17,11 +17,19 @@
 
 package com.cloudera.utils.hadoop.hms;
 
+import com.cloudera.utils.hadoop.hms.datastrategy.MirrorTestBase;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
 public class MirrorTest01 extends MirrorTestBase {
+
+    @Before
+    public void setUp() throws Exception {
+        super.init(HDP2_CDP);
+        dataSetup01();
+    }
 
     @Test
     public void test_spot_test() {

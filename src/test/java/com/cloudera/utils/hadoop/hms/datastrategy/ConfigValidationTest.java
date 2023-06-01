@@ -15,40 +15,22 @@
  *
  */
 
-package com.cloudera.utils.hadoop.hms;
+package com.cloudera.utils.hadoop.hms.datastrategy;
 
+import com.cloudera.utils.hadoop.hms.DataState;
+import com.cloudera.utils.hadoop.hms.Mirror;
 import com.cloudera.utils.hadoop.hms.mirror.MessageCode;
-import com.cloudera.utils.hadoop.hms.mirror.Pair;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static com.cloudera.utils.hadoop.hms.TestSQL.*;
 import static org.junit.Assert.assertTrue;
 
 public class ConfigValidationTest extends MirrorTestBase {
+
     @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        DataState.getInstance().setConfiguration(CDP_CDP);
-        if (DataState.getInstance().getPopulate() == null) {
-            DataState.getInstance().setPopulate(Boolean.FALSE);
-        }
+    public void init() throws Exception {
+        super.init(HDP2_CDP);
         dataSetup01();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        dataCleanup(DATACLEANUP.RIGHT);
-    }
-
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-        dataCleanup(DATACLEANUP.BOTH);
     }
 
     @Test
@@ -67,9 +49,7 @@ public class ConfigValidationTest extends MirrorTestBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        long check = MessageCode.STORAGE_MIGRATION_REQUIRED_NAMESPACE.getLong();
-//        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_STRATEGY.getLong();
-        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
+        long check = MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
 
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
     }
@@ -94,7 +74,7 @@ public class ConfigValidationTest extends MirrorTestBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         long check = MessageCode.STORAGE_MIGRATION_DISTCP_ACID.getLong();
-        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_NAMESPACE.getLong();
+//        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_NAMESPACE.getLong();
         check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
 
         assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);

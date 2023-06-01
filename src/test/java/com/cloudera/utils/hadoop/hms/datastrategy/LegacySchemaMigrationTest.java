@@ -15,41 +15,22 @@
  *
  */
 
-package com.cloudera.utils.hadoop.hms;
+package com.cloudera.utils.hadoop.hms.datastrategy;
 
+import com.cloudera.utils.hadoop.hms.DataState;
+import com.cloudera.utils.hadoop.hms.Mirror;
 import com.cloudera.utils.hadoop.hms.mirror.MessageCode;
-import com.cloudera.utils.hadoop.hms.mirror.Pair;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static com.cloudera.utils.hadoop.hms.TestSQL.*;
 import static org.junit.Assert.assertTrue;
 
 public class LegacySchemaMigrationTest extends MirrorTestBase {
 
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-        dataCleanup(DATACLEANUP.BOTH);
-    }
-
     @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        DataState.getInstance().setConfiguration(HDP2_CDP);
-        if (DataState.getInstance().getPopulate() == null) {
-            DataState.getInstance().setPopulate(Boolean.FALSE);
-        }
+    public void init() throws Exception {
+        super.init(HDP2_CDP);
         dataSetup01();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        dataCleanup(DATACLEANUP.RIGHT);
     }
 
     @Test

@@ -27,6 +27,7 @@ import com.google.common.collect.Sets;
 import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -178,6 +179,7 @@ public class Conversion {
         Date current = new Date();
         BigDecimal elsecs = new BigDecimal(current.getTime() - start.getTime()).divide(new BigDecimal(1000));
         DecimalFormat eldecf = new DecimalFormat("#,###.00");
+        DecimalFormat lngdecf = new DecimalFormat("#,###");
         String elsecStr = eldecf.format(elsecs);
 
         sb.append("| ").append(df.format(new Date())).append(" | ").append(elsecStr).append(" secs |\n\n");
@@ -257,13 +259,16 @@ public class Conversion {
         sb.append("<th style=\"test-align:left\">Source<br/>ACID</th>").append("\n");
         sb.append("<th style=\"test-align:left\">Phase<br/>State</th>").append("\n");
         sb.append("<th style=\"test-align:right\">Duration</th>").append("\n");
-        sb.append("<th style=\"test-align:right\">Partition<br/>Count</th>").append("\n");
+//        sb.append("<th style=\"test-align:right\">Partition<br/>Count</th>").append("\n");
         sb.append("<th style=\"test-align:left\">Steps</th>").append("\n");
         if (dbMirror.hasActions()) {
             sb.append("<th style=\"test-align:left\">Actions</th>").append("\n");
         }
         if (dbMirror.hasAddedProperties()) {
             sb.append("<th style=\"test-align:left\">Added<br/>Properties</th>").append("\n");
+        }
+        if (dbMirror.hasStatistics()) {
+            sb.append("<th style=\"test-align:left\">Stats</th>").append("\n");
         }
         if (dbMirror.hasIssues()) {
             sb.append("<th style=\"test-align:left\">Issues</th>").append("\n");
@@ -302,8 +307,8 @@ public class Conversion {
             sb.append("<td>").append(secStr).append("</td>").append("\n");
 
             // Partition Count
-            sb.append("<td>").append(let.getPartitioned() ?
-                    let.getPartitions().size() : " ").append("</td>").append("\n");
+//            sb.append("<td>").append(let.getPartitioned() ?
+//                    let.getPartitions().size() : " ").append("</td>").append("\n");
 
             // Steps
             sb.append("<td>\n");
@@ -373,6 +378,47 @@ public class Conversion {
                             sb.append("</td>\n");
                             sb.append("<td>");
                             sb.append(prop.getValue());
+                            sb.append("</td>\n");
+                            sb.append("</tr>\n");
+                        }
+                    }
+                }
+                sb.append("</table>");
+                sb.append("</td>").append("\n");
+            }
+            // Statistics
+            if (dbMirror.hasStatistics()) {
+                sb.append("<td>").append("\n");
+                sb.append("<table>");
+                for (Map.Entry<Environment, EnvironmentTable> entry : tblMirror.getEnvironments().entrySet()) {
+                    if (entry.getValue().getStatistics().size() > 0) {
+                        sb.append("<tr>\n");
+                        sb.append("<th colspan=\"2\">");
+                        sb.append(entry.getKey());
+                        sb.append("</th>\n");
+                        sb.append("</tr>").append("\n");
+
+                        for (Map.Entry<String, Object> prop : entry.getValue().getStatistics().entrySet()) {
+                            sb.append("<tr>\n");
+                            sb.append("<td>");
+                            sb.append(prop.getKey());
+                            sb.append("</td>\n");
+                            sb.append("<td>");
+                            if (prop.getValue() instanceof Double || prop.getValue() instanceof Long) {
+                                sb.append(lngdecf.format(prop.getValue()));
+                            } else {
+                                sb.append(prop.getValue().toString());
+                            }
+                            sb.append("</td>\n");
+                            sb.append("</tr>\n");
+                        }
+                        if (entry.getValue().getPartitioned()) {
+                            sb.append("<tr>\n");
+                            sb.append("<td>");
+                            sb.append(MirrorConf.PARTITION_COUNT);
+                            sb.append("</td>\n");
+                            sb.append("<td>");
+                            sb.append(entry.getValue().getPartitions().size());
                             sb.append("</td>\n");
                             sb.append("</tr>\n");
                         }

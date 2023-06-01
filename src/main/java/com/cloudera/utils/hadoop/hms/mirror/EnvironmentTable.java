@@ -32,6 +32,9 @@ public class EnvironmentTable {
     private List<String> partitions = new ArrayList<String>();
     private List<String> actions = new ArrayList<String>();
     private Map<String, String> addProperties = new TreeMap<String, String>();
+
+    private Map<String, Object> statistics = new HashMap<String, Object>();
+
     private List<String> issues = new ArrayList<String>();
     private final List<Pair> sql = new ArrayList<Pair>();
     private final List<Pair> cleanUpsql = new ArrayList<Pair>();
@@ -81,7 +84,7 @@ public class EnvironmentTable {
         rtn = partitions.size() > 0 ? Boolean.TRUE : Boolean.FALSE;
         if (!rtn) {
             // Check the definition incase the partitions are empty.
-            rtn = TableUtils.isPartitioned(getName(), getDefinition());
+            rtn = TableUtils.isPartitioned(this);
         }
         return rtn;
     }
@@ -123,6 +126,14 @@ public class EnvironmentTable {
     }
     public void setAddProperties(Map<String, String> addProperties) {
         this.addProperties = addProperties;
+    }
+
+    public Map<String, Object> getStatistics() {
+        return statistics;
+    }
+
+    public void setStatistics(Map<String, Object> statistics) {
+        this.statistics = statistics;
     }
 
     public List<String> getIssues() {

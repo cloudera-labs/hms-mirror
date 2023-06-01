@@ -22,12 +22,17 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.math.RoundingMode;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.regex.Matcher;
 
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.*;
+import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.SHOW_DATABASES;
 
 /*
 Using the config, go through the databases and tables and collect the current states.
@@ -50,6 +55,45 @@ public class Setup {
         Boolean rtn = Boolean.TRUE;
         Date startTime = new Date();
         LOG.info("GATHERING METADATA: Start Processing for databases: " + Arrays.toString((config.getDatabases())));
+
+        // Check dbRegEx
+        if (config.getFilter().getDbRegEx() != null) {
+            // Look for the dbRegEx.
+            Connection conn = null;
+            Statement stmt = null;
+            List<String> databases = new ArrayList<String>();
+            try {
+                conn = config.getCluster(Environment.LEFT).getConnection();
+                if (conn != null) {
+                    stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery(SHOW_DATABASES);
+                    while (rs.next()) {
+                        String db = rs.getString(1);
+                        Matcher matcher = config.getFilter().getDbFilterPattern().matcher(db);
+                        if (matcher.find()) {
+                            databases.add(db);
+                        }
+                    }
+                    String[] dbs = databases.toArray(new String[0]);
+                    config.setDatabases(dbs);
+                }
+            } catch (SQLException se) {
+                // Issue
+                LOG.error("Issue getting databases for dbRegEx");
+            } finally {
+                if (conn != null) {
+                    try {
+                        conn.close();
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        }
+
+        if (config.getDatabases() == null || config.getDatabases().length == 0) {
+            throw new RuntimeException("No databases specified OR found if you used dbRegEx");
+        }
 
         List<ScheduledFuture<ReturnStatus>> gtf = new ArrayList<ScheduledFuture<ReturnStatus>>();
         for (String database : config.getDatabases()) {

@@ -15,20 +15,25 @@
  *
  */
 
-package com.cloudera.utils.hadoop.hms;
+package com.cloudera.utils.hadoop.hms.datastrategy;
 
+import com.cloudera.utils.hadoop.hms.Context;
+import com.cloudera.utils.hadoop.hms.DataState;
+import com.cloudera.utils.hadoop.hms.Mirror;
+import com.cloudera.utils.hadoop.hms.mirror.Config;
 import com.cloudera.utils.hadoop.hms.mirror.Environment;
 import com.cloudera.utils.hadoop.hms.mirror.MirrorConf;
 import com.cloudera.utils.hadoop.hms.mirror.Pair;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 
 import static com.cloudera.utils.hadoop.hms.TestSQL.*;
 import static com.cloudera.utils.hadoop.hms.TestSQL.TBL_INSERT;
@@ -51,6 +56,20 @@ public class MirrorTestBase {
     protected String outputDirBase = null;
 
     private final String fieldCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    @AfterClass
+    public static void tearDownClass() throws Exception {
+//        dataCleanup(DATACLEANUP.BOTH);
+    }
+
+    public void init(String cfg) throws Exception {
+        setUp(cfg);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        dataCleanup(DATACLEANUP.RIGHT);
+    }
 
     protected static String[] toExecute(String[] one, String[] two, boolean forceExecute) {
         String[] rtn = one;
@@ -106,8 +125,8 @@ public class MirrorTestBase {
             if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
                 dataset = getDataset(2, 2000, null);
             }
-            build_n_populate(CREATE_EXTERNAL_TBL, TBL_INSERT, dataset, leftSql,new String[]{"ext_part_02"});
-            build_n_populate(CREATE_LEGACY_MNGD_TBL, TBL_INSERT, dataset, leftSql,new String[]{"legacy_mngd_01"});
+            build_n_populate(CREATE_EXTERNAL_TBL, TBL_INSERT, dataset, leftSql, new String[]{"ext_part_02"});
+            build_n_populate(CREATE_LEGACY_MNGD_TBL, TBL_INSERT, dataset, leftSql, new String[]{"legacy_mngd_01"});
 
             Mirror cfgMirror = new Mirror();
             long rtn = cfgMirror.setupSqlLeft(args, leftSql);
@@ -121,7 +140,9 @@ public class MirrorTestBase {
     }
 
     protected static Boolean dataCleanup(DATACLEANUP datacleanup) {
-        if (DataState.getInstance().isCleanUp()) {
+        // Only Cleanup Data if Clean and Execute Flags are set to prevent downstream issues with test
+        // dataset.
+        if (DataState.getInstance().isCleanUp() && DataState.getInstance().isExecute()) {
             String nameofCurrMethod = new Throwable()
                     .getStackTrace()[0]
                     .getMethodName();
@@ -147,14 +168,22 @@ public class MirrorTestBase {
             Mirror cfgMirror = new Mirror();
 
             long rtn = 0l;
+            Config cfg = Context.getInstance().getConfig();
+            String ns = null;
             switch (datacleanup) {
                 case LEFT:
+                    ns = cfg.getCluster(Environment.LEFT).getHcfsNamespace();
                     rtn = cfgMirror.setupSqlLeft(args, leftSql);
                     break;
                 case RIGHT:
+                    ns = cfg.getCluster(Environment.RIGHT).getHcfsNamespace();
+                    // Need to figure out which dataset to reset.
+//                    DataState.getInstance().setDataCreated();
                     rtn = cfgMirror.setupSqlRight(args, rightSql);
                     break;
                 case BOTH:
+                    String lns = cfg.getCluster(Environment.LEFT).getHcfsNamespace();
+                    String rns = cfg.getCluster(Environment.RIGHT).getHcfsNamespace();
                     rtn = cfgMirror.setupSql(args, leftSql, rightSql);
                     break;
             }
@@ -166,7 +195,7 @@ public class MirrorTestBase {
                                     List<String[]> dataset, List<Pair> targetPairList, Object[] opts) {
         MessageFormat mf = new MessageFormat("US");
         String tableCreate = MessageFormat.format(tableDefTemplate, opts);
-        String tableName = (String)opts[0];
+        String tableName = (String) opts[0];
         Pair createPair = new Pair("Create table: " + tableName, tableCreate);
         targetPairList.add(createPair);
         if (dataset != null) {
@@ -196,13 +225,10 @@ public class MirrorTestBase {
     }
 
     protected void build_use_db(List<Pair> sqlPairList) {
-        String dropDb = MessageFormat.format(MirrorConf.DROP_DB, DataState.getInstance().getWorking_db());
-        Pair r01p = new Pair("DROP DB: " + DataState.getInstance().getWorking_db(), dropDb);
         String createDb = MessageFormat.format(MirrorConf.CREATE_DB, DataState.getInstance().getWorking_db());
         Pair r02p = new Pair("CREATE DB: " + DataState.getInstance().getWorking_db(), createDb);
         String useDb = MessageFormat.format(MirrorConf.USE, DataState.getInstance().getWorking_db());
         Pair r03p = new Pair("Use DB: " + DataState.getInstance().getWorking_db(), useDb);
-        sqlPairList.add(r01p);
         sqlPairList.add(r02p);
         sqlPairList.add(r03p);
     }
@@ -230,8 +256,9 @@ public class MirrorTestBase {
         return rtn;
     }
 
-    @Before
-    public void setUp() throws Exception {
+    public void setUp(String configLocation) throws Exception {
+        DataState.getInstance().setConfiguration(configLocation);
+
         // Override default db for test run.
         String lclWorkingDb = System.getenv("DB");
         if (lclWorkingDb != null) {
