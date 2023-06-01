@@ -1546,9 +1546,28 @@ See [Storage Migration](./strategy_docs/storage_migration.md)
 
 ## Troubleshooting / Issues
 
+### Application won't start `NoClassDefFoundError`
+
+Error
+```
+Exception in thread "main" java.lang.NoClassDefFoundError:
+java/sql/Driver at java.base/java.lang.ClassLoader.defineClass1
+```
+
+`hms-mirror` uses a classloader to separate the various jdbc classes (and versions) used to manage migrations between two different clusters. The application also has a requirement to run on older platforms, so the most common denominator is Java 8.  Our method of loading and separating these libraries doesn't work in Java 9+.
+
+#### Solution
+
+Please use Java 8 to run `hms-mirror`.
+
+
+### CDP Hive Standalone Driver for CDP 7.1.8 won't connect
+
+If you are attempting to connect to a CDP 7.1.8 clusters Hive Server 2 with the CDP Hive Standalone Driver identified in the clusters `jarFile` property, you may not be able to connect. This is due to a bug in the driver.  The workaround is to use the a Standalone driver from CDP 7.1.7 instead.
+
+[Issue #47](https://github.com/cloudera-labs/hms-mirror/issues/47)
+
 ### Failed AVRO Table Creation
-
-
 
 ```
 Error while compiling statement: FAILED: Execution Error, return code 40000 from org.apache.hadoop.hive.ql.ddl.DDLTask. java.lang.RuntimeException: MetaException(message:org.apache.hadoop.hive.serde2.SerDeException Encountered AvroSerdeException determining schema. Returning signal schema to indicate problem: Unable to read schema from given path: /user/dstreev/test.avsc)
