@@ -405,31 +405,6 @@ public class Cluster implements Comparable<Cluster> {
                                 }
                             }
                         }
-                        Boolean partitioned = TableUtils.isPartitioned(et);
-                        if (partitioned) {
-                            loadTablePartitionMetadata(conn, database, et);
-                            // Check for table partition count filter
-                            if (config.getFilter().getTblPartitionLimit() != null) {
-                                Integer partLimit = config.getFilter().getTblPartitionLimit();
-                                if (et.getPartitions().size() > partLimit) {
-                                    tableMirror.setRemove(Boolean.TRUE);
-                                    tableMirror.setRemoveReason("The table partition count exceeds the specified table filter partition limit: " +
-                                            config.getFilter().getTblPartitionLimit() + " < " + et.getPartitions().size());
-
-                                }
-                            }
-                        }
-                        // Check for table size filter
-                        if (config.getFilter().getTblSizeLimit() != null) {
-                            Long dataSize = (Long)et.getStatistics().get(DATA_SIZE);
-                            if (dataSize != null) {
-                                if (config.getFilter().getTblSizeLimit() * (1024*1024) < dataSize) {
-                                    tableMirror.setRemove(Boolean.TRUE);
-                                    tableMirror.setRemoveReason("The table dataset size exceeds the specified table filter size limit: " +
-                                            config.getFilter().getTblSizeLimit() + "Mb < " + dataSize);
-                                }
-                            }
-                        }
                         // Check for tables migration flag, to avoid 're-migration'.
                         String smFlag = TableUtils.getTblProperty(HMS_STORAGE_MIGRATION_FLAG, et);
                         if (smFlag != null) {
@@ -456,6 +431,32 @@ public class Cluster implements Comparable<Cluster> {
                                         loadTableStats(et);
                                     }
                                     break;
+                            }
+                        }
+                    }
+                    // Check for table size filter
+                    if (config.getFilter().getTblSizeLimit() != null) {
+                        Long dataSize = (Long)et.getStatistics().get(DATA_SIZE);
+                        if (dataSize != null) {
+                            if (config.getFilter().getTblSizeLimit() * (1024*1024) < dataSize) {
+                                tableMirror.setRemove(Boolean.TRUE);
+                                tableMirror.setRemoveReason("The table dataset size exceeds the specified table filter size limit: " +
+                                        config.getFilter().getTblSizeLimit() + "Mb < " + dataSize);
+                            }
+                        }
+                    }
+
+                    Boolean partitioned = TableUtils.isPartitioned(et);
+                    if (partitioned && !tableMirror.isRemove()) {
+                        loadTablePartitionMetadata(conn, database, et);
+                        // Check for table partition count filter
+                        if (config.getFilter().getTblPartitionLimit() != null) {
+                            Integer partLimit = config.getFilter().getTblPartitionLimit();
+                            if (et.getPartitions().size() > partLimit) {
+                                tableMirror.setRemove(Boolean.TRUE);
+                                tableMirror.setRemoveReason("The table partition count exceeds the specified table filter partition limit: " +
+                                        config.getFilter().getTblPartitionLimit() + " < " + et.getPartitions().size());
+
                             }
                         }
                     }
