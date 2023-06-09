@@ -126,7 +126,10 @@ public enum MessageCode {
             "explicity set there LOCATION element to match the setting in `-ewd`.  Future external tables, when no location is " +
             "specified, will be created in the `hive.metastore.warehouse.external.dir`.  This value is global in HDP Hive3 and " +
             "can NOT be set for individual databases.  Post upgrade to CDP, you should add a specific directory value at the " +
-            "database level for better control.")
+            "database level for better control."),
+    HDP3_HIVE(65, "You've specified the cluster as an HDP3 Hive cluster.  This version of Hive has some issues regarding locations.  " +
+                      "We will need to specifically set the location for tables.  This will be done automatically by applying the `-fel` flag " +
+            "for the cluster.")
             ;
 
 

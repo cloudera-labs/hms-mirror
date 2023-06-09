@@ -652,6 +652,8 @@ public class Config {
                 default:
                     if (getCluster(Environment.RIGHT).isHdpHive3()) {
                         this.getTranslator().setForceExternalLocation(Boolean.TRUE);
+                        warnings.set(HDP3_HIVE.getCode());
+
                     }
                     if (getCluster(Environment.RIGHT).getLegacyHive() && !getCluster(Environment.LEFT).getLegacyHive()) {
                         errors.set(LEGACY_TO_NON_LEGACY.getCode());
