@@ -85,7 +85,7 @@ public class StatsCalculator {
                 applyEnv.addIssue("Setting " + HIVE_MAX_DYNAMIC_PARTITIONS);
                 applyEnv.addSql("Setting " + HIVE_MAX_DYNAMIC_PARTITIONS,
                         "set " + HIVE_MAX_DYNAMIC_PARTITIONS + "=" +
-                                Double.toString(controlEnv.getPartitions().size() * 1.2));
+                                (int) (controlEnv.getPartitions().size() * 1.2));
                 applyEnv.addIssue("Adjusting " + HIVE_MAX_REDUCERS + " to handle partition load");
                 applyEnv.addSql("Setting " + HIVE_MAX_REDUCERS,
                         "set " + HIVE_MAX_REDUCERS + "=" +
