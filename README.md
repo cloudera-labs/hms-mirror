@@ -109,6 +109,8 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
 
 - [Hybrid Migrations](./use_cases/hybrid.md)
 
+- [Cloud to Cloud DR with Datahub](./use_cases/cloud_to_cloud_dr.md)
+
 ## WARNING
 
 ### Building METADATA
@@ -1322,6 +1324,19 @@ There will be a [`distcp` Planning Workbook](#distcp-planning-workbook) generate
 See the [config](#configuration) section to setup the config file for `hms-mirror`.
 
 #### Configuring the Libraries
+
+##### AUX_LIBS - CLASSPATH Additions
+
+###### S3
+
+The directory $HOME/.hms-mirror/aux_libs will be scanned for 'jar' files. Each 'jar' will be added the java classpath of the application. Add any required libraries here.
+
+The application contains all the necessary hdfs classes already. You will need to add to the aux_libs directory the following:
+
+- JDBC driver for HS2 Connectivity (only when using Kerberos)
+- AWS S3 Drivers, if s3 is used to store Hive tables. (appropriate versions)
+  - hadoop-aws.jar
+  - aws-java-sdk-bundle.jar
 
 ##### JDBC Connection Strings for HS2
 

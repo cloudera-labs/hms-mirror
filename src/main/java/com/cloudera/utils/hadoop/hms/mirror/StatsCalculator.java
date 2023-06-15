@@ -11,16 +11,28 @@ Provide a class where rules can be generated based on the hms-mirror stats colle
  */
 public class StatsCalculator {
 
+    /*
+    This will return the ratio of files to the average partition size. For example, if the average partition size is 1GB
+    and the target size is 128MB, then the ratio will be 8. This means that we should have 8 files per partition.
+        1GB / 128MB = 8
+    (1024*1024*1024) / (128*1024*1024) = 8
+     */
+    public static Long getPartitionDistributionRatio(EnvironmentTable envTable) {
+        SerdeType stype = (SerdeType) envTable.getStatistics().get(FILE_FORMAT);
+        Long dataSize = (Long) envTable.getStatistics().get(DATA_SIZE);
+        Long avgPartSize = Math.floorDiv(dataSize, (long) envTable.getPartitions().size());
+        Long ratio = Math.floorDiv(avgPartSize, stype.targetSize) - 1;
+        return ratio;
+    }
+
     public static String getAdditionalPartitionDistribution(EnvironmentTable envTable) {
         StringBuilder sb = new StringBuilder();
 
         if (envTable.getPartitioned()) {
-            SerdeType stype = (SerdeType)envTable.getStatistics().get(FILE_FORMAT);
+            SerdeType stype = (SerdeType) envTable.getStatistics().get(FILE_FORMAT);
             if (stype != null) {
                 if (envTable.getStatistics().get(DATA_SIZE) != null) {
-                    Long dataSize = (Long)envTable.getStatistics().get(DATA_SIZE);
-                    Long avgPartSize = Math.floorDiv(dataSize, (long)envTable.getPartitions().size());
-                    Long ratio = Math.floorDiv(avgPartSize, stype.targetSize) - 1;
+                    Long ratio = getPartitionDistributionRatio(envTable);
                     if (ratio >= 1) {
                         sb.append("ROUND((rand() * 1000) % ").append(ratio.toString()).append(")");
                     }
@@ -40,24 +52,23 @@ public class StatsCalculator {
         return sb.toString();
     }
 
-    public static String getTezMaxGrouping(EnvironmentTable envTable) {
-        StringBuilder sb = new StringBuilder(TableUtils.getPartitionElements(envTable));
+    public static Long getTezMaxGrouping(EnvironmentTable envTable) {
+        SerdeType serdeType = (SerdeType) envTable.getStatistics().get(FILE_FORMAT);
+        if (serdeType == null)
+            serdeType = SerdeType.UNKNOWN;
+
+        Long maxGrouping = serdeType.targetSize * 2L;
 
         if (envTable.getPartitioned()) {
-            String stype = (String)envTable.getStatistics().get(FILE_FORMAT);
-            if (stype != null) {
-                SerdeType serdeType = SerdeType.valueOf(stype);
-                if (envTable.getStatistics().get(AVG_FILE_SIZE) != null) {
-                    Double avgFileSize = (Double)envTable.getStatistics().get(AVG_FILE_SIZE);
-                    // If not 90% of target size.
-                    if (avgFileSize < serdeType.targetSize * .9) {
-
-                    }
+            if (envTable.getStatistics().get(AVG_FILE_SIZE) != null) {
+                Double avgFileSize = (Double) envTable.getStatistics().get(AVG_FILE_SIZE);
+                // If not 90% of target size.
+                if (avgFileSize < serdeType.targetSize * .5) {
+                    maxGrouping = (long) (serdeType.targetSize / 2);
                 }
             }
         }
-
-        return sb.toString();
+        return maxGrouping;
     }
 
     public static void setSessionOptions(EnvironmentTable controlEnv, EnvironmentTable applyEnv) {
@@ -66,13 +77,14 @@ public class StatsCalculator {
         if (stype != null) {
             // TODO: Trying to figure out if making this setting will bleed over to other sessions while reusing a connection.
             if (controlEnv.getStatistics().get(AVG_FILE_SIZE) != null) {
-                Double avgFileSize = (Double)controlEnv.getStatistics().get(AVG_FILE_SIZE);
+                Double avgFileSize = (Double) controlEnv.getStatistics().get(AVG_FILE_SIZE);
                 // If not 50% of target size.
                 if (avgFileSize < stype.targetSize * .5) {
                     applyEnv.addIssue("Setting " + TEZ_GROUP_MAX_SIZE + " to account for the sources 'small files'");
                     // Set the tez group max size.
+                    Long maxGrouping = getTezMaxGrouping(controlEnv);
                     applyEnv.addSql("Setting the " + TEZ_GROUP_MAX_SIZE,
-                            "set " +TEZ_GROUP_MAX_SIZE + "=" + stype.targetSize);
+                            "set " + TEZ_GROUP_MAX_SIZE + "=" + maxGrouping);
                 }
             }
         }
@@ -89,7 +101,7 @@ public class StatsCalculator {
                 applyEnv.addIssue("Adjusting " + HIVE_MAX_REDUCERS + " to handle partition load");
                 applyEnv.addSql("Setting " + HIVE_MAX_REDUCERS,
                         "set " + HIVE_MAX_REDUCERS + "=" +
-                                (int)(controlEnv.getPartitions().size() * 2));
+                                (int) ((getPartitionDistributionRatio(controlEnv) * controlEnv.getPartitions().size()) + 20));
             }
         }
 

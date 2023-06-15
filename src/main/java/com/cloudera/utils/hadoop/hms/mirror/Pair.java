@@ -32,4 +32,12 @@ public class Pair {
     public String getAction() {
         return action;
     }
+
+    @Override
+    public String toString() {
+        return "Pair{" +
+                "description='" + description + '\'' +
+                ", action='" + action + '\'' +
+                '}';
+    }
 }
