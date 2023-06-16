@@ -630,7 +630,9 @@ public class TableMirror {
             } else if (config.getOptimization().getSortDynamicPartitionInserts()) {
                 if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
                     let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
-                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                    if (!config.getCluster(Environment.LEFT).getHdpHive3()) {
+                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                    }
                 }
                 String partElement = TableUtils.getPartitionElements(let);
                 String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
@@ -641,7 +643,9 @@ public class TableMirror {
                 // Prescriptive Optimization.
                 if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
                     let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
-                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                    if (!config.getCluster(Environment.LEFT).getHdpHive3()) {
+                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                    }
                 }
                 String partElement = TableUtils.getPartitionElements(let);
                 String distPartElemant = null;
@@ -1595,7 +1599,9 @@ public class TableMirror {
                 } else if (config.getOptimization().getSortDynamicPartitionInserts()) {
                     if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
                         source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
-                        source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                        if (!config.getCluster(Environment.LEFT).getHdpHive3()) {
+                            source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                        }
                     }
                     String partElement = TableUtils.getPartitionElements(source);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
@@ -1605,7 +1611,9 @@ public class TableMirror {
                 } else {
                     if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
                         source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
-                        source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                        if (!config.getCluster(Environment.LEFT).getHdpHive3()) {
+                            source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                        }
                     }
                     String partElement = TableUtils.getPartitionElements(source);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
@@ -1670,7 +1678,9 @@ public class TableMirror {
                 } else if (config.getOptimization().getSortDynamicPartitionInserts()) {
                     if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
                         target.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
-                        target.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                        if (!config.getCluster(Environment.RIGHT).getHdpHive3()) {
+                            target.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                        }
                     }
                     String partElement = TableUtils.getPartitionElements(source);
                     String shadowSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
@@ -1679,9 +1689,11 @@ public class TableMirror {
                     target.addSql(new Pair(shadowDesc, shadowSql));
                 } else {
                     // Prescriptive
-                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                    if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
                         source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
-                        source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                        if (!config.getCluster(Environment.RIGHT).getHdpHive3()) {
+                            source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                        }
                     }
                     String partElement = TableUtils.getPartitionElements(source);
                     String distPartElemant = null;

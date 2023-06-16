@@ -2,6 +2,8 @@ package com.cloudera.utils.hadoop.hms.mirror;
 
 import com.cloudera.utils.hadoop.hms.Context;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.*;
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.*;
@@ -10,6 +12,7 @@ import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.*;
 Provide a class where rules can be generated based on the hms-mirror stats collected.
  */
 public class StatsCalculator {
+    private static final Logger LOG = LogManager.getLogger(StatsCalculator.class);
 
     /*
     This will return the ratio of files to the average partition size. For example, if the average partition size is 1GB
@@ -18,10 +21,15 @@ public class StatsCalculator {
     (1024*1024*1024) / (128*1024*1024) = 8
      */
     public static Long getPartitionDistributionRatio(EnvironmentTable envTable) {
-        SerdeType stype = (SerdeType) envTable.getStatistics().get(FILE_FORMAT);
-        Long dataSize = (Long) envTable.getStatistics().get(DATA_SIZE);
-        Long avgPartSize = Math.floorDiv(dataSize, (long) envTable.getPartitions().size());
-        Long ratio = Math.floorDiv(avgPartSize, stype.targetSize) - 1;
+        Long ratio = 0L;
+        try {
+            SerdeType stype = (SerdeType) envTable.getStatistics().get(FILE_FORMAT);
+            Long dataSize = (Long) envTable.getStatistics().get(DATA_SIZE);
+            Long avgPartSize = Math.floorDiv(dataSize, (long) envTable.getPartitions().size());
+            ratio = Math.floorDiv(avgPartSize, stype.targetSize) - 1;
+        } catch (RuntimeException rte) {
+            LOG.warn("Unable to calculate partition distribution ratio for table: " + envTable.getName());
+        }
         return ratio;
     }
 
@@ -99,9 +107,16 @@ public class StatsCalculator {
                         "set " + HIVE_MAX_DYNAMIC_PARTITIONS + "=" +
                                 (int) (controlEnv.getPartitions().size() * 1.2));
                 applyEnv.addIssue("Adjusting " + HIVE_MAX_REDUCERS + " to handle partition load");
-                applyEnv.addSql("Setting " + HIVE_MAX_REDUCERS,
-                        "set " + HIVE_MAX_REDUCERS + "=" +
-                                (int) ((getPartitionDistributionRatio(controlEnv) * controlEnv.getPartitions().size()) + 20));
+                int ratio = getPartitionDistributionRatio(controlEnv).intValue();
+                if (ratio >= 1) {
+                    applyEnv.addSql("Setting " + HIVE_MAX_REDUCERS,
+                            "set " + HIVE_MAX_REDUCERS + "=" +
+                                    (ratio * controlEnv.getPartitions().size()) + 20);
+                } else {
+                    applyEnv.addSql("Setting " + HIVE_MAX_REDUCERS,
+                            "set " + HIVE_MAX_REDUCERS + "=" +
+                                    (controlEnv.getPartitions().size() * 1.2));
+                }
             }
         }
 

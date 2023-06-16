@@ -395,7 +395,9 @@ public class Transfer implements Callable<ReturnStatus> {
                     // Declarative
                     if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
                         let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
-                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                        if (!config.getCluster(Environment.LEFT).getHdpHive3()) {
+                            let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                        }
                     }
                     String partElement = TableUtils.getPartitionElements(let);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
@@ -406,7 +408,9 @@ public class Transfer implements Callable<ReturnStatus> {
                     // Prescriptive
                     if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
                         let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
-                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                        if (!config.getCluster(Environment.LEFT).getHdpHive3()) {
+                            let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                        }
                     }
                     String transferSql = null;
                     String partElement = TableUtils.getPartitionElements(let);
