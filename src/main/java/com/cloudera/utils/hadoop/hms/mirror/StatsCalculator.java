@@ -111,11 +111,11 @@ public class StatsCalculator {
                 if (ratio >= 1) {
                     applyEnv.addSql("Setting " + HIVE_MAX_REDUCERS,
                             "set " + HIVE_MAX_REDUCERS + "=" +
-                                    (ratio * controlEnv.getPartitions().size()) + 20);
+                                    (int) (ratio * controlEnv.getPartitions().size()) + 20);
                 } else {
                     applyEnv.addSql("Setting " + HIVE_MAX_REDUCERS,
                             "set " + HIVE_MAX_REDUCERS + "=" +
-                                    (controlEnv.getPartitions().size() * 1.2));
+                                    (int) (controlEnv.getPartitions().size() * 1.2));
                 }
             }
         }
