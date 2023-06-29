@@ -22,7 +22,7 @@
 
     <groupId>com.cloudera.utils.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>1.5.6.7-SNAPSHOT</version>
+    <version>1.5.6.8-SNAPSHOT</version>
     <name>hms-mirror</name>
 
     <url>https://github.com/cloudera-labs/hms_mirror</url>
@@ -301,6 +301,7 @@
                                     <include>com.fasterxml.jackson.dataformat:*</include>
                                     <include>org.yaml:snakeyaml</include>
                                     <include>com.cloudera.utils.hadoop:*</include>
+                                    <include>com.cloudera.utils.hive:*</include>
                                     <include>org.commonmark:*</include>
                                     <include>org.apache.commons:commons-dbcp2</include>
                                     <include>org.apache.commons:commons-pool2</include>
