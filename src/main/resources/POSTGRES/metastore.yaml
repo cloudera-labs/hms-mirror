@@ -1,0 +1,14 @@
+query_definitions:
+  part_locations:
+    statement: "
+SELECT
+    \"P\".\"PART_NAME\"
+  , \"S\".\"LOCATION\" PART_LOCATION
+FROM \"DBS\" \"D\"
+  INNER JOIN \"TBLS\" \"T\" ON \"D\".\"DB_ID\" = \"T\".\"DB_ID\"
+  INNER JOIN \"PARTITIONS\" \"P\" ON \"T\".\"TBL_ID\" = \"P\".\"TBL_ID\"
+  INNER JOIN \"SDS\" \"S\" ON \"P\".\"SD_ID\" = \"S\".\"SD_ID\"
+WHERE
+  \"D\".\"NAME\" = ?
+  AND \"T\".\"TBL_NAME\" = ?
+      "

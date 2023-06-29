@@ -16,6 +16,8 @@
 
 package com.cloudera.utils.hadoop.hms.mirror;
 
+import com.cloudera.utils.hadoop.hms.Context;
+import com.cloudera.utils.hive.config.DBStore;
 import com.google.common.collect.Sets;
 import com.cloudera.utils.hadoop.hms.util.DriverUtils;
 import org.apache.commons.dbcp2.*;
@@ -36,21 +38,31 @@ import java.util.TreeMap;
 public class ConnectionPools {
     private static final Logger LOG = LogManager.getLogger(ConnectionPools.class);
 
-    private final Map<Environment, PoolingDataSource<PoolableConnection>> dataSources =
-            new TreeMap<Environment, PoolingDataSource<PoolableConnection>>();
-    private final Map<Environment, Driver> drivers = new TreeMap<Environment, Driver>();
-    private final Map<Environment, HiveServer2Config> hiveServerConfigs = new TreeMap<Environment, HiveServer2Config>();
+    private final Map<Environment, PoolingDataSource<PoolableConnection>> hs2DataSources = new TreeMap<>();
+    private final Map<Environment, Driver> hs2Drivers = new TreeMap<>();
+    private final Map<Environment, HiveServer2Config> hiveServerConfigs = new TreeMap<>();
+
+    private final Map<Environment, DBStore> metastoreDirectConfigs = new TreeMap<>();
+    private final Map<Environment, PoolingDataSource<PoolableConnection>> metastoreDirectDataSources = new TreeMap<>();
 
     public void addHiveServer2(Environment environment, HiveServer2Config hiveServer2) {
         hiveServerConfigs.put(environment, hiveServer2);
     }
 
-    public void init() throws SQLException {
-        initDrivers();
-        initPooledDataSources();
+    public void addMetastoreDirect(Environment environment, DBStore dbStore) {
+        metastoreDirectConfigs.put(environment, dbStore);
     }
 
-    protected void initDrivers() throws SQLException {
+    public void init() throws SQLException {
+        initHS2Drivers();
+        initHS2PooledDataSources();
+        // Only init if we are going to use it. (`-epl`).
+        if (Context.getInstance().getConfig().getEvaluatePartitionLocation()) {
+            initMetastoreDataSources();
+        }
+    }
+
+    protected void initHS2Drivers() throws SQLException {
         Set<Environment> environments = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
 
         for (Environment environment : environments) {
@@ -64,12 +76,12 @@ public class ConnectionPools {
                     throwables.printStackTrace();
                     throw throwables;
                 }
-                drivers.put(environment, driver);
+                hs2Drivers.put(environment, driver);
             }
         }
     }
 
-    protected void initPooledDataSources() {
+    protected void initHS2PooledDataSources() {
         Set<Environment> environments = hiveServerConfigs.keySet();
 
         for (Environment environment : environments) {
@@ -89,10 +101,10 @@ public class ConnectionPools {
                 PoolingDataSource poolingDatasource = new PoolingDataSource<>(connectionPool);
 //            poolingDatasource.setLoginTimeout(10);
 
-                dataSources.put(environment, poolingDatasource);
+                hs2DataSources.put(environment, poolingDatasource);
                 Connection conn = null;
                 try {
-                    conn = getEnvironmentConnection(environment);
+                    conn = getHS2EnvironmentConnection(environment);
                 } catch (Throwable t) {
                     if (conn != null) {
                         try {
@@ -100,19 +112,66 @@ public class ConnectionPools {
                         } catch (SQLException e) {
                             throw new RuntimeException(e);
                         }
+                    } else {
+                        throw new RuntimeException(t);
                     }
                 }
             }
         }
     }
 
-    public synchronized Connection getEnvironmentConnection(Environment environment) throws SQLException {
-        Driver lclDriver = getEnvironmentDriver(environment);
+    protected void initMetastoreDataSources() {
+        // Metastore Direct
+        Set<Environment> environments = metastoreDirectConfigs.keySet();
+        for (Environment environment: environments) {
+            DBStore metastoreDirectConfig = metastoreDirectConfigs.get(environment);
+
+            if (metastoreDirectConfig != null) {
+                ConnectionFactory msconnectionFactory =
+                        new DriverManagerConnectionFactory(metastoreDirectConfig.getUri(), metastoreDirectConfig.getConnectionProperties());
+
+                PoolableConnectionFactory mspoolableConnectionFactory =
+                        new PoolableConnectionFactory(msconnectionFactory, null);
+
+                ObjectPool<PoolableConnection> msconnectionPool =
+                        new GenericObjectPool<>(mspoolableConnectionFactory);
+
+                mspoolableConnectionFactory.setPool(msconnectionPool);
+                metastoreDirectDataSources.put(environment, new PoolingDataSource<>(msconnectionPool));
+                // Test Connection.
+                Connection conn = null;
+                try {
+                    conn = getMetastoreDirectEnvironmentConnection(environment);
+                } catch (Throwable t) {
+                    if (conn != null) {
+                        try {
+                            conn.close();
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    } else {
+                        throw new RuntimeException(t);
+                    }
+                }
+            }
+        }
+    }
+
+    public synchronized Connection getMetastoreDirectEnvironmentConnection(Environment environment) throws SQLException {
+        Connection conn = null;
+        DataSource ds = getMetastoreDirectEnvironmentDataSource(environment);
+        if (ds != null)
+            conn = ds.getConnection();
+        return conn;
+    }
+
+    public synchronized Connection getHS2EnvironmentConnection(Environment environment) throws SQLException {
+        Driver lclDriver = getHS2EnvironmentDriver(environment);
         Connection conn = null;
         if (lclDriver != null) {
             DriverManager.registerDriver(lclDriver);
             try {
-                DataSource ds = getEnvironmentDataSource(environment);
+                DataSource ds = getHS2EnvironmentDataSource(environment);
                 if (ds != null)
                     conn = ds.getConnection();
             } catch (Throwable se) {
@@ -126,22 +185,40 @@ public class ConnectionPools {
         return conn;
     }
 
-    protected synchronized Driver getEnvironmentDriver(Environment environment) {
-        return drivers.get(environment);
+    protected synchronized Driver getHS2EnvironmentDriver(Environment environment) {
+        return hs2Drivers.get(environment);
     }
 
-    protected DataSource getEnvironmentDataSource(Environment environment) {
-        return dataSources.get(environment);
+    protected DataSource getHS2EnvironmentDataSource(Environment environment) {
+        return hs2DataSources.get(environment);
+    }
+
+    protected DataSource getMetastoreDirectEnvironmentDataSource(Environment environment) {
+        return metastoreDirectDataSources.get(environment);
     }
 
     public void close() {
         try {
-            dataSources.get(Environment.LEFT).close();
+            if (hs2DataSources.get(Environment.LEFT) != null)
+                hs2DataSources.get(Environment.LEFT).close();
         } catch (SQLException throwables) {
             //
         }
         try {
-            dataSources.get(Environment.RIGHT).close();
+            if (hs2DataSources.get(Environment.RIGHT) != null)
+                hs2DataSources.get(Environment.RIGHT).close();
+        } catch (SQLException throwables) {
+            //
+        }
+        try {
+            if (metastoreDirectDataSources.get(Environment.LEFT) != null)
+                metastoreDirectDataSources.get(Environment.LEFT).close();
+        } catch (SQLException throwables) {
+            //
+        }
+        try {
+            if (metastoreDirectDataSources.get(Environment.RIGHT) != null)
+                metastoreDirectDataSources.get(Environment.RIGHT).close();
         } catch (SQLException throwables) {
             //
         }

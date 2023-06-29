@@ -21,6 +21,7 @@ public interface MirrorConf {
     String SHOW_DATABASES = "SHOW DATABASES";
     String SHOW_TABLES = "SHOW TABLES";
     String SHOW_VIEWS = "SHOW VIEWS";
+    String SHOW_TABLE_EXTENDED_WITH_PARTITION = "SHOW TABLE EXTENDED LIKE {0} PARTITION ({1})";
     String SHOW_TABLE_EXTENDED = "SHOW TABLE EXTENDED LIKE {0}";
     String SHOW_CREATE_TABLE = "SHOW CREATE TABLE {0}";
     String DESCRIBE_FORMATTED_TABLE = "DESCRIBE FORMATTED {0}";
@@ -43,8 +44,9 @@ public interface MirrorConf {
             "ALTER DATABASE {0} SET MANAGEDLOCATION \"{1}\"";
     String ALTER_DB_MNGD_LOCATION_DESC =
             "Alter Database Managed Location";
-
-
+    String ALTER_TABLE_PARTITION_ADD_LOCATION_DESC = "Alter Table Partition Add Location";
+    String ALTER_TABLE_PARTITION_ADD_LOCATION =
+            "ALTER TABLE {0} ADD IF NOT EXISTS\n{1}";
     String CREATE_LIKE =
             "CREATE TABLE IF NOT EXISTS {0} LIKE {1}";
     String CREATE_EXTERNAL_LIKE =
@@ -94,5 +96,6 @@ public interface MirrorConf {
     String AVG_FILE_SIZE = "avg.file.size";
     String TABLE_EMPTY = "table.empty";
     String PARTITION_COUNT = "partition.count";
+    String NOT_SET = "NOT_SET";
 
 }

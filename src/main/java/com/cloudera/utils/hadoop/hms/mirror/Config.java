@@ -62,6 +62,7 @@ public class Config {
     private boolean copyAvroSchemaUrls = Boolean.FALSE;
     private DataStrategy dataStrategy = DataStrategy.SCHEMA_ONLY;
     private Boolean databaseOnly = Boolean.FALSE;
+    private Boolean evaluatePartitionLocation = Boolean.FALSE;
     private Filter filter = new Filter();
     private Boolean skipLinkCheck = Boolean.FALSE;
     private String[] databases = null;
@@ -465,6 +466,14 @@ public class Config {
         this.dumpSource = dumpSource;
     }
 
+    public Boolean getEvaluatePartitionLocation() {
+        return evaluatePartitionLocation;
+    }
+
+    public void setEvaluatePartitionLocation(Boolean evaluatePartitionLocation) {
+        this.evaluatePartitionLocation = evaluatePartitionLocation;
+    }
+
     public HybridConfig getHybrid() {
         return hybrid;
     }
@@ -716,6 +725,23 @@ public class Config {
                         rtn = Boolean.FALSE;
                     }
                 }
+        }
+
+        if (getEvaluatePartitionLocation()) {
+            switch (getDataStrategy()) {
+                case SCHEMA_ONLY:
+                case DUMP:
+                    // Check the metastore_direct config on the LEFT.
+                    if (getCluster(Environment.LEFT).getMetastoreDirect()== null) {
+                        errors.set(EVALUATE_PARTITION_LOCATION_CONFIG.getCode(), "LEFT");
+                        rtn = Boolean.FALSE;
+                    }
+                    warnings.set(EVALUATE_PARTITION_LOCATION.getCode());
+                    break;
+                default:
+                    errors.set(EVALUATE_PARTITION_LOCATION_USE.getCode());
+                    rtn = Boolean.FALSE;
+            }
         }
 
         // Only allow db rename with a single database.

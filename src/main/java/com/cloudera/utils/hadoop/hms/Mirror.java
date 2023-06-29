@@ -22,6 +22,7 @@ import com.cloudera.utils.hadoop.hms.stage.ReturnStatus;
 import com.cloudera.utils.hadoop.hms.stage.Setup;
 import com.cloudera.utils.hadoop.hms.stage.Transfer;
 import com.cloudera.utils.hadoop.hms.util.Protect;
+import com.cloudera.utils.hive.config.DBStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
@@ -360,6 +361,10 @@ public class Mirror {
                 config.setDatabaseOnly(Boolean.TRUE);
             }
 
+            if (cmd.hasOption("epl")) {
+                config.setEvaluatePartitionLocation(Boolean.TRUE);
+            }
+
             if (cmd.hasOption("slc")) {
                 config.setSkipLinkCheck(Boolean.TRUE);
             }
@@ -557,6 +562,21 @@ public class Mirror {
                                 }
                             }
                         }
+
+                        DBStore metastoreDirect = cluster.getMetastoreDirect();
+                        if (metastoreDirect != null) {
+                            Properties props = metastoreDirect.getConnectionProperties();
+                            String password = props.getProperty("password");
+                            if (password != null) {
+                                try {
+                                    String decryptedPassword = protect.decrypt(password);
+                                    props.put("password", decryptedPassword);
+                                } catch (Exception e) {
+                                    config.getErrors().set(MessageCode.DECRYPTING_PASSWORD_ISSUE.getCode());
+                                }
+                            }
+                        }
+
                     }
                 }
                 if (config.getErrors().getReturnCode() > 0)
@@ -747,6 +767,7 @@ public class Mirror {
         }
 
         ConnectionPools connPools = new ConnectionPools();
+        Context.getInstance().setConnectionPools(connPools);
         Set<Environment> hs2Envs = new HashSet<Environment>();
         switch (config.getDataStrategy()) {
             case DUMP:
@@ -777,13 +798,30 @@ public class Mirror {
                 hs2Envs.add(Environment.LEFT);
                 break;
         }
+        if (config.getEvaluatePartitionLocation()) {
+            // Connect metastore_direct configs to ConnectionPools.
+            switch (config.getDataStrategy()) {
+                case DUMP:
+                case SCHEMA_ONLY:
+                    if (config.getCluster(Environment.LEFT).getMetastoreDirect() != null) {
+                        connPools.addMetastoreDirect(Environment.LEFT, config.getCluster(Environment.LEFT).getMetastoreDirect());
+                    }
+                    if (config.getCluster(Environment.RIGHT).getMetastoreDirect() != null) {
+                        connPools.addMetastoreDirect(Environment.RIGHT, config.getCluster(Environment.RIGHT).getMetastoreDirect());
+                    }
+                    break;
+                default:
+                    // nothing
+                    break;
+            }
+        }
         try {
             connPools.init();
             for (Environment target : hs2Envs) {
                 Connection conn = null;
                 Statement stmt = null;
                 try {
-                    conn = connPools.getEnvironmentConnection(target);
+                    conn = connPools.getHS2EnvironmentConnection(target);
                     if (conn == null) {
                         if (target == Environment.RIGHT && config.getCluster(target).getHiveServer2().isDisconnected()) {
                             // Skip error.  Set Warning that we're disconnected.
@@ -1472,7 +1510,6 @@ public class Mirror {
         OptionGroup migrationOptionsGroup = new OptionGroup();
         migrationOptionsGroup.setRequired(Boolean.FALSE);
 
-
         Option dboOption = new Option("dbo", "database-only", false,
                 "Migrate the Database definitions as they exist from LEFT to RIGHT");
         dboOption.setRequired(Boolean.FALSE);
@@ -1515,6 +1552,12 @@ public class Mirror {
                 "Downgrade ACID tables to EXTERNAL tables with purge.");
         daOption.setRequired(Boolean.FALSE);
         options.addOption(daOption);
+
+        Option evaluatePartLocationOption = new Option("epl", "evaluate-partition-location", false,
+                "For SCHEMA_ONLY and DUMP data-strategies, review the partition locations and build " +
+                        "partition metadata calls to create them is they can't be located via 'MSCK'.");
+        evaluatePartLocationOption.setRequired(Boolean.FALSE);
+        options.addOption(evaluatePartLocationOption);
 
         Option ridOption = new Option("rid", "right-is-disconnected", false,
                 "Don't attempt to connect to the 'right' cluster and run in this mode");
@@ -1849,6 +1892,8 @@ public class Mirror {
                     returnCode = -1;
                 }
             }
+            // Explicitly close the connection pools.
+            Context.getInstance().getConnectionPools().close();
         } catch (RuntimeException e) {
             LOG.error(e.getMessage(), e);
             System.err.println("=====================================================");

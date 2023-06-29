@@ -29,7 +29,7 @@ public class EnvironmentTable {
     private final Boolean partitioned = Boolean.FALSE;
     private String owner = null;
 
-    private List<String> partitions = new ArrayList<String>();
+    private Map<String, String> partitions = new HashMap<String, String>();
     private List<String> actions = new ArrayList<String>();
     private Map<String, String> addProperties = new TreeMap<String, String>();
 
@@ -89,7 +89,7 @@ public class EnvironmentTable {
         return rtn;
     }
 
-    public List<String> getPartitions() {
+    public Map<String, String> getPartitions() {
         return partitions;
     }
 
@@ -101,7 +101,7 @@ public class EnvironmentTable {
         this.owner = owner;
     }
 
-    public void setPartitions(List<String> partitions) {
+    public void setPartitions(Map<String, String> partitions) {
         this.partitions = partitions;
     }
 

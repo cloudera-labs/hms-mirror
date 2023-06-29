@@ -129,8 +129,14 @@ public enum MessageCode {
             "database level for better control."),
     HDP3_HIVE(65, "You've specified the cluster as an HDP3 Hive cluster.  This version of Hive has some issues regarding locations.  " +
                       "We will need to specifically set the location for tables.  This will be done automatically by applying the `-fel` flag " +
-            "for the cluster.")
-            ;
+            "for the cluster."),
+    EVALUATE_PARTITION_LOCATION(66, "This is a resource intensive operation to review each partitions details " +
+            "information.  This may have an impact on the Hive Metastore." ),
+    EVALUATE_PARTITION_LOCATION_USE(67, "The `-epl|--evaluate-partition-location` flag is only valid for SCHEMA_ONLY and DUMP strategies.  Remove the " +
+            "flag for all other strategies." ),
+    EVALUATE_PARTITION_LOCATION_CONFIG(68, "The metastore_direct is not configured for the {0} cluster.  It is required when using " +
+            "`-epl|--evaluate-partition-location`.")
+    ;
 
 
     private int code = 0;

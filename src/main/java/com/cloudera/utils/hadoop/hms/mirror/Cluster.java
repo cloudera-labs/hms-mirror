@@ -19,8 +19,11 @@ package com.cloudera.utils.hadoop.hms.mirror;
 import com.cloudera.utils.hadoop.HadoopSession;
 import com.cloudera.utils.hadoop.hms.Context;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
+import com.cloudera.utils.hive.config.DBStore;
+import com.cloudera.utils.hive.config.QueryDefinitions;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -66,7 +69,11 @@ public class Cluster implements Comparable<Cluster> {
     private Boolean hdpHive3 = Boolean.FALSE;
     private String hcfsNamespace = null;
     private HiveServer2Config hiveServer2 = null;
+    @JsonProperty(value = "metastore_direct")
+    private DBStore metastoreDirect = null;
     private PartitionDiscovery partitionDiscovery = new PartitionDiscovery();
+    private Boolean enableAutoTableStats = Boolean.FALSE;
+    private Boolean enableAutoColumnStats = Boolean.FALSE;
 
     public Cluster() {
     }
@@ -111,6 +118,22 @@ public class Cluster implements Comparable<Cluster> {
         this.hdpHive3 = hdpHive3;
     }
 
+    public Boolean getEnableAutoTableStats() {
+        return enableAutoTableStats;
+    }
+
+    public void setEnableAutoTableStats(Boolean enableAutoTableStats) {
+        this.enableAutoTableStats = enableAutoTableStats;
+    }
+
+    public Boolean getEnableAutoColumnStats() {
+        return enableAutoColumnStats;
+    }
+
+    public void setEnableAutoColumnStats(Boolean enableAutoColumnStats) {
+        this.enableAutoColumnStats = enableAutoColumnStats;
+    }
+
     public String getHcfsNamespace() {
         return hcfsNamespace;
     }
@@ -128,6 +151,14 @@ public class Cluster implements Comparable<Cluster> {
     public void setHiveServer2(HiveServer2Config hiveServer2) {
         this.hiveServer2 = hiveServer2;
         this.initialized = Boolean.TRUE;
+    }
+
+    public DBStore getMetastoreDirect() {
+        return metastoreDirect;
+    }
+
+    public void setMetastoreDirect(DBStore metastoreDirect) {
+        this.metastoreDirect = metastoreDirect;
     }
 
     public PartitionDiscovery getPartitionDiscovery() {
@@ -151,7 +182,21 @@ public class Cluster implements Comparable<Cluster> {
         Connection conn = null;
         if (pools != null) {
             try {
-                conn = pools.getEnvironmentConnection(getEnvironment());
+                conn = pools.getHS2EnvironmentConnection(getEnvironment());
+            } catch (RuntimeException rte) {
+                config.getErrors().set(MessageCode.CONNECTION_ISSUE.getCode());
+                throw rte;
+            }
+        }
+        return conn;
+    }
+
+    @JsonIgnore
+    public Connection getMetastoreDirectConnection() throws SQLException {
+        Connection conn = null;
+        if (pools != null) {
+            try {
+                conn = pools.getMetastoreDirectEnvironmentConnection(getEnvironment());
             } catch (RuntimeException rte) {
                 config.getErrors().set(MessageCode.CONNECTION_ISSUE.getCode());
                 throw rte;
@@ -436,9 +481,9 @@ public class Cluster implements Comparable<Cluster> {
                     }
                     // Check for table size filter
                     if (config.getFilter().getTblSizeLimit() != null) {
-                        Long dataSize = (Long)et.getStatistics().get(DATA_SIZE);
+                        Long dataSize = (Long) et.getStatistics().get(DATA_SIZE);
                         if (dataSize != null) {
-                            if (config.getFilter().getTblSizeLimit() * (1024*1024) < dataSize) {
+                            if (config.getFilter().getTblSizeLimit() * (1024 * 1024) < dataSize) {
                                 tableMirror.setRemove(Boolean.TRUE);
                                 tableMirror.setRemoveReason("The table dataset size exceeds the specified table filter size limit: " +
                                         config.getFilter().getTblSizeLimit() + "Mb < " + dataSize);
@@ -448,7 +493,16 @@ public class Cluster implements Comparable<Cluster> {
 
                     Boolean partitioned = TableUtils.isPartitioned(et);
                     if (partitioned && !tableMirror.isRemove()) {
-                        loadTablePartitionMetadata(conn, database, et);
+                        /*
+                        If we are -epl, we need to load the partition metadata for the table. And we need to use the
+                        metastore_direct connection to do so. Trying to load this through the standard Hive SQL process
+                        is 'extremely' slow.
+                         */
+                        if (config.getEvaluatePartitionLocation()) {
+                            loadTablePartitionMetadataDirect(database, et);
+                        } else {
+                            loadTablePartitionMetadata(conn, database, et);
+                        }
                         // Check for table partition count filter
                         if (config.getFilter().getTblPartitionLimit() != null) {
                             Integer partLimit = config.getFilter().getTblPartitionLimit();
@@ -709,20 +763,109 @@ public class Cluster implements Comparable<Cluster> {
         return rtn;
     }
 
+    protected void loadTablePartitionMetadataDirect(String database, EnvironmentTable envTable) {
+        /*
+        1. Get Metastore Direct Connection
+        2. Get Query Definitions
+        3. Get Query for 'part_locations'
+        4. Execute Query
+        5. Load Partition Data
+         */
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet resultSet = null;
+        try {
+            conn = getMetastoreDirectConnection();
+            LOG.debug(getEnvironment() + ":" + database + "." + envTable.getName() +
+                    ": Loading Partitions from Metastore Direct Connection.");
+            QueryDefinitions queryDefinitions = Context.getInstance().getQueryDefinitions(this.environment);
+            if (queryDefinitions != null) {
+                String partLocationQuery = queryDefinitions.getQueryDefinition("part_locations").getStatement();
+                pstmt = conn.prepareStatement(partLocationQuery);
+                pstmt.setString(1, database);
+                pstmt.setString(2, envTable.getName());
+                resultSet = pstmt.executeQuery();
+                Map<String, String> partDef = new HashMap<String, String>();
+                while (resultSet.next()) {
+                    partDef.put(resultSet.getString(1), resultSet.getString(2));
+                }
+                envTable.setPartitions(partDef);
+            }
+            LOG.debug(getEnvironment() + ":" + database + "." + envTable.getName() +
+                    ": Loaded Partitions from Metastore Direct Connection.");
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        } finally {
+            try {
+                if (conn != null)
+                    conn.close();
+            } catch (SQLException throwables) {
+                //
+            }
+        }
+    }
+
     protected void loadTablePartitionMetadata(Connection conn, String database, EnvironmentTable envTable) throws SQLException {
         Statement stmt = null;
         ResultSet resultSet = null;
+        Config config = Context.getInstance().getConfig();
         try {
             stmt = conn.createStatement();
             LOG.debug(getEnvironment() + ":" + database + "." + envTable.getName() +
                     ": Loading Partitions");
 
             resultSet = stmt.executeQuery(MessageFormat.format(MirrorConf.SHOW_PARTITIONS, database, envTable.getName()));
-            List<String> partDef = new ArrayList<String>();
+            Map<String, String> partDef = new HashMap<String, String>();
             while (resultSet.next()) {
-                partDef.add(resultSet.getString(1));
+                partDef.put(resultSet.getString(1), NOT_SET);
             }
             envTable.setPartitions(partDef);
+
+            // If they need to gather partition details, do it here.
+            // This method is TOO SLOW.  Need to go directly the metastore DB.
+//            if (config.getEvaluatePartitionLocation()) {
+//                switch (config.getDataStrategy()) {
+//                    case SCHEMA_ONLY:
+//                    case DUMP:
+//                        // Collect the partition details.
+//                        // Loop through the partitions and get the details.
+//                        Map<String, String> partDefWithLocation = new HashMap<String, String>();
+//                        for (String partSpec : partDef.keySet()) {
+//                            LOG.info(getEnvironment() + ":" + database + "." + envTable.getName() +
+//                                    ": Loading Partition Details: " + partSpec);
+//                            resultSet = stmt.executeQuery(MessageFormat.format(MirrorConf.SHOW_TABLE_EXTENDED_WITH_PARTITION, envTable.getName(), partSpec));
+//                            String location = null;
+//                            while (resultSet.next()) {
+//                                String strDetail = resultSet.getString(1);
+//                                if (strDetail.startsWith("location")) {
+//                                    location = strDetail.substring("location:".length());
+//                                    break;
+//                                }
+//                            }
+//                            if (resultSet != null) {
+//                                try {
+//                                    resultSet.close();
+//                                } catch (SQLException sqlException) {
+//                                    // ignore
+//                                }
+//                            }
+//                            if (location != null)
+//                                partDefWithLocation.put(partSpec, location);
+//                            else
+//                                partDefWithLocation.put(partSpec, null);
+//                        }
+//
+//                        LOG.info(getEnvironment() + ":" + database + "." + envTable.getName() +
+//                                ": Loading Partition Details: Complete(" + partDefWithLocation.size() + ")");
+//
+//                        // Replace the partition details with the location.
+//                        envTable.setPartitions(partDefWithLocation);
+//                        break;
+//                    default:
+//                        break;
+//                }
+//            }
+
         } finally {
             if (resultSet != null) {
                 try {

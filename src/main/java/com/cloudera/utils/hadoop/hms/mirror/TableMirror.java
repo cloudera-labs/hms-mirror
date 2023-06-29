@@ -1067,10 +1067,19 @@ public class TableMirror {
         }
 
         // If partitioned, !ACID, repair
-        if (let.getPartitioned() && !TableUtils.isACID(let) &&
-                config.getCluster(Environment.LEFT).getPartitionDiscovery().getInitMSCK()) {
-            String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, dbMirror.getName(), let.getName());
-            let.addSql(TableUtils.REPAIR_DESC, msckStmt);
+        if (let.getPartitioned() && !TableUtils.isACID(let)) {
+            if (config.getEvaluatePartitionLocation()) {
+                String tableParts = config.getTranslator().buildPartitionAddStatement(let);
+                String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION, let.getName(), tableParts);
+                let.addSql(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION_DESC, addPartSql);
+            } else if (config.getCluster(Environment.LEFT).getPartitionDiscovery().getInitMSCK()) {
+                String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, let.getName());
+                if (config.getTransfer().getStorageMigration().isDistcp()) {
+                    let.addCleanUpSql(TableUtils.REPAIR_DESC, msckStmt);
+                } else {
+                    let.addSql(TableUtils.REPAIR_DESC, msckStmt);
+                }
+            }
         }
 
         rtn = Boolean.TRUE;
@@ -1130,13 +1139,20 @@ public class TableMirror {
 
         // If partitioned, !ACID, repair
         if (let.getPartitioned() && !TableUtils.isACID(let) &&
-                config.getCluster(Environment.RIGHT).getPartitionDiscovery().getInitMSCK() &&
                 (ret.getCreateStrategy() == CreateStrategy.REPLACE || ret.getCreateStrategy() == CreateStrategy.CREATE)) {
-            String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, ret.getName());
-            if (config.getTransfer().getStorageMigration().isDistcp()) {
-                ret.addCleanUpSql(TableUtils.REPAIR_DESC, msckStmt);
-            } else {
-                ret.addSql(TableUtils.REPAIR_DESC, msckStmt);
+            if (config.getEvaluatePartitionLocation()) {
+                // TODO: Write out the SQL to build the partitions.  NOTE: We need to get the partition locations and modify them
+                //       to the new namespace.
+                String tableParts = config.getTranslator().buildPartitionAddStatement(ret);
+                String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION, ret.getName(), tableParts);
+                ret.addSql(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION_DESC, addPartSql);
+            } else if (config.getCluster(Environment.RIGHT).getPartitionDiscovery().getInitMSCK()) {
+                String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, ret.getName());
+                if (config.getTransfer().getStorageMigration().isDistcp()) {
+                    ret.addCleanUpSql(TableUtils.REPAIR_DESC, msckStmt);
+                } else {
+                    ret.addSql(TableUtils.REPAIR_DESC, msckStmt);
+                }
             }
         }
 
@@ -1306,7 +1322,7 @@ public class TableMirror {
             let.addSql(MirrorConf.REMOVE_TABLE_PROP_DESC, unSetSql);
         }
         // Set unique name for old target to rename.
-        let.setName(let.getName() + "_" + getUnique()+"_storage_migration");
+        let.setName(let.getName() + "_" + getUnique() + "_storage_migration");
         String origAlterRename = MessageFormat.format(MirrorConf.RENAME_TABLE, ret.getName(), let.getName());
         let.addSql(MirrorConf.RENAME_TABLE_DESC, origAlterRename);
 
@@ -1585,6 +1601,8 @@ public class TableMirror {
             }
         }
 
+        StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), source, transfer);
+
         if (transfer.isDefined()) {
             if (source.getPartitioned()) {
                 if (config.getOptimization().getSkip()) {
@@ -1760,7 +1778,16 @@ public class TableMirror {
             target.getDefinition().clear();
             // Reset with Source
             target.getDefinition().addAll(getTableDefinition(copySpec.getSource()));
-
+            if (Context.getInstance().getConfig().getEvaluatePartitionLocation() &&
+                    source.getPartitioned()) {
+                // New Map.  So we can modify it..
+                Map<String, String> targetPartitions = new HashMap<>();
+                for (Map.Entry<String, String> item: source.getPartitions().entrySet()) {
+                    targetPartitions.put(item.getKey(), item.getValue());
+                }
+                target.setPartitions(targetPartitions);
+                config.getTranslator().translatePartitionLocations(this);
+            }
             if (TableUtils.isHiveNative(source)) {
                 // Rules
                 // 1. Strip db from create state.  It's broken anyway with the way
@@ -2080,7 +2107,7 @@ public class TableMirror {
         et.setDefinition(tableDefList);
     }
 
-    public List<String> getPartitionDefinition(Environment environment) {
+    public Map<String, String> getPartitionDefinition(Environment environment) {
         EnvironmentTable et = getEnvironmentTable(environment);
         return et.getPartitions();
     }

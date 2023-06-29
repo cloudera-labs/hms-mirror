@@ -16,6 +16,7 @@
 
 package com.cloudera.utils.hadoop.hms.mirror;
 
+import com.cloudera.utils.hadoop.hms.Context;
 import com.cloudera.utils.hadoop.hms.stage.Transfer;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.apache.log4j.LogManager;
@@ -24,6 +25,8 @@ import org.codehaus.jackson.annotate.JsonIgnore;
 
 import java.util.*;
 import java.util.regex.Matcher;
+
+import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.NOT_SET;
 
 @JsonIgnoreProperties({"on", "dbLocationMap", "distcpCompatible"})
 public class Translator {
@@ -275,12 +278,59 @@ public class Translator {
         else
             return originalLocation;
     }
+    public String buildPartitionAddStatement(EnvironmentTable environmentTable) {
+        StringBuilder sbPartitionDetails = new StringBuilder();
+        Map<String, String> partitions = new HashMap<String, String>();
+        // Fix formatting of partition names.
+        for (Map.Entry<String, String> item: environmentTable.getPartitions().entrySet()) {
+            String partitionName = item.getKey();
+            String[] partitionNameParts = partitionName.split("=");
+            partitions.put(partitionNameParts[0] + "='" + partitionNameParts[1] + "'", item.getValue());
+        }
+        // Transfer partitions map to a string using streaming
+        partitions.entrySet().stream().forEach(e -> sbPartitionDetails.append("\tPARTITION (" + e.getKey() + ") LOCATION '" + e.getValue() + "' \n"));
+        return sbPartitionDetails.toString();
+    }
+
+    public void translatePartitionLocations(TableMirror tableMirror) {
+        Config config = Context.getInstance().getConfig();
+
+        if (config.getEvaluatePartitionLocation() && tableMirror.getEnvironmentTable(Environment.LEFT).getPartitioned()
+                && (tableMirror.getStrategy() == DataStrategy.SCHEMA_ONLY)) {
+            // Only Translate for SCHEMA_ONLY.  Leave the DUMP location as is.
+            EnvironmentTable target = tableMirror.getEnvironmentTable(Environment.RIGHT);
+            /*
+            Review the target partition locations and replace the namespace with the new namespace.
+            Check whether any global location maps match the location and adjust.
+             */
+            Map<String, String> partitionLocationMap = target.getPartitions();
+            if (partitionLocationMap != null && !partitionLocationMap.isEmpty()) {
+                for (Map.Entry<String, String> entry : partitionLocationMap.entrySet()) {
+                    String partitionLocation = entry.getValue();
+                    if (partitionLocation == null || partitionLocation.isEmpty() ||
+                            partitionLocation.equals(NOT_SET)) {
+                        continue;
+                    }
+                    // Get the relative dir.
+                    String relativeDir = partitionLocation.replace(config.getCluster(Environment.LEFT).getHcfsNamespace(), "");
+                    // Check the Global Location Map for a match.
+                    String mappedDir = processGlobalLocationMap(relativeDir);
+                    String newPartitionLocation = config.getCluster(Environment.RIGHT).getHcfsNamespace() + mappedDir;
+
+                    entry.setValue(newPartitionLocation);
+                }
+            }
+            // end partitions location conversion.
+        }
+
+    }
 
     public String translateTableLocation(TableMirror tableMirror, String originalLocation, Config config) {
         String rtn = originalLocation;
         StringBuilder dirBuilder = new StringBuilder();
         String tableName = tableMirror.getName();
-        String dbName = tableMirror.getResolvedDbName();;
+        String dbName = tableMirror.getResolvedDbName();
+        ;
 
         String leftNS = config.getCluster(Environment.LEFT).getHcfsNamespace();
         // Set base on rightNS or Common Storage, if specified

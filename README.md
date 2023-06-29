@@ -213,6 +213,52 @@ For On-Prem to Cloud migrations, we typically use a `PUSH` model because that is
 
 Under certain conditions, `hms-mirror` will 'move' data too.  Using the data strategies `-d SQL|EXPORT_IMPORT|HYBRID` well use a combination of SQL temporary tables and [Linking Clusters Storage Layers](#linking-clusters-storage-layers) to facilitate this.
 
+### Auto Gathering Stats (disabled by default)
+
+CDP Default settings have enabled `hive.stats.autogather` and `hive.stats.column.autogather`.  This impacts the speed of INSERT statements (used by `hms-mirror` to migrate data) and for large/numerous tables, the impact can be significant.
+
+The default configuration for `hms-mirror` is to disable these settings.  You can re-enable this in `hms-mirror` for each side (LEFT|RIGHT) separately.  Add the following to your configuration.
+
+```yaml
+clusters:
+  LEFT|RIGHT:
+    enableAutoTableStats: true
+    enableAutoColumnStats: true
+```
+
+To disable, remove the `enableAutoTableStats` and `enableAutoColumnStats` entries or set them to `false`.
+
+### Non-Standard Partition Locations
+
+Partitions created by 'hive' with default locations follow a file system naming convention that allows other partitions of 'hive' to discovery/manage those location and partition associations.  
+
+The standard is for partitions to exist as sub-directories of the table location.  For example: Table Location is `hdfs://my-cluster/warehouse/tablespace/external/hive/my_test.db/my_table` and the partition location is `hdfs://my-cluster/warehouse/tablespace/external/hive/my_test.db/my_table/dt=2020-01-01`, assuming the partition column name is `dt`.
+
+When this convention is not followed, additional steps are required to build the partition metadata.  You can't use `MSCK REPAIR` because it will not find the partitions.  You can use `ALTER TABLE ADD PARTITION` but you'll need to provide the location of the partition.  `hms-mirror` will do this for you when using the data strategies `-d DUMP|SCHEMA_ONLY` and the commandline flag `-epl|--evaluate-partition-location`.
+
+In order to make this evaluation efficient, we do NOT use standard HiveSQL to discover the partition details.  It is possible to use HiveSQL for this, it's just not meant for operations at scale or tables with a lot of partitions.
+
+Hence, we tap directly into the hive metastore database.  In order to use this feature, you will need to add the following configuration definition to your hms-mirror configuration file (default.yaml).
+
+```yaml
+clusters:
+  LEFT|RIGHT:
+    ...
+    metastore_direct:
+      uri: "<db_url>"
+      type: MYSQL|POSTGRES|ORACLE
+      connectionProperties:
+        user: "<db_user>"
+        password: "<db_password>"
+      connectionPool:
+        min: 3
+        max: 5
+```
+
+You will also need to place a copy of the RDBMS JDBC driver in `$HOME/.hms-mirror/aux_libs`.  The driver must match the `type` defined in the configuration file.
+
+**Note: Non-Standard Partition Location will affect other strategies like `SQL` where the LEFT clusters storage is accessible to the RIGHT and is used by the RIGHT to source data. The 'mirror' table used for the transfer will NOT discover the partitions and will NOT transfer data.  See: [Issue #63](https://github.com/cloudera-labs/hms-mirror/issues/63) for updates on addressing this scenario.  If this is affecting you, I highly recommend you comment on the issue to help us set priorities.** 
+
 ### Optimizations
 
 The following configuration settings control the various optimizations taken by `hms-mirror`. These settings are mutually exclusive.
@@ -904,7 +950,7 @@ When you do need to move data, `hms-mirror` create a workbook of 'source' and 't
 
 ```
 usage: hms-mirror <options>
-                  version:1.5.6.0+
+                  version:1.5.6.7-SNAPSHOT
 Hive Metastore Migration Utility
  -accept,--accept                                              Accept ALL confirmations and silence
                                                                prompts
@@ -981,6 +1027,11 @@ Hive Metastore Migration Utility
  -ep,--export-partition-count <limit>                          Set the limit of partitions that the
                                                                EXPORT_IMPORT strategy will work
                                                                with.
+ -epl,--evaluate-partition-location                            For SCHEMA_ONLY and DUMP
+                                                               data-strategies, review the partition
+                                                               locations and build partition
+                                                               metadata calls to create them is they
+                                                               can't be located via 'MSCK'.
  -ewd,--external-warehouse-directory <path>                    The external warehouse directory
                                                                path.  Should not include the
                                                                namespace OR the database directory.

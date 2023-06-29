@@ -2,9 +2,7 @@ package com.cloudera.utils.hadoop.hms.mirror;
 
 import junit.framework.TestCase;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.*;
 
@@ -62,10 +60,10 @@ public class StatsCalculatorTest extends TestCase {
         table_01.addAll(Arrays.asList(strTable_01));
         environmentTable = new EnvironmentTable();
         environmentTable.setDefinition(table_01);
-        List<String> partitions = new ArrayList<String>();
+        Map<String,String> partitions = new HashMap<String,String>();
         // 15000 partitions
         for (int i = 0; i < 11000; i++) {
-            partitions.add(Integer.toString(i));
+            partitions.put(Integer.toString(i), null);
         }
         environmentTable.getStatistics().put(FILE_FORMAT, SerdeType.ORC);
         // 13Tb
@@ -98,7 +96,10 @@ public class StatsCalculatorTest extends TestCase {
 
     public void testSetSessionOptions() {
         EnvironmentTable applyEnv = new EnvironmentTable();
-        StatsCalculator.setSessionOptions(environmentTable, applyEnv);
+        Cluster cluster = new Cluster();
+        cluster.setEnableAutoColumnStats(Boolean.TRUE);
+        cluster.setEnableAutoTableStats(Boolean.TRUE);
+        StatsCalculator.setSessionOptions(cluster, environmentTable, applyEnv);
         System.out.println(applyEnv.getSql().stream().map(s -> s.toString() + "\n").reduce("", String::concat));
     }
 }

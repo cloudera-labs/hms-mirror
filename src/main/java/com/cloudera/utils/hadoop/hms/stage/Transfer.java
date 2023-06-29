@@ -376,7 +376,7 @@ public class Transfer implements Callable<ReturnStatus> {
             }
 
             // TODO: Need to set this for SQL DataStrategy too..
-            StatsCalculator.setSessionOptions(let, let);
+            StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), let, let);
 
             // Need to see if the table has partitions.
             if (let.getPartitioned()) {

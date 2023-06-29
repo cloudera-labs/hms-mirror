@@ -6,8 +6,8 @@ public interface SessionVars {
 
     String SORT_DYNAMIC_PARTITION = "hive.optimize.sort.dynamic.partition";
     String SORT_DYNAMIC_PARTITION_THRESHOLD = "hive.optimize.sort.dynamic.partition.threshold";
-    String ANALYZE_TABLE_STATS = "";
-    String ANALYZE_COLUMN_STATS = "";
+    String HIVE_AUTO_TABLE_STATS = "hive.stats.autogather";
+    String HIVE_AUTO_COLUMN_STATS = "hive.stats.column.autogather";
     String LEGACY_DB_LOCATION_PROP = "hive.metastore.warehouse.dir";
     String EXT_DB_LOCATION_PROP = "hive.metastore.warehouse.external.dir";
     String MNGD_DB_LOCATION_PROP = "hive.metastore.warehouse.dir";

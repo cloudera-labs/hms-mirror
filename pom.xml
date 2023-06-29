@@ -22,7 +22,7 @@
 
     <groupId>com.cloudera.utils.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>1.5.6.5-SNAPSHOT</version>
+    <version>1.5.6.7-SNAPSHOT</version>
     <name>hms-mirror</name>
 
     <url>https://github.com/cloudera-labs/hms_mirror</url>
@@ -63,6 +63,7 @@
         <junit.version>4.13.1</junit.version>
 
         <hadoop-cli.version>2.4.3.3</hadoop-cli.version>
+        <hive-sre.version>2.5.1.4</hive-sre.version>
 
     </properties>
 
@@ -78,6 +79,11 @@
             <groupId>com.cloudera.utils.hadoop</groupId>
             <artifactId>hadoop-cli</artifactId>
             <version>${hadoop-cli.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.cloudera.utils.hive</groupId>
+            <artifactId>hive-sre</artifactId>
+            <version>${hive-sre.version}</version>
         </dependency>
         <dependency>
             <groupId>org.commonmark</groupId>

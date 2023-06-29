@@ -79,7 +79,7 @@ public class StatsCalculator {
         return maxGrouping;
     }
 
-    public static void setSessionOptions(EnvironmentTable controlEnv, EnvironmentTable applyEnv) {
+    public static void setSessionOptions(Cluster cluster, EnvironmentTable controlEnv, EnvironmentTable applyEnv) {
         // Small File settings.
         SerdeType stype = (SerdeType) controlEnv.getStatistics().get(FILE_FORMAT);
         if (stype != null) {
@@ -130,6 +130,22 @@ public class StatsCalculator {
                 applyEnv.addIssue("Setting " + HIVE_COMPRESS_OUTPUT + " because you HAVEN'T set that optimization");
                 applyEnv.addSql("Setting: " + HIVE_COMPRESS_OUTPUT, "set " + HIVE_COMPRESS_OUTPUT + "=false");
             }
+        }
+
+        // Handle Auto Stats Gathering.
+        if (cluster.getEnableAutoTableStats()) {
+            applyEnv.addIssue("Setting " + HIVE_AUTO_TABLE_STATS + " because you've set that optimization");
+            applyEnv.addSql("Setting: " + HIVE_AUTO_TABLE_STATS, "set " + HIVE_AUTO_TABLE_STATS + "=true");
+        } else {
+            applyEnv.addIssue("Setting " + HIVE_AUTO_TABLE_STATS + " because you've set that optimization");
+            applyEnv.addSql("Setting: " + HIVE_AUTO_TABLE_STATS, "set " + HIVE_AUTO_TABLE_STATS + "=false");
+        }
+        if (cluster.getEnableAutoColumnStats()) {
+            applyEnv.addIssue("Setting " + HIVE_AUTO_COLUMN_STATS + " because you've set that optimization");
+            applyEnv.addSql("Setting: " + HIVE_AUTO_COLUMN_STATS, "set " + HIVE_AUTO_COLUMN_STATS + "=true");
+        } else {
+            applyEnv.addIssue("Setting " + HIVE_AUTO_COLUMN_STATS + " because you've set that optimization");
+            applyEnv.addSql("Setting: " + HIVE_AUTO_COLUMN_STATS, "set " + HIVE_AUTO_COLUMN_STATS + "=false");
         }
     }
 }
