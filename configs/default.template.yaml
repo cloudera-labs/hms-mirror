@@ -41,6 +41,17 @@ clusters:
       # Standalone jar file used to connect via JDBC to the LEFT environment Hive Server 2
       # NOTE: Hive 3 jars will NOT work against Hive 1.  The protocol isn't compatible.
       jarFile: "<environment-specific-jdbc-standalone-driver>"
+    # Optional.  Required only for (-epl) with DUMP or SCHEMA_ONLY
+    # This will require the user to install the jdbc driver for the metastore in $HOME/.hms-mirror/aux_libs
+    metastore_direct:
+      uri: "<jdbc_url_to_metastore_db_including_db>"
+      type: MYSQL|POSTRES|ORACLE
+      connectionProperties:
+        user: "<db_user>"
+        password: "<db_password>"
+      connectionPool:
+        min: 3
+        max: 5
   RIGHT:
     legacyHive:    false
     # Is the 'Hadoop COMPATIBLE File System' used to prefix data locations for this cluster.
