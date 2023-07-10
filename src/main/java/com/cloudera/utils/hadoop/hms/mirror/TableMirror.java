@@ -2059,11 +2059,17 @@ public class TableMirror {
 
     public String getCreateStatement(Environment environment) {
         StringBuilder createStatement = new StringBuilder();
+        Boolean cine = Context.getInstance().getConfig().getCluster(environment).getCreateIfNotExists();
         List<String> tblDef = this.getTableDefinition(environment);
         if (tblDef != null) {
             Iterator<String> iter = tblDef.iterator();
             while (iter.hasNext()) {
                 String line = iter.next();
+                if (cine && line.startsWith("CREATE TABLE")) {
+                    line = line.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
+                } else if (cine && line.startsWith("CREATE EXTERNAL TABLE")) {
+                    line = line.replace("CREATE EXTERNAL TABLE", "CREATE EXTERNAL TABLE IF NOT EXISTS");
+                }
                 createStatement.append(line);
                 if (iter.hasNext()) {
                     createStatement.append("\n");
