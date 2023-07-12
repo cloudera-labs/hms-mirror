@@ -61,6 +61,7 @@ public class Optimization {
             switch (Context.getInstance().getConfig().getDataStrategy()) {
                 case DUMP:
                 case SCHEMA_ONLY:
+                case EXPORT_IMPORT:
                     skipStatsCollection = Boolean.TRUE;
                     break;
                 case STORAGE_MIGRATION:

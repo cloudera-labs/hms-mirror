@@ -22,6 +22,8 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [`--intermediate-storage` Workflow Patterns and Where to Run From](#--intermediate-storage-workflow-patterns-and-where-to-run-from)
   * [`--common-storage` Workflow Patterns and Where to Run From](#--common-storage-workflow-patterns-and-where-to-run-from)
 - [Features](#features)
+  * [File System Stats](#file-system-stats)
+  * [CREATE [EXTERNAL] TABLE IF NOT EXISTS Option](#create-external-table-if-not-exists-option)
   * [Auto Gathering Stats (disabled by default)](#auto-gathering-stats-disabled-by-default)
   * [Non-Standard Partition Locations](#non-standard-partition-locations)
   * [Optimizations](#optimizations)
@@ -76,6 +78,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Assumptions](#assumptions)
   * [Options (Help)](#options-help)
   * [Running Against a LEGACY (Non-CDP) Kerberized HiveServer2](#running-against-a-legacy-non-cdp-kerberized-hiveserver2)
+  * [Features](#features-1)
   * [On-Prem to Cloud Migrations](#on-prem-to-cloud-migrations)
   * [Connections](#connections)
   * [Troubleshooting](#troubleshooting)
@@ -218,6 +221,28 @@ For On-Prem to Cloud migrations, we typically use a `PUSH` model because that is
 `hms-mirror` is designed to migrate schema definitions from one cluster to another or simply provide an extract of the schemas via `-d DUMP`.
 
 Under certain conditions, `hms-mirror` will 'move' data too.  Using the data strategies `-d SQL|EXPORT_IMPORT|HYBRID` well use a combination of SQL temporary tables and [Linking Clusters Storage Layers](#linking-clusters-storage-layers) to facilitate this.
+
+### File System Stats
+
+SQL based operations, `hms-mirror` will attempt to gather file system stats for the tables being migrated.  This is done by running `hdfs dfs -count` on the table location.  This is done to help determine the best strategy for moving data and allows us to set certain hive session values and distribution strategies in SQL to optimize the data movement.
+
+But some FileSystems may not be very efficient at gathering stats.  For example, S3.  In these cases, you can disable the stats gathering by adding `-ssc|--skip-stats-collection` to your command line.
+
+When you have a LOT of tables, collecting stats can have a significant impact on the time it takes to run `hms-mirror` and the general pressure on the FileSystem to gather this information.  In this case, you have to option to disable stats collection through `-scc`.
+
+### CREATE [EXTERNAL] TABLE IF NOT EXISTS Option
+
+Default behavior for `hms-mirror` is to NOT include the `IF NOT EXISTS` clause in the `CREATE TABLE` statements.  This is because we want to ensure that the table is created and that the schema is correct.  If the table already exists, we want to fail.
+
+But there are some scenarios where the table is present and we don't want the process to fail on the CREATE statement to ensure the remaining SQL statements are executed.  In this case, you can modify the configuration to include:
+
+```yaml
+  clusters:
+    RIGHT|LEFT:
+      createIfNotExists: "true"
+```
+
+Using this option has the potential to create a table with a different schema than the source.  This is not recommended.
 
 ### Auto Gathering Stats (disabled by default)
 
@@ -956,7 +981,7 @@ When you do need to move data, `hms-mirror` create a workbook of 'source' and 't
 
 ```
 usage: hms-mirror <options>
-                  version:1.5.6.7-SNAPSHOT
+                  version:1.6.0.0-SNAPSHOT
 Hive Metastore Migration Utility
  -accept,--accept                                              Accept ALL confirmations and silence
                                                                prompts
@@ -1211,6 +1236,11 @@ Hive Metastore Migration Utility
                                                                longer required to get SQL out in a
                                                                report.  That is the default
                                                                behavior.
+ -ssc,--skip-stats-collection                                  Skip collecting basic FS stats for a
+                                                               table.  This WILL affect the
+                                                               optimizer and our ability to
+                                                               determine the best strategy for
+                                                               moving data.
  -su,--setup                                                   Setup a default configuration file
                                                                through a series of questions
  -tef,--table-exclude-filter <regex>                           Filter tables (excludes) with name

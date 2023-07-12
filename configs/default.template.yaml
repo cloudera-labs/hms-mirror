@@ -39,7 +39,12 @@ clusters:
         user:     "*****"
         password: "*****"
       # Standalone jar file used to connect via JDBC to the LEFT environment Hive Server 2
-      # NOTE: Hive 3 jars will NOT work against Hive 1.  The protocol isn't compatible.
+      # NOTE-1: Hive 3 jars will NOT work against Hive 1.  The protocol isn't compatible.
+      # NOTE-2: You can specify a 'colon' separated list of jar files in the jarFile property. We've found this
+      #       useful when the JDBC driver requires additional jar files to be present in the classpath to support it.
+      #       For example, the CDH 5 Hive JDBC driver requires that the `hadoop-common` jar file to be present in the
+      #       classpath. You can specify this as follows: jarFile: "/path/to/hive-jdbc.jar:/path/to/hadoop-common.jar"
+      #    The order of the jar files is important. The first jar file in the list MUST have the JDBC driver class file.
       jarFile: "<environment-specific-jdbc-standalone-driver>"
     # Optional.  Required only for (-epl) with DUMP or SCHEMA_ONLY
     # This will require the user to install the jdbc driver for the metastore in $HOME/.hms-mirror/aux_libs
@@ -70,7 +75,12 @@ clusters:
         user:     "*****"
         password: "*****"
       # Standalone jar file used to connect via JDBC to the LEFT environment Hive Server 2
-      # NOTE: Hive 3 jars will NOT work against Hive 1.  The protocol isn't compatible.
+      # NOTE-1: Hive 3 jars will NOT work against Hive 1.  The protocol isn't compatible.
+      # NOTE-2: You can specify a 'colon' separated list of jar files in the jarFile property. We've found this
+      #       useful when the JDBC driver requires additional jar files to be present in the classpath to support it.
+      #       For example, the CDH 5 Hive JDBC driver requires that the `hadoop-common` jar file to be present in the
+      #       classpath. You can specify this as follows: jarFile: "/path/to/hive-jdbc.jar:/path/to/hadoop-common.jar"
+      #    The order of the jar files is important. The first jar file in the list MUST have the JDBC driver class file.
       jarFile: "<environment-specific-jdbc-standalone-driver>"
     partitionDiscovery:
       # Addition HMS configuration needed for this "discover.partitions"="true"

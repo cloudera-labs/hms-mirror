@@ -896,7 +896,8 @@ public class Cluster implements Comparable<Cluster> {
     }
 
     protected void loadTableStats(EnvironmentTable envTable) throws SQLException {
-        // We should have option to skip this.  Some FS don't support it efficiently.
+        // Considered only gathering stats for partitioned tables, but decided to gather for all tables to support
+        //  smallfiles across the board.
         if (Context.getInstance().getConfig().getOptimization().getSkipStatsCollection()) {
             LOG.info(getEnvironment() + ":" + envTable.getName() + ": Skipping Stats Collection.");
             return;
