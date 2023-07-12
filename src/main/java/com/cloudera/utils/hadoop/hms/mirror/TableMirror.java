@@ -1569,9 +1569,10 @@ public class TableMirror {
 
     protected Boolean buildSourceToTransferSql(Config config) {
         Boolean rtn = Boolean.TRUE;
-        EnvironmentTable source, transfer;
+        EnvironmentTable source, transfer, target;
         source = getEnvironmentTable(Environment.LEFT);
         transfer = getEnvironmentTable(Environment.TRANSFER);
+        target = getEnvironmentTable(Environment.RIGHT);
         if (TableUtils.isACID(source)) {
             if (source.getPartitions().size() > config.getMigrateACID().getPartitionLimit() && config.getMigrateACID().getPartitionLimit() > 0) {
                 // The partition limit has been exceeded.  The process will need to be done manually.
@@ -1605,9 +1606,9 @@ public class TableMirror {
             }
         }
 
-        StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), source, transfer);
 
         if (transfer.isDefined()) {
+            StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), source, transfer);
             if (source.getPartitioned()) {
                 if (config.getOptimization().getSkip()) {
                     if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
@@ -1655,6 +1656,8 @@ public class TableMirror {
                 String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, transfer.getName());
                 source.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
             }
+        } else {
+            StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), source, target);
         }
 
         return rtn;
@@ -1713,9 +1716,9 @@ public class TableMirror {
                 } else {
                     // Prescriptive
                     if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
-                        source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
+                        target.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
                         if (!config.getCluster(Environment.RIGHT).getHdpHive3()) {
-                            source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                            target.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
                         }
                     }
                     String partElement = TableUtils.getPartitionElements(source);
