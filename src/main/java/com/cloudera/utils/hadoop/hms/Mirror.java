@@ -403,6 +403,11 @@ public class Mirror {
             if (cmd.hasOption("so")) {
                 config.getOptimization().setSkip(Boolean.TRUE);
             }
+
+            if (cmd.hasOption("ssc")) {
+                config.getOptimization().setSkipStatsCollection(Boolean.TRUE);
+            }
+
             // Sort Dynamic Partitions
             if (cmd.hasOption("sdpi")) {
                 config.getOptimization().setSortDynamicPartitionInserts(Boolean.TRUE);
@@ -798,21 +803,12 @@ public class Mirror {
                 hs2Envs.add(Environment.LEFT);
                 break;
         }
-        if (config.getEvaluatePartitionLocation()) {
-            // Connect metastore_direct configs to ConnectionPools.
-            switch (config.getDataStrategy()) {
-                case DUMP:
-                case SCHEMA_ONLY:
-                    if (config.getCluster(Environment.LEFT).getMetastoreDirect() != null) {
-                        connPools.addMetastoreDirect(Environment.LEFT, config.getCluster(Environment.LEFT).getMetastoreDirect());
-                    }
-                    if (config.getCluster(Environment.RIGHT).getMetastoreDirect() != null) {
-                        connPools.addMetastoreDirect(Environment.RIGHT, config.getCluster(Environment.RIGHT).getMetastoreDirect());
-                    }
-                    break;
-                default:
-                    // nothing
-                    break;
+        if (Context.getInstance().loadPartitionMetadata()) {
+            if (config.getCluster(Environment.LEFT).getMetastoreDirect() != null) {
+                connPools.addMetastoreDirect(Environment.LEFT, config.getCluster(Environment.LEFT).getMetastoreDirect());
+            }
+            if (config.getCluster(Environment.RIGHT).getMetastoreDirect() != null) {
+                connPools.addMetastoreDirect(Environment.RIGHT, config.getCluster(Environment.RIGHT).getMetastoreDirect());
             }
         }
         try {
@@ -1411,6 +1407,12 @@ public class Mirror {
 
         OptionGroup optimizationsGroup = new OptionGroup();
         optimizationsGroup.setRequired(Boolean.FALSE);
+
+        Option skipStatsCollectionOption = new Option("ssc", "skip-stats-collection", false,
+                "Skip collecting basic FS stats for a table.  This WILL affect the optimizer and our ability to " +
+                        "determine the best strategy for moving data.");
+        skipStatsCollectionOption.setRequired(Boolean.FALSE);
+        optimizationsGroup.addOption(skipStatsCollectionOption);
 
         Option skipOptimizationsOption = new Option("so", "skip-optimizations", false,
                 "Skip any optimizations during data movement, like dynamic sorting or distribute by");

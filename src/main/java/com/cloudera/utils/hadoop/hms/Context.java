@@ -15,18 +15,22 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.*;
 
+import static com.cloudera.utils.hadoop.hms.mirror.DataStrategy.STORAGE_MIGRATION;
+
 public class Context {
     private static final Context instance = new Context();
     private List<String> supportFileSystems = new ArrayList<String>(Arrays.asList(
-            "hdfs","ofs","s3","s3a","s3n","wasb","adls","gf"
+            "hdfs", "ofs", "s3", "s3a", "s3n", "wasb", "adls", "gf"
     ));
     private Config config = null;
     private ConnectionPools connectionPools = null;
 
     private Map<Environment, QueryDefinitions> queryDefinitionsMap = new HashMap<>();
-//    private QueryDefinitions queryDefinitions = null;
 
-    private Context() {};
+    private Context() {
+    }
+
+    ;
 
     public static Context getInstance() {
         return instance;
@@ -34,6 +38,15 @@ public class Context {
 
     public Config getConfig() {
         return config;
+    }
+
+    public Boolean loadPartitionMetadata() {
+        if (config.getEvaluatePartitionLocation() ||
+                (config.getDataStrategy() == STORAGE_MIGRATION && config.getTransfer().getStorageMigration().isDistcp())) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
     }
 
     public void setConfig(Config config) {

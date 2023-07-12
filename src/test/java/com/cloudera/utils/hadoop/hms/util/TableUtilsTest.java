@@ -510,4 +510,17 @@ public class TableUtilsTest {
     @Test
     public void updateTblProperty() {
     }
+
+    @Test
+    public void testPartitionSpec() {
+        String simplePartName1 = "create_date=20201201";
+        String simplePartName2 = "create_date=2020_12_01/region=us-west-2";
+        String simplePartName3 = "create_date=2020-12-01/region=us-west-2/zone=us-west-2a";
+        String partSpec1 = TableUtils.toPartitionSpec(simplePartName1);
+        String partSpec2 = TableUtils.toPartitionSpec(simplePartName2);
+        String partSpec3 = TableUtils.toPartitionSpec(simplePartName3);
+        System.out.println(partSpec1);
+        System.out.println(partSpec2);
+        System.out.println(partSpec3);
+    }
 }

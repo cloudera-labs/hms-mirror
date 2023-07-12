@@ -1,5 +1,7 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
+import com.cloudera.utils.hadoop.hms.Context;
+
 public class Optimization {
 
     /*
@@ -16,6 +18,7 @@ public class Optimization {
     private Boolean skip = Boolean.FALSE;
     private Boolean autoTune = Boolean.FALSE;
     private Boolean compressTextOutput = Boolean.FALSE;
+    private Boolean skipStatsCollection = Boolean.FALSE;
 
     private Overrides overrides = new Overrides();
     private Boolean buildShadowStatistics = Boolean.FALSE;
@@ -50,6 +53,28 @@ public class Optimization {
 
     public void setCompressTextOutput(Boolean compressTextOutput) {
         this.compressTextOutput = compressTextOutput;
+    }
+
+    public Boolean getSkipStatsCollection() {
+        // Reset skipStatsCollection to true if we're doing a dump or schema only. (and a few other conditions)
+        if (skipStatsCollection != null && !skipStatsCollection) {
+            switch (Context.getInstance().getConfig().getDataStrategy()) {
+                case DUMP:
+                case SCHEMA_ONLY:
+                    skipStatsCollection = Boolean.TRUE;
+                    break;
+                case STORAGE_MIGRATION:
+                    if (Context.getInstance().getConfig().getTransfer().getStorageMigration().isDistcp()) {
+                        skipStatsCollection = Boolean.TRUE;
+                    }
+                    break;
+            }
+        }
+        return skipStatsCollection;
+    }
+
+    public void setSkipStatsCollection(Boolean skipStatsCollection) {
+        this.skipStatsCollection = skipStatsCollection;
     }
 
     public Boolean getBuildShadowStatistics() {

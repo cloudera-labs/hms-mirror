@@ -469,7 +469,7 @@ public class Translator {
         // Add Location Map for table to a list.
         // TODO: Need to handle RIGHT locations.
         if (config.getTransfer().getStorageMigration().isDistcp() && config.getDataStrategy() != DataStrategy.SQL) {
-            if (config.getTransfer().getStorageMigration().getDataFlow() == DistcpFlow.PULL) {
+            if (config.getTransfer().getStorageMigration().getDataFlow() == DistcpFlow.PULL && !config.isFlip()) {
                 addLocation(dbName, Environment.RIGHT, originalLocation, dirBuilder.toString().trim());
             } else {
                 addLocation(dbName, Environment.LEFT, originalLocation, dirBuilder.toString().trim());

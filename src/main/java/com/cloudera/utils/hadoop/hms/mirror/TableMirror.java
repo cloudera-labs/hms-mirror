@@ -647,15 +647,11 @@ public class TableMirror {
                         let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
                     }
                 }
+
                 String partElement = TableUtils.getPartitionElements(let);
-                String distPartElemant = null;
-                if (Context.getInstance().getConfig().getOptimization().getAutoTune()) {
-                    distPartElemant = StatsCalculator.getAdditionalPartitionDistribution(let);
-                } else {
-                    distPartElemant = TableUtils.getPartitionElements(let);
-                }
+                String distPartElement = StatsCalculator.getDistributedPartitionElements(let);
                 String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
-                        let.getName(), ret.getName(), partElement, distPartElemant);
+                        let.getName(), ret.getName(), partElement, distPartElement);
                 String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
                 let.addSql(new Pair(transferDesc, transferSql));
             }
@@ -665,7 +661,7 @@ public class TableMirror {
             let.addSql(new Pair(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, transferSql));
         }
 
-        rtn = Boolean.TRUE;
+        rtn =Boolean.TRUE;
 
         return rtn;
     }
@@ -1634,8 +1630,9 @@ public class TableMirror {
                         }
                     }
                     String partElement = TableUtils.getPartitionElements(source);
+                    String distPartElement = StatsCalculator.getDistributedPartitionElements(source);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
-                            source.getName(), transfer.getName(), partElement, partElement);
+                            source.getName(), transfer.getName(), partElement, distPartElement);
                     String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
                     source.addSql(new Pair(transferDesc, transferSql));
                 }
@@ -1714,14 +1711,9 @@ public class TableMirror {
                         }
                     }
                     String partElement = TableUtils.getPartitionElements(source);
-                    String distPartElemant = null;
-                    if (Context.getInstance().getConfig().getOptimization().getAutoTune()) {
-                        distPartElemant = StatsCalculator.getAdditionalPartitionDistribution(source);
-                    } else {
-                        distPartElemant = TableUtils.getPartitionElements(source);
-                    }
+                    String distPartElement = StatsCalculator.getDistributedPartitionElements(source);
                     String shadowSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
-                            shadow.getName(), target.getName(), partElement, distPartElemant);
+                            shadow.getName(), target.getName(), partElement, distPartElement);
                     String shadowDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, target.getPartitions().size());
                     target.addSql(new Pair(shadowDesc, shadowSql));
                 }
@@ -1782,7 +1774,7 @@ public class TableMirror {
                     source.getPartitioned()) {
                 // New Map.  So we can modify it..
                 Map<String, String> targetPartitions = new HashMap<>();
-                for (Map.Entry<String, String> item: source.getPartitions().entrySet()) {
+                for (Map.Entry<String, String> item : source.getPartitions().entrySet()) {
                     targetPartitions.put(item.getKey(), item.getValue());
                 }
                 target.setPartitions(targetPartitions);

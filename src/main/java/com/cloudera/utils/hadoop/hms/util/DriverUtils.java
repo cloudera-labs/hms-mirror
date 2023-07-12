@@ -38,13 +38,19 @@ public class DriverUtils {
         Driver hiveShim = null;
         try {
             if (jarFile != null) {
-                File jdbcJar = new File(jarFile);
-                if (!jdbcJar.exists()) {
-                    throw new RuntimeException("JDBC Jarfile: " + jarFile + " can't be located.");
+                String[] files = jarFile.split(":");
+                URL[] urls = new URL[files.length];
+                File[] jarFiles = new File[files.length];
+                for (int i=0;i<files.length;i++) {
+                    jarFiles[i] = new File(files[i]);
+                    if (! jarFiles[i].exists()) {
+                        throw new RuntimeException("Jarfile: " + files[i] + " can't be located.");
+                    }
+                    urls[i] = jarFiles[i].toURI().toURL();
                 }
-                URL[] urls = {jdbcJar.toURI().toURL()};
+
                 LOG.trace("Building Classloader to isolate JDBC Library for: " + jarFile);
-                URLClassLoader hive3ClassLoader = URLClassLoader.newInstance(urls, jdbcJar.getClass().getClassLoader());
+                URLClassLoader hive3ClassLoader = URLClassLoader.newInstance(urls, jarFiles[0].getClass().getClassLoader());
                 LOG.trace("Loading Hive JDBC Driver");
                 Class<?> classToLoad = hive3ClassLoader.loadClass("org.apache.hive.jdbc.HiveDriver");
                 Package aPackage = classToLoad.getPackage();

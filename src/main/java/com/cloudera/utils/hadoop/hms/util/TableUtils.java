@@ -24,10 +24,13 @@ import org.apache.log4j.Logger;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.DATA_SIZE;
 import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.FILE_FORMAT;
 import static com.cloudera.utils.hadoop.hms.mirror.TablePropertyVars.*;
 
@@ -281,6 +284,20 @@ public class TableUtils {
             }
         }
         return rtn;
+    }
+
+    public static String toPartitionSpec(String simplePartName) {
+        String parts[] = simplePartName.split("/");
+        // Look at each parts and split on the equals sign, then concat the parts back together putting a single quote
+        // around the value and a comma between each part. Do not leave a trailing comma.
+        String partSpec = Arrays.stream(parts).map(
+                part -> part.split("=")
+        ).map(
+                partElements -> partElements[0] + "=\"" + partElements[1] + "\""
+        ).collect(
+                Collectors.joining(",")
+        );
+        return partSpec;
     }
 
     public static String getPartitionElements(EnvironmentTable envTable) {

@@ -1,5 +1,7 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
+import com.cloudera.utils.hadoop.hms.Context;
+import com.cloudera.utils.hadoop.hms.util.TableUtils;
 import junit.framework.TestCase;
 
 import java.util.*;
@@ -73,6 +75,11 @@ public class StatsCalculatorTest extends TestCase {
         Double avgSize = 1024*1024*5d;
         environmentTable.getStatistics().put(AVG_FILE_SIZE, avgSize);
         environmentTable.setPartitions(partitions);
+        Config config = new Config();
+        config.getOptimization().setSkipStatsCollection(Boolean.FALSE);
+        config.getOptimization().setAutoTune(Boolean.TRUE);
+        config.setDataStrategy(DataStrategy.SQL);
+        Context.getInstance().setConfig(config);
 
     }
 
@@ -83,7 +90,7 @@ public class StatsCalculatorTest extends TestCase {
     }
 
     public void testGetAdditionalPartitionDistribution() {
-        String test = StatsCalculator.getAdditionalPartitionDistribution(environmentTable);
+        String test = StatsCalculator.getDistributedPartitionElements(environmentTable);
         assertEquals("ROUND((rand() * 1000) % 8), `cr_returned_date_sk`", test);
         System.out.println(test);
     }

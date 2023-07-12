@@ -57,7 +57,7 @@ public class ConnectionPools {
         initHS2Drivers();
         initHS2PooledDataSources();
         // Only init if we are going to use it. (`-epl`).
-        if (Context.getInstance().getConfig().getEvaluatePartitionLocation()) {
+        if (Context.getInstance().loadPartitionMetadata()) {
             initMetastoreDataSources();
         }
     }

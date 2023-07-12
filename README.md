@@ -1257,13 +1257,13 @@ Hive Metastore Migration Utility
 
 To attach to a LEGACY HS2, run `hms-mirror` with the `--hadoop-classpath` command-line option.  This will strip the CDP libraries from `hms-mirror` and use the hosts Hadoop libraries by calling `hadoop classpath` to locate the binaries needed to do this.
 
-#### Features
+### Features
 
 Features are a way to inject special considerations into the replay of a schema between clusters.  Each schema is automatically check is a particular 'feature' applies.  
 
 If you find that this features check is causing issues, add the flag `-sf` to the application parameters and the feature checks will be skipped.
 
-##### BAD_ORC_DEF
+#### BAD_ORC_DEF
 
 `BAD_ORC_DEF` is a feature that corrects poorly executed schema definitions in legacy Hive 1/2 that don't translate into a functioning table in Hive 3.  In this case, the legacy definition was defined with:
 ```
@@ -1297,7 +1297,7 @@ ROW FORMAT SERDE
   'org.apache.hadoop.hive.ql.io.orc.OrcSerde'
 ```
 
-##### BAD_RC_DEF
+#### BAD_RC_DEF
 
 `BAD_RC_DEF` is a feature that corrects poorly executed schema definitions in legacy Hive 1/2 that doesn't translate into a functioning table in Hive 3.  In this case, the legacy definition was defined with:
 ```
@@ -1329,7 +1329,7 @@ with:
 STORED AS RCFILE
 ```
 
-##### BAD_TEXTFILE_DEF
+#### BAD_TEXTFILE_DEF
 
 Older Textfile schemas somehow are corrupted through subsequent ALTER statements that get the table into a state where you can NOT re-run the contents of `SHOW CREATE TABLE`.  In this case, the issue is that there is a declaration for `WITH SERDEPROPERTIES` along with a `ROW FORMAT DELIMITED` clause.  These two can NOT exist together.  Here is an example of this:
 
@@ -1631,7 +1631,6 @@ java/sql/Driver at java.base/java.lang.ClassLoader.defineClass1
 #### Solution
 
 Please use Java 8 to run `hms-mirror`.
-
 
 ### CDP Hive Standalone Driver for CDP 7.1.8 won't connect
 

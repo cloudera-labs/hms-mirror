@@ -47,9 +47,9 @@ public enum MessageCode {
 
     RESET_TO_DEFAULT_LOCATION(22, "'reset-to-default-location' is NOT available for this data strategy."),
     DISTCP_VALID_STRATEGY(23, "The `distcp` option is not valid for this strategy and configuration."),
-    STORAGE_MIGRATION_DISTCP_NO_EXECUTE(24, "STORAGE_MIGRATION with 'distcp' requires MANUAL intervention to run to completion.  Therefore, " +
-            "EXECUTE is NOT support in this context.  Use the provided SQL scripts in the output to run the process."),
-    STORAGE_MIGRATION_DISTCP_ACID(25, "STORAGE_MIGRATION with 'distcp' can't support the direct transfer of ACID tables."),
+    STORAGE_MIGRATION_DISTCP_EXECUTE(24, "STORAGE_MIGRATION with 'distcp' requires MANUAL intervention to run " +
+            "'distcp' to migrate the data separately.  This process expects the data to be migrated already.  "),
+    STORAGE_MIGRATION_DISTCP_ACID(25, "STORAGE_MIGRATION with 'distcp' can't support the direct transfer of ACID tables without -epl."),
     ACID_DOWNGRADE_SCHEMA_ONLY(26, "Use the 'SQL' data-strategy to 'downgrade' an ACID table with 'distcp'"),
     OPTIONAL_ARG_ISSUE(27, "Bad optional argument"),
     CONNECTION_ISSUE(28, "JDBC connection issue.  Check environment, jdbc urls, libraries, etc."),
@@ -135,7 +135,9 @@ public enum MessageCode {
     EVALUATE_PARTITION_LOCATION_USE(67, "The `-epl|--evaluate-partition-location` flag is only valid for SCHEMA_ONLY and DUMP strategies.  Remove the " +
             "flag for all other strategies." ),
     EVALUATE_PARTITION_LOCATION_CONFIG(68, "The metastore_direct is not configured for the {0} cluster.  It is required when using " +
-            "`-epl|--evaluate-partition-location`.")
+            "`-epl|--evaluate-partition-location`."),
+    EVALUATE_PARTITION_LOCATION_STORAGE_MIGRATION(69, "The `-epl|--evaluate-partition-location` flag is only valid when `-dc` option is" +
+            "specified for STORAGE_MIGRATION strategy.")
     ;
 
 

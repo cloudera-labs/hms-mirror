@@ -20,32 +20,39 @@ public class StatsCalculator {
         1GB / 128MB = 8
     (1024*1024*1024) / (128*1024*1024) = 8
      */
-    public static Long getPartitionDistributionRatio(EnvironmentTable envTable) {
+    protected static Long getPartitionDistributionRatio(EnvironmentTable envTable) {
         Long ratio = 0L;
-        try {
-            SerdeType stype = (SerdeType) envTable.getStatistics().get(FILE_FORMAT);
-            Long dataSize = (Long) envTable.getStatistics().get(DATA_SIZE);
-            Long avgPartSize = Math.floorDiv(dataSize, (long) envTable.getPartitions().size());
-            ratio = Math.floorDiv(avgPartSize, stype.targetSize) - 1;
-        } catch (RuntimeException rte) {
-            LOG.warn("Unable to calculate partition distribution ratio for table: " + envTable.getName());
+        if (!Context.getInstance().getConfig().getOptimization().getSkipStatsCollection()) {
+            try {
+                SerdeType stype = (SerdeType) envTable.getStatistics().get(FILE_FORMAT);
+                Long dataSize = (Long) envTable.getStatistics().get(DATA_SIZE);
+                Long avgPartSize = Math.floorDiv(dataSize, (long) envTable.getPartitions().size());
+                ratio = Math.floorDiv(avgPartSize, stype.targetSize) - 1;
+            } catch (RuntimeException rte) {
+                LOG.warn("Unable to calculate partition distribution ratio for table: " + envTable.getName());
+            }
         }
         return ratio;
     }
 
-    public static String getAdditionalPartitionDistribution(EnvironmentTable envTable) {
+    public static String getDistributedPartitionElements(EnvironmentTable envTable) {
         StringBuilder sb = new StringBuilder();
 
         if (envTable.getPartitioned()) {
-            SerdeType stype = (SerdeType) envTable.getStatistics().get(FILE_FORMAT);
-            if (stype != null) {
-                if (envTable.getStatistics().get(DATA_SIZE) != null) {
-                    Long ratio = getPartitionDistributionRatio(envTable);
-                    if (ratio >= 1) {
-                        sb.append("ROUND((rand() * 1000) % ").append(ratio.toString()).append(")");
+
+            if (Context.getInstance().getConfig().getOptimization().getAutoTune() &&
+                    !Context.getInstance().getConfig().getOptimization().getSkipStatsCollection()) {
+                SerdeType stype = (SerdeType) envTable.getStatistics().get(FILE_FORMAT);
+                if (stype != null) {
+                    if (envTable.getStatistics().get(DATA_SIZE) != null) {
+                        Long ratio = StatsCalculator.getPartitionDistributionRatio(envTable);
+                        if (ratio >= 1) {
+                            sb.append("ROUND((rand() * 1000) % ").append(ratio.toString()).append(")");
+                        }
                     }
                 }
             }
+
             // Place the partition element AFTER the sub grouping to ensure we get it applied in the plan.
             String partElement = TableUtils.getPartitionElements(envTable);
             if (partElement != null) {
@@ -56,11 +63,10 @@ public class StatsCalculator {
                 sb.append(partElement);
             }
         }
-
         return sb.toString();
     }
 
-    public static Long getTezMaxGrouping(EnvironmentTable envTable) {
+    protected static Long getTezMaxGrouping(EnvironmentTable envTable) {
         SerdeType serdeType = (SerdeType) envTable.getStatistics().get(FILE_FORMAT);
         if (serdeType == null)
             serdeType = SerdeType.UNKNOWN;
@@ -80,6 +86,11 @@ public class StatsCalculator {
     }
 
     public static void setSessionOptions(Cluster cluster, EnvironmentTable controlEnv, EnvironmentTable applyEnv) {
+
+        // Skip if no stats collection.
+        if (Context.getInstance().getConfig().getOptimization().getSkipStatsCollection())
+            return;
+
         // Small File settings.
         SerdeType stype = (SerdeType) controlEnv.getStatistics().get(FILE_FORMAT);
         if (stype != null) {

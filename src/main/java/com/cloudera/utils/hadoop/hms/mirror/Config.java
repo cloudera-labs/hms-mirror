@@ -44,7 +44,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.regex.Pattern;
 
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.*;
 
@@ -738,6 +737,16 @@ public class Config {
                     }
                     warnings.set(EVALUATE_PARTITION_LOCATION.getCode());
                     break;
+                case STORAGE_MIGRATION:
+                    if (getCluster(Environment.LEFT).getMetastoreDirect()== null) {
+                        errors.set(EVALUATE_PARTITION_LOCATION_CONFIG.getCode(), "LEFT");
+                        rtn = Boolean.FALSE;
+                    }
+                    if (!getTransfer().getStorageMigration().isDistcp()) {
+                        errors.set(EVALUATE_PARTITION_LOCATION_STORAGE_MIGRATION.getCode(), "LEFT");
+                        rtn = Boolean.FALSE;
+                    }
+                    break;
                 default:
                     errors.set(EVALUATE_PARTITION_LOCATION_USE.getCode());
                     rtn = Boolean.FALSE;
@@ -792,15 +801,14 @@ public class Config {
                 rtn = Boolean.FALSE;
             }
             if (getDataStrategy() == DataStrategy.STORAGE_MIGRATION
-                    && isExecute()) {
-                errors.set(STORAGE_MIGRATION_DISTCP_NO_EXECUTE.getCode());
-                rtn = Boolean.FALSE;
+                    && getTransfer().getStorageMigration().isDistcp()) {
+                warnings.set(STORAGE_MIGRATION_DISTCP_EXECUTE.getCode());
             }
-            if (getDataStrategy() == DataStrategy.STORAGE_MIGRATION
-                    && getMigrateACID().isOn()) {
-                errors.set(STORAGE_MIGRATION_DISTCP_ACID.getCode());
-                rtn = Boolean.FALSE;
-            }
+//            if (getDataStrategy() == DataStrategy.STORAGE_MIGRATION
+//                    && getMigrateACID().isOn() && !getEvaluatePartitionLocation()) {
+//                errors.set(STORAGE_MIGRATION_DISTCP_ACID.getCode());
+//                rtn = Boolean.FALSE;
+//            }
             if (getDataStrategy() == DataStrategy.SQL
                     && getMigrateACID().isOn()
                     && getMigrateACID().isDowngrade()

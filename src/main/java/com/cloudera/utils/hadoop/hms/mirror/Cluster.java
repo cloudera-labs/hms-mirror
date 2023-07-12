@@ -33,6 +33,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 
 import static com.cloudera.utils.hadoop.hms.mirror.DataStrategy.DUMP;
+import static com.cloudera.utils.hadoop.hms.mirror.DataStrategy.STORAGE_MIGRATION;
 import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.*;
 import static com.cloudera.utils.hadoop.hms.mirror.TablePropertyVars.HMS_STORAGE_MIGRATION_FLAG;
 
@@ -49,6 +50,7 @@ public class Cluster implements Comparable<Cluster> {
 
     private Environment environment = null;
     private Boolean legacyHive = Boolean.TRUE;
+    private Boolean createIfNotExists = Boolean.FALSE;
 
     /*
     HDP Hive 3 and Manage table creation and location methods weren't mature and had a lot of
@@ -116,6 +118,14 @@ public class Cluster implements Comparable<Cluster> {
 
     public void setHdpHive3(Boolean hdpHive3) {
         this.hdpHive3 = hdpHive3;
+    }
+
+    public Boolean getCreateIfNotExists() {
+        return createIfNotExists;
+    }
+
+    public void setCreateIfNotExists(Boolean createIfNotExists) {
+        this.createIfNotExists = createIfNotExists;
     }
 
     public Boolean getEnableAutoTableStats() {
@@ -498,7 +508,8 @@ public class Cluster implements Comparable<Cluster> {
                         metastore_direct connection to do so. Trying to load this through the standard Hive SQL process
                         is 'extremely' slow.
                          */
-                        if (config.getEvaluatePartitionLocation()) {
+                        if (config.getEvaluatePartitionLocation() ||
+                                (config.getDataStrategy() == STORAGE_MIGRATION && config.getTransfer().getStorageMigration().isDistcp())) {
                             loadTablePartitionMetadataDirect(database, et);
                         } else {
                             loadTablePartitionMetadata(conn, database, et);
@@ -885,6 +896,26 @@ public class Cluster implements Comparable<Cluster> {
     }
 
     protected void loadTableStats(EnvironmentTable envTable) throws SQLException {
+        // We should have option to skip this.  Some FS don't support it efficiently.
+        if (Context.getInstance().getConfig().getOptimization().getSkipStatsCollection()) {
+            LOG.info(getEnvironment() + ":" + envTable.getName() + ": Skipping Stats Collection.");
+            return;
+        }
+        switch (Context.getInstance().getConfig().getDataStrategy()) {
+            case DUMP:
+            case SCHEMA_ONLY:
+                // We don't need stats for these.
+                return;
+            case STORAGE_MIGRATION:
+                if (Context.getInstance().getConfig().getTransfer().getStorageMigration().isDistcp()) {
+                    // We don't need stats for this.
+                    return;
+                }
+                break;
+            default:
+                break;
+        }
+
         // Determine File sizes in table or partitions.
         /*
         - Get Base location for table

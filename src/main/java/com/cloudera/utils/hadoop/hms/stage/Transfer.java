@@ -26,6 +26,7 @@ import org.apache.log4j.Logger;
 
 import java.text.MessageFormat;
 import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -149,7 +150,7 @@ public class Transfer implements Callable<ReturnStatus> {
                         config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
                                 isLoc,
                                 fnlLoc);
-                    } else if (config.getTransfer().getCommonStorage() != null) {
+                    } else if (config.getTransfer().getCommonStorage() != null && config.getDataStrategy() != DataStrategy.STORAGE_MIGRATION) {
                         // LEFT PUSH COMMON
                         String origLoc = TableUtils.isACID(let) ?
                                 TableUtils.getLocation(let.getName(), tet.getDefinition()) :
@@ -354,105 +355,135 @@ public class Transfer implements Callable<ReturnStatus> {
 
     protected Boolean doStorageMigrationTransfer() {
         Boolean rtn = Boolean.FALSE;
+        EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
 
-        rtn = tblMirror.buildoutSTORAGEMIGRATIONDefinition(config, dbMirror);
-        if (rtn)
-            rtn = tblMirror.buildoutSTORAGEMIGRATIONSql(config, dbMirror);
+        /*
+        If using distcp, we don't need to go through and rename/recreate the tables.  We just need to change the
+        location of the current tables and partitions.
+         */
+        if (config.getTransfer().getStorageMigration().isDistcp()) {
 
-        if (rtn && !config.getTransfer().getStorageMigration().isDistcp()) {
-            EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
-            EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
+            String database = dbMirror.getName();
+            String useDb = MessageFormat.format(MirrorConf.USE, database);
 
-            // Construct Transfer SQL
-            if (config.getCluster(Environment.LEFT).getLegacyHive()) {
-                // We need to ensure that 'tez' is the execution engine.
-                let.addSql(new Pair(TEZ_EXECUTION_DESC, SET_TEZ_AS_EXECUTION_ENGINE));
-            }
-            // Set Override Properties.
-            if (config.getOptimization().getOverrides() != null) {
-                for (String key: config.getOptimization().getOverrides().getLeft().keySet()) {
-                    let.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
-                }
-            }
+            let.addSql(TableUtils.USE_DESC, useDb);
 
-            // TODO: Need to set this for SQL DataStrategy too..
-            StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), let, let);
+            String origLocation = TableUtils.getLocation(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT));
+            String newLocation = Context.getInstance().getConfig().getTranslator().
+                    translateTableLocation(tblMirror, origLocation, Context.getInstance().getConfig());
 
-            // Need to see if the table has partitions.
+            // Build Alter Statement for Table to change location.
+            String alterTable = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, tblMirror.getEnvironmentTable(Environment.LEFT).getName(), newLocation);
+            Pair alterTablePair = new Pair(MirrorConf.ALTER_TABLE_LOCATION_DESC, alterTable);
+            let.addSql(alterTablePair);
+
+            // Build Alter Statement for Partitions to change location.
             if (let.getPartitioned()) {
-                // Check that the partition count doesn't exceed the configuration limit.
-                // Build Partition Elements.
-                if (config.getOptimization().getSkip()) {
-                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
-                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
-                    }
-                    String partElement = TableUtils.getPartitionElements(let);
-                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
-                            let.getName(), ret.getName(), partElement);
-                    String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
-                    let.addSql(new Pair(transferDesc, transferSql));
-                } else if (config.getOptimization().getSortDynamicPartitionInserts()) {
-                    // Declarative
-                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
-                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
-                        if (!config.getCluster(Environment.LEFT).getHdpHive3()) {
-                            let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
-                        }
-                    }
-                    String partElement = TableUtils.getPartitionElements(let);
-                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
-                            let.getName(), ret.getName(), partElement);
-                    String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
-                    let.addSql(new Pair(transferDesc, transferSql));
-                } else{
-                    // Prescriptive
-                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
-                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
-                        if (!config.getCluster(Environment.LEFT).getHdpHive3()) {
-                            let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
-                        }
-                    }
-                    String transferSql = null;
-                    String partElement = TableUtils.getPartitionElements(let);
-                    String distPartElemant = null;
-                    if (Context.getInstance().getConfig().getOptimization().getAutoTune()) {
-                        distPartElemant = StatsCalculator.getAdditionalPartitionDistribution(let);
-                    } else {
-                        distPartElemant = TableUtils.getPartitionElements(let);
-                    }
-                    transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
-                            let.getName(), ret.getName(), partElement, distPartElemant);
-                    String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
-                    let.addSql(new Pair(transferDesc, transferSql));
+                // Loop through partitions in let.getPartitions and build alter statements.
+                for (Map.Entry<String, String> entry: let.getPartitions().entrySet()) {
+                    String partSpec = entry.getKey();
+                    // Translate to 'partition spec'.
+                    partSpec = TableUtils.toPartitionSpec(partSpec);
+                    String partLocation = entry.getValue();
+                    String newPartLocation = Context.getInstance().getConfig().getTranslator().
+                            translateTableLocation(tblMirror, partLocation, Context.getInstance().getConfig());
+                    String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_LOCATION, let.getName(), partSpec, newPartLocation);
+                    String partSpecDesc = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_LOCATION_DESC, partSpec);
+                    let.addSql(partSpecDesc, addPartSql);
                 }
-                if (TableUtils.isACID(let)) {
-                    if (let.getPartitions().size() > config.getMigrateACID().getPartitionLimit() && config.getMigrateACID().getPartitionLimit() > 0) {
-                        // The partition limit has been exceeded.  The process will need to be done manually.
-                        let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
-                                "limit (migrateACID->partitionLimit) of " + config.getMigrateACID().getPartitionLimit() +
-                                ".  This value is used to abort migrations that have a high potential for failure.  " +
-                                "The migration will need to be done manually OR try increasing the limit. Review commandline option '-ap'.");
-                        rtn = Boolean.FALSE;
+            }
+            rtn = Boolean.TRUE;
+        } else {
+            rtn = tblMirror.buildoutSTORAGEMIGRATIONDefinition(config, dbMirror);
+            if (rtn)
+                rtn = tblMirror.buildoutSTORAGEMIGRATIONSql(config, dbMirror);
+
+            if (rtn) {
+                // Construct Transfer SQL
+                if (config.getCluster(Environment.LEFT).getLegacyHive()) {
+                    // We need to ensure that 'tez' is the execution engine.
+                    let.addSql(new Pair(TEZ_EXECUTION_DESC, SET_TEZ_AS_EXECUTION_ENGINE));
+                }
+                // Set Override Properties.
+                if (config.getOptimization().getOverrides() != null) {
+                    for (String key : config.getOptimization().getOverrides().getLeft().keySet()) {
+                        let.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
+                    }
+                }
+
+                StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), let, let);
+
+                // Need to see if the table has partitions.
+                if (let.getPartitioned()) {
+                    // Check that the partition count doesn't exceed the configuration limit.
+                    // Build Partition Elements.
+                    if (config.getOptimization().getSkip()) {
+                        if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                            let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
+                        }
+                        String partElement = TableUtils.getPartitionElements(let);
+                        String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
+                                let.getName(), ret.getName(), partElement);
+                        String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
+                        let.addSql(new Pair(transferDesc, transferSql));
+                    } else if (config.getOptimization().getSortDynamicPartitionInserts()) {
+                        // Declarative
+                        if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                            let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
+                            if (!config.getCluster(Environment.LEFT).getHdpHive3()) {
+                                let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                            }
+                        }
+                        String partElement = TableUtils.getPartitionElements(let);
+                        String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
+                                let.getName(), ret.getName(), partElement);
+                        String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
+                        let.addSql(new Pair(transferDesc, transferSql));
+                    } else {
+                        // Prescriptive
+                        if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                            let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
+                            if (!config.getCluster(Environment.LEFT).getHdpHive3()) {
+                                let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                            }
+                        }
+                        String partElement = TableUtils.getPartitionElements(let);
+                        String distPartElement = StatsCalculator.getDistributedPartitionElements(let);;
+                        String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
+                                let.getName(), ret.getName(), partElement, distPartElement);
+                        String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
+                        let.addSql(new Pair(transferDesc, transferSql));
+                    }
+                    if (TableUtils.isACID(let)) {
+                        if (let.getPartitions().size() > config.getMigrateACID().getPartitionLimit() && config.getMigrateACID().getPartitionLimit() > 0) {
+                            // The partition limit has been exceeded.  The process will need to be done manually.
+                            let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
+                                    "limit (migrateACID->partitionLimit) of " + config.getMigrateACID().getPartitionLimit() +
+                                    ".  This value is used to abort migrations that have a high potential for failure.  " +
+                                    "The migration will need to be done manually OR try increasing the limit. Review commandline option '-ap'.");
+                            rtn = Boolean.FALSE;
+                        }
+                    } else {
+                        if (let.getPartitions().size() > config.getHybrid().getSqlPartitionLimit() && config.getHybrid().getSqlPartitionLimit() > 0) {
+                            // The partition limit has been exceeded.  The process will need to be done manually.
+                            let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
+                                    "limit (hybrid->sqlPartitionLimit) of " + config.getHybrid().getSqlPartitionLimit() +
+                                    ".  This value is used to abort migrations that have a high potential for failure.  " +
+                                    "The migration will need to be done manually OR try increasing the limit. Review commandline option '-sp'.");
+                            rtn = Boolean.FALSE;
+                        }
                     }
                 } else {
-                    if (let.getPartitions().size() > config.getHybrid().getSqlPartitionLimit() && config.getHybrid().getSqlPartitionLimit() > 0) {
-                        // The partition limit has been exceeded.  The process will need to be done manually.
-                        let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
-                                "limit (hybrid->sqlPartitionLimit) of " + config.getHybrid().getSqlPartitionLimit() +
-                                ".  This value is used to abort migrations that have a high potential for failure.  " +
-                                "The migration will need to be done manually OR try increasing the limit. Review commandline option '-sp'.");
-                        rtn = Boolean.FALSE;
-                    }
+                    // No Partitions
+                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_OVERWRITE, let.getName(), ret.getName());
+                    let.addSql(new Pair(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, transferSql));
                 }
-            } else {
-                // No Partitions
-                String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_OVERWRITE, let.getName(), ret.getName());
-                let.addSql(new Pair(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, transferSql));
             }
-            if (rtn) {
-                // Run the Transfer Scripts
-                rtn = config.getCluster(Environment.LEFT).runTableSql(let.getSql(), tblMirror, Environment.LEFT);
-            }
+        }
+        if (rtn) {
+            // Run the Transfer Scripts
+            rtn = config.getCluster(Environment.LEFT).runTableSql(let.getSql(), tblMirror, Environment.LEFT);
         }
         return rtn;
     }
