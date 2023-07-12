@@ -885,7 +885,8 @@ public class Mirror {
         return rtn;
     }
 
-    public void doit() {
+    public int doit() {
+        int rtn = 0;
         conversion = new Conversion(config);
 
         // Setup and Start the State Maintenance Routine
@@ -1142,6 +1143,11 @@ public class Mirror {
                     FileWriter dbYamlFileWriter = new FileWriter(dbYamlFile);
 
                     DBMirror yamlDb = conversion.getDatabase(database);
+                    Map<PhaseState, Integer> phaseSummaryMap = yamlDb.getPhaseSummary();
+                    if (phaseSummaryMap.containsKey(PhaseState.ERROR)) {
+                        Integer errCount = phaseSummaryMap.get(PhaseState.ERROR);
+                        rtn += errCount;
+                    }
 
                     String dbYamlStr = mapper.writeValueAsString(yamlDb);
                     try {
@@ -1249,6 +1255,7 @@ public class Mirror {
                 decf.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
         reporter.refresh(Boolean.TRUE);
         reporter.stop();
+        return rtn;
     }
 
     public Conversion runTransfer(Conversion conversion) {
@@ -1884,7 +1891,7 @@ public class Mirror {
             returnCode = init(args);
             try {
                 if (returnCode == 0)
-                    doit();
+                    returnCode = doit();
             } catch (RuntimeException rte) {
                 System.out.println(rte.getMessage());
                 rte.printStackTrace();

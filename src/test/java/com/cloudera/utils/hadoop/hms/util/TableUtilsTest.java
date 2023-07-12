@@ -95,7 +95,7 @@ public class TableUtilsTest {
 
     @Test
     public void isACID() {
-        EnvironmentTable envTable = new EnvironmentTable();
+        EnvironmentTable envTable = new EnvironmentTable(null);
         envTable.setName("check_table");
         envTable.setDefinition(table_03);
         assertTrue(TableUtils.isACID(envTable));
@@ -103,7 +103,7 @@ public class TableUtilsTest {
 
     @Test
     public void isExternal() {
-        EnvironmentTable envTable = new EnvironmentTable();
+        EnvironmentTable envTable = new EnvironmentTable(null);
         envTable.setName("check_table");
         envTable.setDefinition(table_02);
         assertFalse(TableUtils.isExternal(envTable));
@@ -111,7 +111,7 @@ public class TableUtilsTest {
 
     @Test
     public void isExternalPurge() {
-        EnvironmentTable envTable = new EnvironmentTable();
+        EnvironmentTable envTable = new EnvironmentTable(null);
         envTable.setName("check_table");
         envTable.setDefinition(table_04);
         assertTrue(TableUtils.isExternalPurge(envTable));
@@ -119,7 +119,7 @@ public class TableUtilsTest {
 
     @Test
     public void isHMSConverted() {
-        EnvironmentTable envTable = new EnvironmentTable();
+        EnvironmentTable envTable = new EnvironmentTable(null);
         envTable.setName("check_table");
         envTable.setDefinition(table_01);
         assertTrue(TableUtils.isHMSConverted(envTable));
@@ -127,7 +127,7 @@ public class TableUtilsTest {
 
     @Test
     public void isHive3Standard() {
-        EnvironmentTable envTable = new EnvironmentTable();
+        EnvironmentTable envTable = new EnvironmentTable(null);
         envTable.setName("check_table");
         envTable.setDefinition(table_02);
         assertFalse(TableUtils.isHive3Standard(envTable));
@@ -140,7 +140,7 @@ public class TableUtilsTest {
 
     @Test
     public void isManaged() {
-        EnvironmentTable envTable = new EnvironmentTable();
+        EnvironmentTable envTable = new EnvironmentTable(null);
         envTable.setName("check_table");
         envTable.setDefinition(table_02);
 

@@ -60,7 +60,7 @@ public class StatsCalculatorTest extends TestCase {
                 , "  'transient_lastDdlTime'='1685711419')            "
         };
         table_01.addAll(Arrays.asList(strTable_01));
-        environmentTable = new EnvironmentTable();
+        environmentTable = new EnvironmentTable(null);
         environmentTable.setDefinition(table_01);
         Map<String,String> partitions = new HashMap<String,String>();
         // 15000 partitions
@@ -102,7 +102,7 @@ public class StatsCalculatorTest extends TestCase {
     }
 
     public void testSetSessionOptions() {
-        EnvironmentTable applyEnv = new EnvironmentTable();
+        EnvironmentTable applyEnv = new EnvironmentTable(null);
         Cluster cluster = new Cluster();
         cluster.setEnableAutoColumnStats(Boolean.TRUE);
         cluster.setEnableAutoTableStats(Boolean.TRUE);

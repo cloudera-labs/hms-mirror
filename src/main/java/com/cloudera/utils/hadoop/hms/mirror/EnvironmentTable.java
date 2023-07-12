@@ -39,6 +39,12 @@ public class EnvironmentTable {
     private final List<Pair> sql = new ArrayList<Pair>();
     private final List<Pair> cleanUpsql = new ArrayList<Pair>();
 
+    private TableMirror parent = null;
+
+    public EnvironmentTable(TableMirror parent) {
+        this.parent = parent;
+    }
+
     public String getName() {
         return name;
     }
@@ -154,6 +160,7 @@ public class EnvironmentTable {
 
     public void addSql(Pair sqlPair) {
         getSql().add(sqlPair);
+        parent.incTotalPhaseCount();
     }
 
     public void addSql(String desc, String sql) {

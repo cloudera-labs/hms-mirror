@@ -2,7 +2,7 @@
 
 The "STORAGE_MIGRATION" data strategy is intended for migrating data stored on one Filesystem to another while maintaining the same metadata presentation to the user.
 
-The primary use case design is to migrate **Hive** data from _HDFS_ to _Ozone_.  Other possibilities for this strategy include migrating **Hive** data from _HDFS_ to _Cloud Storage_.
+The primary use case design is to migrate **Hive** data from _HDFS_ to _Ozone_.  Other possibilities for this strategy include migrating **Hive** data from _HDFS_ to _Cloud Storage_ or from a non-encrypted _HDFS_ to an encrypted _HDFS_ zone.
 
 This strategy applies **ONLY** to the LEFT cluster defined in the _configuration_.  If the target cluster is defined as the RIGHT cluster, use the `-f|--flip` option at the command line to promote the RIGHT cluster to the LEFT when you launch.
 
@@ -76,7 +76,7 @@ Downgrading ACID tables will convert them into **EXTERNAL/PURGE** tables, and th
 
 When `-dc|--distcp` is requested, `hms-mirror` will build a `distcp` plan in the report output directory with details to support the requested transfers.  The `distcp` commands are normally run from the LEFT cluster and will require visibility, configuration, and permissions to the target location.  So if the target location is storage in the Cloud, ensure that the LEFT cluster has been configured with the appropriate storage libraries and has the required 'keys' and/or 'shared' secrets required to connect.  If you can not access the target storage area with `hdfs dfs` commands on the LEFT cluster, then the `distcp` command will fail too.
 
-Since `distcp` doesn't convert any files, it just migrates them as is, the option can NOT be used to migrate ACID tables.
+Since `distcp` doesn't convert any files, it just migrates them as is, the option when used with **ACID** tables will build SQL ALTER statements that change the current table/partition locations.
 
 The option also requires the `distcp` actions to take place BEFORE the target locations are created on the target Filesystem.  If the schemas are converted before the data is migrated, the tables will be empty.  Hence, the actions need to be performed manually and the `-e|--execute` option isn't supported.
 

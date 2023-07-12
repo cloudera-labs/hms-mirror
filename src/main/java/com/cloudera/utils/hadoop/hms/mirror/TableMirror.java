@@ -31,6 +31,7 @@ import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION;
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION_THRESHOLD;
@@ -64,9 +65,9 @@ public class TableMirror {
     private DataStrategy strategy = null;
 
     // An ordinal value that we'll increment at each phase of the process
-    private int currentPhase = 0;
+    private AtomicInteger currentPhase = new AtomicInteger(0);
     // An ordinal value, assign when we start processing, that indicates how many phase there will be.
-    private int totalPhaseCount = 0;
+    private AtomicInteger totalPhaseCount = new AtomicInteger(0);
 
     // Caption to help identify the current phase of the effort.
     @JsonIgnore
@@ -167,19 +168,26 @@ public class TableMirror {
     }
 
     public void incPhase() {
-        currentPhase += 1;
-        if (currentPhase >= totalPhaseCount) {
-            totalPhaseCount = currentPhase + 1;
+        currentPhase.getAndIncrement();
+        if (currentPhase.get() >= totalPhaseCount.get()) {
+            totalPhaseCount.set(currentPhase.get() + 1);
         }
+    }
+
+    public void incTotalPhaseCount() {
+        totalPhaseCount.getAndIncrement();
     }
 
     public Map<Environment, EnvironmentTable> getEnvironments() {
         return environments;
     }
 
-    public String getProgressIndicator(int width, int scale) {
+    public String getProgressIndicator(int width) {
         StringBuilder sb = new StringBuilder();
-        int progressLength = (width / scale) * currentPhase;
+        int progressLength = Math.floorDiv(Math.multiplyExact(width, currentPhase.get()),totalPhaseCount.get());
+        LOG.info(this.getDbName() + ":" + this.getName() + " CurrentPhase: " + currentPhase.get() +
+                " -> TotalPhaseCount: " + totalPhaseCount.get());
+        LOG.info(this.getDbName() + ":" + this.getName() + " Progress: " + progressLength + " of " + width);
         sb.append("\u001B[32m");
         sb.append(StringUtils.rightPad("=", progressLength - 1, "="));
         sb.append("\u001B[33m");
@@ -225,7 +233,7 @@ public class TableMirror {
     public EnvironmentTable getEnvironmentTable(Environment environment) {
         EnvironmentTable et = environments.get(environment);
         if (et == null) {
-            et = new EnvironmentTable();
+            et = new EnvironmentTable(this);
             environments.put(environment, et);
         }
         return et;

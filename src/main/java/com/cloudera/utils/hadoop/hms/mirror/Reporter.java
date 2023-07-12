@@ -208,7 +208,7 @@ public class Reporter implements Runnable {
                 Map<String, String> tblVars = new TreeMap<String, String>();
                 tblVars.put("db.name", tblMirror.getDbName());
                 tblVars.put("tbl.name", tblMirror.getName());
-                tblVars.put("tbl.progress", tblMirror.getProgressIndicator(80, 10));
+                tblVars.put("tbl.progress", tblMirror.getProgressIndicator(80));
                 tblVars.put("tbl.msg", tblMirror.getMigrationStageMessage());
                 tblVars.put("tbl.strategy", tblMirror.getStrategy().toString());
                 report.append(ReportingConf.substituteAllVariables(reportTemplateTableDetail, tblVars));
