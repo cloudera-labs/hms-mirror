@@ -98,7 +98,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Storage Migration](#storage-migration)
 - [Troubleshooting / Issues](#troubleshooting--issues)
   * [Application won't start `NoClassDefFoundError`](#application-wont-start-noclassdeffounderror)
-  * [CDP Hive Standalone Driver for CDP 7.1.8 won't connect](#cdp-hive-standalone-driver-for-cdp-718-wont-connect)
+  * [CDP Hive Standalone Driver for CDP 7.1.8 CHF x (Cummulative Hot Fix) won't connect](#cdp-hive-standalone-driver-for-cdp-718-chf-x-cummulative-hot-fix-wont-connect)
   * [Failed AVRO Table Creation](#failed-avro-table-creation)
   * [Table processing completed with `ERROR.`](#table-processing-completed-with-error)
   * [Connecting to HS2 via Kerberos](#connecting-to-hs2-via-kerberos)
