@@ -1662,11 +1662,34 @@ java/sql/Driver at java.base/java.lang.ClassLoader.defineClass1
 
 Please use Java 8 to run `hms-mirror`.
 
-### CDP Hive Standalone Driver for CDP 7.1.8 won't connect
+### CDP Hive Standalone Driver for CDP 7.1.8 CHF x (Cummulative Hot Fix) won't connect
 
-If you are attempting to connect to a CDP 7.1.8 clusters Hive Server 2 with the CDP Hive Standalone Driver identified in the clusters `jarFile` property, you may not be able to connect. This is due to a bug in the driver.  The workaround is to use the a Standalone driver from CDP 7.1.7 instead.
+If you are attempting to connect to a CDP 7.1.8 clusters Hive Server 2 with the CDP Hive Standalone Driver identified in the clusters `jarFile` property, you may not be able to connect. A security item addressed in these drivers changed the required classes.
 
-[Issue #47](https://github.com/cloudera-labs/hms-mirror/issues/47)
+If you see:
+
+```
+java.lang.RuntimeException: java.lang.RuntimeException: java.lang.NoClassDefFoundError: org/apache/log4j/Level
+```
+
+You will need to include additional jars in the `jarFile` property.  The following jars are required:
+
+```
+log4j-1.2-api-2.18.0.ja
+log4j-api-2.18.0.jar
+log4j-core-2.18.0.jar
+```
+
+The feature enhancement that allows multiple jars to be specified in the `jarFile` property is available in `hms-mirror` 1.6.0.0 and later. See [Issue #47](https://github.com/cloudera-labs/hms-mirror/issues/67)
+
+#### Solution
+
+Using `hms-mirror` v1.6.0.0 or later, specify the additional jars in the `jarFile` property. For example:
+`jarFile: "<absolute_path_to>/hive-jdbc-3.1.3000.7.1.8.28-1-standalone.jar:<absolute_path_to>/log4j-1.2-api-2.18.0.jar:<absolute_path_to>/log4j-api-2.18.0.jar:<absolute_path_to>/log4j-core-2.18.0.jar"`
+
+These jar files can be found on the CDP edge node in `/opt/cloudera/parcels/CDH/jars/`.
+
+Ensure that the standalone driver is list 'FIRST' in the `jarFile` property.
 
 ### Failed AVRO Table Creation
 
