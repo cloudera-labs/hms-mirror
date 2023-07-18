@@ -125,7 +125,8 @@ public enum DataStrategy {
     /*
     ACID Transfer is a hidden strategy applied to the table.
      */
-    ACID(Boolean.TRUE);
+    ACID(Boolean.TRUE),
+    ICEBERG_CONVERSION(Boolean.FALSE);
 
     private final boolean hidden;
 
