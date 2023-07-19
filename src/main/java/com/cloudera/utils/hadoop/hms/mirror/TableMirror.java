@@ -1511,7 +1511,7 @@ public class TableMirror {
         }
 
         String sourceLocation = TableUtils.getLocation(let.getName(), let.getDefinition());
-        String targetLocation = config.getTranslator().translateTableLocation(this, sourceLocation, config);
+        String targetLocation = config.getTranslator().translateTableLocation(this, sourceLocation, 1);
         String importSql;
         if (TableUtils.isACID(let)) {
             if (!config.getMigrateACID().isDowngrade()) {
@@ -1942,7 +1942,7 @@ public class TableMirror {
                         if (copySpec.getReplaceLocation() && (!TableUtils.isACID(source) || config.getMigrateACID().isDowngrade())) {
                             String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
                             String targetLocation = copySpec.getConfig().getTranslator().
-                                    translateTableLocation(this, sourceLocation, copySpec.getConfig());
+                                    translateTableLocation(this, sourceLocation, 1);
                             TableUtils.updateTableLocation(target, targetLocation);
                         }
 //                        if (copySpec.getStripLocation()) {
@@ -1975,7 +1975,7 @@ public class TableMirror {
                             } else if (config.getTransfer().getCommonStorage() != null) {
                                 String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
                                 String targetLocation = copySpec.getConfig().getTranslator().
-                                        translateTableLocation(this, sourceLocation, copySpec.getConfig());
+                                        translateTableLocation(this, sourceLocation, 1);
                                 TableUtils.updateTableLocation(target, targetLocation);
                             } else if (copySpec.getStripLocation()) {
                                 TableUtils.stripLocation(target);

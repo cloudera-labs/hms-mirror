@@ -325,12 +325,13 @@ public class Translator {
 
     }
 
-    public String translateTableLocation(TableMirror tableMirror, String originalLocation, Config config) {
+    public String translateTableLocation(TableMirror tableMirror, String originalLocation, int level) {
         String rtn = originalLocation;
         StringBuilder dirBuilder = new StringBuilder();
         String tableName = tableMirror.getName();
         String dbName = tableMirror.getResolvedDbName();
-        ;
+
+        Config config = Context.getInstance().getConfig();
 
         String leftNS = config.getCluster(Environment.LEFT).getHcfsNamespace();
         // Set base on rightNS or Common Storage, if specified
@@ -470,26 +471,24 @@ public class Translator {
         // TODO: Need to handle RIGHT locations.
         if (config.getTransfer().getStorageMigration().isDistcp() && config.getDataStrategy() != DataStrategy.SQL) {
             if (config.getTransfer().getStorageMigration().getDataFlow() == DistcpFlow.PULL && !config.isFlip()) {
-                addLocation(dbName, Environment.RIGHT, originalLocation, dirBuilder.toString().trim());
+                addLocation(dbName, Environment.RIGHT, originalLocation, dirBuilder.toString().trim(), level);
             } else {
-                addLocation(dbName, Environment.LEFT, originalLocation, dirBuilder.toString().trim());
+                addLocation(dbName, Environment.LEFT, originalLocation, dirBuilder.toString().trim(), level);
             }
         }
 
         return dirBuilder.toString().trim();
     }
 
-    public void addLocation(String database, Environment environment, String originalLocation, String newLocation) {
-        getDbLocationMap(database, environment).put(originalLocation, newLocation);
+    public void addLocation(String database, Environment environment, String originalLocation, String newLocation, int level) {
+        EnvironmentMap environmentMap = dbLocationMap.computeIfAbsent(database, k -> new EnvironmentMap());
+        environmentMap.addTranslationLocation(environment, originalLocation, newLocation, level);
+//        getDbLocationMap(database, environment).put(originalLocation, newLocation);
     }
 
-    private synchronized Map<String, String> getDbLocationMap(String database, Environment environment) {
-        EnvironmentMap envMap = dbLocationMap.get(database);
-        if (envMap == null) {
-            envMap = new EnvironmentMap(database);
-            dbLocationMap.put(database, envMap);
-        }
-        return envMap.getLocationMap(environment);
+    private synchronized Set<EnvironmentMap.TranslationLevel> getDbLocationMap(String database, Environment environment) {
+        EnvironmentMap envMap = dbLocationMap.computeIfAbsent(database, k -> new EnvironmentMap());
+        return envMap.getTranslationSet(environment);
     }
 
     /**
@@ -508,8 +507,15 @@ public class Translator {
 //        for (String database: databases) {
         // get the map.entry
         Map<String, Set<String>> reverseMap = new TreeMap<String, Set<String>>();
-        Map<String, String> dbMap = getDbLocationMap(database, environment);//dbLocationMap.get(database);
-        for (Map.Entry<String, String> entry : dbMap.entrySet()) {
+        Set<EnvironmentMap.TranslationLevel> dbTranslationLevel = getDbLocationMap(database, environment);
+
+        Map<String, String> dbLocationMap = new TreeMap<>();
+
+        for (EnvironmentMap.TranslationLevel translationLevel: dbTranslationLevel) {
+            dbLocationMap.put(translationLevel.getAdjustedOriginal(), translationLevel.getAdjustedTarget());
+        }
+
+        for (Map.Entry<String, String> entry: dbLocationMap.entrySet()) {
             // reduce folder level by 'consolidationLevel' for key and value.
             // Source
             String reducedSource = Translator.reduceUrlBy(entry.getKey(), consolidationLevel);

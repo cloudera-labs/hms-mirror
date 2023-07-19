@@ -21,6 +21,7 @@ import com.cloudera.utils.hadoop.hms.mirror.*;
 import com.cloudera.utils.hadoop.HadoopSession;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -128,7 +129,7 @@ public class Transfer implements Callable<ReturnStatus> {
 
                         config.getTranslator().addLocation(dbMirror.getName(), Environment.LEFT,
                                 TableUtils.getLocation(tblMirror.getName(), let.getDefinition()),
-                                isLoc);
+                                isLoc, 1);
                         // RIGHT PULL from INTERMEDIATE
                         String fnlLoc = null;
                         if (set.getDefinition().size() > 0) {
@@ -149,7 +150,7 @@ public class Transfer implements Callable<ReturnStatus> {
                         }
                         config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
                                 isLoc,
-                                fnlLoc);
+                                fnlLoc, 1);
                     } else if (config.getTransfer().getCommonStorage() != null && config.getDataStrategy() != DataStrategy.STORAGE_MIGRATION) {
                         // LEFT PUSH COMMON
                         String origLoc = TableUtils.isACID(let) ?
@@ -173,7 +174,7 @@ public class Transfer implements Callable<ReturnStatus> {
                             newLoc = sbDir.toString();
                         }
                         config.getTranslator().addLocation(dbMirror.getName(), Environment.LEFT,
-                                origLoc, newLoc);
+                                origLoc, newLoc,1);
                     } else {
                         // RIGHT PULL
                         if (TableUtils.isACID(let) && !config.getMigrateACID().isDowngrade()) {
@@ -194,7 +195,7 @@ public class Transfer implements Callable<ReturnStatus> {
                             }
                             config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
                                     TableUtils.getLocation(tblMirror.getName(), tet.getDefinition()),
-                                    rLoc);
+                                    rLoc,1);
                         } else {
                             String rLoc = TableUtils.getLocation(tblMirror.getName(), ret.getDefinition());
                             if (rLoc == null && config.getResetToDefaultLocation()) {
@@ -210,7 +211,7 @@ public class Transfer implements Callable<ReturnStatus> {
                             }
                             config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
                                     TableUtils.getLocation(tblMirror.getName(), let.getDefinition())
-                                    , rLoc);
+                                    , rLoc,1);
                         }
                     }
                 }
@@ -371,7 +372,7 @@ public class Transfer implements Callable<ReturnStatus> {
 
             String origLocation = TableUtils.getLocation(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT));
             String newLocation = Context.getInstance().getConfig().getTranslator().
-                    translateTableLocation(tblMirror, origLocation, Context.getInstance().getConfig());
+                    translateTableLocation(tblMirror, origLocation, 1);
 
             // Build Alter Statement for Table to change location.
             String alterTable = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, tblMirror.getEnvironmentTable(Environment.LEFT).getName(), newLocation);
@@ -383,11 +384,12 @@ public class Transfer implements Callable<ReturnStatus> {
                 // Loop through partitions in let.getPartitions and build alter statements.
                 for (Map.Entry<String, String> entry: let.getPartitions().entrySet()) {
                     String partSpec = entry.getKey();
+                    int level = StringUtils.countMatches(partSpec, "/");
                     // Translate to 'partition spec'.
                     partSpec = TableUtils.toPartitionSpec(partSpec);
                     String partLocation = entry.getValue();
                     String newPartLocation = Context.getInstance().getConfig().getTranslator().
-                            translateTableLocation(tblMirror, partLocation, Context.getInstance().getConfig());
+                            translateTableLocation(tblMirror, partLocation, level++);
                     String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_LOCATION, let.getName(), partSpec, newPartLocation);
                     String partSpecDesc = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_LOCATION_DESC, partSpec);
                     let.addSql(partSpecDesc, addPartSql);
@@ -688,7 +690,7 @@ public class Transfer implements Callable<ReturnStatus> {
                     // - LOCATION
                     String sourceLocation = TableUtils.getLocation(ret.getName(), ret.getDefinition());
                     String targetLocation = config.getTranslator().
-                            translateTableLocation(tblMirror, sourceLocation, config);
+                            translateTableLocation(tblMirror, sourceLocation, 1);
                     String alterLocSql = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, ret.getName(), targetLocation);
                     ret.addSql(MirrorConf.ALTER_TABLE_LOCATION_DESC, alterLocSql);
                     // TableUtils.updateTableLocation(ret, targetLocation)
