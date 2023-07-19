@@ -28,7 +28,7 @@ import java.util.regex.Matcher;
 
 import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.NOT_SET;
 
-@JsonIgnoreProperties({"on", "dbLocationMap", "distcpCompatible"})
+@JsonIgnoreProperties({"dbLocationMap"})
 public class Translator {
     private static final Logger LOG = LogManager.getLogger(Translator.class);
 
@@ -40,8 +40,8 @@ public class Translator {
     /**
      * Flag that turns functionality on.
      */
-    @JsonIgnore
-    private Boolean on = Boolean.FALSE;
+//    @JsonIgnore
+//    private Boolean on = Boolean.FALSE;
 
     @JsonIgnore
     private final Map<String, EnvironmentMap> dbLocationMap = new TreeMap<String, EnvironmentMap>();
@@ -56,11 +56,11 @@ public class Translator {
      * <p>
      * When enabled, a sourcelist of directories for a target directory is created.
      */
-    @JsonIgnore
-    private Boolean distcpCompatible = Boolean.TRUE; // default TRUE
-
-    @JsonIgnore
-    private Map<String, TranslationDatabase> databases;
+//    @JsonIgnore
+//    private Boolean distcpCompatible = Boolean.TRUE; // default TRUE
+//
+//    @JsonIgnore
+////    private Map<String, TranslationDatabase> databases;
 
     public Boolean getForceExternalLocation() {
         return forceExternalLocation;
@@ -70,29 +70,29 @@ public class Translator {
         this.forceExternalLocation = forceExternalLocation;
     }
 
-    public Boolean isOn() {
-        return on;
-    }
+//    public Boolean isOn() {
+//        return on;
+//    }
+//
+//    public void setOn(Boolean on) {
+//        this.on = on;
+//    }
 
-    public void setOn(Boolean on) {
-        this.on = on;
-    }
+//    public Map<String, TranslationDatabase> getDatabases() {
+//        return databases;
+//    }
+//
+//    public void setDatabases(Map<String, TranslationDatabase> databases) {
+//        this.databases = databases;
+//    }
 
-    public Map<String, TranslationDatabase> getDatabases() {
-        return databases;
-    }
-
-    public void setDatabases(Map<String, TranslationDatabase> databases) {
-        this.databases = databases;
-    }
-
-    public Boolean getDistcpCompatible() {
-        return distcpCompatible;
-    }
-
-    public void setDistcpCompatible(Boolean distcpCompatible) {
-        this.distcpCompatible = distcpCompatible;
-    }
+//    public Boolean getDistcpCompatible() {
+//        return distcpCompatible;
+//    }
+//
+//    public void setDistcpCompatible(Boolean distcpCompatible) {
+//        this.distcpCompatible = distcpCompatible;
+//    }
 
     public Map<String, String> getGlobalLocationMap() {
         if (globalLocationMap == null) {
@@ -119,7 +119,6 @@ public class Translator {
 
     public void setGlobalLocationMap(Map<String, String> globalLocationMap) {
         getGlobalLocationMap().putAll(globalLocationMap);
-//        this.externalLocationMaps = externalLocationMaps;
     }
 
     public void addGlobalLocationMap(String from, String to) {
@@ -128,108 +127,108 @@ public class Translator {
 
     public Boolean validate() {
         Boolean rtn = Boolean.TRUE;
-        for (Map.Entry<String, TranslationDatabase> entry : databases.entrySet()) {
-            TranslationDatabase tdb = entry.getValue();
-            if (tdb.getConsolidateExternal() && tdb.getLocation() == null) {
-                LOG.error("The 'location' must be set when 'consolidateExternal' is 'true' for: " +
-                        entry.getKey());
-                rtn = Boolean.FALSE;
-            }
-            if (tdb.getLocation() != null && !tdb.getLocation().startsWith("/")) {
-                LOG.error("The database 'location' must start with a '/' for: " + entry.getKey());
-                rtn = Boolean.FALSE;
-            }
-            if (tdb.getManagedLocation() != null && !tdb.getManagedLocation().startsWith("/")) {
-                LOG.error("The database 'managedLocation' must start with a '/' for: " + entry.getKey());
-                rtn = Boolean.FALSE;
-            }
-            if (tdb.getLocation() != null && tdb.getLocation().trim().endsWith("/")) {
-                LOG.error("The database 'location' can't end with a '/': " + entry.getKey());
-                rtn = Boolean.FALSE;
-            }
-            if (tdb.getManagedLocation() != null && tdb.getManagedLocation().trim().endsWith("/")) {
-                LOG.error("The database 'managedLocation' can't end with a '/': " + entry.getKey());
-                rtn = Boolean.FALSE;
-            }
-            for (Map.Entry<String, TranslationTable> tblEntry : tdb.getTables().entrySet()) {
-                TranslationTable ttbl = tblEntry.getValue();
-                if (ttbl != null) {
-                    if (ttbl.getLocation() != null && (getDistcpCompatible() || tdb.getConsolidateExternal())) {
-                        // You can't specify a location for the table with 'distcp' because the destination is
-                        // controlled by the sources last folder name.
-                        LOG.error("Table 'location' can't be modified when creating a 'distcp' compatible model OR " +
-                                "attempting to 'consolidateExternal' tables for: " + entry.getKey() + "." + tblEntry.getKey());
-                        rtn = Boolean.FALSE;
-                    } else {
-                        if (ttbl.getLocation() != null && !ttbl.getLocation().startsWith("/")) {
-                            LOG.error("Table 'location' must start with '/' when the translated db is NOT configured for " +
-                                    "'consolidateExternal': " + entry.getKey() + "." + tblEntry.getKey());
-                            rtn = Boolean.FALSE;
-                        }
-                    }
-                }
-            }
-        }
+//        for (Map.Entry<String, TranslationDatabase> entry : databases.entrySet()) {
+//            TranslationDatabase tdb = entry.getValue();
+//            if (tdb.getConsolidateExternal() && tdb.getLocation() == null) {
+//                LOG.error("The 'location' must be set when 'consolidateExternal' is 'true' for: " +
+//                        entry.getKey());
+//                rtn = Boolean.FALSE;
+//            }
+//            if (tdb.getLocation() != null && !tdb.getLocation().startsWith("/")) {
+//                LOG.error("The database 'location' must start with a '/' for: " + entry.getKey());
+//                rtn = Boolean.FALSE;
+//            }
+//            if (tdb.getManagedLocation() != null && !tdb.getManagedLocation().startsWith("/")) {
+//                LOG.error("The database 'managedLocation' must start with a '/' for: " + entry.getKey());
+//                rtn = Boolean.FALSE;
+//            }
+//            if (tdb.getLocation() != null && tdb.getLocation().trim().endsWith("/")) {
+//                LOG.error("The database 'location' can't end with a '/': " + entry.getKey());
+//                rtn = Boolean.FALSE;
+//            }
+//            if (tdb.getManagedLocation() != null && tdb.getManagedLocation().trim().endsWith("/")) {
+//                LOG.error("The database 'managedLocation' can't end with a '/': " + entry.getKey());
+//                rtn = Boolean.FALSE;
+//            }
+//            for (Map.Entry<String, TranslationTable> tblEntry : tdb.getTables().entrySet()) {
+//                TranslationTable ttbl = tblEntry.getValue();
+//                if (ttbl != null) {
+//                    if (ttbl.getLocation() != null && (getDistcpCompatible() || tdb.getConsolidateExternal())) {
+//                        // You can't specify a location for the table with 'distcp' because the destination is
+//                        // controlled by the sources last folder name.
+//                        LOG.error("Table 'location' can't be modified when creating a 'distcp' compatible model OR " +
+//                                "attempting to 'consolidateExternal' tables for: " + entry.getKey() + "." + tblEntry.getKey());
+//                        rtn = Boolean.FALSE;
+//                    } else {
+//                        if (ttbl.getLocation() != null && !ttbl.getLocation().startsWith("/")) {
+//                            LOG.error("Table 'location' must start with '/' when the translated db is NOT configured for " +
+//                                    "'consolidateExternal': " + entry.getKey() + "." + tblEntry.getKey());
+//                            rtn = Boolean.FALSE;
+//                        }
+//                    }
+//                }
+//            }
+//        }
         return rtn;
     }
 
-    public String translateDatabase(String database) {
-        String rtn = database;
-        if (isOn()) {
-            TranslationDatabase tdb = getDatabases().get(database);
-            if (tdb != null && tdb.getRename() != null) {
-                rtn = tdb.getRename();
-            }
-        }
-        return rtn;
-    }
+//    public String translateDatabase(String database) {
+//        String rtn = database;
+////        if (isOn()) {
+//            TranslationDatabase tdb = getDatabases().get(database);
+//            if (tdb != null && tdb.getRename() != null) {
+//                rtn = tdb.getRename();
+//            }
+////        }
+//        return rtn;
+//    }
+//
+//    public String translateTable(String database, String table) {
+//        String rtn = table;
+////        if (isOn()) {
+//            TranslationDatabase tdb = getDatabases().get(database);
+//            if (tdb != null) {
+//                if (tdb.getTables().get(table) != null && tdb.getTables().get(table).getRename() != null) {
+//                    rtn = tdb.getTables().get(table).getRename();
+//                }
+//            }
+////        }
+//        return rtn;
+//    }
 
-    public String translateTable(String database, String table) {
-        String rtn = table;
-        if (isOn()) {
-            TranslationDatabase tdb = getDatabases().get(database);
-            if (tdb != null) {
-                if (tdb.getTables().get(table) != null && tdb.getTables().get(table).getRename() != null) {
-                    rtn = tdb.getTables().get(table).getRename();
-                }
-            }
-        }
-        return rtn;
-    }
 
-
-    @JsonIgnore
-    private Boolean isDBConsolidateExternal(String database) {
-        Boolean rtn = Boolean.FALSE;
-        TranslationDatabase tdb = databases.get(database);
-        if (tdb != null && tdb.getConsolidateExternal() && tdb.getLocation() != null) {
-            rtn = Boolean.TRUE;
-        }
-        return rtn;
-    }
-
-    @JsonIgnore
-    private String getDatabaseLocationOverride(String database, String default_) {
-        String location = default_;
-        TranslationDatabase tdb = databases.get(database);
-        if (tdb != null && tdb.getLocation() != null) {
-            location = tdb.getLocation();
-        }
-        return location;
-    }
-
-    @JsonIgnore
-    private String getTableLocationOverride(String database, String table, String default_) {
-        String location = default_;
-        TranslationDatabase tdb = databases.get(database);
-        if (tdb != null) {
-            TranslationTable tbl = tdb.getTables().get(table);
-            if (tbl != null && tbl.getLocation() != null) {
-                location = tbl.getLocation();
-            }
-        }
-        return location;
-    }
+//    @JsonIgnore
+//    private Boolean isDBConsolidateExternal(String database) {
+//        Boolean rtn = Boolean.FALSE;
+//        TranslationDatabase tdb = databases.get(database);
+//        if (tdb != null && tdb.getConsolidateExternal() && tdb.getLocation() != null) {
+//            rtn = Boolean.TRUE;
+//        }
+//        return rtn;
+//    }
+//
+//    @JsonIgnore
+//    private String getDatabaseLocationOverride(String database, String default_) {
+//        String location = default_;
+//        TranslationDatabase tdb = databases.get(database);
+//        if (tdb != null && tdb.getLocation() != null) {
+//            location = tdb.getLocation();
+//        }
+//        return location;
+//    }
+//
+//    @JsonIgnore
+//    private String getTableLocationOverride(String database, String table, String default_) {
+//        String location = default_;
+//        TranslationDatabase tdb = databases.get(database);
+//        if (tdb != null) {
+//            TranslationTable tbl = tdb.getTables().get(table);
+//            if (tbl != null && tbl.getLocation() != null) {
+//                location = tbl.getLocation();
+//            }
+//        }
+//        return location;
+//    }
 
     public static String removeLastDirFromUrl(final String url) {
         Matcher matcher = Transfer.lastDirPattern.matcher(url);
@@ -278,11 +277,12 @@ public class Translator {
         else
             return originalLocation;
     }
+
     public String buildPartitionAddStatement(EnvironmentTable environmentTable) {
         StringBuilder sbPartitionDetails = new StringBuilder();
         Map<String, String> partitions = new HashMap<String, String>();
         // Fix formatting of partition names.
-        for (Map.Entry<String, String> item: environmentTable.getPartitions().entrySet()) {
+        for (Map.Entry<String, String> item : environmentTable.getPartitions().entrySet()) {
             String partitionName = item.getKey();
             String[] partitionNameParts = partitionName.split("=");
             partitions.put(partitionNameParts[0] + "='" + partitionNameParts[1] + "'", item.getValue());
@@ -346,125 +346,40 @@ public class Translator {
         Boolean reMapped = !relativeDir.equals(mappedDir);
         if (reMapped)
             tableMirror.setReMapped(Boolean.TRUE);
-        if (isOn()) {
-
-            TranslationDatabase tdb = getDatabases().get(dbName);
-
-            // Depending on config, set hcfs prefix
-            if (leftNS.trim().endsWith("/")) {
-                leftNS.trim().substring(0, leftNS.trim().length() - 2);
-            }
-            if (rightNS.trim().endsWith("/")) {
-                rightNS.trim().substring(0, rightNS.trim().length() - 2);
-            }
+        // Feature Off.  Basic translation which includes any GlobalLocationMaps.
+        String newLocation = null;
+        StringBuilder sbDir = new StringBuilder();
+        if (config.getTransfer().getCommonStorage() != null) {
+            sbDir.append(config.getTransfer().getCommonStorage());
+        } else {
+            sbDir.append(rightNS);
+        }
+        if (reMapped) {
+            sbDir.append(mappedDir);
+            newLocation = sbDir.toString();
+        } else if (config.getResetToDefaultLocation() && config.getTransfer().getWarehouse().getExternalDirectory() != null) {
+            // RDL and EWD
+            sbDir.append(config.getTransfer().getWarehouse().getExternalDirectory()).append("/");
+            sbDir.append(dbName).append(".db").append("/").append(tableName);
+            newLocation = sbDir.toString();
+        } else {
             switch (config.getDataStrategy()) {
-                case DUMP:
-                case SCHEMA_ONLY:
                 case EXPORT_IMPORT:
                 case HYBRID:
                 case SQL:
-                    dirBuilder.append(rightNS);
+                case SCHEMA_ONLY:
+                case DUMP:
+                case STORAGE_MIGRATION:
+                case CONVERT_LINKED:
+                    newLocation = originalLocation.replace(leftNS, rightNS);
                     break;
-                case COMMON:
                 case LINKED:
-//                case INTERMEDIATE:
-//                    // We don't need to make adjustments since these strategies share storage
-                    dirBuilder.append(leftNS);
+                case COMMON:
+                    newLocation = originalLocation;
                     break;
             }
-
-            // Look for new table location.
-            String tblNewLocation = null;
-            if (tdb != null) {
-                if (tdb.getLocation() != null && tdb.getConsolidateExternal()) {
-                    if (getDistcpCompatible()) {
-                        // Set to the same name as the current folder
-                        dirBuilder.append(tdb.getLocation()).append("/").append(removeLastDirFromUrl(originalLocation));
-                    } else {
-                        dirBuilder.append(tdb.getLocation()).append("/").append(tableName);
-                    }
-                } else if (tdb.getLocation() != null) {
-                    if (tdb.getTables().get(tableName) != null && tdb.getTables().get(tableName).getLocation() != null) {
-                        dirBuilder.append(tdb.getTables().get(tableName).getLocation());
-                    } else {
-                        if (getDistcpCompatible()) {
-                            dirBuilder.append(tdb.getLocation()).append("/").append(removeLastDirFromUrl(originalLocation));
-                        } else {
-                            dirBuilder.append(tdb.getLocation()).append("/");
-                            if (tdb.getTables().get(tableName) != null && tdb.getTables().get(tableName).getRename() != null) {
-                                dirBuilder.append(tdb.getTables().get(tableName).getRename());
-                            }
-                        }
-                    }
-                } else if (tdb.getTables().get(tableName) != null) {
-                    if (tdb.getTables().get(tableName).getLocation() != null) {
-                        tblNewLocation = tdb.getTables().get(tableName).getLocation();
-                    }
-                } else if (tdb.getLocation() != null) {
-                    // Set to the same name as the current folder
-                    tblNewLocation = removeLastDirFromUrl(originalLocation);
-                }
-            }
-
-            if (tdb != null) {
-                // Check for consolidation
-                if (tdb.getLocation() != null && tdb.getConsolidateExternal()) {
-                    dirBuilder.append(tdb.getLocation()).append("/");
-                    // If a new location was id'd, use it.  Otherwise use the table name.
-                    if (tblNewLocation != null) {
-                        dirBuilder.append(tblNewLocation);
-                    } else {
-                        dirBuilder.append(tableName);
-                    }
-                } else if (tdb.getLocation() != null) {
-                    dirBuilder.append(tdb.getLocation()).append("/").append(tblNewLocation);
-                } else {
-                    // If a new location was id'd, use it.  Otherwise use the table name.
-                    if (tblNewLocation != null) {
-                        dirBuilder.append(tblNewLocation);
-                    } else {
-                        dirBuilder.append(relativeDir);
-                    }
-                }
-            } else {
-                dirBuilder.append(relativeDir);
-            }
-        } else {
-            // Feature Off.  Basic translation which includes any GlobalLocationMaps.
-            String newLocation = null;
-            StringBuilder sbDir = new StringBuilder();
-            if (config.getTransfer().getCommonStorage() != null) {
-                sbDir.append(config.getTransfer().getCommonStorage());
-            } else {
-                sbDir.append(rightNS);
-            }
-            if (reMapped) {
-                sbDir.append(mappedDir);
-                newLocation = sbDir.toString();
-            } else if (config.getResetToDefaultLocation() && config.getTransfer().getWarehouse().getExternalDirectory() != null) {
-                // RDL and EWD
-                sbDir.append(config.getTransfer().getWarehouse().getExternalDirectory()).append("/");
-                sbDir.append(dbName).append(".db").append("/").append(tableName);
-                newLocation = sbDir.toString();
-            } else {
-                switch (config.getDataStrategy()) {
-                    case EXPORT_IMPORT:
-                    case HYBRID:
-                    case SQL:
-                    case SCHEMA_ONLY:
-                    case DUMP:
-                    case STORAGE_MIGRATION:
-                    case CONVERT_LINKED:
-                        newLocation = originalLocation.replace(leftNS, rightNS);
-                        break;
-                    case LINKED:
-                    case COMMON:
-                        newLocation = originalLocation;
-                        break;
-                }
-            }
-            dirBuilder.append(newLocation);
         }
+        dirBuilder.append(newLocation);
 
         LOG.debug("Translate Table Location: " + originalLocation + ": " + dirBuilder);
         // Add Location Map for table to a list.
@@ -511,11 +426,11 @@ public class Translator {
 
         Map<String, String> dbLocationMap = new TreeMap<>();
 
-        for (EnvironmentMap.TranslationLevel translationLevel: dbTranslationLevel) {
+        for (EnvironmentMap.TranslationLevel translationLevel : dbTranslationLevel) {
             dbLocationMap.put(translationLevel.getAdjustedOriginal(), translationLevel.getAdjustedTarget());
         }
 
-        for (Map.Entry<String, String> entry: dbLocationMap.entrySet()) {
+        for (Map.Entry<String, String> entry : dbLocationMap.entrySet()) {
             // reduce folder level by 'consolidationLevel' for key and value.
             // Source
             String reducedSource = Translator.reduceUrlBy(entry.getKey(), consolidationLevel);

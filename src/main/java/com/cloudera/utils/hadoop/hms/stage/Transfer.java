@@ -372,7 +372,7 @@ public class Transfer implements Callable<ReturnStatus> {
 
             String origLocation = TableUtils.getLocation(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT));
             String newLocation = Context.getInstance().getConfig().getTranslator().
-                    translateTableLocation(tblMirror, origLocation, 1);
+                    translateTableLocation(tblMirror, origLocation, 0);
 
             // Build Alter Statement for Table to change location.
             String alterTable = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, tblMirror.getEnvironmentTable(Environment.LEFT).getName(), newLocation);
@@ -389,7 +389,7 @@ public class Transfer implements Callable<ReturnStatus> {
                     partSpec = TableUtils.toPartitionSpec(partSpec);
                     String partLocation = entry.getValue();
                     String newPartLocation = Context.getInstance().getConfig().getTranslator().
-                            translateTableLocation(tblMirror, partLocation, level++);
+                            translateTableLocation(tblMirror, partLocation, ++level);
                     String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_LOCATION, let.getName(), partSpec, newPartLocation);
                     String partSpecDesc = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_LOCATION_DESC, partSpec);
                     let.addSql(partSpecDesc, addPartSql);

@@ -12,49 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-distcpCompatible: false
-databases:
-  tpcds_10:
-    rename: "tpc_ds_10"
-    # Locations WITHOUT the NS prefix. Should start with '/'.
-    location: "/warehouse/tablespace/external/hive/tpcds_10.db"
-    managedLocation: "/warehouse/tablespace/managed/hive/tpcds_10.db"
-    # Bring all root table locations under the defaults for the DB.
-    # 'location' must be specified for this to work.
-    consolidateExternal: true
-    tables:
-      call_center:
-#        rename: "call_center_renamed"
-        # hierarchy of location.  this, db, no-change(relative)
-        # db is consolidateExternal then build dir. hcfs namespace + db.location + tbl.location
-        # if no db location, append location to hcfs namespace.
-#        location: "new_location"
-  tpcds_11:
-    # Locations WITHOUT the NS prefix. Should start with '/'.
-    location: "/warehouse/tablespace/external/hive/tpcds_11.db"
-    managedLocation: "/warehouse/tablespace/managed/hive/tpcds_11.db"
-    # Bring all root table locations under the defaults for the DB.
-    # 'location' must be specified for this to work.
-    consolidateExternal: false
-    tables:
-      call_center:
-#        rename: "call_center_orig"
-        # hierarchy of location.  this, db, no-change(relative)
-        # db is consolidateExternal then build dir. hcfs namespace + db.location + tbl.location
-        # if no db location, append location to hcfs namespace.
-#        location: "/user/dstreev/datasets/tpcds_11.db/call_center"
-      web_returns:
-        #        rename: "call_center_orig"
-        # hierarchy of location.  this, db, no-change(relative)
-        # db is consolidateExternal then build dir. hcfs namespace + db.location + tbl.location
-        # if no db location, append location to hcfs namespace.
-        location: "/user/dstreev/datasets/tpcds_11.db/web_returns"
-  tpcds_12:
-    # Locations WITHOUT the NS prefix. Should start with '/'.
-    tables:
-      call_center:
-        rename: "call_center_new"
-        # hierarchy of location.  this, db, no-change(relative)
-        # db is consolidateExternal then build dir. hcfs namespace + db.location + tbl.location
-        # if no db location, append location to hcfs namespace.
-#        location: "/myspace/alt/ext/call_center"
+globalLocationMap:
+  /tpcds_base_dir: "/alt/ext/location/new_location"
+  /tpcds_base_dir2: "/myspace/alt/ext/call_center"
+  /tpcds_base_dir3: "/alt/ext/location/web_sales"
+  /tpcds_base_dir4: "/warehouse/tablespace/external/hive/tpcds_10.db"
+  /tpcds_base_dir5: "/warehouse/tablespace/external/hive/tpcds_10.db"
+  /tpcds_base_dir4/web: "/warehouse/tablespace/external/hive/tpcds_10.db"
+  /tpcds_base_dir/web/web_returns2: "/user/dstreev/datasets/tpcds_11.db/web_returns"
+  /tpcds_base_dir/web: "/warehouse/tablespace/external/hive/tpcds_11.db"
