@@ -33,6 +33,10 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.LOCATION_NOT_MATCH_WAREHOUSE;
+import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.SQL_ACID_W_DC;
+import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.DB_LOCATION;
+import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.DB_MANAGED_LOCATION;
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION;
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION_THRESHOLD;
 import static com.cloudera.utils.hadoop.hms.mirror.TablePropertyVars.*;
@@ -40,10 +44,10 @@ import static com.cloudera.utils.hadoop.hms.mirror.TablePropertyVars.*;
 public class TableMirror {
     private static final Logger LOG = LogManager.getLogger(TableMirror.class);
 
-    private String dbName;
-    private String resolvedDbName;
-
     private String name;
+    @JsonIgnore
+    private DBMirror parent;
+
     private Date start = new Date();
     /*
     Use to indicate the tblMirror should be removed from processing, post setup.
@@ -78,7 +82,7 @@ public class TableMirror {
     @JsonIgnore
     private Long stageDuration = 0l;
 
-    private final Map<Environment, EnvironmentTable> environments = new TreeMap<Environment, EnvironmentTable>();
+    private Map<Environment, EnvironmentTable> environments = null;
 
     public String getName() {
         return name;
@@ -89,29 +93,33 @@ public class TableMirror {
         return et.getName();
     }
 
+    public DBMirror getParent() {
+        return parent;
+    }
+
+    public void setParent(DBMirror parent) {
+        this.parent = parent;
+    }
+
     public String getUnique() {
         return df.format(Context.getInstance().getConfig().getInitDate());
 //        return unique;
     }
 
-    public String getDbName() {
-        return dbName;
-    }
+//    public String getDbName() {
+//        return parent.getName();
+//    }
+//
+//    public String getResolvedDbName() {
+//        if (resolvedDbName == null)
+//            return dbName;
+//        else
+//            return resolvedDbName;
+//    }
 
-    public void setDbName(String dbName) {
-        this.dbName = dbName;
-    }
-
-    public String getResolvedDbName() {
-        if (resolvedDbName == null)
-            return dbName;
-        else
-            return resolvedDbName;
-    }
-
-    public void setResolvedDbName(String resolvedDbName) {
-        this.resolvedDbName = resolvedDbName;
-    }
+//    public void setResolvedDbName(String resolvedDbName) {
+//        this.resolvedDbName = resolvedDbName;
+//    }
 
     public boolean isRemove() {
         return remove;
@@ -153,11 +161,14 @@ public class TableMirror {
         this.stageDuration = stageDuration;
     }
 
-    public TableMirror(String dbName, String tablename) {
-        this.dbName = dbName;
-        this.name = tablename;
+    public TableMirror() {
         addStep("init", null);
     }
+
+//    public TableMirror(String tablename) {
+//        this.name = tablename;
+//        addStep("init", null);
+//    }
 
     public DataStrategy getStrategy() {
         return strategy;
@@ -179,15 +190,26 @@ public class TableMirror {
     }
 
     public Map<Environment, EnvironmentTable> getEnvironments() {
+        if (environments == null) {
+            environments = new TreeMap<Environment, EnvironmentTable>();
+        }
         return environments;
+    }
+
+    public void setEnvironments(Map<Environment, EnvironmentTable> environments) {
+        this.environments = environments;
+        // Need to connect after deserialization.
+        for (EnvironmentTable environmentTable : environments.values()) {
+            environmentTable.setParent(this);
+        }
     }
 
     public String getProgressIndicator(int width) {
         StringBuilder sb = new StringBuilder();
-        int progressLength = Math.floorDiv(Math.multiplyExact(width, currentPhase.get()),totalPhaseCount.get());
-        LOG.info(this.getDbName() + ":" + this.getName() + " CurrentPhase: " + currentPhase.get() +
+        int progressLength = Math.floorDiv(Math.multiplyExact(width, currentPhase.get()), totalPhaseCount.get());
+        LOG.info(this.getParent().getName() + ":" + this.getName() + " CurrentPhase: " + currentPhase.get() +
                 " -> TotalPhaseCount: " + totalPhaseCount.get());
-        LOG.info(this.getDbName() + ":" + this.getName() + " Progress: " + progressLength + " of " + width);
+        LOG.info(this.getParent().getName() + ":" + this.getName() + " Progress: " + progressLength + " of " + width);
         sb.append("\u001B[32m");
         sb.append(StringUtils.rightPad("=", progressLength - 1, "="));
         sb.append("\u001B[33m");
@@ -669,7 +691,7 @@ public class TableMirror {
             let.addSql(new Pair(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, transferSql));
         }
 
-        rtn =Boolean.TRUE;
+        rtn = Boolean.TRUE;
 
         return rtn;
     }
@@ -1466,7 +1488,7 @@ public class TableMirror {
                     config.getTransfer().getRemoteWorkingDirectory() + "/" +
                     config.getRunMarker() + "/" +
 //                    config.getTransfer().getTransferPrefix() + this.getUnique() + "_" +
-                    this.getDbName() + "/" +
+                    this.getParent().getName() + "/" +
                     this.getName();
         } else if (config.getTransfer().getCommonStorage() != null) {
             String isLoc = config.getTransfer().getCommonStorage();
@@ -1475,7 +1497,7 @@ public class TableMirror {
             exportLoc = isLoc + "/" + config.getTransfer().getRemoteWorkingDirectory() + "/" +
                     config.getRunMarker() + "/" +
 //                    config.getTransfer().getTransferPrefix() + this.getUnique() + "_" +
-                    this.getDbName() + "/" +
+                    this.getParent().getName() + "/" +
                     this.getName();
         } else {
             exportLoc = config.getTransfer().getExportBaseDirPrefix() + dbMirror.getName() + "/" + let.getName();
@@ -1511,7 +1533,7 @@ public class TableMirror {
         }
 
         String sourceLocation = TableUtils.getLocation(let.getName(), let.getDefinition());
-        String targetLocation = config.getTranslator().translateTableLocation(this, sourceLocation, 1);
+        String targetLocation = config.getTranslator().translateTableLocation(this, sourceLocation, 1, null);
         String importSql;
         if (TableUtils.isACID(let)) {
             if (!config.getMigrateACID().isDowngrade()) {
@@ -1605,7 +1627,6 @@ public class TableMirror {
                 source.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
             }
         }
-
 
         if (transfer.isDefined()) {
             StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), source, transfer);
@@ -1783,13 +1804,17 @@ public class TableMirror {
             target.getDefinition().addAll(getTableDefinition(copySpec.getSource()));
             if (Context.getInstance().getConfig().getEvaluatePartitionLocation() &&
                     source.getPartitioned()) {
-                // New Map.  So we can modify it..
-                Map<String, String> targetPartitions = new HashMap<>();
-                for (Map.Entry<String, String> item : source.getPartitions().entrySet()) {
-                    targetPartitions.put(item.getKey(), item.getValue());
+                if (!TableUtils.isACID(source)) {
+                    // New Map.  So we can modify it..
+                    Map<String, String> targetPartitions = new HashMap<>();
+                    targetPartitions.putAll(source.getPartitions());
+                    target.setPartitions(targetPartitions);
+                    if (!config.getTranslator().translatePartitionLocations(this)) {
+                        rtn = Boolean.FALSE;
+                    }
+//                } else {
+//                    target.addIssue(SQL_ACID_W_DC.getDesc());
                 }
-                target.setPartitions(targetPartitions);
-                config.getTranslator().translatePartitionLocations(this);
             }
             if (TableUtils.isHiveNative(source)) {
                 // Rules
@@ -1941,9 +1966,39 @@ public class TableMirror {
                     case RIGHT:
                         if (copySpec.getReplaceLocation() && (!TableUtils.isACID(source) || config.getMigrateACID().isDowngrade())) {
                             String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
+                            int level = 1;
+                            if (config.getFilter().isTableFiltering()) {
+                                level = 0;
+                            }
                             String targetLocation = copySpec.getConfig().getTranslator().
-                                    translateTableLocation(this, sourceLocation, 1);
+                                    translateTableLocation(this, sourceLocation, level, null);
                             TableUtils.updateTableLocation(target, targetLocation);
+                            // Check if the locations align.  If not, warn.
+                            if (config.getTransfer().getWarehouse().getExternalDirectory() != null &&
+                                    config.getTransfer().getWarehouse().getManagedDirectory() != null) {
+                                if (TableUtils.isExternal(target)) {
+                                    // We store the DB LOCATION in the RIGHT dbDef so we can avoid changing the original LEFT
+                                    if (!targetLocation.startsWith(getParent().getDBDefinition(Environment.RIGHT).get(DB_LOCATION))) {
+                                        // Set warning that even though you've specified to warehouse directories, the current configuration
+                                        // will NOT place it in that directory.
+                                        String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
+                                                getParent().getDBDefinition(Environment.RIGHT).get(DB_LOCATION),
+                                                targetLocation);
+                                        addIssue(Environment.RIGHT, msg);
+                                    }
+                                } else {
+                                    if (!targetLocation.startsWith(getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION))) {
+                                        // Set warning that even though you've specified to warehouse directories, the current configuration
+                                        // will NOT place it in that directory.
+                                        String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
+                                                getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION),
+                                                targetLocation);
+                                        addIssue(Environment.RIGHT, msg);
+                                    }
+
+                                }
+                            }
+
                         }
 //                        if (copySpec.getStripLocation()) {
 //                            TableUtils.stripLocation(target);
@@ -1969,13 +2024,13 @@ public class TableMirror {
                                 isLoc = isLoc + "/" + config.getTransfer().getRemoteWorkingDirectory() + "/" +
                                         config.getRunMarker() + "/" +
 //                                        config.getTransfer().getTransferPrefix() + this.getUnique() + "_" +
-                                        this.getDbName() + "/" +
+                                        this.getParent().getName() + "/" +
                                         this.getName();
                                 TableUtils.updateTableLocation(target, isLoc);
                             } else if (config.getTransfer().getCommonStorage() != null) {
                                 String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
                                 String targetLocation = copySpec.getConfig().getTranslator().
-                                        translateTableLocation(this, sourceLocation, 1);
+                                        translateTableLocation(this, sourceLocation, 1, null);
                                 TableUtils.updateTableLocation(target, targetLocation);
                             } else if (copySpec.getStripLocation()) {
                                 TableUtils.stripLocation(target);
@@ -1989,7 +2044,7 @@ public class TableMirror {
                                 // Deal with extra '/'
                                 isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
                                 isLoc = config.getCluster(Environment.LEFT).getHcfsNamespace() +
-                                        isLoc + this.getDbName() + "/" + this.getName();
+                                        isLoc + this.getParent().getName() + "/" + this.getName();
                                 TableUtils.updateTableLocation(target, isLoc);
                             }
                         }
@@ -2023,7 +2078,7 @@ public class TableMirror {
 
                 if (config.isTranslateLegacy()) {
                     if (config.getLegacyTranslations().fixSchema(target)) {
-                        LOG.info("Legacy Translation applied to: " + getDbName() + target.getName());
+                        LOG.info("Legacy Translation applied to: " + getParent().getName() + target.getName());
                     }
                 }
 

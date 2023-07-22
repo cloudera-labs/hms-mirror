@@ -40,11 +40,13 @@ import static com.cloudera.utils.hadoop.hms.TestSQL.TBL_INSERT;
 
 public class MirrorTestBase {
 
-    protected static final String HDP2_CDP = "default.yaml.hdp2-cdp";
-    protected static final String CDP_CDP = "default.yaml.cdp-cdp";
-    protected static final String CDP = "default.yaml.cdp";
-    protected static final String CDP_ENCRYPT = "default.yaml.cdp.encrypted";
-    protected static final String CDP_HDP2 = "default.yaml.cdp-hdp2";
+    public static final String HDP2_CDP = "default.yaml.hdp2-cdp";
+    public static final String HDP3_CDP = "default.yaml.hdp3-cdp";
+    public static final String CDP_CDP = "default.yaml.cdp-cdp";
+    public static final String CDP = "default.yaml.cdp";
+//    protected static final String CDP_ENCRYPT = "default.yaml.cdp.encrypted";
+//    protected static final String CDP_HDP2 = "default.yaml.cdp-hdp2";
+    public static final String CDH_CDP = "default.yaml.cdh-cdp";
 
     protected static final String[] execArgs = {"-e", "--accept"};
 

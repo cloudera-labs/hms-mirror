@@ -17,11 +17,13 @@ public class EnvironmentMap {
         }
 
         public String getAdjustedOriginal() {
-            return Translator.reduceUrlBy(original, level);
+            String rtn = Translator.reduceUrlBy(original, level);
+            return rtn;
         }
 
         public String getAdjustedTarget() {
-            return Translator.reduceUrlBy(target, level);
+            String rtn = Translator.reduceUrlBy(target, level);
+            return rtn;
         }
     }
 

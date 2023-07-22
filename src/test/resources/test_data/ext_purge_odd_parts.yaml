@@ -1,0 +1,99 @@
+---
+# EXTERNAL PURGEABLE TABLE with 1 partition directory in non-standard location.
+databases:
+  tpcds_bin_partitioned_external_orc_6:
+    name: "tpcds_bin_partitioned_external_orc_6"
+    filteredOut: {}
+    tableMirrors:
+      web_sales:
+        name: "web_sales"
+        reMapped: false
+        strategy: null
+        phaseState: "INIT"
+        environments:
+          LEFT:
+            name: "web_sales"
+            exists: true
+            createStrategy: "NOTHING"
+            definition:
+            - "CREATE EXTERNAL TABLE `web_sales`("
+            - "`ws_sold_time_sk` bigint,"
+            - "`ws_ship_date_sk` bigint,"
+            - "`ws_item_sk` bigint,"
+            - "`ws_bill_customer_sk` bigint,"
+            - "`ws_bill_cdemo_sk` bigint,"
+            - "`ws_bill_hdemo_sk` bigint,"
+            - "`ws_bill_addr_sk` bigint,"
+            - "`ws_ship_customer_sk` bigint,"
+            - "`ws_ship_cdemo_sk` bigint,"
+            - "`ws_ship_hdemo_sk` bigint,"
+            - "`ws_ship_addr_sk` bigint,"
+            - "`ws_web_page_sk` bigint,"
+            - "`ws_web_site_sk` bigint,"
+            - "`ws_ship_mode_sk` bigint,"
+            - "`ws_warehouse_sk` bigint,"
+            - "`ws_promo_sk` bigint,"
+            - "`ws_order_number` bigint,"
+            - "`ws_quantity` int,"
+            - "`ws_wholesale_cost` decimal(7,2),"
+            - "`ws_list_price` decimal(7,2),"
+            - "`ws_sales_price` decimal(7,2),"
+            - "`ws_ext_discount_amt` decimal(7,2),"
+            - "`ws_ext_sales_price` decimal(7,2),"
+            - "`ws_ext_wholesale_cost` decimal(7,2),"
+            - "`ws_ext_list_price` decimal(7,2),"
+            - "`ws_ext_tax` decimal(7,2),"
+            - "`ws_coupon_amt` decimal(7,2),"
+            - "`ws_ext_ship_cost` decimal(7,2),"
+            - "`ws_net_paid` decimal(7,2),"
+            - "`ws_net_paid_inc_tax` decimal(7,2),"
+            - "`ws_net_paid_inc_ship` decimal(7,2),"
+            - "`ws_net_paid_inc_ship_tax` decimal(7,2),"
+            - "`ws_net_profit` decimal(7,2))"
+            - "PARTITIONED BY ("
+            - "`ws_sold_date_sk` bigint)"
+            - "ROW FORMAT SERDE"
+            - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+            - "STORED AS INPUTFORMAT"
+            - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+            - "OUTPUTFORMAT"
+            - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+            - "LOCATION"
+            - "'hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db/web_sales'"
+            - "TBLPROPERTIES ("
+            - "'TRANSLATED_TO_EXTERNAL'='TRUE',"
+            - "'bucketing_version'='2',"
+            - "'external.table.purge'='TRUE',"
+            - "'transient_lastDdlTime'='1685710854')"
+            owner: null
+            partitions:
+              ws_sold_date_sk=2451180: "hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db/web_sales/ws_sold_date_sk=2451180"
+              ws_sold_date_sk=2451188: "hdfs://HDP50/user/dstreev/datasets/alt-locations/web_sales/ws_sold_date_sk=2451188"
+              ws_sold_date_sk=2452035: "hdfs://HDP50/user/dstreev/datasets/alt-locations/load_web_sales/odd"
+              ws_sold_date_sk=2451187: "hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db/web_sales/ws_sold_date_sk=2451187"
+              ws_sold_date_sk=2452034: "hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db/web_sales/ws_sold_date_sk=2452034"
+              ws_sold_date_sk=2452110: "hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db/web_sales/ws_sold_date_sk=2452110"
+              ws_sold_date_sk=2451307: "hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db/web_sales/ws_sold_date_sk=2451307"
+              ws_sold_date_sk=2452638: "hdfs://HDP50/user/dstreev/datasets/alt-locations/web_sales/ws_sold_date_sk=2452638"
+              ws_sold_date_sk=2452640: "hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db/web_sales/ws_sold_date_sk=2452640"
+              ws_sold_date_sk=2451793: "hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db/web_sales/ws_sold_date_sk=2451793"
+              ws_sold_date_sk=2451792: "hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db/web_sales/ws_sold_date_sk=2451792"
+              ws_sold_date_sk=2451824: "hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db/web_sales/ws_sold_date_sk=2451824"
+              ws_sold_date_sk=__HIVE_DEFAULT_PARTITION__: "hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db/web_sales/ws_sold_date_sk=__HIVE_DEFAULT_PARTITION__"
+              ws_sold_date_sk=2451454: "hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db/web_sales/ws_sold_date_sk=2451454"
+              ws_sold_date_sk=2451453: "hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db/web_sales/ws_sold_date_sk=2451453"
+              ws_sold_date_sk=2452300: "hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db/web_sales/ws_sold_date_sk=2452300"
+            actions: []
+            addProperties: {}
+            statistics: {}
+            issues: []
+            sql: []
+            cleanUpSql: []
+    phaseSummary:
+      INIT: 1
+    dbdefinitions:
+      LEFT:
+        DB_NAME: "tpcds_bin_partitioned_external_orc_6"
+        LOCATION: "hdfs://HDP50/warehouse/tablespace/external/hive/tpcds_bin_partitioned_external_orc_6.db"
+        OWNER_NAME: "dstreev"
+        OWNER_TYPE: "USER"

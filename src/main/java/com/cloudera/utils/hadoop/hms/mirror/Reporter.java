@@ -206,7 +206,7 @@ public class Reporter implements Runnable {
             // Table Processing
             for (TableMirror tblMirror : startedTables) {
                 Map<String, String> tblVars = new TreeMap<String, String>();
-                tblVars.put("db.name", tblMirror.getDbName());
+                tblVars.put("db.name", tblMirror.getParent().getResolvedName());
                 tblVars.put("tbl.name", tblMirror.getName());
                 tblVars.put("tbl.progress", tblMirror.getProgressIndicator(80));
                 tblVars.put("tbl.msg", tblMirror.getMigrationStageMessage());

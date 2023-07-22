@@ -54,11 +54,13 @@ public class ConnectionPools {
     }
 
     public void init() throws SQLException {
-        initHS2Drivers();
-        initHS2PooledDataSources();
-        // Only init if we are going to use it. (`-epl`).
-        if (Context.getInstance().loadPartitionMetadata()) {
-            initMetastoreDataSources();
+        if (!Context.getInstance().getConfig().isLoadingTestData()) {
+            initHS2Drivers();
+            initHS2PooledDataSources();
+            // Only init if we are going to use it. (`-epl`).
+            if (Context.getInstance().loadPartitionMetadata()) {
+                initMetastoreDataSources();
+            }
         }
     }
 
