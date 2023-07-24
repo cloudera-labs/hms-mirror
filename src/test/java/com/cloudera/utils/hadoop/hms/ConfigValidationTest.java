@@ -17,94 +17,19 @@
 
 package com.cloudera.utils.hadoop.hms;
 
-import com.cloudera.utils.hadoop.hms.DataState;
-import com.cloudera.utils.hadoop.hms.Mirror;
-import com.cloudera.utils.hadoop.hms.datastrategy.MirrorTestBase;
 import com.cloudera.utils.hadoop.hms.mirror.MessageCode;
-import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
 
 import static com.cloudera.utils.hadoop.hms.EnvironmentConstants.*;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class ConfigValidationTest extends EndToEndBase {
 
 
     @Test
-    public void test_storage_migration_01() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "STORAGE_MIGRATION",
-                "-ltd", ASSORTED_TBLS_04,
-                "-cfg", HDP2_CDP,
-                "-o", outputDir
-        };
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-
-        long check = MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
-        check = check | MessageCode.STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL_GLM.getLong();
-
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
-
-    }
-
-    @Test
-    public void test_storage_migration_w_ma_distcp_01() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "STORAGE_MIGRATION",
-                "-ma",
-                "-dc",
-                "-ltd", ASSORTED_TBLS_04,
-                "-cfg", HDP2_CDP,
-                "-o", outputDir
-        };
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-
-        long check = MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
-        check = check | MessageCode.STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL_GLM.getLong();
-
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
-    }
-
-    @Test
-    public void test_linked_rdl_leg() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "LINKED",
-                "-rdl",
-                "-ltd", ASSORTED_TBLS_04,
-                "-cfg", HDP2_CDP,
-                "-o", outputDir };
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-
-        long check = MessageCode.RESET_TO_DEFAULT_LOCATION.getLong();
-        check = check | MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
-
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
-    }
-
-    @Test
-    public void test_common_rdl_leg() {
+    public void common_rdl() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -115,7 +40,7 @@ public class ConfigValidationTest extends EndToEndBase {
                 "-rdl",
                 "-ltd", ASSORTED_TBLS_04,
                 "-cfg", HDP2_CDP,
-                "-o", outputDir, };
+                "-o", outputDir,};
 
         long rtn = 0;
         Mirror mirror = new Mirror();
@@ -128,41 +53,14 @@ public class ConfigValidationTest extends EndToEndBase {
     }
 
     @Test
-    public void test_so_cs_rdl_leg() {
+    public void ei_rdl() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
-        String[] args = new String[]{
-                "-ltd", ASSORTED_TBLS_04,
-                "-cs", "s3a://my_common_storage",
-                "-rdl",
-                "--distcp",
-                "-cfg", HDP2_CDP,
-                "-o", outputDir };
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-
-        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
-
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
-    }
-
-
-    @Test
-    public void test_so_distcp_leg() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "SCHEMA_ONLY",
-                "--distcp",
+        String[] args = new String[]{"-d", "EXPORT_IMPORT",
                 "-rdl",
                 "-ltd", ASSORTED_TBLS_04,
                 "-cfg", HDP2_CDP,
@@ -178,108 +76,7 @@ public class ConfigValidationTest extends EndToEndBase {
     }
 
     @Test
-    public void test_sql_rdl_leg() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "SQL",
-                "--distcp",
-                "-rdl",
-                "-ltd", ASSORTED_TBLS_04,
-                "-cfg", HDP2_CDP,
-                "-o", outputDir};
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-
-        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
-        check = check | MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
-
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
-    }
-
-    @Test
-    public void test_sql_distcp_leg() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "SQL",
-                "-sql",
-                "--distcp",
-                "-ltd", ASSORTED_TBLS_04,
-                "-cfg", HDP2_CDP,
-                "-o", outputDir};
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-
-        long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
-
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
-    }
-
-    @Test
-    public void test_sql_acid_distcp_cs_leg() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "SQL",
-                "-ma",
-                "--distcp",
-                "-cs", "s3a://my_common_bucket",
-                "-ltd", ASSORTED_TBLS_04,
-                "-cfg", HDP2_CDP,
-                "-o", outputDir};
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-
-        long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
-        check = check | MessageCode.SQL_DISTCP_ACID_W_STORAGE_OPTS.getLong();
-
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
-    }
-
-
-    @Test
-    public void test_hybrid_distcp_leg() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "HYBRID",
-                "--distcp",
-                "-rdl",
-                "-ltd", ASSORTED_TBLS_04,
-                "-cfg", HDP2_CDP,
-                "-o", outputDir};
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-
-        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
-        check = check | MessageCode.DISTCP_VALID_STRATEGY.getLong();
-
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
-    }
-
-    @Test
-    public void test_exp_imp_distcp_leg() {
+    public void ei_rdl_dc() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -304,7 +101,104 @@ public class ConfigValidationTest extends EndToEndBase {
     }
 
     @Test
-    public void test_so_rdl_dc_leg() {
+    public void hybrid_rdl_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID",
+                "--distcp",
+                "-rdl",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir};
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
+        check = check | MessageCode.DISTCP_VALID_STRATEGY.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+    }
+
+    @Test
+    public void linked_rdl() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "LINKED",
+                "-rdl",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir};
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        long check = MessageCode.RESET_TO_DEFAULT_LOCATION.getLong();
+        check = check | MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+    }
+
+    @Test
+    public void sm() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "STORAGE_MIGRATION",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        long check = MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
+        check = check | MessageCode.STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL_GLM.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+
+    }
+
+    @Test
+    public void sm_ma_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "STORAGE_MIGRATION",
+                "-ma",
+                "-dc",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        long check = MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
+        check = check | MessageCode.STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL_GLM.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+    }
+
+    @Test
+    public void so_f() throws IOException {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -312,31 +206,30 @@ public class ConfigValidationTest extends EndToEndBase {
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
         String[] args = new String[]{
-                "-rdl",
-                "-dc",
-                "-ltd", ASSORTED_TBLS_04,
+                "-d", "SCHEMA_ONLY",
+                "-f",
+                "-ltd", ASSORTED_TBLS_06,
                 "-cfg", HDP2_CDP,
                 "-o", outputDir};
 
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
+        long check = MessageCode.NON_LEGACY_TO_LEGACY.getLong();
 
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
-
     }
+
     @Test
-    public void test_exp_imp_rdl() {
+    public void so_is() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
-        String[] args = new String[]{"-d", "EXPORT_IMPORT",
-                "-rdl",
-                "-o", outputDir,
+        String[] args = new String[]{
+                "-is", "s3a://my_intermediate_storage",
                 "-ltd", ASSORTED_TBLS_04,
                 "-cfg", HDP2_CDP,
                 "-o", outputDir};
@@ -344,14 +237,12 @@ public class ConfigValidationTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-
-        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
-
+        long check = MessageCode.DISTCP_REQUIRED_FOR_SCHEMA_ONLY_IS.getLong();
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
     }
 
     @Test
-    public void test_so_rdl_leg() {
+    public void so_rdl() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -374,7 +265,80 @@ public class ConfigValidationTest extends EndToEndBase {
     }
 
     @Test
-    public void test_so_rdl_w_leg() {
+    public void so_rdl_cd_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-ltd", ASSORTED_TBLS_04,
+                "-cs", "s3a://my_common_storage",
+                "-rdl",
+                "--distcp",
+                "-cfg", HDP2_CDP,
+                "-o", outputDir};
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+    }
+
+    @Test
+    public void so_rdl_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SCHEMA_ONLY",
+                "--distcp",
+                "-rdl",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir};
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+    }
+
+    @Test
+    public void so_rdl_dc_legacy_mngd_parts() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-rdl",
+                "-dc",
+                "-ltd", LEGACY_MNGD_PARTS_01,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir};
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+
+    }
+
+    @Test
+    public void so_wd_rdl() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -397,15 +361,16 @@ public class ConfigValidationTest extends EndToEndBase {
     }
 
     @Test
-    public void test_so_is_leg() {
+    public void sql_dc() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
-        String[] args = new String[]{
-                "-is", "s3a://my_intermediate_storage",
+        String[] args = new String[]{"-d", "SQL",
+                "-sql",
+                "--distcp",
                 "-ltd", ASSORTED_TBLS_04,
                 "-cfg", HDP2_CDP,
                 "-o", outputDir};
@@ -413,7 +378,114 @@ public class ConfigValidationTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        long check = MessageCode.DISTCP_REQUIRED_FOR_SCHEMA_ONLY_IS.getLong();
+
+        long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+    }
+
+    @Test
+    public void sql_ma_cs_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-ma",
+                "--distcp",
+                "-cs", "s3a://my_common_bucket",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir};
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
+        check = check | MessageCode.SQL_DISTCP_ACID_W_STORAGE_OPTS.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+    }
+
+    @Test
+    public void sql_mao_da_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-mao",
+                "-da",
+                "--distcp",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir};
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = MessageCode.SQL_ACID_DA_DISTCP_WO_EXT_WAREHOUSE.getLong();
+//        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_STRATEGY.getLong();
+//        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+
+    }
+
+    @Test
+    public void sql_mao_dc_ewd() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-mao",
+                "--distcp",
+                "-ewd", "/warehouse/external",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir};
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
+//        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_STRATEGY.getLong();
+//        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+    }
+
+    @Test
+    public void sql_rdl_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "--distcp",
+                "-rdl",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir};
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
+        check = check | MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
+
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
     }
 

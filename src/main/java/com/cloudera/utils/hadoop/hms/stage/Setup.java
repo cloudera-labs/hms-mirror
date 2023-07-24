@@ -159,7 +159,7 @@ public class Setup {
         }
 
         // Create the databases we'll need on the LEFT and RIGHT
-        Callable<ReturnStatus> createDatabases = new CreateDatabases(config, conversion);
+        Callable<ReturnStatus> createDatabases = new CreateDatabases(conversion);
         gtf.add(getConfig().getTransferThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
 
         // Check and Build DB's First.

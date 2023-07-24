@@ -92,6 +92,10 @@ public class Cluster implements Comparable<Cluster> {
         return initialized;
     }
 
+    public void setInitialized(Boolean initialized) {
+        this.initialized = initialized;
+    }
+
     public Config getConfig() {
         return config;
     }

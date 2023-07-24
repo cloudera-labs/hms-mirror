@@ -28,7 +28,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -36,7 +35,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import static com.cloudera.utils.hadoop.hms.TestSQL.*;
-import static com.cloudera.utils.hadoop.hms.TestSQL.TBL_INSERT;
 
 public class MirrorTestBase {
 
@@ -44,7 +42,7 @@ public class MirrorTestBase {
     public static final String HDP3_CDP = "default.yaml.hdp3-cdp";
     public static final String CDP_CDP = "default.yaml.cdp-cdp";
     public static final String CDP = "default.yaml.cdp";
-//    protected static final String CDP_ENCRYPT = "default.yaml.cdp.encrypted";
+    //    protected static final String CDP_ENCRYPT = "default.yaml.cdp.encrypted";
 //    protected static final String CDP_HDP2 = "default.yaml.cdp-hdp2";
     public static final String CDH_CDP = "default.yaml.cdh-cdp";
 
@@ -52,25 +50,14 @@ public class MirrorTestBase {
 
     protected static String homedir = System.getProperty("user.home");
     protected static String separator = System.getProperty("file.separator");
-
+    private final String fieldCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     protected String intermediate_storage = "s3a://my_is_bucket";
     protected String common_storage = "s3a://my_cs_bucket";
     protected String outputDirBase = null;
 
-    private final String fieldCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
     @AfterClass
     public static void tearDownClass() throws Exception {
 //        dataCleanup(DATACLEANUP.BOTH);
-    }
-
-    public void init(String cfg) throws Exception {
-        setUp(cfg);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        dataCleanup(DATACLEANUP.RIGHT);
     }
 
     protected static String[] toExecute(String[] one, String[] two, boolean forceExecute) {
@@ -88,57 +75,6 @@ public class MirrorTestBase {
             rtn = tfRtn;
         }
         return rtn;
-    }
-
-    public Boolean dataSetup01() {
-        if (!DataState.getInstance().isDataCreated("dataset01")) {
-            String nameofCurrMethod = new Throwable()
-                    .getStackTrace()[0]
-                    .getMethodName();
-
-            String outputDir = outputDirBase + nameofCurrMethod;
-
-            String[] args = new String[]{"-d", "STORAGE_MIGRATION", "-smn", "s3a://something_not_relevant",
-                    "-wd", "/hello", "-ewd", "/hello-ext",
-                    "-db", DataState.getInstance().getWorking_db(), "-o", outputDir,
-                    "-cfg", DataState.getInstance().getConfiguration()};
-            args = toExecute(args, execArgs, Boolean.TRUE);
-
-            List<Pair> leftSql = new ArrayList<Pair>();
-            build_use_db(leftSql);
-
-            List<String[]> dataset = null;
-            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
-                dataset = getDataset(2, 200, null);
-            }
-            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, TBL_INSERT, dataset, leftSql, new String[]{"acid_01", "2"});
-            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
-                dataset = getDataset(2, 400, null);
-            }
-            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, TBL_INSERT, dataset, leftSql, new String[]{"acid_02", "6"});
-            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
-                dataset = getDataset(3, 400, null);
-            }
-            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS_PARTITIONED, TBL_INSERT_PARTITIONED, dataset, leftSql, new String[]{"acid_03", "6"});
-            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
-                dataset = getDataset(2, 2000, 500);
-            }
-            build_n_populate(CREATE_EXTERNAL_TBL_PARTITIONED, TBL_INSERT_PARTITIONED, dataset, leftSql, new String[]{"ext_part_01"});
-            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
-                dataset = getDataset(2, 2000, null);
-            }
-            build_n_populate(CREATE_EXTERNAL_TBL, TBL_INSERT, dataset, leftSql, new String[]{"ext_part_02"});
-            build_n_populate(CREATE_LEGACY_MNGD_TBL, TBL_INSERT, dataset, leftSql, new String[]{"legacy_mngd_01"});
-
-            Mirror cfgMirror = new Mirror();
-            long rtn = cfgMirror.setupSqlLeft(args, leftSql);
-            DataState.getInstance().setDataCreated("dataset01", Boolean.TRUE);
-        }
-        return Boolean.TRUE;
-    }
-
-    public enum DATACLEANUP {
-        LEFT, RIGHT, BOTH
     }
 
     protected static Boolean dataCleanup(DATACLEANUP datacleanup) {
@@ -169,7 +105,7 @@ public class MirrorTestBase {
 
             Mirror cfgMirror = new Mirror();
 
-            long rtn = 0l;
+            long rtn = 0L;
             Config cfg = Context.getInstance().getConfig();
             String ns = null;
             switch (datacleanup) {
@@ -235,6 +171,53 @@ public class MirrorTestBase {
         sqlPairList.add(r03p);
     }
 
+    public Boolean dataSetup01() {
+        if (!DataState.getInstance().isDataCreated("dataset01")) {
+            String nameofCurrMethod = new Throwable()
+                    .getStackTrace()[0]
+                    .getMethodName();
+
+            String outputDir = outputDirBase + nameofCurrMethod;
+
+            String[] args = new String[]{"-d", "STORAGE_MIGRATION", "-smn", "s3a://something_not_relevant",
+                    "-wd", "/hello", "-ewd", "/hello-ext",
+                    "-db", DataState.getInstance().getWorking_db(), "-o", outputDir,
+                    "-cfg", DataState.getInstance().getConfiguration()};
+            args = toExecute(args, execArgs, Boolean.TRUE);
+
+            List<Pair> leftSql = new ArrayList<Pair>();
+            build_use_db(leftSql);
+
+            List<String[]> dataset = null;
+            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+                dataset = getDataset(2, 200, null);
+            }
+            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, TBL_INSERT, dataset, leftSql, new String[]{"acid_01", "2"});
+            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+                dataset = getDataset(2, 400, null);
+            }
+            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS, TBL_INSERT, dataset, leftSql, new String[]{"acid_02", "6"});
+            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+                dataset = getDataset(3, 400, null);
+            }
+            build_n_populate(CREATE_LEGACY_ACID_TBL_N_BUCKETS_PARTITIONED, TBL_INSERT_PARTITIONED, dataset, leftSql, new String[]{"acid_03", "6"});
+            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+                dataset = getDataset(2, 2000, 500);
+            }
+            build_n_populate(CREATE_EXTERNAL_TBL_PARTITIONED, TBL_INSERT_PARTITIONED, dataset, leftSql, new String[]{"ext_part_01"});
+            if (DataState.getInstance().getPopulate() == null || DataState.getInstance().getPopulate()) {
+                dataset = getDataset(2, 2000, null);
+            }
+            build_n_populate(CREATE_EXTERNAL_TBL, TBL_INSERT, dataset, leftSql, new String[]{"ext_part_02"});
+            build_n_populate(CREATE_LEGACY_MNGD_TBL, TBL_INSERT, dataset, leftSql, new String[]{"legacy_mngd_01"});
+
+            Mirror cfgMirror = new Mirror();
+            long rtn = cfgMirror.setupSqlLeft(args, leftSql);
+            DataState.getInstance().setDataCreated("dataset01", Boolean.TRUE);
+        }
+        return Boolean.TRUE;
+    }
+
     protected List<String[]> getDataset(Integer width, Integer count, Integer partitions) {
         List<String[]> rtn = new ArrayList<String[]>();
         Integer realWidth = width;
@@ -256,6 +239,10 @@ public class MirrorTestBase {
             rtn.add(record);
         }
         return rtn;
+    }
+
+    public void init(String cfg) throws Exception {
+        setUp(cfg);
     }
 
     public void setUp(String configLocation) throws Exception {
@@ -320,6 +307,15 @@ public class MirrorTestBase {
                 DataState.getInstance().getUnique() + separator +
                 getClass().getSimpleName() + separator;
 
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        dataCleanup(DATACLEANUP.RIGHT);
+    }
+
+    public enum DATACLEANUP {
+        LEFT, RIGHT, BOTH
     }
 
 

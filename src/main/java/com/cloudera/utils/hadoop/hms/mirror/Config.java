@@ -706,7 +706,7 @@ public class Config {
                     }
                     if (getCluster(Environment.RIGHT).getLegacyHive() && !getCluster(Environment.LEFT).getLegacyHive() &&
                             !getDumpTestData()) {
-                        errors.set(LEGACY_TO_NON_LEGACY.getCode());
+                        errors.set(NON_LEGACY_TO_LEGACY.getCode());
                         rtn = Boolean.FALSE;
                     }
             }

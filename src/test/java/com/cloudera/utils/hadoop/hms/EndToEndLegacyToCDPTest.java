@@ -1,5 +1,6 @@
 package com.cloudera.utils.hadoop.hms;
 
+import com.cloudera.utils.hadoop.hms.mirror.MessageCode;
 import org.junit.Test;
 
 import static com.cloudera.utils.hadoop.hms.EnvironmentConstants.*;
@@ -8,15 +9,88 @@ import static org.junit.Assert.assertEquals;
 public class EndToEndLegacyToCDPTest extends EndToEndBase {
 
     @Test
-    public void test_010 () {
+    public void common() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
-        String[] args = new String[]{"-d", "SCHEMA_ONLY",
-                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", HDP2_CDP,
+        String[] args = new String[]{"-d", "COMMON",
+                "-sql",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void common_ma() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "COMMON",
+                "-sql", "-ma",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
+        long check = MessageCode.VALID_ACID_STRATEGIES.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " expecting: " + check, check, rtn);
+    }
+
+    @Test
+    public void dump() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-d", "DUMP",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = 0;
+//        long check = MessageCode.STORAGE_MIGRATION_REQUIRED_NAMESPACE.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void dump_ma_epl() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "DUMP",
+                "-ma",
+                "-epl",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
                 "-o", outputDir
         };
         long rtn = 0;
@@ -26,7 +100,767 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
     }
 
     @Test
-    public void test_012 () {
+    public void ei() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "EXPORT_IMPORT",
+                "-sql",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void ei_is() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "EXPORT_IMPORT",
+                "-sql", "-is", INTERMEDIATE_STORAGE,
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void ei_mao() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "EXPORT_IMPORT",
+                "-mao",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void ei_mao_da() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "EXPORT_IMPORT",
+                "-mao", "-da",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void ei_mao_da_is() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "EXPORT_IMPORT",
+                "-mao", "-da", "-is", INTERMEDIATE_STORAGE,
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void hybrid() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID",
+                "-sql",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void hybrid_ep_minus1() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-d", "HYBRID",
+                "-ep", "-1",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void hybrid_ma_da_cs() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID",
+                "-ma", "-da", "-cs", COMMON_STORAGE,
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void hybrid_ma_da_is() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID",
+                "-ma", "-da", "-is", INTERMEDIATE_STORAGE,
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void hybrid_ma_epl() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID",
+                "-ma",
+                "-epl",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+    }
+
+    @Test
+    public void hybrid_mao() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID",
+                "-mao",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void hybrid_mao_da() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID",
+                "-mao", "-da",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void hybrid_mao_da_cs() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID",
+                "-mao", "-da", "-cs", COMMON_STORAGE,
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void hybrid_mao_da_is() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID",
+                "-mao", "-da", "-is", INTERMEDIATE_STORAGE,
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void hybrid_mao_da_ro_cs() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID",
+                "-mao", "-da",
+                "-ro",
+                "-cs", COMMON_STORAGE,
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void hybrid_mao_da_wd() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID",
+                "-mao", "-da",
+                "-wd", "/warehouse/managed", "-ewd", "/warehouse/external",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void linked() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "LINKED",
+                "-sql",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void linked_wd_epl_dc_legacy_mngd_w_parts() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "LINKED",
+                "-wd", "/finance/managed-fso",
+                "-ewd", "/finance/external-fso",
+                "-epl",
+                "-dc",
+                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 8388608L, rtn);
+    }
+
+    @Test
+    public void linked_wd_epl_legacy_mngd_w_parts() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "LINKED",
+                "-wd", "/finance/managed-fso",
+                "-ewd", "/finance/external-fso",
+                "-epl",
+                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+    }
+
+    @Test
+    public void linked_wd_epl_w_odd_parts() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "LINKED",
+                "-wd", "/finance/managed-fso",
+                "-ewd", "/finance/external-fso",
+                "-epl",
+                "-ltd", EXT_PURGE_ODD_PARTS_03, "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+    }
+
+    @Test
+    public void so() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
+        // Testing for existing schemas.
+        outputDir = outputDir + "/2";
+        args = new String[]{
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        rtn = 0;
+        mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
+    }
+
+    @Test
+    public void so_cs_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-cs", "s3a://my_common_bucket",
+                "--distcp",
+                "-ltd", LEGACY_MNGD_PARTS_01,
+                "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_cs_rdl_wd_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-cs", "s3a://my_common_storage",
+                "-rdl",
+                "--distcp",
+                "-wd", "/warehouse/managed",
+                "-ewd", "/warehouse/external",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_dbo() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-dbo",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
+    }
+
+    @Test
+    public void so_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "--distcp",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_dc_legacy_mngd_parts() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "--distcp",
+                "-ltd", LEGACY_MNGD_PARTS_01,
+                "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+//        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_dc_legacy_mngd_w_parts() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SCHEMA_ONLY",
+                "-dc",
+                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+    }
+
+    @Test
+    public void so_epl_dc_legacy_mngd_parts() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SCHEMA_ONLY",
+                "-epl",
+                "-dc",
+                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+    }
+
+    @Test
+    public void so_epl_legacy_mngd_parts() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SCHEMA_ONLY",
+                "-epl",
+                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+    }
+
+    @Test
+    public void so_epl_wd_dc_legacy_mngd_parts() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SCHEMA_ONLY",
+                "-epl",
+                "-wd", "/warehouse/tablespace/managed/hive",
+                "-ewd", "/warehouse/tablespace/external/hive",
+                "-dc",
+                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+    }
+
+    @Test
+    public void so_is_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-is", "s3a://my_intermediate_bucket",
+                "--distcp",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_is_dc_legacy_mngd_parts() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-is", "s3a://my_intermediate_bucket",
+                "--distcp",
+                "-ltd", LEGACY_MNGD_PARTS_01,
+                "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_legacy_mngd_parts() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-ltd", LEGACY_MNGD_PARTS_01,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_legacy_mngd_w_parts() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SCHEMA_ONLY",
+                "-ltd", LEGACY_MNGD_PARTS_01,
+                "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+    }
+
+    @Test
+    public void so_ma_epl() {
         // Issue:
         /*
         FIXED: 1. Partitions are on HOME90, not ofs..
@@ -40,7 +874,8 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         String[] args = new String[]{"-d", "SCHEMA_ONLY",
                 "-ma",
                 "-epl",
-                "-ltd", ASSORTED_TBLS_04, "-cfg", HDP2_CDP,
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
                 "-o", outputDir
         };
         long rtn = 0;
@@ -50,67 +885,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
     }
 
     @Test
-    public void test_013 () {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "DUMP",
-                "-ma",
-                "-epl",
-                "-ltd", ASSORTED_TBLS_04, "-cfg", HDP2_CDP,
-                "-o", outputDir
-        };
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 0, rtn);
-    }
-
-    @Test
-    public void test_014 () {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "SQL",
-                "-ma",
-                "-epl",
-                "-ltd", ASSORTED_TBLS_04, "-cfg", HDP2_CDP,
-                "-o", outputDir
-        };
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 0, rtn);
-    }
-
-    @Test
-    public void test_015 () {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "HYBRID",
-                "-ma",
-                "-epl",
-                "-ltd", ASSORTED_TBLS_04, "-cfg", HDP2_CDP,
-                "-o", outputDir
-        };
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 0, rtn);
-    }
-
-    @Test
-    public void acid_w_parts_so_dc () {
+    public void so_ma_wd_epl_dc_w_parts() {
         // Issue:
         /*
         FIXED: 1. Partitions are on HOME90, not ofs..
@@ -137,33 +912,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
     }
 
     @Test
-    public void acid_w_parts_sql () {
-        // Issue:
-        /*
-        FIXED: 1. Partitions are on HOME90, not ofs..
-         */
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "SQL",
-                "-ma",
-                "-wd", "/finance/managed-fso",
-                "-ewd", "/finance/external-fso",
-                "-epl",
-                "-ltd", ACID_W_PARTS_05, "-cfg", HDP2_CDP,
-                "-o", outputDir
-        };
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 0, rtn);
-    }
-
-    @Test
-    public void acid_w_parts_so () {
+    public void so_ma_wd_epl_w_parts() {
         // Issue:
         /*
         FIXED: 1. Partitions are on HOME90, not ofs..
@@ -188,36 +937,8 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
     }
 
-
     @Test
-    public void so_ext_purge_w_wd_epl_odd_parts () {
-        // Issue:
-        /*
-        FIXED: 1. Partitions are on HOME90, not ofs..
-         */
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "SCHEMA_ONLY",
-                "-ma",
-                "-wd", "/finance/managed-fso",
-                "-ewd", "/finance/external-fso",
-                "-epl",
-                "-dc",
-                "-ltd", EXT_PURGE_ODD_PARTS_03, "-cfg", HDP2_CDP,
-                "-o", outputDir
-        };
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 0, rtn);
-    }
-
-    @Test
-    public void so_ext_purge_w_wd_epl_rdl_odd_parts () {
+    public void so_ma_wd_rdl_epl_dc_ext_purge_w_odd_parts() {
         // Issue:
         /*
         FIXED: 1. Partitions are on HOME90, not ofs..
@@ -245,31 +966,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
     }
 
     @Test
-    public void sql_ext_purge_dc_err () {
-        // Issue:
-        /*
-        FIXED: 1. Partitions are on HOME90, not ofs..
-         */
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "SQL",
-                "-dc",
-                "-ltd", EXT_PURGE_ODD_PARTS_03, "-cfg", HDP2_CDP,
-                "-o", outputDir
-        };
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 4294967296l, rtn);
-    }
-
-
-    @Test
-    public void so_legacy_mngd_w_parts () {
+    public void so_mao() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -277,17 +974,22 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
         String[] args = new String[]{"-d", "SCHEMA_ONLY",
-                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+                "-mao",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
                 "-o", outputDir
         };
+
+
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
     @Test
-    public void so_legacy_mngd_w_parts_dc () {
+    public void so_mao_4() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -295,18 +997,139 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
         String[] args = new String[]{"-d", "SCHEMA_ONLY",
-                "-dc",
-                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+                "-mao", "4",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
                 "-o", outputDir
         };
+
+
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
     @Test
-    public void so_legacy_mngd_w_parts_wd_dc () {
+    public void so_mao_wd_rdl_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SCHEMA_ONLY",
+                "-mao",
+                "-rdl", "-wd", "/warehouse/tablespace/managed/hive",
+                "-ewd", "/warehouse/tablespace/external/hive",
+                "--distcp",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_ro() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-ro",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_ro_sync() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-ro", "-sync", "-sql",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " expecting: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_ro_tf() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-tf", "call_center|store_sales", "-ro", "-sql",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " expecting: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_to() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-to",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_wd_dc_legacy_mngd_w_parts() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -327,7 +1150,34 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
     }
 
     @Test
-    public void so_legacy_mngd_w_parts_wd_epl_dc () {
+    public void so_wd_epl_dc_ext_purge_w_odd_parts() {
+        // Issue:
+        /*
+        FIXED: 1. Partitions are on HOME90, not ofs..
+         */
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SCHEMA_ONLY",
+                "-ma",
+                "-wd", "/finance/managed-fso",
+                "-ewd", "/finance/external-fso",
+                "-epl",
+                "-dc",
+                "-ltd", EXT_PURGE_ODD_PARTS_03, "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+    }
+
+    @Test
+    public void so_wd_epl_dc_legacy_mngd_w_parts() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -349,7 +1199,130 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
     }
 
     @Test
-    public void so_legacy_mngd_w_parts_wd_epl_dc_tf () {
+    public void so_wd_epl_rdl_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SCHEMA_ONLY",
+                "-epl",
+                "-wd", "/warehouse/tablespace/managed/hive",
+                "-ewd", "/warehouse/tablespace/external/hive",
+                "-rdl",
+                "-dc",
+                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 1, rtn);
+    }
+
+    @Test
+    public void so_wd_epl_rdl_glm_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SCHEMA_ONLY",
+                "-epl",
+                "-wd", "/warehouse/tablespace/managed/hive",
+                "-ewd", "/warehouse/tablespace/external/hive",
+                "-rdl",
+                "-dc",
+                "-glm", "/apps/hive/warehouse=/warehouse/tablespace/external/hive",
+                "-ltd", LEGACY_MNGD_PARTS_01,
+                "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+    }
+
+    @Test
+    public void so_wd_rdl() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-sql",
+                "-rdl",
+                "-wd", "/warehouse/managed",
+                "-ewd", "/warehouse/external",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_wd_rdl_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-rdl",
+                "--distcp",
+                "-wd", "/warehouse/managed",
+                "-ewd", "/warehouse/external",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_wd_rdl_dc_legacy_mngd_parts() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-rdl",
+                "-dc",
+                "-wd", "/warehouse/managed",
+                "-ewd", "/warehouse/external",
+                "-ltd", LEGACY_MNGD_PARTS_01,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_wd_tf_epl_dc_legacy_mngd_w_parts() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -372,40 +1345,163 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
     }
 
     @Test
-    public void linked_legacy_mngd_w_parts_wd_epl_dc () {
+    public void sql_cs() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
-        String[] args = new String[]{"-d", "LINKED",
+        String[] args = new String[]{"-d", "SQL",
+                "-cs", "s3a://my_common_bucket",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void sql_dc_ext_purge_err() {
+        // Issue:
+        /*
+        FIXED: 1. Partitions are on HOME90, not ofs..
+         */
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-dc",
+                "-ltd", EXT_PURGE_ODD_PARTS_03, "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 4294967296L, rtn);
+    }
+
+    /*
+    TODO: Bug...  For EXTERNAL tables the 'transfer' table isn't 'managed' (in legacy) so
+            when it's deleted, the data isn't cleaned up.
+            Currently, the intermediate storage location is unique and can be
+              cleaned up after the fact.
+     */
+    @Test
+    public void sql_is() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-is", "s3a://my_intermediate_bucket",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void sql_is_legacy_mngd_parts() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-sql",
+                "-ltd", LEGACY_MNGD_PARTS_01,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    // ====
+    @Test
+    public void sql_ma_cs() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-mao",
+                "-cs", COMMON_STORAGE,
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void sql_ma_epl() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-ma",
+                "-epl",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+    }
+
+    @Test
+    public void sql_ma_wd_epl_w_parts() {
+        // Issue:
+        /*
+        FIXED: 1. Partitions are on HOME90, not ofs..
+         */
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-ma",
                 "-wd", "/finance/managed-fso",
                 "-ewd", "/finance/external-fso",
                 "-epl",
-                "-dc",
-                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
-                "-o", outputDir
-        };
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 8388608l, rtn);
-    }
-
-    @Test
-    public void linked_legacy_mngd_w_parts_wd_epl () {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-d", "LINKED",
-                "-wd", "/finance/managed-fso",
-                "-ewd", "/finance/external-fso",
-                "-epl",
-                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+                "-ltd", ACID_W_PARTS_05, "-cfg", HDP2_CDP,
                 "-o", outputDir
         };
         long rtn = 0;
@@ -415,132 +1511,244 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
     }
 
     @Test
-    public void linked_ext_purge_w_odd_parts_wd_epl () {
+    public void sql_mao() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
-        String[] args = new String[]{"-d", "LINKED",
-                "-wd", "/finance/managed-fso",
-                "-ewd", "/finance/external-fso",
-                "-epl",
-                "-ltd", EXT_PURGE_ODD_PARTS_03, "-cfg", CDH_CDP,
-                "-o", outputDir
-        };
+        String[] args = new String[]{"-d", "SQL",
+                "-mao",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir};
+
+
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
     @Test
-    public void test_102 () {
+    public void sql_mao_cs_da() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
-        String[] args = new String[]{"-d", "SCHEMA_ONLY",
-                "-epl",
-                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
-                "-o", outputDir
-        };
+        String[] args = new String[]{"-d", "SQL",
+                "-mao",
+                "-cs", COMMON_STORAGE,
+                "-da",
+                "-cfg", HDP2_CDP,
+                "-o", outputDir};
+
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
     @Test
-    public void test_103 () {
+    public void sql_mao_da() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
-        String[] args = new String[]{"-d", "SCHEMA_ONLY",
-                "-epl",
-                "-dc",
-                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+        String[] args = new String[]{"-d", "SQL",
+                "-mao", "-da",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
                 "-o", outputDir
         };
+
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
     @Test
-    public void test_104 () {
+    public void sql_mao_ewd_da_dc() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
-        String[] args = new String[]{"-d", "SCHEMA_ONLY",
-                "-epl",
-                "-wd", "/warehouse/tablespace/managed/hive",
-                "-ewd", "/warehouse/tablespace/external/hive",
-                "-dc",
-                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+        String[] args = new String[]{"-d", "SQL",
+                "-mao",
+                "-da",
+                "--distcp",
+                "-ewd", "/warehouse/external",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
                 "-o", outputDir
         };
+
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
     @Test
-    public void test_105 () {
+    public void sql_mao_ewd_da_dc_legacy_mngd_parts() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
-        String[] args = new String[]{"-d", "SCHEMA_ONLY",
-                "-epl",
-                "-wd", "/warehouse/tablespace/managed/hive",
-                "-ewd", "/warehouse/tablespace/external/hive",
+        String[] args = new String[]{"-d", "SQL",
+                "-mao",
+                "-ewd", "/warehouse/external",
+                "-da",
+                "--distcp",
+                "-ltd", LEGACY_MNGD_PARTS_01,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void sql_mao_sdpi() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-mao",
+                "-sdpi",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void sql_mao_wd_da_rdl_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-mao",
+                "-ewd", "/warehouse/external",
+                "-wd", "/warehouse/managed",
+                "-da",
                 "-rdl",
-                "-dc",
-                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+                "--distcp",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
                 "-o", outputDir
         };
+
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 1, rtn);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
     @Test
-    public void test_106 () {
+    public void sql_mao_wd_da_rdl_is_dc() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
 
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
-        String[] args = new String[]{"-d", "SCHEMA_ONLY",
-                "-epl",
-                "-wd", "/warehouse/tablespace/managed/hive",
-                "-ewd", "/warehouse/tablespace/external/hive",
+        String[] args = new String[]{"-d", "SQL",
+                "-mao",
+                "-ewd", "/warehouse/external",
+                "-wd", "/warehouse/managed",
+                "-da",
                 "-rdl",
-                "-dc",
-                "-glm", "/apps/hive/warehouse=/warehouse/tablespace/external/hive",
-                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+                "-is", "s3a://my_is_bucket",
+                "--distcp",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
                 "-o", outputDir
         };
+
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void sql_ro() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-sql", "-ro",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        // Should fail because DB dir doesn't exist.  RO assumes data moved already.
+        long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " expecting: " + check, check, rtn);
+    }
+
+    @Test
+    public void sql_sync() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-d", "SQL", "-sync",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = MessageCode.VALID_SYNC_STRATEGIES.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " expecting: " + check, check, rtn);
     }
 
 }

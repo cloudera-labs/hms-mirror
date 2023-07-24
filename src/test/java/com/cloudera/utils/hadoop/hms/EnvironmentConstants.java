@@ -21,5 +21,6 @@ public interface EnvironmentConstants {
     String EXT_PURGE_ODD_PARTS_03 = "/test_data/ext_purge_odd_parts.yaml";
     String ASSORTED_TBLS_04 = "/test_data/assorted_tbls_01.yaml";
     String ACID_W_PARTS_05 = "/test_data/acid_w_parts_01.yaml";
+    String ASSORTED_TBLS_06 = "/test_data/assorted_tbls_02.yaml";
 
 }

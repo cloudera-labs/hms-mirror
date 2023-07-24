@@ -169,7 +169,8 @@ public class DBMirror {
     /*
     Return String[3] for Hive.  0-Create Sql, 1-Location, 2-Mngd Location.
      */
-    public void buildDBStatements(Config config) {
+    public void buildDBStatements() {
+        Config config = Context.getInstance().getConfig();
         // Start with the LEFT definition.
         Map<String, String> dbDefLeft = getDBDefinition(Environment.LEFT);//getDBDefinition(Environment.LEFT);
         Map<String, String> dbDefRight = getDBDefinition(Environment.RIGHT);//getDBDefinition(Environment.LEFT);
@@ -279,7 +280,7 @@ public class DBMirror {
                                         managedLocation = Translator.removeLastDirFromUrl(managedLocation) + "/" + config.getResolvedDB(getName()) + ".db";
                                     }
                                 }
-                                if (config.isReadOnly()) {
+                                if (config.isReadOnly() && !config.isLoadingTestData()) {
                                     LOG.debug("Config set to 'read-only'.  Validating FS before continuing");
                                     HadoopSession main = null;
                                     try {

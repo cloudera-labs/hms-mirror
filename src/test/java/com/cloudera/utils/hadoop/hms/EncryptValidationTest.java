@@ -23,62 +23,15 @@ import org.apache.commons.cli.CommandLine;
 import org.junit.Test;
 
 import static com.cloudera.utils.hadoop.hms.EnvironmentConstants.ENCRYPTED;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class EncryptValidationTest extends EndToEndBase {
 
     private static final String PKEY = "test";
 
     @Test
-    public void test_encrypt_test() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-pkey", PKEY,
-                "-p", "myspecialpassword",
-                "-cfg", ENCRYPTED
-        };
-//        args = toExecute(args, execArgs, Boolean.FALSE);
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        CommandLine cmd = mirror.getCommandLine(args);
-        Config config = mirror.loadConfig(cmd);
-
-        String epassword = config.getWarnings().getMessage(MessageCode.ENCRYPTED_PASSWORD.getCode());
-
-        assertEquals("FNLmFEI0F/n8acz45c3jVExMounSBklX", epassword);
-
-    }
-
-    @Test
-    public void test_decrypt_test() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{"-pkey", PKEY,
-                "-dp", "FNLmFEI0F/n8acz45c3jVExMounSBklX",
-                "-cfg", ENCRYPTED
-        };
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        CommandLine cmd = mirror.getCommandLine(args);
-        Config config = mirror.loadConfig(cmd);
-
-        String dpassword = config.getWarnings().getMessage(MessageCode.DECRYPTED_PASSWORD.getCode());
-
-        assertEquals("myspecialpassword", dpassword);
-    }
-
-    @Test
-    public void test_decrypt_fail_test() {
+    public void decrypt_fail_test() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -104,6 +57,54 @@ public class EncryptValidationTest extends EndToEndBase {
         } else {
             assertFalse("Should have failed", Boolean.TRUE);
         }
+    }
+
+    @Test
+    public void decrypt_test() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-pkey", PKEY,
+                "-dp", "FNLmFEI0F/n8acz45c3jVExMounSBklX",
+                "-cfg", ENCRYPTED
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        CommandLine cmd = mirror.getCommandLine(args);
+        Config config = mirror.loadConfig(cmd);
+
+        String dpassword = config.getWarnings().getMessage(MessageCode.DECRYPTED_PASSWORD.getCode());
+
+        assertEquals("myspecialpassword", dpassword);
+    }
+
+    @Test
+    public void encrypt_test() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-pkey", PKEY,
+                "-p", "myspecialpassword",
+                "-cfg", ENCRYPTED
+        };
+//        args = toExecute(args, execArgs, Boolean.FALSE);
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        CommandLine cmd = mirror.getCommandLine(args);
+        Config config = mirror.loadConfig(cmd);
+
+        String epassword = config.getWarnings().getMessage(MessageCode.ENCRYPTED_PASSWORD.getCode());
+
+        assertEquals("FNLmFEI0F/n8acz45c3jVExMounSBklX", epassword);
+
     }
 
 }

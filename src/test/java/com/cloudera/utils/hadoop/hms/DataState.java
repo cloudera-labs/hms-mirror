@@ -35,21 +35,18 @@ import java.util.TreeMap;
 public class DataState {
 
     private static DataState instance = null;
-
+    private final String unique = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
     protected String configuration = null;
-//    protected Boolean dataCreated = Boolean.FALSE;
+    //    protected Boolean dataCreated = Boolean.FALSE;
     protected Map<String, Map<String, Boolean>> dataCreated = new TreeMap<>();
-//    protected Map<String, Boolean> dataCreated = new TreeMap<String, Boolean>();
-    private Boolean skipAdditionDataCreation = Boolean.FALSE;
-
     protected Boolean execute = Boolean.FALSE;
     protected Boolean cleanUp = Boolean.TRUE;
     protected Boolean populate = Boolean.TRUE;
 
     protected String working_db = null;
     protected String table_filter = null;
-
-    private final String unique = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+    //    protected Map<String, Boolean> dataCreated = new TreeMap<String, Boolean>();
+    private Boolean skipAdditionDataCreation = Boolean.FALSE;
 
     private DataState() {
 
@@ -59,10 +56,6 @@ public class DataState {
         if (instance == null)
             instance = new DataState();
         return instance;
-    }
-
-    public String getUnique() {
-        return unique;
     }
 
     public String getConfiguration() {
@@ -80,6 +73,22 @@ public class DataState {
         Context.getInstance().setConfig(cfg);
     }
 
+    public Boolean getPopulate() {
+        return populate;
+    }
+
+    public void setPopulate(Boolean populate) {
+        this.populate = populate;
+    }
+
+    public Boolean getSkipAdditionDataCreation() {
+        return skipAdditionDataCreation;
+    }
+
+    public void setSkipAdditionDataCreation(Boolean skipAdditionDataCreation) {
+        this.skipAdditionDataCreation = skipAdditionDataCreation;
+    }
+
     public String getTable_filter() {
         return table_filter;
     }
@@ -90,6 +99,10 @@ public class DataState {
 
     protected String getTestDbName() {
         return "z_hms_mirror_testdb_" + unique;
+    }
+
+    public String getUnique() {
+        return unique;
     }
 
     public String getWorking_db() {
@@ -104,22 +117,6 @@ public class DataState {
 
     public Boolean isCleanUp() {
         return cleanUp;
-    }
-
-    public Boolean getSkipAdditionDataCreation() {
-        return skipAdditionDataCreation;
-    }
-
-    public void setSkipAdditionDataCreation(Boolean skipAdditionDataCreation) {
-        this.skipAdditionDataCreation = skipAdditionDataCreation;
-    }
-
-    public Boolean getPopulate() {
-        return populate;
-    }
-
-    public void setPopulate(Boolean populate) {
-        this.populate = populate;
     }
 
     public Boolean isDataCreated(String dataset) {

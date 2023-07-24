@@ -305,6 +305,7 @@ public class Mirror {
         }
 
         Config config = loadConfig(cmd);
+
         if (config.hasErrors()) {
             return config.getErrors().getReturnCode();
         } else {
@@ -805,6 +806,13 @@ public class Mirror {
                 LOG.info("EXECUTE has NOT been set.  No ACTIONS will be performed, the process output will be recorded in the log.");
                 LOG.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
                 getConfig().setExecute(Boolean.FALSE);
+            }
+        }
+
+        // Set clusters to initialized if we are loading test data.
+        if (getConfig().isLoadingTestData()) {
+            for (Cluster cluster : getConfig().getClusters().values()) {
+                cluster.setInitialized(Boolean.TRUE);
             }
         }
 
