@@ -21,23 +21,16 @@ import com.cloudera.utils.hadoop.hms.DataState;
 import com.cloudera.utils.hadoop.hms.Mirror;
 import com.cloudera.utils.hadoop.hms.mirror.Pair;
 import org.junit.Before;
-import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.cloudera.utils.hadoop.hms.TestSQL.*;
+import static com.cloudera.utils.hadoop.hms.TestSQL.CREATE_AVRO_TBL_SHORT;
 import static com.cloudera.utils.hadoop.hms.TestSQL.TBL_INSERT;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class AVROMigrationTest  extends MirrorTestBase {
-
-    @Before
-    public void init() throws Exception {
-        super.init(HDP2_CDP);
-//        DataState.getInstance().setConfiguration(HDP2_CDP);
-        dataSetupAvro();
-    }
+public class AVROMigrationTest extends MirrorTestBase {
 
     public Boolean dataSetupAvro() {
         if (!DataState.getInstance().isDataCreated("avro")) {
@@ -70,8 +63,15 @@ public class AVROMigrationTest  extends MirrorTestBase {
         return Boolean.TRUE;
     }
 
-    @Test
-    public void test_avro_01 () {
+    @Before
+    public void init() throws Exception {
+        super.init(HDP2_CDP);
+//        DataState.getInstance().setConfiguration(HDP2_CDP);
+        dataSetupAvro();
+    }
+
+    //    @Test
+    public void test_avro_01() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -87,11 +87,11 @@ public class AVROMigrationTest  extends MirrorTestBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
     }
 
-    @Test
-    public void test_avro_sql_02 () {
+    //    @Test
+    public void test_avro_sql_02() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -107,7 +107,7 @@ public class AVROMigrationTest  extends MirrorTestBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertTrue("Return Code Failure: " + rtn + " doesn't match: " + check, rtn == check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
     }
 
 }

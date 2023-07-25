@@ -1,0 +1,13 @@
+# Config
+transfer:
+  concurrency: 10
+clusters:
+  LEFT:
+    legacyHive: "true"
+    hcfsNamespace: "hdfs://HDP50"
+  RIGHT:
+    legacyHive: "false"
+    hcfsNamespace: "hdfs://HOME90"
+    partitionDiscovery:
+      auto: true
+      initMSCK: true

@@ -17,6 +17,7 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.*;
 
@@ -26,7 +27,7 @@ public class EnvironmentTable {
     private Boolean exists = Boolean.FALSE;
     private CreateStrategy createStrategy = CreateStrategy.NOTHING;
     private List<String> definition = new ArrayList<String>();
-    private final Boolean partitioned = Boolean.FALSE;
+//    private final Boolean partitioned = Boolean.FALSE;
     private String owner = null;
 
     private Map<String, String> partitions = new HashMap<String, String>();
@@ -39,9 +40,21 @@ public class EnvironmentTable {
     private final List<Pair> sql = new ArrayList<Pair>();
     private final List<Pair> cleanUpsql = new ArrayList<Pair>();
 
+    @JsonIgnore
     private TableMirror parent = null;
 
+    public EnvironmentTable() {
+    }
+
     public EnvironmentTable(TableMirror parent) {
+        this.parent = parent;
+    }
+
+    public TableMirror getParent() {
+        return parent;
+    }
+
+    public void setParent(TableMirror parent) {
         this.parent = parent;
     }
 
@@ -69,6 +82,7 @@ public class EnvironmentTable {
         this.createStrategy = createStrategy;
     }
 
+    @JsonIgnore
     public Boolean isDefined() {
         if (definition != null && definition.size() > 0) {
             return Boolean.TRUE;
@@ -85,6 +99,7 @@ public class EnvironmentTable {
         this.definition = definition;
     }
 
+    @JsonIgnore
     public Boolean getPartitioned() {
         Boolean rtn = Boolean.FALSE;
         rtn = partitions.size() > 0 ? Boolean.TRUE : Boolean.FALSE;

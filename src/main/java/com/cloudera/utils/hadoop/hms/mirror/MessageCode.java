@@ -53,7 +53,7 @@ public enum MessageCode {
     ACID_DOWNGRADE_SCHEMA_ONLY(26, "Use the 'SQL' data-strategy to 'downgrade' an ACID table with 'distcp'"),
     OPTIONAL_ARG_ISSUE(27, "Bad optional argument"),
     CONNECTION_ISSUE(28, "JDBC connection issue.  Check environment, jdbc urls, libraries, etc."),
-    LEGACY_TO_NON_LEGACY(29, "`hms-mirror` does NOT support migrations from Hive 3 to Hive 1/2."),
+    NON_LEGACY_TO_LEGACY(29, "`hms-mirror` does NOT support migrations from Hive 3 to Hive 1/2."),
 //    DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION(30, "You must specify `-wd` and `-ewd` when using `-rdl` with `--distcp`."),
     RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS(30, "When using `-rdl`, you will need specify the " +
         "warehouse locations (-wd,-ewd) to enable the `distcp` workbooks and/or resetting locations.  Without them, we can NOT know the " +
@@ -86,12 +86,6 @@ public enum MessageCode {
     SAME_CLUSTER_COPY_WITHOUT_DBPR(47, "You must specify `-dbp` or `-dbr` when the cluster configurations use the same storage."),
     DB_RENAME_ONLY_WITH_SINGLE_DB_OPTION(48, "DB Rename can only be used for a single DB `-db`."),
     ENVIRONMENT_CONNECTION_ISSUE(49, "There is an issue connecting to the {0} HS2 environment.  Check jdbc setup."),
-    FLIP_WITHOUT_RIGHT(80, "You can use the 'flip' option if there isn't a RIGHT cluster defined in the configuration."),
-    WAREHOUSE_DIRS_SAME_DIR(81, "You can't use the same location for EXTERNAL {0} and MANAGED {1} warehouse locations."),
-    COLLECTING_TABLE_DEFINITIONS(82, "There was an issue collecting table definitions.  Please check logs."),
-    DATABASE_CREATION(83, "There was an issue creating/modifying databases.  Please check logs."),
-    COLLECTING_TABLES(84, "There was an issue collecting tables.  Please check logs."),
-    LEGACY_AND_HIVE3(85, "Setting legacyHive=true and hdpHive3=true is a conflicting configuration"),
     // WARNINGS
     SYNC_TBL_FILTER(50, "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"
             + "' ON BOTH SIDES!!!"),
@@ -104,8 +98,8 @@ public enum MessageCode {
     DISTCP_OUTPUT_NOT_REQUESTED(54, "To get the `distcp` workplans add `-dc|--distcp` to commandline."),
     DISTCP_RDL_WO_WAREHOUSE_DIR(55, "When using `-rdl|--reset-to-default-location` you must also specify " +
             "warehouse locations `-wd|-ewd` to build the `distcp` workplans."),
-    ENCRYPT_PASSWORD(56, "Encrypted Password {0}"),
-    DECRYPT_PASSWORD(57, "Decrypted Password {0}"),
+    ENCRYPTED_PASSWORD(56, "{0}"),
+    DECRYPTED_PASSWORD(57, "{0}"),
     ENVIRONMENT_DISCONNECTED(58, "Environment {0} is disconnected. Current db/table status could not be determined.  " +
             "All actions will assume they don't exist.\n\nStrategies/methods of sync that require the 'RIGHT' cluster or 'LEFT' cluster " +
             "to be linked may not work without a `common-storage` or `intermediate-storage` option that will bridge the gap."),
@@ -115,8 +109,8 @@ public enum MessageCode {
             "for work going on to address this."),
     STORAGE_MIGRATION_NAMESPACE_LEFT(60,  "You didn't specify -smn or -cs for STORAGE_MIGRATION.  We're assuming you are migrating " +
             "within the same namespace {0}."),
-    STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL(61,  "You're using the same namespace in STORAGE_MIGRATION, which " +
-                                                         "requires the use of `reset-to-default-location`.  This feature has automatically been set."),
+    STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL_GLM(61,  "You're using the same namespace in STORAGE_MIGRATION, without `-rdl` you'll need to " +
+            "ensure you have `-glm` set to map locations."),
     TABLE_LOCATION_REMAPPED(62, "The tables location matched one of the 'global location map' directories. " +
             "The LOCATION element was adjusted and will be explicitly set during table creation."),
     TABLE_LOCATION_FORCED(63, "You've request the table location be explicitly set."),
@@ -137,7 +131,35 @@ public enum MessageCode {
     EVALUATE_PARTITION_LOCATION_CONFIG(68, "The metastore_direct is not configured for the {0} cluster.  It is required when using " +
             "`-epl|--evaluate-partition-location`."),
     EVALUATE_PARTITION_LOCATION_STORAGE_MIGRATION(69, "The `-epl|--evaluate-partition-location` flag is only valid when `-dc` option is" +
-            "specified for STORAGE_MIGRATION strategy.")
+            "specified for STORAGE_MIGRATION strategy."),
+    HIVE3_ON_HDP_ACID_TRANSFERS (70, "Hive3 on HDP does NOT honor the 'database' LOCATION element for newly created MANAGED tables. " +
+            "For STORAGE_MIGRATION in the same metastore/namespace, move the data with `distcp` and ALTER the table locations by adding " +
+            "`-dc` option to the commandline."),
+    IGNORING_TBL_FILTERS_W_TEST_DATA(71, "Table filters are ignored with 'test data'"),
+    DISTCP_W_TABLE_FILTERS(72, "`distcp` workbooks will include the current table directories and build separate " +
+            "`distcp` plans for each table to contain/manage the data transferred to the tables directory (and possible non-standard " +
+            "directories caught by partition locations)"),
+    DISTCP_WO_TABLE_FILTERS(73, "`distcp` workbooks will include the DATABASE base directory, which may include more data than is " +
+                                   "expected at the 'db' level, especially if the root directory is used by other processes outside of the tables " +
+            "defined in the database."),
+    RDL_W_EPL_NO_MAPPING(74, "`-epl` with `-rdl` requires an entry in `-glm` to ensure we can map from the original location " +
+            "to the new location. The `-glm` entry 'should' match the target 'warehouse' location if `-[e]wd` was specified to ensure " +
+            "alignment. Source: {0} : {1} "),
+    LOCATION_NOT_MATCH_WAREHOUSE(75, "You have specified `-[e]wd]` in the config but after all the translations, the `{0}` " +
+            "location is still NOT aligned in the DBs warehouse. `{1}`->`{2}`. Consider adding a `-glm` mapping to align them"),
+    DISTCP_FOR_SO_ACID(76, "`distcp` can NOT be used to migrate data for ACID tables.  Try using strategies: " +
+            "SQL, EXPORT_IMPORT, or HYBRID"),
+    SQL_ACID_W_DC(77, "`distcp` isn't valid for SQL strategies on ACID tables."),
+    FLIP_WITHOUT_RIGHT(80, "You can use the 'flip' option if there isn't a RIGHT cluster defined in the configuration."),
+    WAREHOUSE_DIRS_SAME_DIR(81, "You can't use the same location for EXTERNAL {0} and MANAGED {1} warehouse locations."),
+    COLLECTING_TABLE_DEFINITIONS(82, "There was an issue collecting table definitions.  Please check logs."),
+    DATABASE_CREATION(83, "There was an issue creating/modifying databases.  Please check logs."),
+    COLLECTING_TABLES(84, "There was an issue collecting tables.  Please check logs."),
+    LEGACY_AND_HIVE3(85, "Setting legacyHive=true and hdpHive3=true is a conflicting configuration"),
+    RDL_FEL_OVERRIDES(86, "You've request both -rdl and -fel. -fel will take precedence."),
+    CINE_WITH_SO(87, "The `-cine` (createIfNotExist) option is only applied while using the `SCHEMA_ONLY` data strategy."),
+
+
     ;
 
 

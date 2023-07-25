@@ -37,9 +37,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -61,6 +59,9 @@ public class Config {
     private boolean copyAvroSchemaUrls = Boolean.FALSE;
     private DataStrategy dataStrategy = DataStrategy.SCHEMA_ONLY;
     private Boolean databaseOnly = Boolean.FALSE;
+    private Boolean dumpTestData = Boolean.FALSE;
+    private String loadTestDataFile = null;
+
     private Boolean evaluatePartitionLocation = Boolean.FALSE;
     private Filter filter = new Filter();
     private Boolean skipLinkCheck = Boolean.FALSE;
@@ -141,7 +142,7 @@ public class Config {
     private ScheduledExecutorService transferThreadPool;
     @JsonIgnore
     private ScheduledExecutorService metadataThreadPool;
-//    @JsonIgnore
+    //    @JsonIgnore
     private Translator translator = new Translator();
     @JsonIgnore
     private final Messages warnings = new Messages(100);
@@ -300,6 +301,30 @@ public class Config {
         this.cliPool = cliPool;
     }
 
+    public Boolean getDumpTestData() {
+        return dumpTestData;
+    }
+
+    public void setDumpTestData(Boolean dumpTestData) {
+        this.dumpTestData = dumpTestData;
+    }
+
+    public Boolean isLoadingTestData() {
+        if (loadTestDataFile != null) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
+    }
+
+    public String getLoadTestDataFile() {
+        return loadTestDataFile;
+    }
+
+    public void setLoadTestDataFile(String loadTestDataFile) {
+        this.loadTestDataFile = loadTestDataFile;
+    }
+
     public String getRunMarker() {
         return runMarker;
     }
@@ -392,8 +417,24 @@ public class Config {
         return errors;
     }
 
+    public Boolean hasErrors() {
+        if (errors.getReturnCode() != 0) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
+    }
+
     public Messages getWarnings() {
         return warnings;
+    }
+
+    public Boolean hasWarnings() {
+        if (warnings.getReturnCode() != 0) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
     }
 
     public LegacyTranslations getLegacyTranslations() {
@@ -663,8 +704,9 @@ public class Config {
                         warnings.set(HDP3_HIVE.getCode());
 
                     }
-                    if (getCluster(Environment.RIGHT).getLegacyHive() && !getCluster(Environment.LEFT).getLegacyHive()) {
-                        errors.set(LEGACY_TO_NON_LEGACY.getCode());
+                    if (getCluster(Environment.RIGHT).getLegacyHive() && !getCluster(Environment.LEFT).getLegacyHive() &&
+                            !getDumpTestData()) {
+                        errors.set(NON_LEGACY_TO_LEGACY.getCode());
                         rtn = Boolean.FALSE;
                     }
             }
@@ -682,6 +724,10 @@ public class Config {
 
         if (getCluster(Environment.LEFT).isHdpHive3() && this.getDataStrategy() == DataStrategy.STORAGE_MIGRATION) {
             this.getTranslator().setForceExternalLocation(Boolean.TRUE);
+            if (getMigrateACID().isOn() && !getTransfer().getStorageMigration().isDistcp()) {
+                errors.set(HIVE3_ON_HDP_ACID_TRANSFERS.getCode());
+                rtn = Boolean.FALSE;
+            }
         }
 
         if (resetToDefaultLocation) {
@@ -699,6 +745,12 @@ public class Config {
             }
             if (getTransfer().getStorageMigration().isDistcp()) {
                 warnings.set(RDL_DC_WARNING_TABLE_ALIGNMENT.getCode());
+//                if (getEvaluatePartitionLocation()) {
+
+//                }
+            }
+            if (getTranslator().getForceExternalLocation()) {
+                warnings.set(RDL_FEL_OVERRIDES.getCode());
             }
         }
 
@@ -726,19 +778,19 @@ public class Config {
                 }
         }
 
-        if (getEvaluatePartitionLocation()) {
+        if (getEvaluatePartitionLocation() && !isLoadingTestData()) {
             switch (getDataStrategy()) {
                 case SCHEMA_ONLY:
                 case DUMP:
                     // Check the metastore_direct config on the LEFT.
-                    if (getCluster(Environment.LEFT).getMetastoreDirect()== null) {
+                    if (getCluster(Environment.LEFT).getMetastoreDirect() == null) {
                         errors.set(EVALUATE_PARTITION_LOCATION_CONFIG.getCode(), "LEFT");
                         rtn = Boolean.FALSE;
                     }
                     warnings.set(EVALUATE_PARTITION_LOCATION.getCode());
                     break;
                 case STORAGE_MIGRATION:
-                    if (getCluster(Environment.LEFT).getMetastoreDirect()== null) {
+                    if (getCluster(Environment.LEFT).getMetastoreDirect() == null) {
                         errors.set(EVALUATE_PARTITION_LOCATION_CONFIG.getCode(), "LEFT");
                         rtn = Boolean.FALSE;
                     }
@@ -759,17 +811,23 @@ public class Config {
             rtn = Boolean.FALSE;
         }
 
+        if (isLoadingTestData()) {
+            if (getFilter().isTableFiltering()) {
+                warnings.set(IGNORING_TBL_FILTERS_W_TEST_DATA.getCode());
+            }
+        }
+
         if (isFlip() && getCluster(Environment.LEFT) == null) {
             errors.set(FLIP_WITHOUT_RIGHT.getCode());
             rtn = Boolean.FALSE;
         }
 
-        if (getTransfer().getConcurrency() > 4) {
+        if (getTransfer().getConcurrency() > 4 && !isLoadingTestData()) {
             // We need to pass on a few scale parameters to the hs2 configs so the connection pools can handle the scale requested.
             if (getCluster(Environment.LEFT) != null) {
                 Cluster cluster = getCluster(Environment.LEFT);
                 cluster.getHiveServer2().getConnectionProperties().setProperty("initialSize", Integer.toString((Integer) getTransfer().getConcurrency() / 2));
-                cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency() + 1));
+                cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
                 cluster.getHiveServer2().getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency()));
                 cluster.getHiveServer2().getConnectionProperties().setProperty("minIdle", Integer.toString((Integer) getTransfer().getConcurrency() / 2));
                 cluster.getHiveServer2().getConnectionProperties().setProperty("maxWaitMillis", "10000");
@@ -778,7 +836,7 @@ public class Config {
             if (getCluster(Environment.RIGHT) != null) {
                 Cluster cluster = getCluster(Environment.RIGHT);
                 cluster.getHiveServer2().getConnectionProperties().setProperty("initialSize", Integer.toString((Integer) getTransfer().getConcurrency() / 2));
-                cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency() + 1));
+                cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
                 cluster.getHiveServer2().getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency()));
                 cluster.getHiveServer2().getConnectionProperties().setProperty("minIdle", Integer.toString((Integer) getTransfer().getConcurrency() / 2));
                 cluster.getHiveServer2().getConnectionProperties().setProperty("maxWaitMillis", "10000");
@@ -803,6 +861,12 @@ public class Config {
             if (getDataStrategy() == DataStrategy.STORAGE_MIGRATION
                     && getTransfer().getStorageMigration().isDistcp()) {
                 warnings.set(STORAGE_MIGRATION_DISTCP_EXECUTE.getCode());
+            }
+
+            if (getFilter().isTableFiltering()) {
+                warnings.set(DISTCP_W_TABLE_FILTERS.getCode());
+            } else {
+                warnings.set(DISTCP_WO_TABLE_FILTERS.getCode());
             }
 //            if (getDataStrategy() == DataStrategy.STORAGE_MIGRATION
 //                    && getMigrateACID().isOn() && !getEvaluatePartitionLocation()) {
@@ -858,8 +922,7 @@ public class Config {
         if (sync && getFilter().getTblRegEx() != null) {
             warnings.set(SYNC_TBL_FILTER.getCode());
         }
-        if (sync && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.LINKED ||
-                dataStrategy == DataStrategy.LINKED)) {
+        if (sync && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.LINKED)) {
             errors.set(VALID_SYNC_STRATEGIES.getCode());
             rtn = Boolean.FALSE;
         }
@@ -904,10 +967,12 @@ public class Config {
                 // Use the same namespace, we're assuming that was the intent.
                 this.getTransfer().setCommonStorage(getCluster(Environment.LEFT).getHcfsNamespace());
                 // Force reset to default location.
-                this.setResetToDefaultLocation(Boolean.TRUE);
+//                this.setResetToDefaultLocation(Boolean.TRUE);
                 warnings.set(STORAGE_MIGRATION_NAMESPACE_LEFT.getCode(), getCluster(Environment.LEFT).getHcfsNamespace());
-                warnings.set(STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL.getCode());
-//                rtn = Boolean.FALSE;
+                if (!getResetToDefaultLocation() && getTranslator().getGlobalLocationMap().size() == 0) {
+                    errors.set(STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL_GLM.getCode());
+                    rtn = Boolean.FALSE;
+                }
             }
             if (this.getTransfer().getWarehouse() == null ||
                     (this.getTransfer().getWarehouse().getManagedDirectory() == null ||
@@ -1003,6 +1068,13 @@ public class Config {
             }
         }
 
+        if (getCluster(Environment.RIGHT) != null) {
+            if (getDataStrategy() != DataStrategy.SCHEMA_ONLY &&
+            getCluster(Environment.RIGHT).getCreateIfNotExists()) {
+                warnings.set(CINE_WITH_SO.getCode());
+            }
+        }
+
         if (this.getTranslator().getGlobalLocationMap() != null) {
             // Validate that none of the 'from' maps overlap.  IE: can't have /data and /data/mydir as from locations.
             //    For items that match /data/mydir maybe confusing as to which one to adjust.
@@ -1015,63 +1087,52 @@ public class Config {
         // If the environments are mix of legacy and non-legacy, check the connections for kerberos or zk.
 
         // Set maxConnections to Concurrency.
-        HiveServer2Config leftHS2 = this.getCluster(Environment.LEFT).getHiveServer2();
-        if (!leftHS2.isValidUri()) {
-            rtn = Boolean.FALSE;
-            errors.set(LEFT_HS2_URI_INVALID.getCode());
-        }
-        leftHS2.getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
-        leftHS2.getConnectionProperties().setProperty("initialSize", Integer.toString(getTransfer().getConcurrency()));
-        leftHS2.getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency() / 2));
-        leftHS2.getConnectionProperties().setProperty("validationQuery", "SELECT 1");
-        leftHS2.getConnectionProperties().setProperty("validationQueryTimeout", "5");
-        leftHS2.getConnectionProperties().setProperty("testOnCreate", "true");
+        // Don't validate connections or url's if we're working with test data.
+        if (!isLoadingTestData()) {
+            HiveServer2Config leftHS2 = this.getCluster(Environment.LEFT).getHiveServer2();
+            if (!leftHS2.isValidUri()) {
+                rtn = Boolean.FALSE;
+                errors.set(LEFT_HS2_URI_INVALID.getCode());
+            }
 
-        if (leftHS2.isKerberosConnection() && leftHS2.getJarFile() != null) {
-            rtn = Boolean.FALSE;
-            errors.set(LEFT_KERB_JAR_LOCATION.getCode());
-        }
+            if (leftHS2.isKerberosConnection() && leftHS2.getJarFile() != null) {
+                rtn = Boolean.FALSE;
+                errors.set(LEFT_KERB_JAR_LOCATION.getCode());
+            }
 
-        HiveServer2Config rightHS2 = this.getCluster(Environment.RIGHT).getHiveServer2();
+            HiveServer2Config rightHS2 = this.getCluster(Environment.RIGHT).getHiveServer2();
 
-        if (rightHS2 != null) {
-            // TODO: Add validation for -rid (right-is-disconnected) option.
-            // - Only applies to SCHEMA_ONLY, SQL, EXPORT_IMPORT, and HYBRID data strategies.
-            // -
-            //
-            if (getDataStrategy() != DataStrategy.STORAGE_MIGRATION && !rightHS2.isValidUri()) {
-                if (!this.getDataStrategy().equals(DataStrategy.DUMP)) {
-                    rtn = Boolean.FALSE;
-                    errors.set(RIGHT_HS2_URI_INVALID.getCode());
+            if (rightHS2 != null) {
+                // TODO: Add validation for -rid (right-is-disconnected) option.
+                // - Only applies to SCHEMA_ONLY, SQL, EXPORT_IMPORT, and HYBRID data strategies.
+                // -
+                //
+                if (getDataStrategy() != DataStrategy.STORAGE_MIGRATION && !rightHS2.isValidUri()) {
+                    if (!this.getDataStrategy().equals(DataStrategy.DUMP)) {
+                        rtn = Boolean.FALSE;
+                        errors.set(RIGHT_HS2_URI_INVALID.getCode());
+                    }
+                } else {
+
+                    if (rightHS2.isKerberosConnection() && rightHS2.getJarFile() != null) {
+                        rtn = Boolean.FALSE;
+                        errors.set(RIGHT_KERB_JAR_LOCATION.getCode());
+                    }
+
+                    if (leftHS2.isKerberosConnection() && rightHS2.isKerberosConnection() &&
+                            (this.getCluster(Environment.LEFT).getLegacyHive() != this.getCluster(Environment.RIGHT).getLegacyHive())) {
+                        rtn = Boolean.FALSE;
+                        errors.set(KERB_ACROSS_VERSIONS.getCode());
+                    }
                 }
             } else {
-
-                rightHS2.getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
-                rightHS2.getConnectionProperties().setProperty("initialSize", Integer.toString(getTransfer().getConcurrency()));
-                rightHS2.getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency() / 2));
-                rightHS2.getConnectionProperties().setProperty("validationQuery", "SELECT 1");
-                rightHS2.getConnectionProperties().setProperty("validationQueryTimeout", "5");
-                rightHS2.getConnectionProperties().setProperty("testOnCreate", "true");
-
-                if (rightHS2.isKerberosConnection() && rightHS2.getJarFile() != null) {
-                    rtn = Boolean.FALSE;
-                    errors.set(RIGHT_KERB_JAR_LOCATION.getCode());
-                }
-
-                if (leftHS2.isKerberosConnection() && rightHS2.isKerberosConnection() &&
-                        (this.getCluster(Environment.LEFT).getLegacyHive() != this.getCluster(Environment.RIGHT).getLegacyHive())) {
-                    rtn = Boolean.FALSE;
-                    errors.set(KERB_ACROSS_VERSIONS.getCode());
+                if (!(getDataStrategy() == DataStrategy.STORAGE_MIGRATION || getDataStrategy() == DataStrategy.DUMP)) {
+                    if (!getMigrateACID().isDowngradeInPlace()) {
+                        rtn = Boolean.FALSE;
+                        errors.set(RIGHT_HS2_DEFINITION_MISSING.getCode());
+                    }
                 }
             }
-        } else {
-            if (!(getDataStrategy() == DataStrategy.STORAGE_MIGRATION || getDataStrategy() == DataStrategy.DUMP)) {
-                if (!getMigrateACID().isDowngradeInPlace()) {
-                    rtn = Boolean.FALSE;
-                    errors.set(RIGHT_HS2_DEFINITION_MISSING.getCode());
-                }
-            }
-
         }
 
         if (rtn) {
@@ -1085,7 +1146,7 @@ public class Config {
 
     protected Boolean linkTest() {
         Boolean rtn = Boolean.FALSE;
-        if (this.skipLinkCheck) {
+        if (this.skipLinkCheck || this.isLoadingTestData()) {
             LOG.warn("Skipping Link Check.");
             rtn = Boolean.TRUE;
         } else {
@@ -1126,7 +1187,12 @@ public class Config {
 
     public Boolean checkConnections() {
         Boolean rtn = Boolean.FALSE;
-        Set<Environment> envs = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
+        Set<Environment> envs = null;
+        if (!(getDataStrategy() == DataStrategy.DUMP || getDataStrategy() == DataStrategy.STORAGE_MIGRATION))
+            envs = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
+        else
+            envs = Sets.newHashSet(Environment.LEFT);
+
         for (Environment env : envs) {
             Cluster cluster = clusters.get(env);
             if (cluster != null && cluster.getHiveServer2() != null && cluster.getHiveServer2().isValidUri() &&
@@ -1135,46 +1201,52 @@ public class Config {
                 try {
                     conn = cluster.getConnection();
                     // May not be set for DUMP strategy (RIGHT cluster)
+                    LOG.debug(env + ":" + ": Checking Hive Connection");
                     if (conn != null) {
-                        Statement stmt = null;
-                        ResultSet resultSet = null;
-                        try {
-                            LOG.debug(env + ":" + ": Checking Hive Connection");
-                            stmt = conn.createStatement();
-                            resultSet = stmt.executeQuery("SHOW DATABASES");
-                            LOG.debug(env + ":" + ": Hive Connection Successful");
-                            rtn = Boolean.TRUE;
-                        } catch (SQLException sql) {
-                            // DB Doesn't Exists.
-                            LOG.error(env + ": Hive Connection check failed.", sql);
-                            rtn = Boolean.FALSE;
-                        } finally {
-                            if (resultSet != null) {
-                                try {
-                                    resultSet.close();
-                                } catch (SQLException sqlException) {
-                                    // ignore
-                                }
-                            }
-                            if (stmt != null) {
-                                try {
-                                    stmt.close();
-                                } catch (SQLException sqlException) {
-                                    // ignore
-                                }
-                            }
-                        }
+//                        Statement stmt = null;
+//                        ResultSet resultSet = null;
+//                        try {
+//                            stmt = conn.createStatement();
+//                            resultSet = stmt.executeQuery("SHOW DATABASES");
+//                            resultSet = stmt.executeQuery("SELECT 'HIVE CONNECTION TEST PASSED' AS STATUS");
+                        LOG.debug(env + ":" + ": Hive Connection Successful");
+                        rtn = Boolean.TRUE;
+//                        } catch (SQLException sql) {
+                        // DB Doesn't Exists.
+//                            LOG.error(env + ": Hive Connection check failed.", sql);
+//                            rtn = Boolean.FALSE;
+//                        } finally {
+//                            if (resultSet != null) {
+//                                try {
+//                                    resultSet.close();
+//                                } catch (SQLException sqlException) {
+//                                     ignore
+//                                }
+//                            }
+//                            if (stmt != null) {
+//                                try {
+//                                    stmt.close();
+//                                } catch (SQLException sqlException) {
+                        // ignore
+//                                }
+//                            }
+//                        }
+                    } else {
+                        LOG.error(env + ": Hive Connection check failed.  Connection is null.");
+                        rtn = Boolean.FALSE;
                     }
                 } catch (SQLException se) {
                     rtn = Boolean.FALSE;
                     LOG.error(env + ": Hive Connection check failed.", se);
                     se.printStackTrace();
                 } finally {
-                    try {
-                        if (conn != null)
+                    if (conn != null) {
+                        try {
+                            LOG.info(env + ": Closing Connection");
                             conn.close();
-                    } catch (Throwable throwables) {
-                        //
+                        } catch (Throwable throwables) {
+                            LOG.error(env + ": Error closing connection.", throwables);
+                        }
                     }
                 }
             }

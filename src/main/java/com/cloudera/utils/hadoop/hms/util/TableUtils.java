@@ -293,7 +293,7 @@ public class TableUtils {
         String partSpec = Arrays.stream(parts).map(
                 part -> part.split("=")
         ).map(
-                partElements -> partElements[0] + "=\"" + partElements[1] + "\""
+                partElements -> "`" + partElements[0] + "`='" + partElements[1] + "'"
         ).collect(
                 Collectors.joining(",")
         );

@@ -19,10 +19,8 @@ package com.cloudera.utils.hadoop.hms.mirror.feature;
 
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class StructEscapeFieldsFeatureTest extends BaseFeatureTest {
@@ -160,7 +158,7 @@ public class StructEscapeFieldsFeatureTest extends BaseFeatureTest {
             "   'discover.partitions'='true',                    ",
             "   'transient_lastDdlTime'='1684275534')            "
     };
-    
+
     public static String[] schema_05 = new String[]{
             " CREATE EXTERNAL TABLE `my_test`(                  ",
             "   `tell_me_period_end_dte` date,                 ",
@@ -198,7 +196,7 @@ public class StructEscapeFieldsFeatureTest extends BaseFeatureTest {
     public void test_001() {
         String value = "array<struct<guid:string,when:bigint,session:string,rawstring:string,type:string>>";
         List<String> schema = toList(new String[]{value});
-        String newStruct = ((StructEscapeFieldsFeature)feature).fixStruct(value);
+        String newStruct = ((StructEscapeFieldsFeature) feature).fixStruct(value);
         System.out.println(newStruct);
     }
 
@@ -206,7 +204,7 @@ public class StructEscapeFieldsFeatureTest extends BaseFeatureTest {
     public void test_002() {
         String value = "map<biging,struct<guid:string,when:bigint,session:string,rawstring:string,type:string>>";
         List<String> schema = toList(new String[]{value});
-        String newStruct = ((StructEscapeFieldsFeature)feature).fixStruct(value);
+        String newStruct = ((StructEscapeFieldsFeature) feature).fixStruct(value);
         System.out.println(newStruct);
     }
 
@@ -214,9 +212,10 @@ public class StructEscapeFieldsFeatureTest extends BaseFeatureTest {
     public void test_003() {
         String value = "`restrictions` struct<reflog:boolean,refadvert:boolean,refproduct:boolean,refusegift:boolean,reftion:boolean,refemail:boolean>,";
         List<String> schema = toList(new String[]{value});
-        String newStruct = ((StructEscapeFieldsFeature)feature).fixStruct(value);
+        String newStruct = ((StructEscapeFieldsFeature) feature).fixStruct(value);
         System.out.println(newStruct);
     }
+
     @Test
     public void test_010() {
         List<String> schema = toList(schema_01);

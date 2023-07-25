@@ -17,6 +17,7 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
 import com.cloudera.utils.hadoop.HadoopSession;
+import com.cloudera.utils.hadoop.hms.Context;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.log4j.LogManager;
@@ -31,6 +32,8 @@ import java.util.*;
 
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.HDPHIVE3_DB_LOCATION;
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.RO_DB_DOESNT_EXIST;
+import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.DB_LOCATION;
+import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.DB_MANAGED_LOCATION;
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.EXT_DB_LOCATION_PROP;
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.LEGACY_DB_LOCATION_PROP;
 
@@ -38,7 +41,11 @@ public class DBMirror {
     private static final Logger LOG = LogManager.getLogger(DBMirror.class);
 
     private String name;
+    @JsonIgnore
+    private String resolvedName;
+
     private Map<Environment, Map<String, String>> dbDefinitions = new TreeMap<Environment, Map<String, String>>();
+    @JsonIgnore
     private final Map<Environment, List<String>> issues = new TreeMap<Environment, List<String>>();
 
     /*
@@ -46,16 +53,17 @@ public class DBMirror {
      */
     private final Map<String, String> filteredOut = new TreeMap<String, String>();
 
-    private final Map<String, TableMirror> tableMirrors = new TreeMap<String, TableMirror>();
+    private Map<String, TableMirror> tableMirrors = null;
 
+    @JsonIgnore
     private final Map<Environment, List<Pair>> sql = new TreeMap<Environment, List<Pair>>();
 
     public DBMirror() {
     }
 
-    public DBMirror(String name) {
-        this.name = name;
-    }
+//    public DBMirror(String name) {
+//        this.name = name;
+//    }
 
     public void setName(String name) {
         this.name = name;
@@ -63,6 +71,20 @@ public class DBMirror {
 
     public String getName() {
         return name;
+    }
+
+    public String getResolvedName() {
+        if (resolvedName == null) {
+            resolvedName = Context.getInstance().getConfig().getResolvedDB(getName());
+        }
+        return resolvedName;
+    }
+
+    public void setTableMirrors(Map<String, TableMirror> tableMirrors) {
+        this.tableMirrors = tableMirrors;
+        for (TableMirror tableMirror: tableMirrors.values()) {
+            tableMirror.setParent(this);
+        }
     }
 
     @JsonIgnore
@@ -83,6 +105,7 @@ public class DBMirror {
         return rtn;
     }
 
+    @JsonIgnore
     public String getPhaseSummaryString() {
         StringBuilder sb = new StringBuilder();
         Map<PhaseState, Integer> psMap = getPhaseSummary();
@@ -116,7 +139,12 @@ public class DBMirror {
     }
 
     public Map<String, String> getDBDefinition(Environment environment) {
-        return dbDefinitions.get(environment);
+        Map<String, String> rtn = dbDefinitions.get(environment);
+        if (rtn == null) {
+            rtn = new TreeMap<>();
+            dbDefinitions.put(environment,rtn);
+        }
+        return rtn;
     }
 
     public void setDBDefinition(Environment enviroment, Map<String, String> dbDefinition) {
@@ -141,9 +169,11 @@ public class DBMirror {
     /*
     Return String[3] for Hive.  0-Create Sql, 1-Location, 2-Mngd Location.
      */
-    public void buildDBStatements(Config config) {
+    public void buildDBStatements() {
+        Config config = Context.getInstance().getConfig();
         // Start with the LEFT definition.
-        Map<String, String> dbDef = null;//getDBDefinition(Environment.LEFT);
+        Map<String, String> dbDefLeft = getDBDefinition(Environment.LEFT);//getDBDefinition(Environment.LEFT);
+        Map<String, String> dbDefRight = getDBDefinition(Environment.RIGHT);//getDBDefinition(Environment.LEFT);
         String database = null; //config.getResolvedDB(getName());
         String location = null; //dbDef.get(MirrorConf.DB_LOCATION);
         String managedLocation = null;
@@ -156,15 +186,16 @@ public class DBMirror {
                 switch (config.getDataStrategy()) {
                     case CONVERT_LINKED:
                         // ALTER the 'existing' database to ensure locations are set to the RIGHT hcfsNamespace.
-                        dbDef = getDBDefinition(Environment.RIGHT);
+//                        dbDefRight = getDBDefinition(Environment.RIGHT);
                         database = config.getResolvedDB(getName());
-                        location = dbDef.get(MirrorConf.DB_LOCATION);
-                        managedLocation = dbDef.get(MirrorConf.DB_MANAGED_LOCATION);
+                        location = dbDefRight.get(DB_LOCATION);
+                        managedLocation = dbDefRight.get(MirrorConf.DB_MANAGED_LOCATION);
 
                         if (location != null && !config.getCluster(Environment.RIGHT).isHdpHive3()) {
                             location = location.replace(leftNamespace, rightNamespace);
                             String alterDB_location = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, location);
                             this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDB_location));
+                            dbDefRight.put(DB_LOCATION, location);
                         }
                         if (managedLocation != null) {
                             managedLocation = managedLocation.replace(leftNamespace, rightNamespace);
@@ -176,13 +207,15 @@ public class DBMirror {
                                 this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDBMngdLocationSql));
                                 this.addIssue(Environment.RIGHT, HDPHIVE3_DB_LOCATION.getDesc());
                             }
+                            dbDefRight.put(MirrorConf.DB_MANAGED_LOCATION, managedLocation);
                         }
+
                         break;
                     default:
                         // Start with the LEFT definition.
-                        dbDef = getDBDefinition(Environment.LEFT);
+                        dbDefLeft = getDBDefinition(Environment.LEFT);
                         database = config.getResolvedDB(getName());
-                        location = dbDef.get(MirrorConf.DB_LOCATION);
+                        location = dbDefLeft.get(DB_LOCATION);
                         if (config.getTransfer().getWarehouse() != null && config.getTransfer().getWarehouse().getExternalDirectory() != null) {
                             if (config.getTransfer().getCommonStorage() == null) {
                                 location = config.getCluster(Environment.RIGHT).getHcfsNamespace() + config.getTransfer().getWarehouse().getExternalDirectory() +
@@ -195,7 +228,7 @@ public class DBMirror {
 
                         if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
                             // Check for Managed Location.
-                            managedLocation = dbDef.get(MirrorConf.DB_MANAGED_LOCATION);
+                            managedLocation = dbDefLeft.get(MirrorConf.DB_MANAGED_LOCATION);
                         }
                         if (config.getTransfer().getWarehouse() != null && config.getTransfer().getWarehouse().getManagedDirectory() != null &&
                                 !config.getCluster(Environment.RIGHT).getLegacyHive()) {
@@ -247,7 +280,7 @@ public class DBMirror {
                                         managedLocation = Translator.removeLastDirFromUrl(managedLocation) + "/" + config.getResolvedDB(getName()) + ".db";
                                     }
                                 }
-                                if (config.isReadOnly()) {
+                                if (config.isReadOnly() && !config.isLoadingTestData()) {
                                     LOG.debug("Config set to 'read-only'.  Validating FS before continuing");
                                     HadoopSession main = null;
                                     try {
@@ -351,8 +384,8 @@ public class DBMirror {
                                 String createDbL = MessageFormat.format(MirrorConf.CREATE_DB, database);
                                 StringBuilder sbL = new StringBuilder();
                                 sbL.append(createDbL).append("\n");
-                                if (dbDef.get(MirrorConf.COMMENT) != null && dbDef.get(MirrorConf.COMMENT).trim().length() > 0) {
-                                    sbL.append(MirrorConf.COMMENT).append(" \"").append(dbDef.get(MirrorConf.COMMENT)).append("\"\n");
+                                if (dbDefLeft.get(MirrorConf.COMMENT) != null && dbDefLeft.get(MirrorConf.COMMENT).trim().length() > 0) {
+                                    sbL.append(MirrorConf.COMMENT).append(" \"").append(dbDefLeft.get(MirrorConf.COMMENT)).append("\"\n");
                                 }
                                 // TODO: DB Properties.
                                 this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.CREATE_DB_DESC, sbL.toString()));
@@ -360,16 +393,18 @@ public class DBMirror {
                                 if (location != null && !config.getCluster(Environment.RIGHT).isHdpHive3()) {
                                     String alterDbLoc = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, location);
                                     this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDbLoc));
+                                    dbDefRight.put(DB_LOCATION, location);
                                 }
                                 if (managedLocation != null) {
                                     if (!config.getCluster(Environment.RIGHT).isHdpHive3()) {
                                         String alterDbMngdLoc = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, managedLocation);
                                         this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
+                                        dbDefRight.put(DB_MANAGED_LOCATION, managedLocation);
                                     } else {
                                         String alterDbMngdLoc = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, managedLocation);
                                         this.getSql(Environment.RIGHT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
                                         this.addIssue(Environment.RIGHT, HDPHIVE3_DB_LOCATION.getDesc());
-
+                                        dbDefRight.put(DB_LOCATION, managedLocation);
                                     }
                                 }
 
@@ -378,11 +413,11 @@ public class DBMirror {
                                 String createDb = MessageFormat.format(MirrorConf.CREATE_DB, database);
                                 StringBuilder sb = new StringBuilder();
                                 sb.append(createDb).append("\n");
-                                if (dbDef.get(MirrorConf.COMMENT) != null && dbDef.get(MirrorConf.COMMENT).trim().length() > 0) {
-                                    sb.append(MirrorConf.COMMENT).append(" \"").append(dbDef.get(MirrorConf.COMMENT)).append("\"\n");
+                                if (dbDefLeft.get(MirrorConf.COMMENT) != null && dbDefLeft.get(MirrorConf.COMMENT).trim().length() > 0) {
+                                    sb.append(MirrorConf.COMMENT).append(" \"").append(dbDefLeft.get(MirrorConf.COMMENT)).append("\"\n");
                                 }
                                 if (location != null) {
-                                    sb.append(MirrorConf.DB_LOCATION).append(" \"").append(location).append("\"\n");
+                                    sb.append(DB_LOCATION).append(" \"").append(location).append("\"\n");
                                 }
                                 if (managedLocation != null) {
                                     sb.append(MirrorConf.DB_MANAGED_LOCATION).append(" \"").append(managedLocation).append("\"\n");
@@ -394,11 +429,11 @@ public class DBMirror {
                                 String createDbCom = MessageFormat.format(MirrorConf.CREATE_DB, database);
                                 StringBuilder sbCom = new StringBuilder();
                                 sbCom.append(createDbCom).append("\n");
-                                if (dbDef.get(MirrorConf.COMMENT) != null && dbDef.get(MirrorConf.COMMENT).trim().length() > 0) {
-                                    sbCom.append(MirrorConf.COMMENT).append(" \"").append(dbDef.get(MirrorConf.COMMENT)).append("\"\n");
+                                if (dbDefLeft.get(MirrorConf.COMMENT) != null && dbDefLeft.get(MirrorConf.COMMENT).trim().length() > 0) {
+                                    sbCom.append(MirrorConf.COMMENT).append(" \"").append(dbDefLeft.get(MirrorConf.COMMENT)).append("\"\n");
                                 }
                                 if (location != null) {
-                                    sbCom.append(MirrorConf.DB_LOCATION).append(" \"").append(location).append("\"\n");
+                                    sbCom.append(DB_LOCATION).append(" \"").append(location).append("\"\n");
                                 }
                                 if (managedLocation != null) {
                                     sbCom.append(MirrorConf.DB_MANAGED_LOCATION).append(" \"").append(managedLocation).append("\"\n");
@@ -416,6 +451,7 @@ public class DBMirror {
                                 if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
                                     String alterDbLoc = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, sbLoc.toString());
                                     this.getSql(Environment.LEFT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDbLoc));
+                                    dbDefRight.put(DB_LOCATION, sbLoc.toString());
                                 }
 
                                 StringBuilder sbMngdLoc = new StringBuilder();
@@ -427,10 +463,12 @@ public class DBMirror {
                                 if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
                                     String alterDbMngdLoc = MessageFormat.format(MirrorConf.ALTER_DB_MNGD_LOCATION, database, sbMngdLoc.toString());
                                     this.getSql(Environment.LEFT).add(new Pair(MirrorConf.ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
+                                    dbDefRight.put(DB_MANAGED_LOCATION, sbMngdLoc.toString());
                                 } else {
                                     String alterDbMngdLoc = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, sbMngdLoc.toString());
                                     this.getSql(Environment.LEFT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
                                     this.addIssue(Environment.LEFT, HDPHIVE3_DB_LOCATION.getDesc());
+                                    dbDefRight.put(DB_LOCATION, sbMngdLoc.toString());
                                 }
 
                                 this.addIssue(Environment.LEFT,"This process, when 'executed' will leave the original tables intact in their renamed " +
@@ -452,28 +490,33 @@ public class DBMirror {
     }
 
     public TableMirror addTable(String table) {
-        if (tableMirrors.containsKey(table)) {
+        if (getTableMirrors().containsKey(table)) {
             LOG.debug("Table object found in map: " + table);
-            return tableMirrors.get(table);
+            return getTableMirrors().get(table);
         } else {
             LOG.debug("Adding table object to map: " + table);
-            TableMirror tableMirror = new TableMirror(this.getName(), table);
-            tableMirrors.put(table, tableMirror);
+            TableMirror tableMirror = new TableMirror();
+            tableMirror.setName(table);
+            tableMirror.setParent(this);
+            getTableMirrors().put(table, tableMirror);
             return tableMirror;
         }
     }
 
     public Map<String, TableMirror> getTableMirrors() {
+        if (tableMirrors == null) {
+            tableMirrors = new TreeMap<String, TableMirror>();
+        }
         return tableMirrors;
     }
 
     public TableMirror getTable(String table) {
-        return tableMirrors.get(table);
+        return getTableMirrors().get(table);
     }
 
     public Boolean hasIssues() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<String, TableMirror> entry : tableMirrors.entrySet()) {
+        for (Map.Entry<String, TableMirror> entry : getTableMirrors().entrySet()) {
             if (entry.getValue().hasIssues())
                 rtn = Boolean.TRUE;
         }
@@ -482,7 +525,7 @@ public class DBMirror {
 
     public Boolean hasActions() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<String, TableMirror> entry : tableMirrors.entrySet()) {
+        for (Map.Entry<String, TableMirror> entry : getTableMirrors().entrySet()) {
             if (entry.getValue().hasActions())
                 rtn = Boolean.TRUE;
         }
@@ -491,7 +534,7 @@ public class DBMirror {
 
     public Boolean hasAddedProperties() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<String, TableMirror> entry : tableMirrors.entrySet()) {
+        for (Map.Entry<String, TableMirror> entry : getTableMirrors().entrySet()) {
             if (entry.getValue().hasAddedProperties())
                 rtn = Boolean.TRUE;
         }
@@ -500,7 +543,7 @@ public class DBMirror {
 
     public Boolean hasStatistics() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<String, TableMirror> entry : tableMirrors.entrySet()) {
+        for (Map.Entry<String, TableMirror> entry : getTableMirrors().entrySet()) {
             if (entry.getValue().hasStatistics())
                 rtn = Boolean.TRUE;
         }

@@ -1,0 +1,7 @@
+clusters:
+  LEFT:
+    legacyHive: true
+    hcfsNamespace: "hdfs://HDP50"
+  RIGHT:
+    legacyHive: false
+    hcfsNamespace: "hdfs://HOME90"
