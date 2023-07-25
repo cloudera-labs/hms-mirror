@@ -34,7 +34,7 @@ public class DriverUtils {
 
     // This is a shim process that allows us to load a Hive Driver from
     // a jar File, via a new ClassLoader.
-    public static Driver getDriver(String jarFile, Environment environment) {
+    public static Driver getDriver(String driverClassName, String jarFile, Environment environment) {
         Driver hiveShim = null;
         try {
             if (jarFile != null) {
@@ -52,7 +52,7 @@ public class DriverUtils {
                 LOG.trace("Building Classloader to isolate JDBC Library for: " + jarFile);
                 URLClassLoader hive3ClassLoader = URLClassLoader.newInstance(urls, jarFiles[0].getClass().getClassLoader());
                 LOG.trace("Loading Hive JDBC Driver");
-                Class<?> classToLoad = hive3ClassLoader.loadClass("org.apache.hive.jdbc.HiveDriver");
+                Class<?> classToLoad = hive3ClassLoader.loadClass(driverClassName);
                 Package aPackage = classToLoad.getPackage();
                 String implementationVersion = aPackage.getImplementationVersion();
                 LOG.info(environment + " - Hive JDBC Implementation Version: " + implementationVersion);
@@ -61,7 +61,7 @@ public class DriverUtils {
                 hiveShim = new DriverShim(hiveDriver);
                 LOG.trace("Registering Hive Shim Driver with JDBC 'DriverManager'");
             } else {
-                Class hiveDriverClass = Class.forName("org.apache.hive.jdbc.HiveDriver");
+                Class hiveDriverClass = Class.forName(driverClassName);
                 hiveShim = (Driver) hiveDriverClass.newInstance();
                 Package aPackage = hiveDriverClass.getPackage();
                 String implementationVersion = aPackage.getImplementationVersion();
