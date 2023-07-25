@@ -1,6 +1,9 @@
 package com.cloudera.utils.hadoop.hms;
 
+import com.cloudera.utils.hadoop.hms.mirror.DBMirror;
+import com.cloudera.utils.hadoop.hms.mirror.Environment;
 import com.cloudera.utils.hadoop.hms.mirror.MessageCode;
+import com.cloudera.utils.hadoop.hms.mirror.PhaseState;
 import org.junit.Test;
 
 import static com.cloudera.utils.hadoop.hms.EnvironmentConstants.*;
@@ -26,7 +29,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -117,7 +120,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 4;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -139,7 +142,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 4;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -161,7 +164,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 4; // 3 acid from older version and 1 table that exceed partition counts
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -183,7 +186,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 4;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -205,7 +208,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 4;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -227,7 +230,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3; // acids tables
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -250,7 +253,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -472,7 +475,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3; //acid tables.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -557,7 +560,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
         // Testing for existing schemas.
@@ -621,7 +624,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -643,7 +646,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
     }
@@ -666,7 +669,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -792,7 +795,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -1033,7 +1036,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3; // 3 acid tables. can't dc them.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -1052,7 +1055,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
                 "-o", outputDir
         };
 
-        long rtn = 0;
+        long rtn = 3;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
@@ -1074,7 +1077,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
                 "-o", outputDir
         };
 
-        long rtn = 0;
+        long rtn = 3;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
@@ -1091,7 +1094,8 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
         String[] args = new String[]{
-                "-tf", "call_center|store_sales", "-ro", "-sql",
+                "-tf", "call_center|store_sales",
+                "-ro", "-sql",
                 "-ltd", ASSORTED_TBLS_04,
                 "-cfg", HDP2_CDP,
                 "-o", outputDir
@@ -1120,12 +1124,125 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
                 "-o", outputDir
         };
 
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 3; // acid tables.
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void so_fel() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+//                "-rdl",
+//                "-wd", "/wrehouse/tablespace/managed/hive",
+//                "-ewd", "/wrehouse/tablespace/external/hive",
+//                "-glm", "/warehouse/external/hive=/chuck/me",
+                "-fel",
+                "-dc",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
 
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
+        // Read the output and verify the results.
+        DBMirror resultsMirror = getResults(outputDir + "/" + "assorted_test_db_hms-mirror.yaml");
+
+        validatePhase(resultsMirror, "acid_01", PhaseState.ERROR);
+        validatePhase(resultsMirror, "acid_02", PhaseState.ERROR);
+        validatePhase(resultsMirror, "ext_part_01", PhaseState.SUCCESS);
+
+        validateTableIssueCount(resultsMirror, "ext_part_01", Environment.RIGHT, 2);
+        validateTableLocation(resultsMirror, "ext_part_01", Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/assorted_test_db.db/ext_part_01");
+
+    }
+
+    @Test
+    public void so_wd_fel() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+//                "-rdl",
+                "-wd", "/wrehouse/tablespace/managed/hive", // should trigger warnings, but not affect location.
+                "-ewd", "/wrehouse/tablespace/external/hive",
+//                "-glm", "/warehouse/external/hive=/chuck/me",
+                "-fel",
+                "-dc",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 3;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
+        // Read the output and verify the results.
+        DBMirror resultsMirror = getResults(outputDir + "/" + "assorted_test_db_hms-mirror.yaml");
+
+        validatePhase(resultsMirror, "acid_01", PhaseState.ERROR);
+        validatePhase(resultsMirror, "acid_02", PhaseState.ERROR);
+        validatePhase(resultsMirror, "ext_part_01", PhaseState.SUCCESS);
+
+        validateTableIssueCount(resultsMirror, "ext_part_01", Environment.RIGHT, 3);
+        validateTableLocation(resultsMirror, "ext_part_01", Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/assorted_test_db.db/ext_part_01");
+
+    }
+
+    @Test
+    public void so_wd_glm_fel() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+//                "-rdl",
+                "-wd", "/wrehouse/tablespace/managed/hive",
+                "-ewd", "/wrehouse/tablespace/external/hive", // trigger warnings.
+                "-glm", "/warehouse/tablespace/external/hive=/chuck/me", // will adjust location
+                "-fel",
+                "-dc",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 3;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
+        // Read the output and verify the results.
+        DBMirror resultsMirror = getResults(outputDir + "/" + "assorted_test_db_hms-mirror.yaml");
+
+        validatePhase(resultsMirror, "acid_01", PhaseState.ERROR);
+        validatePhase(resultsMirror, "acid_02", PhaseState.ERROR);
+        validatePhase(resultsMirror, "ext_part_01", PhaseState.SUCCESS);
+
+        validateTableIssueCount(resultsMirror, "ext_part_01", Environment.RIGHT, 3);
+        validateTableLocation(resultsMirror, "ext_part_01", Environment.RIGHT, "hdfs://HOME90/chuck/me/assorted_test_db.db/ext_part_01");
+
     }
 
     @Test
@@ -1138,7 +1255,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
 
         String[] args = new String[]{"-d", "SCHEMA_ONLY",
                 "-wd", "/finance/managed-fso",
-                "-ewd", "/finance/external-fso",
+                "-ewd", "/finance/external-fso", // will trigger warnings.
                 "-dc",
                 "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
                 "-o", outputDir
@@ -1147,6 +1264,15 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
+
+        // Read the output and verify the results.
+        DBMirror resultsMirror = getResults(outputDir + "/" + "tpcds_bin_partitioned_orc_10_hms-mirror.yaml");
+
+        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+
+        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 3);
+        validateTableLocation(resultsMirror, "web_sales", Environment.RIGHT, "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales");
+
     }
 
     @Test
@@ -1162,7 +1288,6 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
         String[] args = new String[]{"-d", "SCHEMA_ONLY",
-                "-ma",
                 "-wd", "/finance/managed-fso",
                 "-ewd", "/finance/external-fso",
                 "-epl",
@@ -1174,6 +1299,21 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
+
+        // Read the output and verify the results.
+        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+
+        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+
+        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 18);
+        validatePartitionCount(resultsMirror, "web_sales", Environment.RIGHT, 16);
+        validateTableLocation(resultsMirror, "web_sales", Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/ext_purge_odd_parts.db/web_sales");
+        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452035", "hdfs://HOME90/user/dstreev/datasets/alt-locations/load_web_sales/odd");
+        // ws_sold_date_sk=2451188: "hdfs://HOME90/user/dstreev/datasets/alt-locations/web_sales/ws_sold_date_sk=2451188"
+        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2451188", "hdfs://HOME90/user/dstreev/datasets/alt-locations/web_sales/ws_sold_date_sk=2451188");
+        // ws_sold_date_sk=2451793: "hdfs://HOME90/warehouse/tablespace/external/hive/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451793"
+        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2451793", "hdfs://HOME90/warehouse/tablespace/external/hive/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451793");
+
     }
 
     @Test
@@ -1196,6 +1336,19 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
+
+        // Read the output and verify the results.
+        DBMirror resultsMirror = getResults(outputDir + "/" + "tpcds_bin_partitioned_orc_10_hms-mirror.yaml");
+
+        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+
+        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1827);
+        validatePartitionCount(resultsMirror, "web_sales", Environment.RIGHT, 1824);
+        validateTableLocation(resultsMirror, "web_sales", Environment.RIGHT, "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales");
+        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452033", "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452033");
+        // ws_sold_date_sk=2452036: "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036"
+        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452036", "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036");
+
     }
 
     @Test
@@ -1219,6 +1372,52 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         assertEquals("Return Code Failure: " + rtn, 1, rtn);
+
+        // Read the output and verify the results.
+        DBMirror resultsMirror = getResults(outputDir + "/" + "tpcds_bin_partitioned_orc_10_hms-mirror.yaml");
+
+        // Will error because there isn't a mapping required for 'dc' to align locations.
+        validatePhase(resultsMirror, "web_sales", PhaseState.ERROR);
+
+        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 3651);
+        validatePartitionCount(resultsMirror, "web_sales", Environment.RIGHT, 1824);
+
+    }
+
+    @Test
+    public void so_wd_epl() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SCHEMA_ONLY",
+                "-epl",
+                "-wd", "/warehouse/tablespace/managed/hive",
+                "-ewd", "/warehouse/tablespace/external/hive",
+//                "-rdl",
+                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+
+        // Read the output and verify the results.
+        DBMirror resultsMirror = getResults(outputDir + "/" + "tpcds_bin_partitioned_orc_10_hms-mirror.yaml");
+
+        // Will error because there isn't a mapping required for 'dc' to align locations.
+        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+
+        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1827);
+        validatePartitionCount(resultsMirror, "web_sales", Environment.RIGHT, 1824);
+        validateTableLocation(resultsMirror, "web_sales", Environment.RIGHT, "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales");
+        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452033", "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452033");
+        // ws_sold_date_sk=2452036: "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036"
+        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452036", "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036");
+
     }
 
     @Test
@@ -1244,6 +1443,22 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
+
+        // Read the output and verify the results.
+        DBMirror resultsMirror = getResults(outputDir + "/" + "tpcds_bin_partitioned_orc_10_hms-mirror.yaml");
+
+        // Will error because there isn't a mapping required for 'dc' to align locations.
+        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+
+        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1827);
+        validatePartitionCount(resultsMirror, "web_sales", Environment.RIGHT, 1824);
+        validateTableLocation(resultsMirror, "web_sales", Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/tpcds_bin_partitioned_orc_10.db/web_sales");
+        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452033", "hdfs://HOME90/warehouse/tablespace/external/hive/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452033");
+        // ws_sold_date_sk=2452036: "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036"
+        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452036", "hdfs://HOME90/warehouse/tablespace/external/hive/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036");
+
+        validateDBLocation(resultsMirror, Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/tpcds_bin_partitioned_orc_10.db");
+        validateDBManagedLocation(resultsMirror, Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/managed/hive/tpcds_bin_partitioned_orc_10.db");
     }
 
     @Test
@@ -1267,7 +1482,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -1292,7 +1507,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -1544,6 +1759,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
                 "-mao",
                 "-cs", COMMON_STORAGE,
                 "-da",
+                "-ltd", ASSORTED_TBLS_04,
                 "-cfg", HDP2_CDP,
                 "-o", outputDir};
 
@@ -1719,7 +1935,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
                 "-o", outputDir
         };
 
-        long rtn = 0;
+        long rtn = 3;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         // Should fail because DB dir doesn't exist.  RO assumes data moved already.

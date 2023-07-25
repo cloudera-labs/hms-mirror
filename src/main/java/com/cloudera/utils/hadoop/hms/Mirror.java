@@ -409,6 +409,14 @@ public class Mirror {
                 getConfig().setSkipLinkCheck(Boolean.TRUE);
             }
 
+            if (cmd.hasOption("cine")) {
+                if (getConfig().getCluster(Environment.LEFT) != null) {
+                    getConfig().getCluster(Environment.LEFT).setCreateIfNotExists(Boolean.TRUE);
+                }
+                if (getConfig().getCluster(Environment.RIGHT) != null) {
+                    getConfig().getCluster(Environment.RIGHT).setCreateIfNotExists(Boolean.TRUE);
+                }
+            }
             if (cmd.hasOption("ma")) {
                 getConfig().getMigrateACID().setOn(Boolean.TRUE);
                 String bucketLimit = cmd.getOptionValue("ma");
@@ -1529,6 +1537,12 @@ public class Mirror {
                         "table.");
         compressTextOutputOption.setRequired(Boolean.FALSE);
         options.addOption(compressTextOutputOption);
+
+        Option createIfNotExistsOption = new Option("cine", "create-if-not-exist", false,
+                "CREATE table/partition statements will be adjusted to include 'IF NOT EXISTS'.  This will ensure " +
+                        "all remaining sql statements will be run.  This can be used to sync partition definitions for existing tables.");
+        createIfNotExistsOption.setRequired(Boolean.FALSE);
+        options.addOption(createIfNotExistsOption);
 
         OptionGroup testDataOptionGroup = new OptionGroup();
 

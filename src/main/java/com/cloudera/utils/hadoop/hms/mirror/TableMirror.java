@@ -253,10 +253,10 @@ public class TableMirror {
     }
 
     public EnvironmentTable getEnvironmentTable(Environment environment) {
-        EnvironmentTable et = environments.get(environment);
+        EnvironmentTable et = getEnvironments().get(environment);
         if (et == null) {
             et = new EnvironmentTable(this);
-            environments.put(environment, et);
+            getEnvironments().put(environment, et);
         }
         return et;
     }
@@ -310,7 +310,7 @@ public class TableMirror {
 
     public Boolean hasIssues() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<Environment, EnvironmentTable> entry : environments.entrySet()) {
+        for (Map.Entry<Environment, EnvironmentTable> entry : getEnvironments().entrySet()) {
             if (entry.getValue().getIssues().size() > 0)
                 rtn = Boolean.TRUE;
         }
@@ -319,7 +319,7 @@ public class TableMirror {
 
     public Boolean hasActions() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<Environment, EnvironmentTable> entry : environments.entrySet()) {
+        for (Map.Entry<Environment, EnvironmentTable> entry : getEnvironments().entrySet()) {
             if (entry.getValue().getActions().size() > 0)
                 rtn = Boolean.TRUE;
         }
@@ -328,7 +328,7 @@ public class TableMirror {
 
     public Boolean hasAddedProperties() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<Environment, EnvironmentTable> entry : environments.entrySet()) {
+        for (Map.Entry<Environment, EnvironmentTable> entry : getEnvironments().entrySet()) {
             if (entry.getValue().getAddProperties().size() > 0)
                 rtn = Boolean.TRUE;
         }
@@ -337,7 +337,7 @@ public class TableMirror {
 
     public Boolean hasStatistics() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<Environment, EnvironmentTable> entry : environments.entrySet()) {
+        for (Map.Entry<Environment, EnvironmentTable> entry : getEnvironments().entrySet()) {
             if (entry.getValue().getStatistics().size() > 0)
                 rtn = Boolean.TRUE;
         }
@@ -905,11 +905,17 @@ public class TableMirror {
         CopySpec rightSpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
 
         if (ret.getExists()) {
-            // Already exists, no action.
-            ret.addIssue("Schema exists already.  Can't do ACID transfer if schema already exists. Drop it and " +
-                    "try again.");
-            ret.setCreateStrategy(CreateStrategy.NOTHING);
-            return Boolean.FALSE;
+            if (config.getCluster(Environment.RIGHT).getCreateIfNotExists()) {
+                ret.addIssue("Schema exists already.  But you've specified 'createIfNotExist', which will attempt to create " +
+                        "and softly fail and continue with the remainder sql statements for the table.");
+                ret.setCreateStrategy(CreateStrategy.CREATE);
+            } else {
+                // Already exists, no action.
+                ret.addIssue("Schema exists already.  Can't do ACID transfer if schema already exists. Drop it and " +
+                        "try again.");
+                ret.setCreateStrategy(CreateStrategy.NOTHING);
+                return Boolean.FALSE;
+            }
         } else {
             ret.setCreateStrategy(CreateStrategy.CREATE);
         }

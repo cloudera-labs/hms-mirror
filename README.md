@@ -234,7 +234,8 @@ When you have a LOT of tables, collecting stats can have a significant impact on
 
 Default behavior for `hms-mirror` is to NOT include the `IF NOT EXISTS` clause in the `CREATE TABLE` statements.  This is because we want to ensure that the table is created and that the schema is correct.  If the table already exists, we want to fail.
 
-But there are some scenarios where the table is present and we don't want the process to fail on the CREATE statement to ensure the remaining SQL statements are executed.  In this case, you can modify the configuration to include:
+But there are some scenarios where the table is present and we don't want the process to fail on the CREATE statement to ensure the remaining SQL statements are executed.  In this case, you can modify add the commandline option `-cine` or 
+add to the configuration:
 
 ```yaml
   clusters:
@@ -570,7 +571,9 @@ Paths are evaluated with 'startsWith' on the original path (minus the original n
 
 Under some conditions, the default warehouse directory hierarchy is not honored.  We've seen this in HDP 3.  The `-rdl` option collects the external tables in the default warehouse directory by omitting the LOCATION element in the CREATE statement, relying on the default location.  The default location is set at the DATABASE level by `hms-mirror`.
 
-In HDP3, the CREATE statement doesn't honor the 'database' LOCATION element and reverts to the system wide warehouse directory configurations.  The `-fel` flag will simply include the 'properly' adjusted LOCATION element in the CREATE statement to ensure the tables are created in the desired location.
+In HDP3, the CREATE statement doesn't honor the 'database' LOCATION element and reverts to the system wide warehouse directory configurations.  The `-fel` flag will simply include the 'properly' adjusted LOCATION element in the CREATE statement to ensure the tables are created in the desired location.  This setting overrides the effects intended by the `-rdl` option which intend to place the tables under the stated warehouse locations by omitting the location from the tables definition and relying on the default location specified in the database.
+
+`-fel` will use the original location as a starting point.  If `-wd|-ewd` are specified, they aren't not used in the translation, but warnings may be issued if the final location doesn't align with the warehouse directory.  The effect change in the location when using `-fel`, add mappings via `-glm`.
 
 ### HDP 3 Hive
 

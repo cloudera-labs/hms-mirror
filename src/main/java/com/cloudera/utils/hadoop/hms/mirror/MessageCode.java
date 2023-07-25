@@ -155,7 +155,9 @@ public enum MessageCode {
     COLLECTING_TABLE_DEFINITIONS(82, "There was an issue collecting table definitions.  Please check logs."),
     DATABASE_CREATION(83, "There was an issue creating/modifying databases.  Please check logs."),
     COLLECTING_TABLES(84, "There was an issue collecting tables.  Please check logs."),
-    LEGACY_AND_HIVE3(85, "Setting legacyHive=true and hdpHive3=true is a conflicting configuration")
+    LEGACY_AND_HIVE3(85, "Setting legacyHive=true and hdpHive3=true is a conflicting configuration"),
+    RDL_FEL_OVERRIDES(86, "You've request both -rdl and -fel. -fel will take precedence."),
+
 
     ;
 

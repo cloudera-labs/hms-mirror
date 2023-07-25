@@ -181,7 +181,9 @@ public class Transfer implements Callable<ReturnStatus> {
                                 origLoc, newLoc,1);
                     } else {
                         // RIGHT PULL
-                        if (TableUtils.isACID(let) && !config.getMigrateACID().isDowngrade()) {
+                        if (TableUtils.isACID(let)
+                                && !config.getMigrateACID().isDowngrade()
+                                && !(config.getDataStrategy() == DataStrategy.STORAGE_MIGRATION)) {
                             tblMirror.addIssue(Environment.RIGHT, DISTCP_FOR_SO_ACID.getDesc());
                             successful = Boolean.FALSE;
                         } else if (TableUtils.isACID(let) && config.getMigrateACID().isDowngrade()) {

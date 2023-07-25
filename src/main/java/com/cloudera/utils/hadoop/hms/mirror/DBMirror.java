@@ -490,15 +490,15 @@ public class DBMirror {
     }
 
     public TableMirror addTable(String table) {
-        if (tableMirrors.containsKey(table)) {
+        if (getTableMirrors().containsKey(table)) {
             LOG.debug("Table object found in map: " + table);
-            return tableMirrors.get(table);
+            return getTableMirrors().get(table);
         } else {
             LOG.debug("Adding table object to map: " + table);
             TableMirror tableMirror = new TableMirror();
             tableMirror.setName(table);
             tableMirror.setParent(this);
-            tableMirrors.put(table, tableMirror);
+            getTableMirrors().put(table, tableMirror);
             return tableMirror;
         }
     }
@@ -511,12 +511,12 @@ public class DBMirror {
     }
 
     public TableMirror getTable(String table) {
-        return tableMirrors.get(table);
+        return getTableMirrors().get(table);
     }
 
     public Boolean hasIssues() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<String, TableMirror> entry : tableMirrors.entrySet()) {
+        for (Map.Entry<String, TableMirror> entry : getTableMirrors().entrySet()) {
             if (entry.getValue().hasIssues())
                 rtn = Boolean.TRUE;
         }
@@ -525,7 +525,7 @@ public class DBMirror {
 
     public Boolean hasActions() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<String, TableMirror> entry : tableMirrors.entrySet()) {
+        for (Map.Entry<String, TableMirror> entry : getTableMirrors().entrySet()) {
             if (entry.getValue().hasActions())
                 rtn = Boolean.TRUE;
         }
@@ -534,7 +534,7 @@ public class DBMirror {
 
     public Boolean hasAddedProperties() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<String, TableMirror> entry : tableMirrors.entrySet()) {
+        for (Map.Entry<String, TableMirror> entry : getTableMirrors().entrySet()) {
             if (entry.getValue().hasAddedProperties())
                 rtn = Boolean.TRUE;
         }
@@ -543,7 +543,7 @@ public class DBMirror {
 
     public Boolean hasStatistics() {
         Boolean rtn = Boolean.FALSE;
-        for (Map.Entry<String, TableMirror> entry : tableMirrors.entrySet()) {
+        for (Map.Entry<String, TableMirror> entry : getTableMirrors().entrySet()) {
             if (entry.getValue().hasStatistics())
                 rtn = Boolean.TRUE;
         }

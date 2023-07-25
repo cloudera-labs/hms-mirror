@@ -1,11 +1,13 @@
 package com.cloudera.utils.hadoop.hms;
 
+import com.cloudera.utils.hadoop.hms.mirror.DBMirror;
+import com.cloudera.utils.hadoop.hms.mirror.Environment;
 import com.cloudera.utils.hadoop.hms.mirror.MessageCode;
+import com.cloudera.utils.hadoop.hms.mirror.PhaseState;
 import org.junit.Test;
 
 import static com.cloudera.utils.hadoop.hms.EnvironmentConstants.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class EndToEndCDPtoCDPTest extends EndToEndBase {
 
@@ -27,7 +29,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3; // because 3 of the tables are acid.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -255,7 +257,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 1; // exceed partition count
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -638,8 +640,20 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 0; // because 3 of the tables are acid.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
+        // Read the output and verify the results.
+        DBMirror resultsMirror = getResults(outputDir + "/" + "assorted_test_db_hms-mirror.yaml");
+
+        validatePhase(resultsMirror, "acid_01", PhaseState.SUCCESS);
+        validateTableIssueCount(resultsMirror, "acid_01", Environment.LEFT, 1);
+
+        if (!validateSqlPair(resultsMirror, Environment.LEFT, "acid_01",  "Alter Table Location",
+                "ALTER TABLE acid_01 SET LOCATION \"s3a://my_cs_bucket/warehouse/tablespace/managed/hive/assorted_test_db.db/acid_01\"")) {
+            fail("Alter Table Location not found");
+        }
+
     }
 
     @Test
@@ -659,7 +673,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
     }
@@ -683,7 +697,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -709,7 +723,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -756,7 +770,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3; //acid tables.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -781,7 +795,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -874,7 +888,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 0;
+        int check = 3; // acid tables.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
     }
 

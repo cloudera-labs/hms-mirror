@@ -23,6 +23,7 @@ import org.junit.Test;
 import java.io.IOException;
 
 import static com.cloudera.utils.hadoop.hms.EnvironmentConstants.*;
+import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.DISTCP_REQUIRED_FOR_SCHEMA_ONLY_RDL;
 import static org.junit.Assert.assertEquals;
 
 public class ConfigValidationTest extends EndToEndBase {
@@ -259,7 +260,7 @@ public class ConfigValidationTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
-        check = check | MessageCode.DISTCP_REQUIRED_FOR_SCHEMA_ONLY_RDL.getLong();
+        check = check | DISTCP_REQUIRED_FOR_SCHEMA_ONLY_RDL.getLong();
 
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
     }
@@ -338,6 +339,29 @@ public class ConfigValidationTest extends EndToEndBase {
     }
 
     @Test
+    public void so_wd_epl_rdl() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SCHEMA_ONLY",
+                "-epl",
+                "-wd", "/warehouse/tablespace/managed/hive",
+                "-ewd", "/warehouse/tablespace/external/hive",
+                "-rdl",
+                "-ltd", LEGACY_MNGD_PARTS_01, "-cfg", CDH_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = DISTCP_REQUIRED_FOR_SCHEMA_ONLY_RDL.getLong();
+        assertEquals("Return Code Failure: " + rtn, check, rtn);
+    }
+
+    @Test
     public void so_wd_rdl() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
@@ -356,7 +380,7 @@ public class ConfigValidationTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        long check = MessageCode.DISTCP_REQUIRED_FOR_SCHEMA_ONLY_RDL.getLong();
+        long check = DISTCP_REQUIRED_FOR_SCHEMA_ONLY_RDL.getLong();
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
     }
 

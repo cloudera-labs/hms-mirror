@@ -17,11 +17,22 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
 public class Pair {
-    private final String description;
-    private final String action;
+    private String description;
+    private String action;
+
+    public Pair() {
+    }
 
     public Pair(String description, String action) {
         this.description = description;
+        this.action = action;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setAction(String action) {
         this.action = action;
     }
 

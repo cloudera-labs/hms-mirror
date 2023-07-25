@@ -749,6 +749,9 @@ public class Config {
 
 //                }
             }
+            if (getTranslator().getForceExternalLocation()) {
+                warnings.set(RDL_FEL_OVERRIDES.getCode());
+            }
         }
 
         // When RIGHT is defined
