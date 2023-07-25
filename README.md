@@ -243,7 +243,7 @@ add to the configuration:
       createIfNotExists: "true"
 ```
 
-Using this option has the potential to create a table with a different schema than the source.  This is not recommended.
+Using this option has the potential to create a table with a different schema than the source.  This is not recommended.  This option is applied when using the `SCHEMA_ONLY` data strategy.
 
 ### Auto Gathering Stats (disabled by default)
 

@@ -1068,6 +1068,13 @@ public class Config {
             }
         }
 
+        if (getCluster(Environment.RIGHT) != null) {
+            if (getDataStrategy() != DataStrategy.SCHEMA_ONLY &&
+            getCluster(Environment.RIGHT).getCreateIfNotExists()) {
+                warnings.set(CINE_WITH_SO.getCode());
+            }
+        }
+
         if (this.getTranslator().getGlobalLocationMap() != null) {
             // Validate that none of the 'from' maps overlap.  IE: can't have /data and /data/mydir as from locations.
             //    For items that match /data/mydir maybe confusing as to which one to adjust.

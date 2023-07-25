@@ -157,6 +157,7 @@ public enum MessageCode {
     COLLECTING_TABLES(84, "There was an issue collecting tables.  Please check logs."),
     LEGACY_AND_HIVE3(85, "Setting legacyHive=true and hdpHive3=true is a conflicting configuration"),
     RDL_FEL_OVERRIDES(86, "You've request both -rdl and -fel. -fel will take precedence."),
+    CINE_WITH_SO(87, "The `-cine` (createIfNotExist) option is only applied while using the `SCHEMA_ONLY` data strategy."),
 
 
     ;
