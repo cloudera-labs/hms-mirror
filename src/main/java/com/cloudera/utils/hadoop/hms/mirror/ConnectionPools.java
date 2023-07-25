@@ -31,6 +31,7 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -146,7 +147,13 @@ public class ConnectionPools {
                     try {
                         DriverManager.registerDriver(lclDriver);
                         try {
-                            HikariConfig config = new HikariConfig();
+                            Properties props = new Properties();
+                            if (hs2Config.getDriverClassName().equals(HiveServer2Config.APACHE_HIVE_DRIVER_CLASS_NAME)) {
+                                // Need with Apache Hive Driver, since it doesn't support
+                                //      Connection.isValid() api (JDBC4) and prevents Hikari-CP from attempting to call it.
+                                props.put("connectionTestQuery", "SELECT 1");
+                            }
+                            HikariConfig config = new HikariConfig(props);
                             config.setJdbcUrl(hs2Config.getUri());
                             config.setDataSourceProperties(hs2Config.getConnectionProperties());
                             HikariDataSource poolingDatasource = new HikariDataSource(config);
