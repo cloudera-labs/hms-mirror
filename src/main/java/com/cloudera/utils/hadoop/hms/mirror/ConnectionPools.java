@@ -191,7 +191,7 @@ public class ConnectionPools {
             DBStore metastoreDirectConfig = metastoreDirectConfigs.get(environment);
 
             if (metastoreDirectConfig != null) {
-s
+
                 HikariConfig config = new HikariConfig();
                 config.setJdbcUrl(metastoreDirectConfig.getUri());
                 config.setDataSourceProperties(metastoreDirectConfig.getConnectionProperties());
