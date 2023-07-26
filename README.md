@@ -1717,6 +1717,23 @@ See [Storage Migration](./strategy_docs/storage_migration.md)
 
 ## Troubleshooting / Issues
 
+### Application doesn't seem to be making progress
+
+All the counters for table processing aren't moving (review the hms-mirror.log) or (1.6.1.0+) the on screen logging of what tables are being added and metadata collected for has stopped.
+
+#### Solution
+
+The application creates a pool of connection to the HiveServer2 instances on the LEFT and RIGHT to be used for processing.  When the HiveServer2 doesn't support or doesn't have available the number of connections being requested from `hms-mirror`, the application will 'wait' forever on getting the connections requested.
+
+Stop the application and lower the concurrency value to a value that can be supported.
+
+```yaml
+transfer:
+  concurrency: 4
+```
+
+Or, you could modify the HiveServer2 instance to handle the number of connections being requested.
+
 ### Application won't start `NoClassDefFoundError`
 
 Error
