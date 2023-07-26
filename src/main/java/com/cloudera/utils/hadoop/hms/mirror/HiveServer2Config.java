@@ -21,9 +21,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Properties;
 
 public class HiveServer2Config {
+    public static final String APACHE_HIVE_DRIVER_CLASS_NAME = "org.apache.hive.jdbc.HiveDriver";
     private String uri = null;
     private Boolean disconnected = Boolean.FALSE;
     private Properties connectionProperties;
+    private String driverClassName = APACHE_HIVE_DRIVER_CLASS_NAME; // default driver.
     private String jarFile = null;
 
     public String getUri() {
@@ -51,13 +53,14 @@ public class HiveServer2Config {
 
     public void setConnectionProperties(Properties connectionProperties) {
         this.connectionProperties = connectionProperties;
-        // Don't restrict max connections to the default.  Allow this to
-        // be controlled by the 'concurrency' value of the 'transfer'.
-        String maxConnections = connectionProperties.getProperty("maxTotal", "-1");
-        connectionProperties.setProperty("maxTotal", maxConnections);
-        // Default to 5 secs for timeout.
-        String maxWait = connectionProperties.getProperty("maxWaitMillis", "5000");
-        connectionProperties.setProperty("maxWaitMillis", maxWait);
+    }
+
+    public String getDriverClassName() {
+        return driverClassName;
+    }
+
+    public void setDriverClassName(String driverClassName) {
+        this.driverClassName = driverClassName;
     }
 
     public String getJarFile() {

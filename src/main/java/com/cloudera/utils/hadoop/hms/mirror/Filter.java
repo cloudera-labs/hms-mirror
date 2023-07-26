@@ -39,6 +39,14 @@ public class Filter {
         return tblRegEx;
     }
 
+    @JsonIgnore
+    public Boolean isTableFiltering() {
+        if (tblRegEx != null || tblExcludeRegEx != null) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
+    }
     public void setTblRegEx(String tblRegEx) {
         this.tblRegEx = tblRegEx;
         if (this.tblRegEx != null)

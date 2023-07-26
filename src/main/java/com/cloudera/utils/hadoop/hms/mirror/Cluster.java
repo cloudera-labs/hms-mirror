@@ -92,6 +92,10 @@ public class Cluster implements Comparable<Cluster> {
         return initialized;
     }
 
+    public void setInitialized(Boolean initialized) {
+        this.initialized = initialized;
+    }
+
     public Config getConfig() {
         return config;
     }
@@ -153,8 +157,9 @@ public class Cluster implements Comparable<Cluster> {
     }
 
     public HiveServer2Config getHiveServer2() {
-//        if (hiveServer2 == null)
-//            hiveServer2 = new HiveServer2Config();
+        // Only create when using test data.  Otherwise, leave to expose config issue.
+        if (hiveServer2 == null && Context.getInstance().getConfig().isLoadingTestData())
+            hiveServer2 = new HiveServer2Config();
         return hiveServer2;
     }
 
@@ -289,7 +294,7 @@ public class Cluster implements Comparable<Cluster> {
             if (conn != null) {
                 String database = (getEnvironment() == Environment.LEFT ? dbMirror.getName() : config.getResolvedDB(dbMirror.getName()));
 
-                LOG.debug(getEnvironment() + ":" + database + ": Loading tables for database");
+                LOG.info(getEnvironment() + ":" + database + ": Loading tables for database");
 
                 Statement stmt = null;
                 ResultSet resultSet = null;
@@ -298,7 +303,7 @@ public class Cluster implements Comparable<Cluster> {
                     stmt = conn.createStatement();
                     LOG.debug(getEnvironment() + ":" + database + ": Setting Hive DB Session Context");
                     stmt.execute(MessageFormat.format(MirrorConf.USE, database));
-                    LOG.debug(getEnvironment() + ":" + database + ": Getting Table List");
+                    LOG.info(getEnvironment() + ":" + database + ": Getting Table List");
                     List<String> shows = new ArrayList<String>();
                     if (!this.getLegacyHive()) {
                         if (config.getMigrateVIEW().isOn()) {
@@ -335,6 +340,9 @@ public class Cluster implements Comparable<Cluster> {
                                     if (matcher.matches()) {
                                         TableMirror tableMirror = dbMirror.addTable(tableName);
                                         tableMirror.setMigrationStageMessage("Added to evaluation inventory");
+                                    } else {
+                                        LOG.info(database + ":" + tableName + " didn't match table regex filter and " +
+                                                "will NOT be added to processing list.");
                                     }
                                 } else if (config.getFilter().getTblExcludeRegEx() != null) {
                                     assert (config.getFilter().getTblExcludeFilterPattern() != null);
@@ -342,6 +350,9 @@ public class Cluster implements Comparable<Cluster> {
                                     if (!matcher.matches()) { // ANTI-MATCH
                                         TableMirror tableMirror = dbMirror.addTable(tableName);
                                         tableMirror.setMigrationStageMessage("Added to evaluation inventory");
+                                    } else {
+                                        LOG.info(database + ":" + tableName + " matched exclude table regex filter and " +
+                                                "will NOT be added to processing list.");
                                     }
                                 }
                             }
@@ -394,7 +405,7 @@ public class Cluster implements Comparable<Cluster> {
                 ResultSet resultSet = null;
                 try {
                     stmt = conn.createStatement();
-                    LOG.debug(getEnvironment() + ":" + database + "." + tableMirror.getName() +
+                    LOG.info(getEnvironment() + ":" + database + "." + tableMirror.getName() +
                             ": Loading Table Definition");
                     String useStatement = MessageFormat.format(MirrorConf.USE, database);
                     stmt.execute(useStatement);
@@ -540,7 +551,7 @@ public class Cluster implements Comparable<Cluster> {
                                     } catch (Throwable t) {
                                         // Parsing issue.
                                         LOG.error("Couldn't parse 'owner' value from: " + resultSet.getString(1) +
-                                                " for table: " + tableMirror.getDbName() + "." + tableMirror.getName());
+                                                " for table: " + tableMirror.getParent().getName() + "." + tableMirror.getName());
                                     }
                                     break;
                                 }
@@ -615,65 +626,68 @@ public class Cluster implements Comparable<Cluster> {
     public Boolean runTableSql(List<Pair> sqlList, TableMirror tblMirror, Environment environment) {
         Connection conn = null;
         Boolean rtn = Boolean.TRUE;
+        // Skip this if using test data.
+        if (!config.isLoadingTestData()) {
 
-        try {
-            // conn will be null if config.execute != true.
-            conn = getConnection();
+            try {
+                // conn will be null if config.execute != true.
+                conn = getConnection();
 
-            if (conn == null && config.isExecute() && !this.getHiveServer2().isDisconnected()) {
-                // this is a problem.
-                rtn = Boolean.FALSE;
-                tblMirror.addIssue(getEnvironment(), "Connection missing. This is a bug.");
-            }
-
-            if (conn == null && this.getHiveServer2().isDisconnected()) {
-                tblMirror.addIssue(getEnvironment(), "Running in 'disconnected' mode.  NO RIGHT operations will be done.  " +
-                        "The scripts will need to be run 'manually'.");
-            }
-
-            if (conn != null) {
-                Statement stmt = null;
-                try {
-                    stmt = conn.createStatement();
-                    for (Pair pair : sqlList) {
-                        LOG.info(getEnvironment() + ":SQL:" + pair.getDescription() + ":" + pair.getAction());
-                        tblMirror.setMigrationStageMessage("Executing SQL: " + pair.getDescription());
-                        if (config.isExecute())
-                            stmt.execute(pair.getAction());
-                        tblMirror.addStep(getEnvironment().toString(), "Sql Run Complete for: " + pair.getDescription());
-                    }
-                } catch (SQLException throwables) {
-                    LOG.error(throwables);
-                    String message = throwables.getMessage();
-                    if (throwables.getMessage().contains("HiveAccessControlException Permission denied")) {
-                        message = message + " See [Hive SQL Exception / HDFS Permissions Issues](https://github.com/cloudera-labs/hms-mirror#hive-sql-exception--hdfs-permissions-issues)";
-                    }
-                    if (throwables.getMessage().contains("AvroSerdeException")) {
-                        message = message + ". It's possible the `avro.schema.url` referenced file doesn't exist at the target. " +
-                                "Use the `-asm` option and hms-mirror will attempt to copy it to the new cluster.";
-                    }
-                    tblMirror.getEnvironmentTable(environment).addIssue(message);
+                if (conn == null && config.isExecute() && !this.getHiveServer2().isDisconnected()) {
+                    // this is a problem.
                     rtn = Boolean.FALSE;
-                } finally {
-                    if (stmt != null) {
-                        try {
-                            stmt.close();
-                        } catch (SQLException sqlException) {
-                            // ignore
+                    tblMirror.addIssue(getEnvironment(), "Connection missing. This is a bug.");
+                }
+
+                if (conn == null && this.getHiveServer2().isDisconnected()) {
+                    tblMirror.addIssue(getEnvironment(), "Running in 'disconnected' mode.  NO RIGHT operations will be done.  " +
+                            "The scripts will need to be run 'manually'.");
+                }
+
+                if (conn != null) {
+                    Statement stmt = null;
+                    try {
+                        stmt = conn.createStatement();
+                        for (Pair pair : sqlList) {
+                            LOG.debug(getEnvironment() + ":SQL:" + pair.getDescription() + ":" + pair.getAction());
+                            tblMirror.setMigrationStageMessage("Executing SQL: " + pair.getDescription());
+                            if (config.isExecute())
+                                stmt.execute(pair.getAction());
+                            tblMirror.addStep(getEnvironment().toString(), "Sql Run Complete for: " + pair.getDescription());
+                        }
+                    } catch (SQLException throwables) {
+                        LOG.error(throwables);
+                        String message = throwables.getMessage();
+                        if (throwables.getMessage().contains("HiveAccessControlException Permission denied")) {
+                            message = message + " See [Hive SQL Exception / HDFS Permissions Issues](https://github.com/cloudera-labs/hms-mirror#hive-sql-exception--hdfs-permissions-issues)";
+                        }
+                        if (throwables.getMessage().contains("AvroSerdeException")) {
+                            message = message + ". It's possible the `avro.schema.url` referenced file doesn't exist at the target. " +
+                                    "Use the `-asm` option and hms-mirror will attempt to copy it to the new cluster.";
+                        }
+                        tblMirror.getEnvironmentTable(environment).addIssue(message);
+                        rtn = Boolean.FALSE;
+                    } finally {
+                        if (stmt != null) {
+                            try {
+                                stmt.close();
+                            } catch (SQLException sqlException) {
+                                // ignore
+                            }
                         }
                     }
                 }
-            }
-        } catch (SQLException throwables) {
-            tblMirror.getEnvironmentTable(environment).addIssue("Connecting: " + throwables.getMessage());
-            LOG.error(throwables);
-            rtn = Boolean.FALSE;
-        } finally {
-            try {
-                if (conn != null)
-                    conn.close();
             } catch (SQLException throwables) {
-                //
+                tblMirror.getEnvironmentTable(environment).addIssue("Connecting: " + throwables.getMessage());
+                LOG.error(throwables);
+                rtn = Boolean.FALSE;
+            } finally {
+                try {
+                    if (conn != null)
+                        conn.close();
+                } catch (SQLException throwables) {
+                    //
+                }
             }
         }
         return rtn;
@@ -709,66 +723,68 @@ public class Cluster implements Comparable<Cluster> {
         // Open the connection and ensure we are running this on the "RIGHT" cluster.
         Connection conn = null;
         Boolean rtn = Boolean.TRUE;
+        // Skip when running test data.
+        if (!config.isLoadingTestData()) {
+            try {
+                conn = getConnection();
 
-        try {
-            conn = getConnection();
+                if (conn == null && config.isExecute() && !this.getHiveServer2().isDisconnected()) {
+                    // this is a problem.
+                    rtn = Boolean.FALSE;
+                    dbMirror.addIssue(getEnvironment(), "Connection missing. This is a bug.");
+                }
 
-            if (conn == null && config.isExecute() && !this.getHiveServer2().isDisconnected()) {
-                // this is a problem.
-                rtn = Boolean.FALSE;
-                dbMirror.addIssue(getEnvironment(), "Connection missing. This is a bug.");
-            }
+                if (conn == null && this.getHiveServer2().isDisconnected()) {
+                    dbMirror.addIssue(getEnvironment(), "Running in 'disconnected' mode.  NO RIGHT operations will be done.  " +
+                            "The scripts will need to be run 'manually'.");
+                }
 
-            if (conn == null && this.getHiveServer2().isDisconnected()) {
-                dbMirror.addIssue(getEnvironment(), "Running in 'disconnected' mode.  NO RIGHT operations will be done.  " +
-                        "The scripts will need to be run 'manually'.");
-            }
+                if (conn != null) {
+                    if (dbMirror != null)
+                        LOG.debug(getEnvironment() + " - " + dbSqlPair.getDescription() + ": " + dbMirror.getName());
+                    else
+                        LOG.debug(getEnvironment() + " - " + dbSqlPair.getDescription() + ":" + dbSqlPair.getAction());
 
-            if (conn != null) {
-                if (dbMirror != null)
-                    LOG.debug(getEnvironment() + " - " + dbSqlPair.getDescription() + ": " + dbMirror.getName());
-                else
-                    LOG.debug(getEnvironment() + " - " + dbSqlPair.getDescription() + ":" + dbSqlPair.getAction());
-
-                Statement stmt = null;
-                try {
+                    Statement stmt = null;
                     try {
-                        stmt = conn.createStatement();
-                    } catch (SQLException throwables) {
-                        LOG.error("Issue building statement", throwables);
-                        rtn = Boolean.FALSE;
-                    }
-
-                    try {
-                        LOG.debug(getEnvironment() + ":" + dbSqlPair.getDescription() + ":" + dbSqlPair.getAction());
-                        if (config.isExecute()) // on dry-run, without db, hard to get through the rest of the steps.
-                            stmt.execute(dbSqlPair.getAction());
-                    } catch (SQLException throwables) {
-                        LOG.error(getEnvironment() + ":" + dbSqlPair.getDescription() + ":", throwables);
-                        dbMirror.addIssue(getEnvironment(), throwables.getMessage() + " " + dbSqlPair.getDescription() +
-                                " " + dbSqlPair.getAction());
-                        rtn = Boolean.FALSE;
-                    }
-
-                } finally {
-                    if (stmt != null) {
                         try {
-                            stmt.close();
-                        } catch (SQLException sqlException) {
-                            // ignore
+                            stmt = conn.createStatement();
+                        } catch (SQLException throwables) {
+                            LOG.error("Issue building statement", throwables);
+                            rtn = Boolean.FALSE;
+                        }
+
+                        try {
+                            LOG.debug(getEnvironment() + ":" + dbSqlPair.getDescription() + ":" + dbSqlPair.getAction());
+                            if (config.isExecute()) // on dry-run, without db, hard to get through the rest of the steps.
+                                stmt.execute(dbSqlPair.getAction());
+                        } catch (SQLException throwables) {
+                            LOG.error(getEnvironment() + ":" + dbSqlPair.getDescription() + ":", throwables);
+                            dbMirror.addIssue(getEnvironment(), throwables.getMessage() + " " + dbSqlPair.getDescription() +
+                                    " " + dbSqlPair.getAction());
+                            rtn = Boolean.FALSE;
+                        }
+
+                    } finally {
+                        if (stmt != null) {
+                            try {
+                                stmt.close();
+                            } catch (SQLException sqlException) {
+                                // ignore
+                            }
                         }
                     }
                 }
-            }
-        } catch (SQLException throwables) {
-            LOG.error("Issue", throwables);
-            throw new RuntimeException(throwables);
-        } finally {
-            try {
-                if (conn != null)
-                    conn.close();
             } catch (SQLException throwables) {
-                //
+                LOG.error("Issue", throwables);
+                throw new RuntimeException(throwables);
+            } finally {
+                try {
+                    if (conn != null)
+                        conn.close();
+                } catch (SQLException throwables) {
+                    //
+                }
             }
         }
         return rtn;
@@ -842,7 +858,7 @@ public class Cluster implements Comparable<Cluster> {
 //                        // Loop through the partitions and get the details.
 //                        Map<String, String> partDefWithLocation = new HashMap<String, String>();
 //                        for (String partSpec : partDef.keySet()) {
-//                            LOG.info(getEnvironment() + ":" + database + "." + envTable.getName() +
+//                            LOG.debug(getEnvironment() + ":" + database + "." + envTable.getName() +
 //                                    ": Loading Partition Details: " + partSpec);
 //                            resultSet = stmt.executeQuery(MessageFormat.format(MirrorConf.SHOW_TABLE_EXTENDED_WITH_PARTITION, envTable.getName(), partSpec));
 //                            String location = null;
@@ -866,7 +882,7 @@ public class Cluster implements Comparable<Cluster> {
 //                                partDefWithLocation.put(partSpec, null);
 //                        }
 //
-//                        LOG.info(getEnvironment() + ":" + database + "." + envTable.getName() +
+//                        LOG.debug(getEnvironment() + ":" + database + "." + envTable.getName() +
 //                                ": Loading Partition Details: Complete(" + partDefWithLocation.size() + ")");
 //
 //                        // Replace the partition details with the location.
@@ -899,7 +915,7 @@ public class Cluster implements Comparable<Cluster> {
         // Considered only gathering stats for partitioned tables, but decided to gather for all tables to support
         //  smallfiles across the board.
         if (Context.getInstance().getConfig().getOptimization().getSkipStatsCollection()) {
-            LOG.info(getEnvironment() + ":" + envTable.getName() + ": Skipping Stats Collection.");
+            LOG.debug(getEnvironment() + ":" + envTable.getName() + ": Skipping Stats Collection.");
             return;
         }
         switch (Context.getInstance().getConfig().getDataStrategy()) {

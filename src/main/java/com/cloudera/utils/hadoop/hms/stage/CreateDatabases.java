@@ -16,6 +16,7 @@
 
 package com.cloudera.utils.hadoop.hms.stage;
 
+import com.cloudera.utils.hadoop.hms.Context;
 import com.cloudera.utils.hadoop.hms.mirror.*;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -25,7 +26,6 @@ import java.util.concurrent.Callable;
 public class CreateDatabases implements Callable<ReturnStatus> {
     private static final Logger LOG = LogManager.getLogger(CreateDatabases.class);
 
-    private Config config = null;
     private Conversion conversion = null;
 
     // Flag use to determine is creating transition db in lower cluster
@@ -36,19 +36,19 @@ public class CreateDatabases implements Callable<ReturnStatus> {
         return successful;
     }
 
-    public CreateDatabases(Config config, Conversion conversion) {
-        this.config = config;
+    public CreateDatabases(Conversion conversion) {
         this.conversion = conversion;
     }
 
     @Override
     public ReturnStatus call() {
         ReturnStatus rtn = new ReturnStatus();
+        Config config = Context.getInstance().getConfig();
         LOG.debug("Create Databases");
         for (String database : config.getDatabases()) {
             DBMirror dbMirror = conversion.getDatabase(database);
 
-            dbMirror.buildDBStatements(config);
+            dbMirror.buildDBStatements();
 
             if (config.getCluster(Environment.LEFT).runDatabaseSql(dbMirror)) {
                 rtn.setStatus(ReturnStatus.Status.SUCCESS);

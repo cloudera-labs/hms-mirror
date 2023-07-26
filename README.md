@@ -68,6 +68,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Scenario #1](#scenario-%231)
 - [Permissions](#permissions-1)
 - [Configuration](#configuration)
+  * [JDBC Drivers and Configuration](#jdbc-drivers-and-configuration)
   * [Secure Passwords in Configuration](#secure-passwords-in-configuration)
 - [Tips for Running `hms-miror`](#tips-for-running-hms-miror)
   * [Run in `screen` or `tmux`](#run-in-screen-or-tmux)
@@ -98,7 +99,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Storage Migration](#storage-migration)
 - [Troubleshooting / Issues](#troubleshooting--issues)
   * [Application won't start `NoClassDefFoundError`](#application-wont-start-noclassdeffounderror)
-  * [CDP Hive Standalone Driver for CDP 7.1.8 won't connect](#cdp-hive-standalone-driver-for-cdp-718-wont-connect)
+  * [CDP Hive Standalone Driver for CDP 7.1.8 CHF x (Cummulative Hot Fix) won't connect](#cdp-hive-standalone-driver-for-cdp-718-chf-x-cummulative-hot-fix-wont-connect)
   * [Failed AVRO Table Creation](#failed-avro-table-creation)
   * [Table processing completed with `ERROR.`](#table-processing-completed-with-error)
   * [Connecting to HS2 via Kerberos](#connecting-to-hs2-via-kerberos)
@@ -234,7 +235,8 @@ When you have a LOT of tables, collecting stats can have a significant impact on
 
 Default behavior for `hms-mirror` is to NOT include the `IF NOT EXISTS` clause in the `CREATE TABLE` statements.  This is because we want to ensure that the table is created and that the schema is correct.  If the table already exists, we want to fail.
 
-But there are some scenarios where the table is present and we don't want the process to fail on the CREATE statement to ensure the remaining SQL statements are executed.  In this case, you can modify the configuration to include:
+But there are some scenarios where the table is present and we don't want the process to fail on the CREATE statement to ensure the remaining SQL statements are executed.  In this case, you can modify add the commandline option `-cine` or 
+add to the configuration:
 
 ```yaml
   clusters:
@@ -242,7 +244,7 @@ But there are some scenarios where the table is present and we don't want the pr
       createIfNotExists: "true"
 ```
 
-Using this option has the potential to create a table with a different schema than the source.  This is not recommended.
+Using this option has the potential to create a table with a different schema than the source.  This is not recommended.  This option is applied when using the `SCHEMA_ONLY` data strategy.
 
 ### Auto Gathering Stats (disabled by default)
 
@@ -570,7 +572,9 @@ Paths are evaluated with 'startsWith' on the original path (minus the original n
 
 Under some conditions, the default warehouse directory hierarchy is not honored.  We've seen this in HDP 3.  The `-rdl` option collects the external tables in the default warehouse directory by omitting the LOCATION element in the CREATE statement, relying on the default location.  The default location is set at the DATABASE level by `hms-mirror`.
 
-In HDP3, the CREATE statement doesn't honor the 'database' LOCATION element and reverts to the system wide warehouse directory configurations.  The `-fel` flag will simply include the 'properly' adjusted LOCATION element in the CREATE statement to ensure the tables are created in the desired location.
+In HDP3, the CREATE statement doesn't honor the 'database' LOCATION element and reverts to the system wide warehouse directory configurations.  The `-fel` flag will simply include the 'properly' adjusted LOCATION element in the CREATE statement to ensure the tables are created in the desired location.  This setting overrides the effects intended by the `-rdl` option which intend to place the tables under the stated warehouse locations by omitting the location from the tables definition and relying on the default location specified in the database.
+
+`-fel` will use the original location as a starting point.  If `-wd|-ewd` are specified, they aren't not used in the translation, but warnings may be issued if the final location doesn't align with the warehouse directory.  The effect change in the location when using `-fel`, add mappings via `-glm`.
 
 ### HDP 3 Hive
 
@@ -886,7 +890,9 @@ The configuration is done via a 'yaml' file, details below.
 There are two ways to get started:
 - The first time you run `hms-mirror` and it can't find a configuration, it will walk you through building one and save it to `$HOME/.hms-mirror/cfg/default.yaml`.  Here's what you'll need to complete the setup:
   - URI's for each clusters HiveServer2
-  - STANDALONE jar files for EACH Hive version.
+  - STANDALONE jar files for EACH Hive version. 
+    - We support the Apache Hive based drivers for Hive 1 and Hive2/3.  
+    - Recently added support for the Cloudera JDBC driver for CDP.
   - Username and Password for non-kerberized connections.
     - Note: `hms-mirror` will only support one kerberos connection.  For the other, use another AUTH method.
   - The hcfs (Hadoop Compatible FileSystem) protocol and prefix used for the hive table locations in EACH cluster.
@@ -895,6 +901,69 @@ There are two ways to get started:
 You'll need JDBC driver jar files that are **specific* to the clusters you'll integrate.  If the **LEFT** cluster isn't the same version as the **RIGHT** cluster, don't use the same JDBC jar file, especially when integrating Hive 1 and Hive 3 services.  The Hive 3 driver is NOT backwardly compatible with Hive 1.
 
 See the [running](#running-hms-mirror) section for examples on running `hms-mirror` for various environment types and connections.
+
+### JDBC Drivers and Configuration
+
+`hms-mirror` requires JDBC drivers to connect to the various end-points needed to perform it's tasks.  The `LEFT` and `RIGHT` cluster endpoints for HiveServer2 require the standalone JDBC drivers that are specific to that Hive version.
+
+`hms-mirror` supports the Apache and packaged hive **standalone** drivers that are found with your distribution.  For CDP, we also support to Cloudera JDBC driver found and maintained at on the [Cloudera Hive JDBC Downloads Page](https://www.cloudera.com/downloads/connectors/hive/jdbc).  Note that the URL configurations between the Apache and Cloudera JDBC drivers are different.
+
+When using the Cloudera JDBC driver, you'll need to add the property `driverClassName: "com.cloudera.hive.jdbc.HS2Driver"` to the `hiveServer2` configuration. If you're NOT using the Cloudera JDBC driver, just remove the property.
+
+```yaml
+hiveServer2:
+  uri: "<cloudera_jdbc_url>"
+  driverClassName: "com.cloudera.hive.jdbc.HS2Driver"
+  connectionProperties:
+    user: "xxx"
+    password: "xxx"
+```
+
+Starting with the Apache Standalone driver shipped with CDP 7.1.8 cummulative hot fix parcels, you will need to include additional jars in the configuration `jarFile` configuration, due to some packaging adjustments.
+
+For example: `jarFile: "<cdp_parcel_jars>/hive-jdbc-3.1.3000.7.1.8.28-1-standalone.jar:<cdp_parcel_jars>/log4j-1.2-api-2.18.0.jar:<cdp_parcel_jars>/log4j-api-2.18.0.jar:<cdp_parcel_jars>/log4j-core-2.18.0.jar"` NOTE: The jar file with the Hive Driver MUST be the first in the list of jar files.
+
+The Cloudera JDBC driver shouldn't require additional jars.
+
+##### Example URLs
+
+###### **CDP Hive via Knox Gateway**
+
+Doesn't require Kerberos.  Knox is SSL, so depending on whether you've self-signed your certs you may need to make adjustments.
+ 
+- Apache Hive and CDP Packaged Apache Hive JDBC Driver
+> `jdbc:hive2://s03.streever.local:8443/;ssl=true;transportMode=http;httpPath=gateway/cdp-proxy-api/hive;sslTrustStore=/Users/dstreev/bin/certs/gateway-client-trust.jks;trustStorePassword=changeit`
+
+- Cloudera JDBC Driver
+> `jdbc:hive2://s03.streever.local:8443;transportMode=http;AuthMech=3;httpPath=gateway/cdp-proxy-api/hive;SSL=1;AllowSelfSignedCerts=1`
+
+###### **CDP Hive direct with Kerberos**
+
+When connecting to via Kerberos, place the JDBC driver for Hive in the `$HOME/.hms-mirror/aux_libs` directory. This ensures it is loaded in the classpath correctly to support the kerberos connection.  If you're NOT using Kerberos connection, the libraries should be reference in the `jarFile` parameter and NOT be in the `aux_libs` directory.
+
+If you are experimenting with different connection types, ensure the jar file is REMOVED from `aux_libs` when trying other configurations.  
+
+- Apache JDBC Driver (packaged with CDP)
+> `tbd`
+> NOTE: Our experience with this driver is that requires the use of `--hadoop-classpath` in the commandline to load the needed kerberos libraries.
+
+
+- Cloudera JDBC Driver
+> `jdbc:hive2://s04.streever.local:10001;transportMode=http;AuthMech=1;KrbRealm=STREEVER.LOCAL;KrbHostFQDN=s04.streever.local;KrbServiceName=hive;KrbAuthType=2;httpPath=cliservice;SSL=1;AllowSelfSignedCerts=1`
+> NOTE: When using this driver, our experience has been that you do NOT need to use `--hadoop-classpath` as a commandline element with versions 1.6.1.0+
+
+###### **HDP2 HS2 with No Auth**
+
+Since CDP is usually kerberized AND `hms-mirror` doesn't support the simultanous connections to 2 different kerberos environments, I've setup an HS2 on HDP2 specifically for this effort. NOTE: You need to specify a `username` when connecting to let Hive know what the user is.  No password required.
+
+- Apache Hive Standalone Driver shipped with HDP2.
+> `jdbc:hive2://k02.streever.local:10000`
+
+
+#### Direct Metastore DB Acceess for `-epl`
+
+The `LEFT` and `RIGHT` configurations also suppport 'direct' metastore access to collect detailed partition information when using the flag `-epl`.  The support this feature, get the JDBC driver that is appropriate for your metastore(s) backend dbs and place it in `$HOME/.hms-mirror/aux_libs` directory.
+
 
 ### Secure Passwords in Configuration
 
@@ -1648,6 +1717,23 @@ See [Storage Migration](./strategy_docs/storage_migration.md)
 
 ## Troubleshooting / Issues
 
+### Application doesn't seem to be making progress
+
+All the counters for table processing aren't moving (review the hms-mirror.log) or (1.6.1.0+) the on screen logging of what tables are being added and metadata collected for has stopped.
+
+#### Solution
+
+The application creates a pool of connection to the HiveServer2 instances on the LEFT and RIGHT to be used for processing.  When the HiveServer2 doesn't support or doesn't have available the number of connections being requested from `hms-mirror`, the application will 'wait' forever on getting the connections requested.
+
+Stop the application and lower the concurrency value to a value that can be supported.
+
+```yaml
+transfer:
+  concurrency: 4
+```
+
+Or, you could modify the HiveServer2 instance to handle the number of connections being requested.
+
 ### Application won't start `NoClassDefFoundError`
 
 Error
@@ -1662,11 +1748,34 @@ java/sql/Driver at java.base/java.lang.ClassLoader.defineClass1
 
 Please use Java 8 to run `hms-mirror`.
 
-### CDP Hive Standalone Driver for CDP 7.1.8 won't connect
+### CDP Hive Standalone Driver for CDP 7.1.8 CHF x (Cummulative Hot Fix) won't connect
 
-If you are attempting to connect to a CDP 7.1.8 clusters Hive Server 2 with the CDP Hive Standalone Driver identified in the clusters `jarFile` property, you may not be able to connect. This is due to a bug in the driver.  The workaround is to use the a Standalone driver from CDP 7.1.7 instead.
+If you are attempting to connect to a CDP 7.1.8 clusters Hive Server 2 with the CDP Hive Standalone Driver identified in the clusters `jarFile` property, you may not be able to connect. A security item addressed in these drivers changed the required classes.
 
-[Issue #47](https://github.com/cloudera-labs/hms-mirror/issues/47)
+If you see:
+
+```
+java.lang.RuntimeException: java.lang.RuntimeException: java.lang.NoClassDefFoundError: org/apache/log4j/Level
+```
+
+You will need to include additional jars in the `jarFile` property.  The following jars are required:
+
+```
+log4j-1.2-api-2.18.0.ja
+log4j-api-2.18.0.jar
+log4j-core-2.18.0.jar
+```
+
+The feature enhancement that allows multiple jars to be specified in the `jarFile` property is available in `hms-mirror` 1.6.0.0 and later. See [Issue #47](https://github.com/cloudera-labs/hms-mirror/issues/67)
+
+#### Solution
+
+Using `hms-mirror` v1.6.0.0 or later, specify the additional jars in the `jarFile` property. For example:
+`jarFile: "<absolute_path_to>/hive-jdbc-3.1.3000.7.1.8.28-1-standalone.jar:<absolute_path_to>/log4j-1.2-api-2.18.0.jar:<absolute_path_to>/log4j-api-2.18.0.jar:<absolute_path_to>/log4j-core-2.18.0.jar"`
+
+These jar files can be found on the CDP edge node in `/opt/cloudera/parcels/CDH/jars/`.
+
+Ensure that the standalone driver is list 'FIRST' in the `jarFile` property.
 
 ### Failed AVRO Table Creation
 

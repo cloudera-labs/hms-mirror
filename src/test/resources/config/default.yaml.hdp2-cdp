@@ -1,0 +1,18 @@
+# Config
+sqlOutput: true
+hybrid:
+  sqlPartitionLimit: 3000
+  # 1gb
+  sqlSizeLimit: 1073741824
+transfer:
+  concurrency: 2
+clusters:
+  LEFT:
+    legacyHive: "true"
+    hcfsNamespace: "hdfs://HDP50"
+  RIGHT:
+    legacyHive: "false"
+    hcfsNamespace: "hdfs://HOME90"
+    partitionDiscovery:
+      auto: true
+      initMSCK: true

@@ -16,6 +16,7 @@
 
 package com.cloudera.utils.hadoop.hms.mirror;
 
+import com.cloudera.utils.hadoop.hms.Context;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -28,7 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Reporter implements Runnable {
     private static final Logger LOG = LogManager.getLogger(Reporter.class);
-
     private Thread worker;
     private Boolean retry = Boolean.FALSE;
     private Boolean quiet = Boolean.FALSE;
@@ -197,6 +197,9 @@ public class Reporter implements Runnable {
 
 
     protected void displayReport(Boolean showAll) {
+        if (Context.getInstance().getInitializing()) {
+            return;
+        }
         System.out.print(ReportingConf.CLEAR_CONSOLE);
         StringBuilder report = new StringBuilder();
         // Header
@@ -206,7 +209,7 @@ public class Reporter implements Runnable {
             // Table Processing
             for (TableMirror tblMirror : startedTables) {
                 Map<String, String> tblVars = new TreeMap<String, String>();
-                tblVars.put("db.name", tblMirror.getDbName());
+                tblVars.put("db.name", tblMirror.getParent().getResolvedName());
                 tblVars.put("tbl.name", tblMirror.getName());
                 tblVars.put("tbl.progress", tblMirror.getProgressIndicator(80));
                 tblVars.put("tbl.msg", tblMirror.getMigrationStageMessage());

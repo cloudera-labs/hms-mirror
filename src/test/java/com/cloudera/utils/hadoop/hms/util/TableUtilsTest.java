@@ -18,7 +18,6 @@
 package com.cloudera.utils.hadoop.hms.util;
 
 import com.cloudera.utils.hadoop.hms.mirror.EnvironmentTable;
-import com.cloudera.utils.hadoop.hms.mirror.MirrorConf;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,8 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.cloudera.utils.hadoop.hms.mirror.TablePropertyVars.TRANSACTIONAL;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class TableUtilsTest {
 
@@ -49,46 +47,14 @@ public class TableUtilsTest {
 //        System.out.println("Def: ");
     }
 
-    @Test
-    public void testUpdateTableLocation() {
-        List<String> working = fromStatic(table_05);
-        String REPLACEMENT_TEST_LOCATION = "hdfs://HOME90/mynew/location";
-        Boolean rtn = TableUtils.updateTableLocation("hello_manager", working, REPLACEMENT_TEST_LOCATION);
-        assertTrue("Location mismatch: ", TableUtils.getSerdePath("hello_manager", working).equals(REPLACEMENT_TEST_LOCATION));
-//        System.out.println("Def: ");
-    }
-
-    @Test
-    public void testTableNameDirMatch_01() {
-        List<String> tblDef = fromStatic(table_01);
-        assertFalse(TableUtils.doesTableNameMatchDirectoryName(tblDef));
-    }
-
-    @Test
-    public void testTableNameDirMatch_02() {
-        List<String> tblDef = fromStatic(table_04);
-        assertTrue(TableUtils.doesTableNameMatchDirectoryName(tblDef));
-    }
-
-    @Test
-    public void testTableNameDirMatch_03() {
-        List<String> tblDef = fromStatic(table_06);
-        assertTrue(TableUtils.doesTableNameMatchDirectoryName(tblDef));
-    }
-
-    @Test
-    public void testTableNameDirMatch_04() {
-        List<String> tblDef = fromStatic(table_07);
-        assertTrue(TableUtils.doesTableNameMatchDirectoryName(tblDef));
-    }
-
     public List<String> fromStatic(List<String> source) {
         List<String> rtn = new ArrayList<String>();
-        for (String line: source) {
+        for (String line : source) {
             rtn.add(line.trim());
         }
         return rtn;
     }
+
     @Test
     public void getLocation() {
     }
@@ -508,10 +474,6 @@ public class TableUtilsTest {
     }
 
     @Test
-    public void updateTblProperty() {
-    }
-
-    @Test
     public void testPartitionSpec() {
         String simplePartName1 = "create_date=20201201";
         String simplePartName2 = "create_date=2020_12_01/region=us-west-2";
@@ -522,5 +484,42 @@ public class TableUtilsTest {
         System.out.println(partSpec1);
         System.out.println(partSpec2);
         System.out.println(partSpec3);
+    }
+
+    @Test
+    public void testTableNameDirMatch_01() {
+        List<String> tblDef = fromStatic(table_01);
+        assertFalse(TableUtils.doesTableNameMatchDirectoryName(tblDef));
+    }
+
+    @Test
+    public void testTableNameDirMatch_02() {
+        List<String> tblDef = fromStatic(table_04);
+        assertTrue(TableUtils.doesTableNameMatchDirectoryName(tblDef));
+    }
+
+    @Test
+    public void testTableNameDirMatch_03() {
+        List<String> tblDef = fromStatic(table_06);
+        assertTrue(TableUtils.doesTableNameMatchDirectoryName(tblDef));
+    }
+
+    @Test
+    public void testTableNameDirMatch_04() {
+        List<String> tblDef = fromStatic(table_07);
+        assertTrue(TableUtils.doesTableNameMatchDirectoryName(tblDef));
+    }
+
+    @Test
+    public void testUpdateTableLocation() {
+        List<String> working = fromStatic(table_05);
+        String REPLACEMENT_TEST_LOCATION = "hdfs://HOME90/mynew/location";
+        Boolean rtn = TableUtils.updateTableLocation("hello_manager", working, REPLACEMENT_TEST_LOCATION);
+        assertEquals("Location mismatch: ", TableUtils.getSerdePath("hello_manager", working), REPLACEMENT_TEST_LOCATION);
+//        System.out.println("Def: ");
+    }
+
+    @Test
+    public void updateTblProperty() {
     }
 }

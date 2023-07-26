@@ -60,7 +60,7 @@ public class GetTableMetadata implements Callable<ReturnStatus> {
 
     public ReturnStatus doit() {
         ReturnStatus rtn = new ReturnStatus();
-        LOG.debug("Getting table definition for: " + dbMirror.getName() + "." + tblMirror.getName());
+        LOG.info("Getting table definition for: " + dbMirror.getName() + "." + tblMirror.getName());
         try {
             config.getCluster(Environment.LEFT).getTableDefinition(dbMirror.getName(), tblMirror);
             switch (config.getDataStrategy()) {
@@ -78,7 +78,7 @@ public class GetTableMetadata implements Callable<ReturnStatus> {
         } else {
             rtn.setStatus(ReturnStatus.Status.ERROR);
         }
-        LOG.debug("Completed table definition for: " + dbMirror.getName() + "." + tblMirror.getName());
+        LOG.info("Completed table definition for: " + dbMirror.getName() + "." + tblMirror.getName());
         return rtn;
     }
 }

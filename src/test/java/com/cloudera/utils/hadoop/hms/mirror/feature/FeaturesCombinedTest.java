@@ -23,8 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 public class FeaturesCombinedTest {
 
@@ -58,7 +57,7 @@ public class FeaturesCombinedTest {
     public void test_orc_004() {
         List<String> schema = toList(BadOrcDefFeatureTest.schema_02);
         FeaturesEnum check = doit(schema);
-        assertEquals(check, null);
+        assertNull(check);
         schema.stream().forEach(System.out::println);
     }
 

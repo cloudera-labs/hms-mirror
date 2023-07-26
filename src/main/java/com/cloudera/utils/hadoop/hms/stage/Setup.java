@@ -16,6 +16,7 @@
 
 package com.cloudera.utils.hadoop.hms.stage;
 
+import com.cloudera.utils.hadoop.hms.Context;
 import com.cloudera.utils.hadoop.hms.mirror.*;
 import com.cloudera.utils.hadoop.hms.mirror.*;
 import org.apache.log4j.LogManager;
@@ -45,37 +46,46 @@ public class Setup {
     private Config config = null;
     private Conversion conversion = null;
 
-    public Setup(Config config, Conversion conversion) {
-        this.config = config;
+    private Config getConfig() {
+        if (config == null) {
+            config = Context.getInstance().getConfig();
+        }
+        return config;
+    }
+
+    public Setup(Conversion conversion) {
         this.conversion = conversion;
     }
 
+
     // TODO: Need to address failures here...
     public Boolean collect() {
+        Context.getInstance().setInitializing(Boolean.TRUE);
+//        initializing = Boolean.TRUE;
         Boolean rtn = Boolean.TRUE;
         Date startTime = new Date();
-        LOG.info("GATHERING METADATA: Start Processing for databases: " + Arrays.toString((config.getDatabases())));
+        LOG.info("GATHERING METADATA: Start Processing for databases: " + Arrays.toString((getConfig().getDatabases())));
 
         // Check dbRegEx
-        if (config.getFilter().getDbRegEx() != null) {
+        if (getConfig().getFilter().getDbRegEx() != null && !getConfig().isLoadingTestData()) {
             // Look for the dbRegEx.
             Connection conn = null;
             Statement stmt = null;
             List<String> databases = new ArrayList<String>();
             try {
-                conn = config.getCluster(Environment.LEFT).getConnection();
+                conn = getConfig().getCluster(Environment.LEFT).getConnection();
                 if (conn != null) {
                     stmt = conn.createStatement();
                     ResultSet rs = stmt.executeQuery(SHOW_DATABASES);
                     while (rs.next()) {
                         String db = rs.getString(1);
-                        Matcher matcher = config.getFilter().getDbFilterPattern().matcher(db);
+                        Matcher matcher = getConfig().getFilter().getDbFilterPattern().matcher(db);
                         if (matcher.find()) {
                             databases.add(db);
                         }
                     }
                     String[] dbs = databases.toArray(new String[0]);
-                    config.setDatabases(dbs);
+                    getConfig().setDatabases(dbs);
                 }
             } catch (SQLException se) {
                 // Issue
@@ -91,66 +101,68 @@ public class Setup {
             }
         }
 
-        if (config.getDatabases() == null || config.getDatabases().length == 0) {
+        if (getConfig().getDatabases() == null || getConfig().getDatabases().length == 0) {
             throw new RuntimeException("No databases specified OR found if you used dbRegEx");
         }
 
         List<ScheduledFuture<ReturnStatus>> gtf = new ArrayList<ScheduledFuture<ReturnStatus>>();
-        for (String database : config.getDatabases()) {
-            DBMirror dbMirror = conversion.addDatabase(database);
-            try {
-                // Get the Database definitions for the LEFT and RIGHT clusters.
-                if (config.getCluster(Environment.LEFT).getDatabase(config, dbMirror)) {
-                    config.getCluster(Environment.RIGHT).getDatabase(config, dbMirror);
-                } else {
-                    // LEFT DB doesn't exists.
-                    dbMirror.addIssue(Environment.LEFT, "DB doesn't exist. Check permissions for user running process");
-                    return Boolean.FALSE;
-                }
-            } catch (SQLException se) {
-                throw new RuntimeException(se);
-            }
-
-            // Build out the table in a database.
-            if (!config.getDatabaseOnly()) {
-                Callable<ReturnStatus> gt = new GetTables(config, dbMirror);
-                gtf.add(config.getTransferThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
-            }
-        }
-
-        // Collect Table Information
-        while (true) {
-            boolean check = true;
-            for (Future<ReturnStatus> sf : gtf) {
-                if (!sf.isDone()) {
-                    check = false;
-                    break;
-                }
+        if (!getConfig().isLoadingTestData()) {
+            for (String database : getConfig().getDatabases()) {
+                DBMirror dbMirror = conversion.addDatabase(database);
                 try {
-                    if (sf.isDone() && sf.get() != null) {
-                        if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
-                            rtn = Boolean.FALSE;
-//                            throw new RuntimeException(sf.get().getException());
-                        }
+                    // Get the Database definitions for the LEFT and RIGHT clusters.
+                    if (getConfig().getCluster(Environment.LEFT).getDatabase(config, dbMirror)) {
+                        getConfig().getCluster(Environment.RIGHT).getDatabase(config, dbMirror);
+                    } else {
+                        // LEFT DB doesn't exists.
+                        dbMirror.addIssue(Environment.LEFT, "DB doesn't exist. Check permissions for user running process");
+                        return Boolean.FALSE;
                     }
-                } catch (InterruptedException | ExecutionException e) {
-                    throw new RuntimeException(e);
+                } catch (SQLException se) {
+                    throw new RuntimeException(se);
+                }
+
+                // Build out the table in a database.
+                if (!getConfig().getDatabaseOnly()) {
+                    Callable<ReturnStatus> gt = new GetTables(config, dbMirror);
+                    gtf.add(getConfig().getTransferThreadPool().schedule(gt, 1, TimeUnit.MILLISECONDS));
                 }
             }
-            if (check)
-                break;
-        }
-        gtf.clear(); // reset
 
-        // Failure, report and exit with FALSE
-        if (!rtn) {
-            config.getErrors().set(COLLECTING_TABLES.getCode());
-            return Boolean.FALSE;
+            // Collect Table Information
+            while (true) {
+                boolean check = true;
+                for (Future<ReturnStatus> sf : gtf) {
+                    if (!sf.isDone()) {
+                        check = false;
+                        break;
+                    }
+                    try {
+                        if (sf.isDone() && sf.get() != null) {
+                            if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
+                                rtn = Boolean.FALSE;
+//                            throw new RuntimeException(sf.get().getException());
+                            }
+                        }
+                    } catch (InterruptedException | ExecutionException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                if (check)
+                    break;
+            }
+            gtf.clear(); // reset
+
+            // Failure, report and exit with FALSE
+            if (!rtn) {
+                getConfig().getErrors().set(COLLECTING_TABLES.getCode());
+                return Boolean.FALSE;
+            }
         }
 
         // Create the databases we'll need on the LEFT and RIGHT
-        Callable<ReturnStatus> createDatabases = new CreateDatabases(config, conversion);
-        gtf.add(config.getTransferThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
+        Callable<ReturnStatus> createDatabases = new CreateDatabases(conversion);
+        gtf.add(getConfig().getTransferThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
 
         // Check and Build DB's First.
         while (true) {
@@ -179,12 +191,12 @@ public class Setup {
 
         // Failure, report and exit with FALSE
         if (!rtn) {
-            config.getErrors().set(DATABASE_CREATION.getCode());
+            getConfig().getErrors().set(DATABASE_CREATION.getCode());
             return Boolean.FALSE;
         }
 
         // Shortcut.  Only DB's.
-        if (!config.getDatabaseOnly()) {
+        if (!getConfig().getDatabaseOnly() && !getConfig().isLoadingTestData()) {
 
             // Get the table METADATA for the tables collected in the databases.
             LOG.info(">>>>>>>>>>> Getting Table Metadata");
@@ -195,7 +207,7 @@ public class Setup {
                 for (String table : tables) {
                     TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
                     GetTableMetadata tmd = new GetTableMetadata(config, dbMirror, tblMirror);
-                    gtf.add(config.getMetadataThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
+                    gtf.add(getConfig().getMetadataThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
                 }
             }
 
@@ -222,7 +234,7 @@ public class Setup {
             gtf.clear(); // reset
 
             if (!rtn) {
-                config.getErrors().set(COLLECTING_TABLE_DEFINITIONS.getCode());
+                getConfig().getErrors().set(COLLECTING_TABLE_DEFINITIONS.getCode());
             }
 
             LOG.info("==============================");
@@ -233,6 +245,7 @@ public class Setup {
             df.setRoundingMode(RoundingMode.CEILING);
             LOG.info("GATHERING METADATA: Completed in " + df.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
         }
+        Context.getInstance().setInitializing(Boolean.FALSE);
         return rtn;
     }
 

@@ -22,7 +22,7 @@
 
     <groupId>com.cloudera.utils.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>1.6.0.0-SNAPSHOT</version>
+    <version>1.6.1.0-SNAPSHOT</version>
     <name>hms-mirror</name>
 
     <url>https://github.com/cloudera-labs/hms_mirror</url>
@@ -52,15 +52,18 @@
 
         <!-- Support Libs -->
         <javax.validation.version>2.0.1.Final</javax.validation.version>
-        <jackson.version>2.13.3</jackson.version>
+        <jackson.version>2.13.5</jackson.version>
 
         <commons-dbcp2.version>2.9.0</commons-dbcp2.version>
+        <hikari.version>4.0.3</hikari.version>
 
         <jcabi.manifests.version>1.1</jcabi.manifests.version>
         <commonmark.version>0.17.1</commonmark.version>
 
         <commons-text.version>1.10.0</commons-text.version>
         <junit.version>4.13.1</junit.version>
+        <slf4j-reload4j.version>1.7.36</slf4j-reload4j.version>
+        <logback-classic.version>1.2.12</logback-classic.version>
 
         <hadoop-cli.version>2.4.3.3</hadoop-cli.version>
         <hive-sre.version>2.5.1.4</hive-sre.version>
@@ -75,6 +78,16 @@
     </repositories>
 
     <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-reload4j</artifactId>
+            <version>${slf4j-reload4j.version}</version>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>ch.qos.logback</groupId>-->
+<!--            <artifactId>logback-classic</artifactId>-->
+<!--            <version>${logback-classic.version}</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>com.cloudera.utils.hadoop</groupId>
             <artifactId>hadoop-cli</artifactId>
@@ -113,10 +126,16 @@
         </dependency>
 
         <!-- Apache Libraries -->
+<!--        <dependency>-->
+<!--            <groupId>org.apache.commons</groupId>-->
+<!--            <artifactId>commons-dbcp2</artifactId>-->
+<!--            <version>${commons-dbcp2.version}</version>-->
+<!--        </dependency>-->
+        <!-- https://mvnrepository.com/artifact/com.zaxxer/HikariCP -->
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-dbcp2</artifactId>
-            <version>${commons-dbcp2.version}</version>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>${hikari.version}</version>
         </dependency>
 
         <!-- DB Libraries -->

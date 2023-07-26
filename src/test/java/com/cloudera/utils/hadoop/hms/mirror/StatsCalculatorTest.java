@@ -1,7 +1,6 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
 import com.cloudera.utils.hadoop.hms.Context;
-import com.cloudera.utils.hadoop.hms.util.TableUtils;
 import junit.framework.TestCase;
 
 import java.util.*;
@@ -60,19 +59,21 @@ public class StatsCalculatorTest extends TestCase {
                 , "  'transient_lastDdlTime'='1685711419')            "
         };
         table_01.addAll(Arrays.asList(strTable_01));
-        environmentTable = new EnvironmentTable(null);
+        environmentTable = new EnvironmentTable();
         environmentTable.setDefinition(table_01);
-        Map<String,String> partitions = new HashMap<String,String>();
+        TableMirror tblMirror = new TableMirror();
+        environmentTable.setParent(tblMirror);
+        Map<String, String> partitions = new HashMap<String, String>();
         // 15000 partitions
         for (int i = 0; i < 11000; i++) {
             partitions.put(Integer.toString(i), null);
         }
         environmentTable.getStatistics().put(FILE_FORMAT, SerdeType.ORC);
         // 13Tb
-        Long size = 1024l*1024*1024*1024*13;
+        Long size = 1024L * 1024 * 1024 * 1024 * 13;
         environmentTable.getStatistics().put(DATA_SIZE, size);
         // 5Mb
-        Double avgSize = 1024*1024*5d;
+        Double avgSize = 1024 * 1024 * 5d;
         environmentTable.getStatistics().put(AVG_FILE_SIZE, avgSize);
         environmentTable.setPartitions(partitions);
         Config config = new Config();
@@ -83,26 +84,28 @@ public class StatsCalculatorTest extends TestCase {
 
     }
 
-    public void testGetPartitionDistributionRatio() {
-        Long ratio = StatsCalculator.getPartitionDistributionRatio(environmentTable);
-        assertEquals((long)8, (long)ratio);
-        System.out.println();
-    }
-
     public void testGetAdditionalPartitionDistribution() {
         String test = StatsCalculator.getDistributedPartitionElements(environmentTable);
         assertEquals("ROUND((rand() * 1000) % 8), `cr_returned_date_sk`", test);
         System.out.println(test);
     }
 
+    public void testGetPartitionDistributionRatio() {
+        Long ratio = StatsCalculator.getPartitionDistributionRatio(environmentTable);
+        assertEquals(8, (long) ratio);
+        System.out.println();
+    }
+
     public void testGetTezMaxGrouping_01() {
         Long test = StatsCalculator.getTezMaxGrouping(environmentTable);
-        assertEquals(67108864L, (long)test);
+        assertEquals(67108864L, (long) test);
         System.out.println(test);
     }
 
     public void testSetSessionOptions() {
-        EnvironmentTable applyEnv = new EnvironmentTable(null);
+        TableMirror tblMirror = new TableMirror();
+        EnvironmentTable applyEnv = new EnvironmentTable();
+        applyEnv.setParent(tblMirror);
         Cluster cluster = new Cluster();
         cluster.setEnableAutoColumnStats(Boolean.TRUE);
         cluster.setEnableAutoTableStats(Boolean.TRUE);

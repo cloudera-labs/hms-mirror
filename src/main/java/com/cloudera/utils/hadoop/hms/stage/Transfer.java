@@ -21,6 +21,7 @@ import com.cloudera.utils.hadoop.hms.mirror.*;
 import com.cloudera.utils.hadoop.HadoopSession;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -31,6 +32,10 @@ import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.DISTCP_FOR_SO_ACID;
+import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.LOCATION_NOT_MATCH_WAREHOUSE;
+import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.DB_LOCATION;
+import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.DB_MANAGED_LOCATION;
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.*;
 import static com.cloudera.utils.hadoop.hms.mirror.TablePropertyVars.EXTERNAL_TABLE_PURGE;
 
@@ -73,7 +78,7 @@ public class Transfer implements Callable<ReturnStatus> {
             tblMirror.setPhaseState(PhaseState.STARTED);
 
             tblMirror.setStrategy(config.getDataStrategy());
-            tblMirror.setResolvedDbName(config.getResolvedDB(tblMirror.getDbName()));
+//            tblMirror.setResolvedDbName(config.getResolvedDB(tblMirror.getParent().getName()));
 
             tblMirror.incPhase();
             tblMirror.addStep("TRANSFER", config.getDataStrategy().toString());
@@ -128,7 +133,7 @@ public class Transfer implements Callable<ReturnStatus> {
 
                         config.getTranslator().addLocation(dbMirror.getName(), Environment.LEFT,
                                 TableUtils.getLocation(tblMirror.getName(), let.getDefinition()),
-                                isLoc);
+                                isLoc, 1);
                         // RIGHT PULL from INTERMEDIATE
                         String fnlLoc = null;
                         if (set.getDefinition().size() > 0) {
@@ -149,7 +154,7 @@ public class Transfer implements Callable<ReturnStatus> {
                         }
                         config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
                                 isLoc,
-                                fnlLoc);
+                                fnlLoc, 1);
                     } else if (config.getTransfer().getCommonStorage() != null && config.getDataStrategy() != DataStrategy.STORAGE_MIGRATION) {
                         // LEFT PUSH COMMON
                         String origLoc = TableUtils.isACID(let) ?
@@ -173,12 +178,14 @@ public class Transfer implements Callable<ReturnStatus> {
                             newLoc = sbDir.toString();
                         }
                         config.getTranslator().addLocation(dbMirror.getName(), Environment.LEFT,
-                                origLoc, newLoc);
+                                origLoc, newLoc,1);
                     } else {
                         // RIGHT PULL
-                        if (TableUtils.isACID(let) && !config.getMigrateACID().isDowngrade()) {
-                            tblMirror.addIssue(Environment.RIGHT, "`distcp` not needed with linked clusters for ACID " +
-                                    "transfers.");
+                        if (TableUtils.isACID(let)
+                                && !config.getMigrateACID().isDowngrade()
+                                && !(config.getDataStrategy() == DataStrategy.STORAGE_MIGRATION)) {
+                            tblMirror.addIssue(Environment.RIGHT, DISTCP_FOR_SO_ACID.getDesc());
+                            successful = Boolean.FALSE;
                         } else if (TableUtils.isACID(let) && config.getMigrateACID().isDowngrade()) {
                             String rLoc = TableUtils.getLocation(tblMirror.getName(), ret.getDefinition());
                             if (rLoc == null && config.getResetToDefaultLocation()) {
@@ -194,7 +201,7 @@ public class Transfer implements Callable<ReturnStatus> {
                             }
                             config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
                                     TableUtils.getLocation(tblMirror.getName(), tet.getDefinition()),
-                                    rLoc);
+                                    rLoc,1);
                         } else {
                             String rLoc = TableUtils.getLocation(tblMirror.getName(), ret.getDefinition());
                             if (rLoc == null && config.getResetToDefaultLocation()) {
@@ -208,9 +215,9 @@ public class Transfer implements Callable<ReturnStatus> {
                                 sbDir.append(config.getResolvedDB(dbMirror.getName())).append(".db").append("/").append(tblMirror.getName());
                                 rLoc = sbDir.toString();
                             }
-                            config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
-                                    TableUtils.getLocation(tblMirror.getName(), let.getDefinition())
-                                    , rLoc);
+//                            config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
+//                                    TableUtils.getLocation(tblMirror.getName(), let.getDefinition())
+//                                    , rLoc,1);
                         }
                     }
                 }
@@ -369,31 +376,95 @@ public class Transfer implements Callable<ReturnStatus> {
 
             let.addSql(TableUtils.USE_DESC, useDb);
 
+            Boolean noIssues = Boolean.TRUE;
             String origLocation = TableUtils.getLocation(tblMirror.getName(), tblMirror.getTableDefinition(Environment.LEFT));
-            String newLocation = Context.getInstance().getConfig().getTranslator().
-                    translateTableLocation(tblMirror, origLocation, Context.getInstance().getConfig());
+            try {
+                String newLocation = Context.getInstance().getConfig().getTranslator().
+                        translateTableLocation(tblMirror, origLocation, 0, null);
 
-            // Build Alter Statement for Table to change location.
-            String alterTable = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, tblMirror.getEnvironmentTable(Environment.LEFT).getName(), newLocation);
-            Pair alterTablePair = new Pair(MirrorConf.ALTER_TABLE_LOCATION_DESC, alterTable);
-            let.addSql(alterTablePair);
+                // Build Alter Statement for Table to change location.
+                String alterTable = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, tblMirror.getEnvironmentTable(Environment.LEFT).getName(), newLocation);
+                Pair alterTablePair = new Pair(MirrorConf.ALTER_TABLE_LOCATION_DESC, alterTable);
+                let.addSql(alterTablePair);
+                if (config.getTransfer().getWarehouse().getExternalDirectory() != null &&
+                        config.getTransfer().getWarehouse().getManagedDirectory() != null) {
+                    if (TableUtils.isExternal(tblMirror.getEnvironmentTable(Environment.LEFT))) {
+                        // We store the DB LOCATION in the RIGHT dbDef so we can avoid changing the original LEFT
+                        if (!newLocation.startsWith(tblMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_LOCATION))) {
+                            // Set warning that even though you've specified to warehouse directories, the current configuration
+                            // will NOT place it in that directory.
+                            String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
+                                    tblMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_LOCATION),
+                                    newLocation);
+                            tblMirror.addIssue(Environment.LEFT, msg);
+                        }
+                    } else {
+                        if (!newLocation.startsWith(tblMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION))) {
+                            // Set warning that even though you've specified to warehouse directories, the current configuration
+                            // will NOT place it in that directory.
+                            String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
+                                    tblMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION),
+                                    newLocation);
+                            tblMirror.addIssue(Environment.LEFT, msg);
+                        }
+
+                    }
+                }
+            } catch (RuntimeException rte) {
+                noIssues = Boolean.FALSE;
+                tblMirror.addIssue(Environment.LEFT, rte.getMessage());
+            }
 
             // Build Alter Statement for Partitions to change location.
             if (let.getPartitioned()) {
                 // Loop through partitions in let.getPartitions and build alter statements.
                 for (Map.Entry<String, String> entry: let.getPartitions().entrySet()) {
                     String partSpec = entry.getKey();
+                    int level = StringUtils.countMatches(partSpec, "/");
                     // Translate to 'partition spec'.
                     partSpec = TableUtils.toPartitionSpec(partSpec);
                     String partLocation = entry.getValue();
-                    String newPartLocation = Context.getInstance().getConfig().getTranslator().
-                            translateTableLocation(tblMirror, partLocation, Context.getInstance().getConfig());
-                    String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_LOCATION, let.getName(), partSpec, newPartLocation);
-                    String partSpecDesc = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_LOCATION_DESC, partSpec);
-                    let.addSql(partSpecDesc, addPartSql);
+                    try {
+                        String newPartLocation = Context.getInstance().getConfig().getTranslator().
+                                translateTableLocation(tblMirror, partLocation, ++level, entry.getKey());
+                        String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_LOCATION, let.getName(), partSpec, newPartLocation);
+                        String partSpecDesc = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_LOCATION_DESC, partSpec);
+                        let.addSql(partSpecDesc, addPartSql);
+                        if (config.getTransfer().getWarehouse().getExternalDirectory() != null &&
+                                config.getTransfer().getWarehouse().getManagedDirectory() != null) {
+                            if (TableUtils.isExternal(tblMirror.getEnvironmentTable(Environment.LEFT))) {
+                                // We store the DB LOCATION in the RIGHT dbDef so we can avoid changing the original LEFT
+                                if (!newPartLocation.startsWith(tblMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_LOCATION))) {
+                                    // Set warning that even though you've specified to warehouse directories, the current configuration
+                                    // will NOT place it in that directory.
+                                    String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "partition",
+                                            tblMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_LOCATION),
+                                            newPartLocation);
+                                    tblMirror.addIssue(Environment.LEFT, msg);
+                                }
+                            } else {
+                                if (!newPartLocation.startsWith(tblMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION))) {
+                                    // Set warning that even though you've specified to warehouse directories, the current configuration
+                                    // will NOT place it in that directory.
+                                    String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "partition",
+                                            tblMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION),
+                                            newPartLocation);
+                                    tblMirror.addIssue(Environment.LEFT, msg);
+                                }
+
+                            }
+                        }
+                    } catch (RuntimeException rte) {
+                        noIssues = Boolean.FALSE;
+                        tblMirror.addIssue(Environment.LEFT, rte.getMessage());
+                    }
                 }
+                if (noIssues) {
+                    rtn = Boolean.TRUE;
+                }
+            } else {
+                rtn = Boolean.TRUE;
             }
-            rtn = Boolean.TRUE;
         } else {
             rtn = tblMirror.buildoutSTORAGEMIGRATIONDefinition(config, dbMirror);
             if (rtn)
@@ -652,7 +723,7 @@ public class Transfer implements Callable<ReturnStatus> {
         EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
         EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
 
-        tblMirror.setResolvedDbName(config.getResolvedDB(tblMirror.getDbName()));
+//        tblMirror.setResolvedDbName(config.getResolvedDB(tblMirror.getParent().getName()));
 
         // If RIGHT doesn't exist, run SCHEMA_ONLY.
         if (ret == null) {
@@ -664,7 +735,7 @@ public class Transfer implements Callable<ReturnStatus> {
             } else if (tblMirror.isPartitioned(Environment.LEFT)) {
                 // We need to drop the RIGHT and RECREATE.
                 ret.addIssue("Table is partitioned.  Need to change data strategy to drop and recreate.");
-                String useDb = MessageFormat.format(MirrorConf.USE, tblMirror.getResolvedDbName());
+                String useDb = MessageFormat.format(MirrorConf.USE, tblMirror.getParent().getResolvedName());
                 ret.addSql(MirrorConf.USE_DESC, useDb);
 
                 // Make sure the table is NOT set to purge.
@@ -682,13 +753,13 @@ public class Transfer implements Callable<ReturnStatus> {
             } else {
                 // - AVRO LOCATION
                 if (AVROCheck()) {
-                    String useDb = MessageFormat.format(MirrorConf.USE, tblMirror.getResolvedDbName());
+                    String useDb = MessageFormat.format(MirrorConf.USE, tblMirror.getParent().getResolvedName());
                     ret.addSql(MirrorConf.USE_DESC, useDb);
                     // Look at the table definition and get.
                     // - LOCATION
                     String sourceLocation = TableUtils.getLocation(ret.getName(), ret.getDefinition());
                     String targetLocation = config.getTranslator().
-                            translateTableLocation(tblMirror, sourceLocation, config);
+                            translateTableLocation(tblMirror, sourceLocation, 1, null);
                     String alterLocSql = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, ret.getName(), targetLocation);
                     ret.addSql(MirrorConf.ALTER_TABLE_LOCATION_DESC, alterLocSql);
                     // TableUtils.updateTableLocation(ret, targetLocation)
