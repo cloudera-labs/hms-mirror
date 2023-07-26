@@ -52,7 +52,7 @@
 
         <!-- Support Libs -->
         <javax.validation.version>2.0.1.Final</javax.validation.version>
-        <jackson.version>2.13.3</jackson.version>
+        <jackson.version>2.13.5</jackson.version>
 
         <commons-dbcp2.version>2.9.0</commons-dbcp2.version>
         <hikari.version>4.0.3</hikari.version>
@@ -62,6 +62,8 @@
 
         <commons-text.version>1.10.0</commons-text.version>
         <junit.version>4.13.1</junit.version>
+        <slf4j-reload4j.version>1.7.36</slf4j-reload4j.version>
+        <logback-classic.version>1.2.12</logback-classic.version>
 
         <hadoop-cli.version>2.4.3.3</hadoop-cli.version>
         <hive-sre.version>2.5.1.4</hive-sre.version>
@@ -76,6 +78,16 @@
     </repositories>
 
     <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-reload4j</artifactId>
+            <version>${slf4j-reload4j.version}</version>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>ch.qos.logback</groupId>-->
+<!--            <artifactId>logback-classic</artifactId>-->
+<!--            <version>${logback-classic.version}</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>com.cloudera.utils.hadoop</groupId>
             <artifactId>hadoop-cli</artifactId>

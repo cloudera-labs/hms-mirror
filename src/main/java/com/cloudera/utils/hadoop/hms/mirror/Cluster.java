@@ -294,7 +294,7 @@ public class Cluster implements Comparable<Cluster> {
             if (conn != null) {
                 String database = (getEnvironment() == Environment.LEFT ? dbMirror.getName() : config.getResolvedDB(dbMirror.getName()));
 
-                LOG.debug(getEnvironment() + ":" + database + ": Loading tables for database");
+                LOG.info(getEnvironment() + ":" + database + ": Loading tables for database");
 
                 Statement stmt = null;
                 ResultSet resultSet = null;
@@ -303,7 +303,7 @@ public class Cluster implements Comparable<Cluster> {
                     stmt = conn.createStatement();
                     LOG.debug(getEnvironment() + ":" + database + ": Setting Hive DB Session Context");
                     stmt.execute(MessageFormat.format(MirrorConf.USE, database));
-                    LOG.debug(getEnvironment() + ":" + database + ": Getting Table List");
+                    LOG.info(getEnvironment() + ":" + database + ": Getting Table List");
                     List<String> shows = new ArrayList<String>();
                     if (!this.getLegacyHive()) {
                         if (config.getMigrateVIEW().isOn()) {
@@ -340,6 +340,9 @@ public class Cluster implements Comparable<Cluster> {
                                     if (matcher.matches()) {
                                         TableMirror tableMirror = dbMirror.addTable(tableName);
                                         tableMirror.setMigrationStageMessage("Added to evaluation inventory");
+                                    } else {
+                                        LOG.info(database + ":" + tableName + " didn't match table regex filter and " +
+                                                "will NOT be added to processing list.");
                                     }
                                 } else if (config.getFilter().getTblExcludeRegEx() != null) {
                                     assert (config.getFilter().getTblExcludeFilterPattern() != null);
@@ -347,6 +350,9 @@ public class Cluster implements Comparable<Cluster> {
                                     if (!matcher.matches()) { // ANTI-MATCH
                                         TableMirror tableMirror = dbMirror.addTable(tableName);
                                         tableMirror.setMigrationStageMessage("Added to evaluation inventory");
+                                    } else {
+                                        LOG.info(database + ":" + tableName + " matched exclude table regex filter and " +
+                                                "will NOT be added to processing list.");
                                     }
                                 }
                             }
@@ -399,7 +405,7 @@ public class Cluster implements Comparable<Cluster> {
                 ResultSet resultSet = null;
                 try {
                     stmt = conn.createStatement();
-                    LOG.debug(getEnvironment() + ":" + database + "." + tableMirror.getName() +
+                    LOG.info(getEnvironment() + ":" + database + "." + tableMirror.getName() +
                             ": Loading Table Definition");
                     String useStatement = MessageFormat.format(MirrorConf.USE, database);
                     stmt.execute(useStatement);
@@ -643,7 +649,7 @@ public class Cluster implements Comparable<Cluster> {
                     try {
                         stmt = conn.createStatement();
                         for (Pair pair : sqlList) {
-                            LOG.info(getEnvironment() + ":SQL:" + pair.getDescription() + ":" + pair.getAction());
+                            LOG.debug(getEnvironment() + ":SQL:" + pair.getDescription() + ":" + pair.getAction());
                             tblMirror.setMigrationStageMessage("Executing SQL: " + pair.getDescription());
                             if (config.isExecute())
                                 stmt.execute(pair.getAction());
@@ -852,7 +858,7 @@ public class Cluster implements Comparable<Cluster> {
 //                        // Loop through the partitions and get the details.
 //                        Map<String, String> partDefWithLocation = new HashMap<String, String>();
 //                        for (String partSpec : partDef.keySet()) {
-//                            LOG.info(getEnvironment() + ":" + database + "." + envTable.getName() +
+//                            LOG.debug(getEnvironment() + ":" + database + "." + envTable.getName() +
 //                                    ": Loading Partition Details: " + partSpec);
 //                            resultSet = stmt.executeQuery(MessageFormat.format(MirrorConf.SHOW_TABLE_EXTENDED_WITH_PARTITION, envTable.getName(), partSpec));
 //                            String location = null;
@@ -876,7 +882,7 @@ public class Cluster implements Comparable<Cluster> {
 //                                partDefWithLocation.put(partSpec, null);
 //                        }
 //
-//                        LOG.info(getEnvironment() + ":" + database + "." + envTable.getName() +
+//                        LOG.debug(getEnvironment() + ":" + database + "." + envTable.getName() +
 //                                ": Loading Partition Details: Complete(" + partDefWithLocation.size() + ")");
 //
 //                        // Replace the partition details with the location.
@@ -909,7 +915,7 @@ public class Cluster implements Comparable<Cluster> {
         // Considered only gathering stats for partitioned tables, but decided to gather for all tables to support
         //  smallfiles across the board.
         if (Context.getInstance().getConfig().getOptimization().getSkipStatsCollection()) {
-            LOG.info(getEnvironment() + ":" + envTable.getName() + ": Skipping Stats Collection.");
+            LOG.debug(getEnvironment() + ":" + envTable.getName() + ": Skipping Stats Collection.");
             return;
         }
         switch (Context.getInstance().getConfig().getDataStrategy()) {

@@ -60,6 +60,8 @@ public class Setup {
 
     // TODO: Need to address failures here...
     public Boolean collect() {
+        Context.getInstance().setInitializing(Boolean.TRUE);
+//        initializing = Boolean.TRUE;
         Boolean rtn = Boolean.TRUE;
         Date startTime = new Date();
         LOG.info("GATHERING METADATA: Start Processing for databases: " + Arrays.toString((getConfig().getDatabases())));
@@ -243,6 +245,7 @@ public class Setup {
             df.setRoundingMode(RoundingMode.CEILING);
             LOG.info("GATHERING METADATA: Completed in " + df.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
         }
+        Context.getInstance().setInitializing(Boolean.FALSE);
         return rtn;
     }
 

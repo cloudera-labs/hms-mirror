@@ -494,7 +494,7 @@ public class DBMirror {
             LOG.debug("Table object found in map: " + table);
             return getTableMirrors().get(table);
         } else {
-            LOG.debug("Adding table object to map: " + table);
+            LOG.info("Adding table object to map: " + table);
             TableMirror tableMirror = new TableMirror();
             tableMirror.setName(table);
             tableMirror.setParent(this);

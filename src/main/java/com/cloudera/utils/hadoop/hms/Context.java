@@ -23,6 +23,7 @@ public class Context {
             "hdfs", "ofs", "s3", "s3a", "s3n", "wasb", "adls", "gf"
     ));
     private Config config = null;
+    private Boolean initializing = Boolean.FALSE;
     private ConnectionPools connectionPools = null;
 
     private Map<Environment, QueryDefinitions> queryDefinitionsMap = new HashMap<>();
@@ -30,7 +31,13 @@ public class Context {
     private Context() {
     }
 
-    ;
+    public Boolean getInitializing() {
+        return initializing;
+    }
+
+    public void setInitializing(Boolean initializing) {
+        this.initializing = initializing;
+    }
 
     public static Context getInstance() {
         return instance;
