@@ -168,7 +168,7 @@ public class ConfigValidationTest extends EndToEndBase {
 
         long check = MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
         check = check | MessageCode.STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL_GLM.getLong();
-
+        System.out.println(check);
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
