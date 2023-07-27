@@ -687,6 +687,14 @@ public class Transfer implements Callable<ReturnStatus> {
     protected Boolean doExportImport() {
         Boolean rtn = Boolean.FALSE;
         EnvironmentTable let = tblMirror.getEnvironmentTable(Environment.LEFT);
+        EnvironmentTable ret = tblMirror.getEnvironmentTable(Environment.RIGHT);
+        if (ret.getExists()) {
+            if (!config.isSync()) {
+                let.addIssue(MessageCode.SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                return Boolean.FALSE;
+            }
+        }
+
         if (tblMirror.isACIDDowngradeInPlace(config, let)) {
             rtn = doEXPORTIMPORTACIDInplaceDowngrade();
         } else {

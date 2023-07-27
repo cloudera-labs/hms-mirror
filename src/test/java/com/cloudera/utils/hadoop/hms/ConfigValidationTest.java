@@ -50,7 +50,7 @@ public class ConfigValidationTest extends EndToEndBase {
         long check = MessageCode.RESET_TO_DEFAULT_LOCATION.getLong();
         check = check | MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -73,7 +73,7 @@ public class ConfigValidationTest extends EndToEndBase {
 
         long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -98,7 +98,7 @@ public class ConfigValidationTest extends EndToEndBase {
         long check = MessageCode.DISTCP_VALID_STRATEGY.getLong();
         check = check | MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -123,7 +123,7 @@ public class ConfigValidationTest extends EndToEndBase {
         long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
         check = check | MessageCode.DISTCP_VALID_STRATEGY.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -146,7 +146,7 @@ public class ConfigValidationTest extends EndToEndBase {
         long check = MessageCode.RESET_TO_DEFAULT_LOCATION.getLong();
         check = check | MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -169,8 +169,7 @@ public class ConfigValidationTest extends EndToEndBase {
         long check = MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
         check = check | MessageCode.STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL_GLM.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
-
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -195,7 +194,7 @@ public class ConfigValidationTest extends EndToEndBase {
         long check = MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
         check = check | MessageCode.STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL_GLM.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -218,7 +217,7 @@ public class ConfigValidationTest extends EndToEndBase {
         rtn = mirror.go(args);
         long check = MessageCode.NON_LEGACY_TO_LEGACY.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -239,7 +238,7 @@ public class ConfigValidationTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         long check = MessageCode.DISTCP_REQUIRED_FOR_SCHEMA_ONLY_IS.getLong();
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -262,7 +261,7 @@ public class ConfigValidationTest extends EndToEndBase {
         long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
         check = check | DISTCP_REQUIRED_FOR_SCHEMA_ONLY_RDL.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -287,7 +286,7 @@ public class ConfigValidationTest extends EndToEndBase {
 
         long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -311,7 +310,7 @@ public class ConfigValidationTest extends EndToEndBase {
 
         long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -334,7 +333,7 @@ public class ConfigValidationTest extends EndToEndBase {
         rtn = mirror.go(args);
         long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
 
     }
 
@@ -358,7 +357,7 @@ public class ConfigValidationTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         long check = DISTCP_REQUIRED_FOR_SCHEMA_ONLY_RDL.getLong();
-        assertEquals("Return Code Failure: " + rtn, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -381,7 +380,7 @@ public class ConfigValidationTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         long check = DISTCP_REQUIRED_FOR_SCHEMA_ONLY_RDL.getLong();
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -405,7 +404,7 @@ public class ConfigValidationTest extends EndToEndBase {
 
         long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -431,7 +430,7 @@ public class ConfigValidationTest extends EndToEndBase {
         long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
         check = check | MessageCode.SQL_DISTCP_ACID_W_STORAGE_OPTS.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -457,7 +456,7 @@ public class ConfigValidationTest extends EndToEndBase {
 //        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_STRATEGY.getLong();
 //        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
 
     }
 
@@ -485,7 +484,7 @@ public class ConfigValidationTest extends EndToEndBase {
 //        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_STRATEGY.getLong();
 //        check = check | MessageCode.STORAGE_MIGRATION_REQUIRED_WAREHOUSE_OPTIONS.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -510,7 +509,7 @@ public class ConfigValidationTest extends EndToEndBase {
         long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
         check = check | MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
 }

@@ -921,10 +921,12 @@ public class Config {
             warnings.set(RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getCode());
         }
 
-        if (sync && getFilter().getTblRegEx() != null) {
+        if (sync && (getFilter().getTblRegEx() != null || getFilter().getTblExcludeRegEx() != null)) {
             warnings.set(SYNC_TBL_FILTER.getCode());
         }
-        if (sync && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.LINKED)) {
+        if (sync && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.LINKED ||
+                dataStrategy == DataStrategy.SQL || dataStrategy == DataStrategy.EXPORT_IMPORT ||
+                dataStrategy == DataStrategy.HYBRID)) {
             errors.set(VALID_SYNC_STRATEGIES.getCode());
             rtn = Boolean.FALSE;
         }
@@ -1073,7 +1075,7 @@ public class Config {
         if (getCluster(Environment.RIGHT) != null) {
             if (getDataStrategy() != DataStrategy.SCHEMA_ONLY &&
             getCluster(Environment.RIGHT).getCreateIfNotExists()) {
-                warnings.set(CINE_WITH_SO.getCode());
+                warnings.set(CINE_WITH_DATASTRATEGY.getCode());
             }
         }
 

@@ -2011,7 +2011,7 @@ public class Mirror {
                 System.out.println(rte.getMessage());
                 rte.printStackTrace();
                 if (config != null && getConfig().getErrors().getReturnCode() > 0) {
-                    returnCode = getConfig().getErrors().getReturnCode(); //MessageCode.returnCode(getConfig().getErrors());
+                    returnCode = (getConfig().getErrors().getReturnCode() * -1); //MessageCode.returnCode(getConfig().getErrors());
                 } else {
                     returnCode = -1;
                 }
@@ -2027,7 +2027,7 @@ public class Mirror {
             System.err.println();
             LOG.error("Commandline args: " + Arrays.toString(args));
             if (config != null) {
-                returnCode = getConfig().getErrors().getReturnCode();
+                returnCode = (getConfig().getErrors().getReturnCode() * -1);
             } else {
                 returnCode = -1;
             }

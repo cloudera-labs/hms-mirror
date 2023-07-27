@@ -1,0 +1,158 @@
+---
+databases:
+  merge_files_migrate:
+    name: "merge_files_migrate"
+    filteredOut: {}
+    tableMirrors:
+      acid_01:
+        name: "acid_01"
+        reMapped: false
+        strategy: null
+        phaseState: "INIT"
+        environments:
+          LEFT:
+            name: "acid_01"
+            exists: true
+            createStrategy: "NOTHING"
+            definition:
+            - "CREATE TABLE `acid_01`("
+            - "`id` string,"
+            - "`checkvalue` string)"
+            - "CLUSTERED BY ("
+            - "id)"
+            - "INTO 2 BUCKETS"
+            - "ROW FORMAT SERDE"
+            - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+            - "STORED AS INPUTFORMAT"
+            - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+            - "OUTPUTFORMAT"
+            - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+            - "LOCATION"
+            - "'hdfs://HDP50/apps/hive/warehouse/merge_files_migrate.db/acid_01'"
+            - "TBLPROPERTIES ("
+            - "'bucketing_version'='2',"
+            - "'last_modified_by'='dstreev',"
+            - "'last_modified_time'='1660842654',"
+            - "'numFiles'='2',"
+            - "'numRows'='0',"
+            - "'rawDataSize'='0',"
+            - "'totalSize'='1458',"
+            - "'transactional'='true',"
+            - "'transient_lastDdlTime'='1690463533')"
+            owner: null
+            partitions: {}
+            actions: []
+            addProperties: {}
+            statistics:
+              transactional: true
+            issues: []
+            sql: []
+            cleanUpSql: []
+          RIGHT:
+            name: "acid_01"
+            exists: true
+            createStrategy: "NOTHING"
+            definition:
+            - "CREATE TABLE `acid_01`("
+            - "`id` string,"
+            - "`checkvalue` string)"
+            - "ROW FORMAT SERDE"
+            - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+            - "STORED AS INPUTFORMAT"
+            - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+            - "OUTPUTFORMAT"
+            - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+            - "LOCATION"
+            - "'hdfs://HOME90/warehouse/tablespace/managed/hive/merge_files_migrate.db/acid_01'"
+            - "TBLPROPERTIES ("
+            - "'bucketing_version'='2',"
+            - "'hms-mirror_Metadata_Stage1'='2023-07-27 09:20:29',"
+            - "'transactional'='true',"
+            - "'transactional_properties'='default',"
+            - "'transient_lastDdlTime'='1690466957')"
+            owner: null
+            partitions: {}
+            actions: []
+            addProperties: {}
+            statistics: {}
+            issues: []
+            sql: []
+            cleanUpSql: []
+      ext_01:
+        name: "ext_01"
+        reMapped: false
+        strategy: null
+        phaseState: "INIT"
+        environments:
+          LEFT:
+            name: "ext_01"
+            exists: true
+            createStrategy: "NOTHING"
+            definition:
+            - "CREATE EXTERNAL TABLE `ext_01`("
+            - "`id` string,"
+            - "`nm` string)"
+            - "ROW FORMAT SERDE"
+            - "'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'"
+            - "STORED AS INPUTFORMAT"
+            - "'org.apache.hadoop.mapred.TextInputFormat'"
+            - "OUTPUTFORMAT"
+            - "'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'"
+            - "LOCATION"
+            - "'hdfs://HDP50/apps/hive/warehouse/merge_files_migrate.db/ext_01'"
+            - "TBLPROPERTIES ("
+            - "'COLUMN_STATS_ACCURATE'='{\\\"BASIC_STATS\\\":\\\"true\\\"}',"
+            - "'numFiles'='0',"
+            - "'numRows'='0',"
+            - "'rawDataSize'='0',"
+            - "'totalSize'='0',"
+            - "'transient_lastDdlTime'='1690466771')"
+            owner: null
+            partitions: {}
+            actions: []
+            addProperties: {}
+            statistics: {}
+            issues: []
+            sql: []
+            cleanUpSql: []
+          RIGHT:
+            name: "ext_01"
+            exists: true
+            createStrategy: "NOTHING"
+            definition:
+            - "CREATE EXTERNAL TABLE `ext_01`("
+            - "`id` string,"
+            - "`nm` string)"
+            - "ROW FORMAT SERDE"
+            - "'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'"
+            - "STORED AS INPUTFORMAT"
+            - "'org.apache.hadoop.mapred.TextInputFormat'"
+            - "OUTPUTFORMAT"
+            - "'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'"
+            - "LOCATION"
+            - "'hdfs://HOME90/apps/hive/warehouse/merge_files_migrate.db/ext_01'"
+            - "TBLPROPERTIES ("
+            - "'bucketing_version'='2',"
+            - "'hms-mirror_Metadata_Stage1'='2023-07-27 10:08:00',"
+            - "'transient_lastDdlTime'='1690466895')"
+            owner: null
+            partitions: {}
+            actions: []
+            addProperties: {}
+            statistics: {}
+            issues: []
+            sql: []
+            cleanUpSql: []
+    phaseSummary:
+      INIT: 2
+    dbdefinitions:
+      LEFT:
+        DB_NAME: "merge_files_migrate"
+        LOCATION: "hdfs://HDP50/apps/hive/warehouse/merge_files_migrate.db"
+        OWNER_NAME: "dstreev"
+        OWNER_TYPE: "USER"
+      RIGHT:
+        DB_NAME: "merge_files_migrate"
+        LOCATION: "hdfs://HOME90/apps/hive/warehouse/merge_files_migrate.db"
+        OWNER_NAME: "dstreev"
+        OWNER_TYPE: "USER"

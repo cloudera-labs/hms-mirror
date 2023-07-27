@@ -143,7 +143,7 @@ public class EndToEndCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         long check = STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL_GLM.getLong();
 
-        assertEquals("Return Code Failure: " + rtn, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
 
     }
 

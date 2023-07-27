@@ -54,7 +54,8 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
 
         long check = MessageCode.VALID_ACID_STRATEGIES.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " expecting: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -498,7 +499,9 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 8388608L, rtn);
+        long check = MessageCode.DISTCP_VALID_STRATEGY.getLong();
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -1059,7 +1062,8 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -1082,7 +1086,8 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " expecting: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -1106,7 +1111,8 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " expecting: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -1601,7 +1607,10 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 4294967296L, rtn);
+        long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     /*
@@ -1941,7 +1950,8 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         // Should fail because DB dir doesn't exist.  RO assumes data moved already.
         long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
 
-        assertEquals("Return Code Failure: " + rtn + " expecting: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -1962,9 +1972,10 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        long check = MessageCode.VALID_SYNC_STRATEGIES.getLong();
+        long check = 3; //acid tables.
 
-        assertEquals("Return Code Failure: " + rtn + " expecting: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
     }
 
 }
