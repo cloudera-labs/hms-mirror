@@ -7,7 +7,8 @@ import com.cloudera.utils.hadoop.hms.mirror.PhaseState;
 import org.junit.Test;
 
 import static com.cloudera.utils.hadoop.hms.EnvironmentConstants.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class EndToEndCDPtoCDPTest extends EndToEndBase {
 
@@ -31,6 +32,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         int check = 3; // because 3 of the tables are acid.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
     }
 
     @Test
@@ -52,7 +54,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -74,6 +77,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         int check = 2; // Two tables exceed partition count limit of 100 (default).
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
     }
 
     @Test
@@ -96,7 +100,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -119,7 +124,85 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
+    }
+
+    @Test
+    public void ei_ma_exists() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "EXPORT_IMPORT",
+                "-ma",
+//                "-wd", "/warehouse/managed", "-ewd", "/warehouse/external",
+//                "-sync",
+                "-ltd", EXISTS_07,
+                "-cfg", CDP_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 2; // errors on 2 table because they exist already.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
+    }
+
+    @Test
+    public void ei_ma_sync() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "EXPORT_IMPORT",
+                "-ma",
+//                "-wd", "/warehouse/managed", "-ewd", "/warehouse/external",
+                "-sync",
+                "-ltd", EXISTS_07,
+                "-cfg", CDP_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
+    }
+
+
+    @Test
+    public void ei_ma_da_sync() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "EXPORT_IMPORT",
+                "-ma",
+//                "-wd", "/warehouse/managed", "-ewd", "/warehouse/external",
+                "-da",
+                "-sync",
+                "-ltd", EXISTS_07,
+                "-cfg", CDP_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -163,7 +246,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         long check = MessageCode.VALID_ACID_DA_IP_STRATEGIES.getLong();
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -186,6 +270,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         int check = 2; // Two tables exceed partition count limit of 100 (default).
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
     }
 
     @Test
@@ -211,7 +296,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         // theres 1 non acid table in the test dataset.
         // BUG in loadTestData..  Doesn't check -mao option after testdata loaded.
 
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -237,6 +323,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         int check = 2; // Two tables exceed partition count limit of 100 (default).
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
     }
 
     @Test
@@ -259,6 +346,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         int check = 1; // exceed partition count
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
     }
 
     @Test
@@ -280,7 +368,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -302,7 +391,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -350,7 +440,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -372,7 +463,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -394,7 +486,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -416,7 +509,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -438,7 +532,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -461,7 +556,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -512,7 +608,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -538,7 +635,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -564,7 +662,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -590,7 +689,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
 
     }
 
@@ -615,7 +715,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -641,7 +742,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0; // because 3 of the tables are acid.
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
 
         // Read the output and verify the results.
         DBMirror resultsMirror = getResults(outputDir + "/" + "assorted_test_db_hms-mirror.yaml");
@@ -649,7 +751,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         validatePhase(resultsMirror, "acid_01", PhaseState.SUCCESS);
         validateTableIssueCount(resultsMirror, "acid_01", Environment.LEFT, 1);
 
-        if (!validateSqlPair(resultsMirror, Environment.LEFT, "acid_01",  "Alter Table Location",
+        if (!validateSqlPair(resultsMirror, Environment.LEFT, "acid_01", "Alter Table Location",
                 "ALTER TABLE acid_01 SET LOCATION \"s3a://my_cs_bucket/warehouse/tablespace/managed/hive/assorted_test_db.db/acid_01\"")) {
             fail("Alter Table Location not found");
         }
@@ -676,6 +778,53 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
+
+    }
+
+    @Test
+    public void so_exist_01() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-ltd", EXISTS_07,
+                "-cfg", CDP_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 2; // because tables exist already.
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
+    }
+
+    @Test
+    public void so_ma_exist_sync_01() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-ma",
+                "-sync",
+                "-ltd", EXISTS_07,
+                "-cfg", CDP_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
     }
 
     @Test
@@ -699,6 +848,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
     }
 
     @Test
@@ -725,6 +875,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
     }
 
     @Test
@@ -746,7 +897,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 0;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
     }
 
     @Test
@@ -772,6 +924,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         int check = 3; //acid tables.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
     }
 
     @Test
@@ -797,6 +950,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
     }
 
     @Test
@@ -819,6 +973,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
     }
 
     @Test

@@ -22,7 +22,7 @@
 
     <groupId>com.cloudera.utils.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>1.6.1.0-SNAPSHOT</version>
+    <version>1.6.2.1-SNAPSHOT</version>
     <name>hms-mirror</name>
 
     <url>https://github.com/cloudera-labs/hms_mirror</url>
@@ -31,19 +31,19 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Maven Pluggins -->
-        <maven.compiler.version>3.8.1</maven.compiler.version>
+        <maven.compiler.version>3.11.0</maven.compiler.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.clean.version>3.1.0</maven.clean.version>
-        <maven.resources.version>3.0.2</maven.resources.version>
-        <maven.surefire.version>2.22.1</maven.surefire.version>
-        <maven.jar.version>3.0.2</maven.jar.version>
-        <maven.install.version>2.5.2</maven.install.version>
-        <maven.deploy.version>2.8.2</maven.deploy.version>
+        <maven.clean.version>3.3.1</maven.clean.version>
+        <maven.resources.version>3.3.1</maven.resources.version>
+        <maven.surefire.version>3.1.2</maven.surefire.version>
+        <maven.jar.version>3.3.0</maven.jar.version>
+        <maven.install.version>3.1.1</maven.install.version>
+        <maven.deploy.version>3.1.1</maven.deploy.version>
         <maven.site.version>3.7.1</maven.site.version>
         <maven.reports.version>3.0.0</maven.reports.version>
-        <maven.shade.plugin.version>3.2.1</maven.shade.plugin.version>
-        <maven.assembly.version>3.3.0</maven.assembly.version>
+        <maven.shade.plugin.version>3.5.0</maven.shade.plugin.version>
+        <maven.assembly.version>3.6.0</maven.assembly.version>
 
         <!-- DB Support -->
         <mariadb.client.version>2.5.3</mariadb.client.version>

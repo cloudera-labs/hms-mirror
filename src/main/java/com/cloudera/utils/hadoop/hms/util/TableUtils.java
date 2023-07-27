@@ -876,6 +876,18 @@ public class TableUtils {
         }
     }
 
+    /*
+      Returns: IcebergState
+     */
+    public IcebergState getIcebergConversionState(EnvironmentTable envTable) {
+
+        IcebergState rtn = IcebergState.NOT_CONVERTABLE;
+
+        // TODO: WIP for Iceberg Hive table Conversion.
+
+        return rtn;
+    }
+
     public static String getTblProperty(String key, EnvironmentTable environmentTable) {
         return getTblProperty(key, environmentTable.getDefinition());
     }

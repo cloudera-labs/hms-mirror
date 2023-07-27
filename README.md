@@ -1046,6 +1046,23 @@ HMS-Mirror does NOT migrate data between clusters unless you're using the [SQL](
 
 When you do need to move data, `hms-mirror` create a workbook of 'source' and 'target' locations in an output file called `distcp_workbook.md`.  [Sample](sample_reports/schema_only/distcp_workbook.md).  Use this to help build a transfer job in `distcp` using the `-f` option to specify multiple sources.  This construct is still a work in progress, so feedback is welcome [Email - David Streever](mailto:dstreever@cloudera.com).
 
+#### Application Return Codes
+
+The `hms-mirror` application returns `0` when everything is ok.  If there is a configuration validation issue, the return code will
+be a negative value who's absolute value represents the bitSets cumulative OR value.  See: [MessageCodes](https://github.com/cloudera-labs/hms-mirror/blob/main/src/main/java/com/cloudera/utils/hadoop/hms/mirror/MessageCode.java) for values and [Messages.java for the calculation](https://github.com/cloudera-labs/hms-mirror/blob/df9df251803d8722ef67426a73cbcfb86f981d3e/src/main/java/com/cloudera/utils/hadoop/hms/mirror/Messages.java#L26).
+
+When you receive an error code (negative value), you'll also get the items printed to the screen and the log that make up that error code.
+
+For example, the following would yield a code of `-2305843009214742528` (20 and 61).
+
+```
+******* ERRORS *********
+20:STORAGE_MIGRATION requires you to specify PATH location for 'managed' and 'external' tables (-wd, -ewd) to migrate storage.  These will be appended to the -smn (storage-migration-namespace) parameter and used to set the 'database' LOCATION and MANAGEDLOCATION properties
+61:You're using the same namespace in STORAGE_MIGRATION, without `-rdl` you'll need to ensure you have `-glm` set to map locations.
+```
+
+```((2^20)+(2^61))*-1=-2305843009214742528```
+
 ### Options (Help)
 
 ```
@@ -1355,6 +1372,7 @@ Hive Metastore Migration Utility
 `hms-mirror` is pre-built with CDP libraries and WILL NOT be compatible with LEGACY kerberos environments. A Kerberos connection can only be made to ONE cluster when the clusters are NOT running the same 'major' version of Hadoop.
 
 To attach to a LEGACY HS2, run `hms-mirror` with the `--hadoop-classpath` command-line option.  This will strip the CDP libraries from `hms-mirror` and use the hosts Hadoop libraries by calling `hadoop classpath` to locate the binaries needed to do this.
+
 
 ### Features
 

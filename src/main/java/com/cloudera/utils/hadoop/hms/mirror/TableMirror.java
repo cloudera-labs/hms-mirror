@@ -33,7 +33,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.LOCATION_NOT_MATCH_WAREHOUSE;
+import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.*;
 import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.DB_LOCATION;
 import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.DB_MANAGED_LOCATION;
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION;
@@ -133,6 +133,7 @@ public class TableMirror {
                 }
             }
             // Sql from Shadow to Final
+            StatsCalculator.setSessionOptions(config.getCluster(Environment.RIGHT), source, target);
             if (source.getPartitioned()) {
                 if (config.getOptimization().getSkip()) {
                     if (!config.getCluster(Environment.RIGHT).getLegacyHive()) {
@@ -239,7 +240,7 @@ public class TableMirror {
         }
 
         if (transfer.isDefined()) {
-            StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), source, transfer);
+            StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), source, source);
             if (source.getPartitioned()) {
                 if (config.getOptimization().getSkip()) {
                     if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
@@ -287,8 +288,8 @@ public class TableMirror {
                 String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, transfer.getName());
                 source.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
             }
-        } else {
-            StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), source, target);
+//        } else {
+//            StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), source, target);
         }
 
         return rtn;
@@ -684,7 +685,7 @@ public class TableMirror {
                     // If left and right, check schema change and replace if necessary.
                     // Compare Schemas.
                     if (schemasEqual(Environment.LEFT, Environment.RIGHT)) {
-                        ret.addIssue("Schema exists AND matches.  No Actions Necessary.");
+                        ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                         ret.setCreateStrategy(CreateStrategy.LEAVE);
                     } else {
                         if (TableUtils.isExternalPurge(ret)) {
@@ -703,8 +704,7 @@ public class TableMirror {
             } else {
                 if (ret.getExists()) {
                     // Already exists, no action.
-                    ret.addIssue("Schema exists already, no action. If you wish to rebuild the schema, " +
-                            "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
+                    ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                     ret.setCreateStrategy(CreateStrategy.LEAVE);
                     return Boolean.FALSE;
                 } else {
@@ -940,6 +940,20 @@ public class TableMirror {
                 importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
             }
         }
+
+        if (ret.getExists()) {
+            if (config.isSync()) {
+                // Need to Drop table first.
+                String dropExistingTable = MessageFormat.format(MirrorConf.DROP_TABLE, let.getName());;
+                if (isACIDDowngradeInPlace(config, let)) {
+                    let.addSql(MirrorConf.DROP_TABLE_DESC, dropExistingTable);
+                    let.addIssue(EXPORT_IMPORT_SYNC.getDesc());
+                } else {
+                    ret.addSql(MirrorConf.DROP_TABLE_DESC, dropExistingTable);
+                    ret.addIssue(EXPORT_IMPORT_SYNC.getDesc());
+                }
+            }
+        }
         if (isACIDDowngradeInPlace(config, let)) {
             let.addSql(TableUtils.IMPORT_TABLE, importSql);
         } else {
@@ -1009,14 +1023,12 @@ public class TableMirror {
         CopySpec rightSpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
 
         if (ret.getExists()) {
-            if (config.getCluster(Environment.RIGHT).getCreateIfNotExists()) {
-                ret.addIssue("Schema exists already.  But you've specified 'createIfNotExist', which will attempt to create " +
-                        "and softly fail and continue with the remainder sql statements for the table.");
+            if (config.getCluster(Environment.RIGHT).getCreateIfNotExists() && config.isSync()) {
+                ret.addIssue(CINE_WITH_EXIST.getDesc());
                 ret.setCreateStrategy(CreateStrategy.CREATE);
             } else {
                 // Already exists, no action.
-                ret.addIssue("Schema exists already.  Can't do ACID transfer if schema already exists. Drop it and " +
-                        "try again.");
+                ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                 ret.setCreateStrategy(CreateStrategy.NOTHING);
                 return Boolean.FALSE;
             }
@@ -1277,7 +1289,7 @@ public class TableMirror {
                     // If left and right, check schema change and replace if necessary.
                     // Compare Schemas.
                     if (schemasEqual(Environment.LEFT, Environment.RIGHT)) {
-                        ret.addIssue("Schema exists AND matches.  No Actions Necessary.");
+                        ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
                         ret.setCreateStrategy(CreateStrategy.LEAVE);
                     } else {
                         if (TableUtils.isExternalPurge(ret)) {
@@ -1366,7 +1378,7 @@ public class TableMirror {
                 // If left and right, check schema change and replace if necessary.
                 // Compare Schemas.
                 if (schemasEqual(Environment.LEFT, Environment.RIGHT)) {
-                    ret.addIssue("Schema exists AND matches.  No Actions Necessary.");
+                    ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
                     ret.setCreateStrategy(CreateStrategy.LEAVE);
                 } else {
                     if (TableUtils.isExternalPurge(ret)) {
@@ -1653,9 +1665,18 @@ public class TableMirror {
             return buildoutIntermediateDefinition(config, dbMirror);
         }
 
-        if (config.isSync()) {
-            let.addIssue("Sync NOT supported in the scenario.");
-            return Boolean.FALSE;
+        if (ret.getExists()) {
+            if (config.isSync() && config.getCluster(Environment.RIGHT).getCreateIfNotExists()) {
+                // sync with overwrite.
+                ret.addIssue(SQL_SYNC_W_CINE.getDesc());
+                ret.setCreateStrategy(CreateStrategy.CREATE);
+            } else {
+                ret.addIssue(SQL_SYNC_WO_CINE.getDesc());
+                return Boolean.FALSE;
+            }
+        } else {
+            ret.addIssue(SCHEMA_WILL_BE_CREATED.getDesc());
+            ret.setCreateStrategy(CreateStrategy.CREATE);
         }
 
         if (config.getTransfer().getCommonStorage() == null) {
@@ -1672,17 +1693,6 @@ public class TableMirror {
 
             // Create table with alter name in RIGHT cluster.
             shadowSpec.setTableNamePrefix(config.getTransfer().getShadowPrefix());
-
-            if (ret.getExists()) {
-                // Already exists, no action.
-                ret.addIssue("Schema exists already, no action.  If you wish to rebuild the schema, " +
-                        "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
-                ret.setCreateStrategy(CreateStrategy.LEAVE);
-                return Boolean.FALSE;
-            } else {
-                ret.addIssue("Schema will be created");
-                ret.setCreateStrategy(CreateStrategy.CREATE);
-            }
 
             // Build Shadow from Source.
             rtn = buildTableSchema(shadowSpec);
