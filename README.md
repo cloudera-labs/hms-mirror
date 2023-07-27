@@ -98,6 +98,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Common](#common)
   * [Storage Migration](#storage-migration)
 - [Troubleshooting / Issues](#troubleshooting--issues)
+  * [Application doesn't seem to be making progress](#application-doesnt-seem-to-be-making-progress)
   * [Application won't start `NoClassDefFoundError`](#application-wont-start-noclassdeffounderror)
   * [CDP Hive Standalone Driver for CDP 7.1.8 CHF x (Cummulative Hot Fix) won't connect](#cdp-hive-standalone-driver-for-cdp-718-chf-x-cummulative-hot-fix-wont-connect)
   * [Failed AVRO Table Creation](#failed-avro-table-creation)
