@@ -22,7 +22,7 @@
 
     <groupId>com.cloudera.utils.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>1.6.2.1-SNAPSHOT</version>
+    <version>1.6.2.2-SNAPSHOT</version>
     <name>hms-mirror</name>
 
     <url>https://github.com/cloudera-labs/hms_mirror</url>
@@ -54,7 +54,6 @@
         <javax.validation.version>2.0.1.Final</javax.validation.version>
         <jackson.version>2.13.5</jackson.version>
 
-        <commons-dbcp2.version>2.9.0</commons-dbcp2.version>
         <hikari.version>4.0.3</hikari.version>
 
         <jcabi.manifests.version>1.1</jcabi.manifests.version>
@@ -119,18 +118,13 @@
             <artifactId>jcabi-manifests</artifactId>
             <version>${jcabi.manifests.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>
             <version>${commons-text.version}</version>
         </dependency>
 
-        <!-- Apache Libraries -->
-<!--        <dependency>-->
-<!--            <groupId>org.apache.commons</groupId>-->
-<!--            <artifactId>commons-dbcp2</artifactId>-->
-<!--            <version>${commons-dbcp2.version}</version>-->
-<!--        </dependency>-->
         <!-- https://mvnrepository.com/artifact/com.zaxxer/HikariCP -->
         <dependency>
             <groupId>com.zaxxer</groupId>
@@ -322,8 +316,7 @@
                                     <include>com.cloudera.utils.hadoop:*</include>
                                     <include>com.cloudera.utils.hive:*</include>
                                     <include>org.commonmark:*</include>
-                                    <include>org.apache.commons:commons-dbcp2</include>
-                                    <include>org.apache.commons:commons-pool2</include>
+                                    <include>com.zaxxer:*</include>
                                     <include>commons-logging:commons-logging</include>
 <!--                                    <include>org.apache.commons:*</include>-->
                                     <include>javax.validation:validation-api</include>
