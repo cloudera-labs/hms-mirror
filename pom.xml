@@ -22,7 +22,7 @@
 
     <groupId>com.cloudera.utils.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>1.6.2.2-SNAPSHOT</version>
+    <version>1.6.2.3-SNAPSHOT</version>
     <name>hms-mirror</name>
 
     <url>https://github.com/cloudera-labs/hms_mirror</url>
@@ -317,6 +317,7 @@
                                     <include>com.cloudera.utils.hive:*</include>
                                     <include>org.commonmark:*</include>
                                     <include>com.zaxxer:HikariCP</include>
+                                    <include>org.apache.commons:commons-pool2</include>
                                     <include>commons-logging:commons-logging</include>
 <!--                                    <include>org.apache.commons:*</include>-->
                                     <include>javax.validation:validation-api</include>
