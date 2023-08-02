@@ -316,7 +316,7 @@
                                     <include>com.cloudera.utils.hadoop:*</include>
                                     <include>com.cloudera.utils.hive:*</include>
                                     <include>org.commonmark:*</include>
-                                    <include>com.zaxxer:*</include>
+                                    <include>com.zaxxer:HikariCP</include>
                                     <include>commons-logging:commons-logging</include>
 <!--                                    <include>org.apache.commons:*</include>-->
                                     <include>javax.validation:validation-api</include>
