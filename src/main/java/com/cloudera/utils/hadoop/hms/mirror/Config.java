@@ -43,6 +43,7 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import static com.cloudera.utils.hadoop.hms.mirror.ConnectionPoolLibs.*;
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.*;
 
 @JsonIgnoreProperties({"featureList"})
@@ -57,6 +58,7 @@ public class Config {
     private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
     private String commandLineOptions = null;
     private boolean copyAvroSchemaUrls = Boolean.FALSE;
+    private ConnectionPoolLibs connectionPoolLib = HYBRID; // DBCP2 is Alternate.
     private DataStrategy dataStrategy = DataStrategy.SCHEMA_ONLY;
     private Boolean databaseOnly = Boolean.FALSE;
     private Boolean dumpTestData = Boolean.FALSE;
@@ -299,6 +301,14 @@ public class Config {
 
     public void setCliPool(HadoopSessionPool cliPool) {
         this.cliPool = cliPool;
+    }
+
+    public ConnectionPoolLibs getConnectionPoolLib() {
+        return connectionPoolLib;
+    }
+
+    public void setConnectionPoolLib(ConnectionPoolLibs connectionPoolLib) {
+        this.connectionPoolLib = connectionPoolLib;
     }
 
     public Boolean getDumpTestData() {

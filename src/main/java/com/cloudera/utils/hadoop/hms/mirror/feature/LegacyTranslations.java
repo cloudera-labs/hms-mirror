@@ -31,6 +31,7 @@ public class LegacyTranslations extends BaseFeature implements Feature {
             rowSerde = new TreeMap<String, String>();
             rowSerde.put("'org.apache.hadoop.hive.contrib.serde2.RegexSerDe'", "'org.apache.hadoop.hive.serde2.RegexSerDe'");
             rowSerde.put("'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe'", "'org.apache.hadoop.hive.serde2.MultiDelimitSerDe'");
+            rowSerde.put("'org.apache.hadoop.hive.contrib.serde2.TypedBytesSerDe'", "'org.apache.hadoop.hive.serde2.TypedBytesSerDe'");
         }
         return rowSerde;
     }

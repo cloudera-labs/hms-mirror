@@ -829,7 +829,21 @@ public class Mirror {
         }
 
         if (!getConfig().isLoadingTestData()) {
-            ConnectionPools connPools = new ConnectionPools();
+            ConnectionPools connPools = null;
+            switch (getConfig().getConnectionPoolLib()) {
+                case DBCP2:
+                    LOG.info("Using DBCP2 Connection Pooling Libraries");
+                    connPools = new ConnectionPoolsDBCP2Impl();
+                    break;
+                case HIKARICP:
+                    LOG.info("Using HIKARICP Connection Pooling Libraries");
+                    connPools = new ConnectionPoolsHikariImpl();
+                    break;
+                case HYBRID:
+                    LOG.info("Using HYBRID Connection Pooling Libraries");
+                    connPools = new ConnectionPoolsHybridImpl();
+                    break;
+            }
             Context.getInstance().setConnectionPools(connPools);
             Set<Environment> hs2Envs = new HashSet<Environment>();
             switch (getConfig().getDataStrategy()) {
