@@ -1378,8 +1378,13 @@ public class TableMirror {
                 // If left and right, check schema change and replace if necessary.
                 // Compare Schemas.
                 if (schemasEqual(Environment.LEFT, Environment.RIGHT)) {
-                    ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
-                    ret.setCreateStrategy(CreateStrategy.LEAVE);
+                    if (let.getPartitioned() && config.getEvaluatePartitionLocation()) {
+                        ret.setCreateStrategy(CreateStrategy.AMEND_PARTS);
+                        ret.addIssue(SCHEMA_EXISTS_SYNC_PARTS.getDesc());
+                    } else {
+                        ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
+                        ret.setCreateStrategy(CreateStrategy.LEAVE);
+                    }
                 } else {
                     if (TableUtils.isExternalPurge(ret)) {
                         ret.addIssue("Schema exists AND DOESN'T match.  But the 'RIGHT' table is has a PURGE option set. " +
@@ -1487,11 +1492,15 @@ public class TableMirror {
                     ret.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
                 }
                 break;
+            case AMEND_PARTS:
+                ret.addSql(TableUtils.USE_DESC, useDb);
+                break;
         }
 
         // If partitioned, !ACID, repair
         if (let.getPartitioned() && !TableUtils.isACID(let) &&
-                (ret.getCreateStrategy() == CreateStrategy.REPLACE || ret.getCreateStrategy() == CreateStrategy.CREATE)) {
+                (ret.getCreateStrategy() == CreateStrategy.REPLACE || ret.getCreateStrategy() == CreateStrategy.CREATE
+                || ret.getCreateStrategy() == CreateStrategy.AMEND_PARTS)) {
             if (config.getEvaluatePartitionLocation()) {
                 // TODO: Write out the SQL to build the partitions.  NOTE: We need to get the partition locations and modify them
                 //       to the new namespace.

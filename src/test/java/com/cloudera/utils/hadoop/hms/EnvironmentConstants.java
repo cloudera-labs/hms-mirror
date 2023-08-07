@@ -23,5 +23,6 @@ public interface EnvironmentConstants {
     String ACID_W_PARTS_05 = "/test_data/acid_w_parts_01.yaml";
     String ASSORTED_TBLS_06 = "/test_data/assorted_tbls_02.yaml";
     String EXISTS_07 = "/test_data/exists_01.yaml";
+    String EXISTS_PARTS_08 = "/test_data/exists_parts_02.yaml";
 
 }

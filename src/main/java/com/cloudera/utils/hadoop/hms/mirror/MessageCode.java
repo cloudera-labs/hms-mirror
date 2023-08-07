@@ -173,6 +173,8 @@ public enum MessageCode {
             "HYBRID, and STORAGE_MIGRATION data strategies"),
     SCHEMA_EXISTS_NO_ACTION_DATA (93, "Schema exists already. Drop it and " +
             "try again or add `-sync` to OVERWRITE current tables data."),
+    SCHEMA_EXISTS_SYNC_PARTS(94, "Schema exists already and matches. `-sync` and `-epl` specified, adding partition sync.")
+
     ;
 
 

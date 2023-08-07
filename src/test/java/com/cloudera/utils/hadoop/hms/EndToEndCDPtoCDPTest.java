@@ -105,7 +105,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
     }
 
     @Test
-    public void ei_ma_wd_ep() {
+    public void ei_ma_da_sync() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -113,9 +113,11 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
         String[] args = new String[]{"-d", "EXPORT_IMPORT",
-                "-ma", "-wd", "/warehouse/managed", "-ewd", "/warehouse/external",
-                "-ep", "500",
-                "-ltd", ASSORTED_TBLS_04,
+                "-ma",
+//                "-wd", "/warehouse/managed", "-ewd", "/warehouse/external",
+                "-da",
+                "-sync",
+                "-ltd", EXISTS_07,
                 "-cfg", CDP_CDP,
                 "-o", outputDir
         };
@@ -178,9 +180,8 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
 
     }
 
-
     @Test
-    public void ei_ma_da_sync() {
+    public void ei_ma_wd_ep() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -188,11 +189,9 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
         String[] args = new String[]{"-d", "EXPORT_IMPORT",
-                "-ma",
-//                "-wd", "/warehouse/managed", "-ewd", "/warehouse/external",
-                "-da",
-                "-sync",
-                "-ltd", EXISTS_07,
+                "-ma", "-wd", "/warehouse/managed", "-ewd", "/warehouse/external",
+                "-ep", "500",
+                "-ltd", ASSORTED_TBLS_04,
                 "-cfg", CDP_CDP,
                 "-o", outputDir
         };
@@ -782,7 +781,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
     }
 
     @Test
-    public void so_exist_01() {
+    public void so_cine_sync_epl_tf_01() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]
                 .getMethodName();
@@ -790,33 +789,14 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
         String[] args = new String[]{
-                "-ltd", EXISTS_07,
-                "-cfg", CDP_CDP,
-                "-o", outputDir
-        };
-
-        long rtn = 0;
-        Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
-        int check = 2; // because tables exist already.
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
-
-    }
-
-    @Test
-    public void so_ma_exist_sync_01() {
-        String nameofCurrMethod = new Throwable()
-                .getStackTrace()[0]
-                .getMethodName();
-
-        String outputDir = getOutputDirBase() + nameofCurrMethod;
-
-        String[] args = new String[]{
-                "-ma",
-                "-sync",
-                "-ltd", EXISTS_07,
-                "-cfg", CDP_CDP,
-                "-o", outputDir
+                "-d", "SCHEMA_ONLY"
+                , "-cine"
+                , "-epl"
+                , "-sync"
+                , "-tf", "web_sales"
+                , "-ltd", EXISTS_PARTS_08
+                , "-cfg", CDP_CDP
+                , "-o", outputDir
         };
 
         long rtn = 0;
@@ -874,6 +854,52 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 3;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
+    }
+
+    @Test
+    public void so_exist_01() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-ltd", EXISTS_07,
+                "-cfg", CDP_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 2; // because tables exist already.
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
+    }
+
+    @Test
+    public void so_ma_exist_sync_01() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-ma",
+                "-sync",
+                "-ltd", EXISTS_07,
+                "-cfg", CDP_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
     }
@@ -1045,6 +1071,34 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         int check = 3; // acid tables.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+    }
+
+    @Test
+    public void sql_cine_sync_epl_tf_dc_01() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-d", "SQL"
+                , "-dc"
+                , "-cine"
+                , "-epl"
+                , "-sync"
+                , "-tf", "web_sales"
+                , "-ltd", EXISTS_PARTS_08
+                , "-cfg", CDP_CDP
+                , "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
     }
 
     @Test
