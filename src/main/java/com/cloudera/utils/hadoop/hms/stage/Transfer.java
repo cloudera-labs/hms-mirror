@@ -399,7 +399,14 @@ public class Transfer implements Callable<ReturnStatus> {
                             tblMirror.addIssue(Environment.LEFT, msg);
                         }
                     } else {
-                        if (!newLocation.startsWith(tblMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION))) {
+                        String location = null;
+                        // Need to make adjustments for hdp3 hive 3.
+                        if (config.getCluster(Environment.LEFT).isHdpHive3()) {
+                            location = tblMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_LOCATION);
+                        } else {
+                            location = tblMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION);
+                        }
+                        if (!newLocation.startsWith(location)) {
                             // Set warning that even though you've specified to warehouse directories, the current configuration
                             // will NOT place it in that directory.
                             String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
@@ -413,6 +420,7 @@ public class Transfer implements Callable<ReturnStatus> {
             } catch (RuntimeException rte) {
                 noIssues = Boolean.FALSE;
                 tblMirror.addIssue(Environment.LEFT, rte.getMessage());
+                LOG.error(rte.getMessage(), rte);
             }
 
             // Build Alter Statement for Partitions to change location.
@@ -443,7 +451,14 @@ public class Transfer implements Callable<ReturnStatus> {
                                     tblMirror.addIssue(Environment.LEFT, msg);
                                 }
                             } else {
-                                if (!newPartLocation.startsWith(tblMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION))) {
+                                String location = null;
+                                // Need to make adjustments for hdp3 hive 3.
+                                if (config.getCluster(Environment.LEFT).isHdpHive3()) {
+                                    location = tblMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_LOCATION);
+                                } else {
+                                    location = tblMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION);
+                                }
+                                if (!newPartLocation.startsWith(location)) {
                                     // Set warning that even though you've specified to warehouse directories, the current configuration
                                     // will NOT place it in that directory.
                                     String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "partition",

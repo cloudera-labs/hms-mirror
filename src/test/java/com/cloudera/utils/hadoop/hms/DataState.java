@@ -35,7 +35,7 @@ import java.util.TreeMap;
 public class DataState {
 
     private static DataState instance = null;
-    private final String unique = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+    private final String unique = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
     protected String configuration = null;
     //    protected Boolean dataCreated = Boolean.FALSE;
     protected Map<String, Map<String, Boolean>> dataCreated = new TreeMap<>();

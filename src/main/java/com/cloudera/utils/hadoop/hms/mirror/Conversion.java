@@ -48,6 +48,10 @@ public class Conversion {
         }
     }
 
+    public void addDBMirror(DBMirror dbMirror) {
+        databases.put(dbMirror.getName(), dbMirror);
+    }
+
     public Map<String, DBMirror> getDatabases() {
         return databases;
     }

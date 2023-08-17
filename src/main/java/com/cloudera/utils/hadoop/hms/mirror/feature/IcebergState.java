@@ -1,4 +1,4 @@
-package com.cloudera.utils.hadoop.hms.mirror;
+package com.cloudera.utils.hadoop.hms.mirror.feature;
 
 public enum IcebergState {
     NOT_CONVERTABLE,

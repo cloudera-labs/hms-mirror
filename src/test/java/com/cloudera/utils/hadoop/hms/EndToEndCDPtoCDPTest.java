@@ -584,6 +584,36 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
     }
 
     @Test
+    public void sm_ma_wd_dc_at_fel() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{
+                "-d", "STORAGE_MIGRATION",
+//                "-smn", COMMON_STORAGE,
+                "-ma",
+                "-dc",
+                "-fel",
+                "-wd", "/warehouseEC/managed/hive", "-ewd", "/warehouse/external",
+                "-glm", "/warehouse/tablespace/managed=/warehouseEC/managed",
+                "-ltd", ACID_W_PARTS_05,
+                "-cfg", CDP_CDP,
+                "-o", outputDir
+        };
+
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
+    }
+
+    @Test
     public void sm_smn_ma_4_rdl_wd() {
         String nameofCurrMethod = new Throwable()
                 .getStackTrace()[0]

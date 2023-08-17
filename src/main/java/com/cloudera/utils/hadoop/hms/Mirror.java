@@ -41,10 +41,7 @@ import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.node.Node;
 import org.commonmark.renderer.html.HtmlRenderer;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -287,53 +284,58 @@ public class Mirror {
 
         CommandLine cmd = getCommandLine(args);
 
-        if (cmd.hasOption("su")) {
-            configFile = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/cfg/default.yaml";
-            File defaultCfg = new File(configFile);
-            if (defaultCfg.exists()) {
-                Scanner scanner = new Scanner(System.in);
-                System.out.print("Default Config exists.  Proceed with overwrite:(Y/N) ");
-                String response = scanner.next();
-                if (response.equalsIgnoreCase("y")) {
+        if (cmd.hasOption("replay")) {
+            String replayDirectory = cmd.getOptionValue("replay");
+            replay(replayDirectory);
+        } else {
+
+            if (cmd.hasOption("su")) {
+                configFile = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/cfg/default.yaml";
+                File defaultCfg = new File(configFile);
+                if (defaultCfg.exists()) {
+                    Scanner scanner = new Scanner(System.in);
+                    System.out.print("Default Config exists.  Proceed with overwrite:(Y/N) ");
+                    String response = scanner.next();
+                    if (response.equalsIgnoreCase("y")) {
+                        Config.setup(configFile);
+                        System.exit(0);
+                    }
+                } else {
                     Config.setup(configFile);
                     System.exit(0);
                 }
+            }
+
+            Config config = loadConfig(cmd);
+
+            if (config.hasErrors()) {
+                return config.getErrors().getReturnCode();
             } else {
-                Config.setup(configFile);
-                System.exit(0);
-            }
-        }
-
-        Config config = loadConfig(cmd);
-
-        if (config.hasErrors()) {
-            return config.getErrors().getReturnCode();
-        } else {
-            config.setCommandLineOptions(args);
-        }
-
-        if (cmd.hasOption("reset-right")) {
-            getConfig().setResetRight(Boolean.TRUE);
-            getConfig().setDatabaseOnly(Boolean.TRUE);
-        } else {
-            if (cmd.hasOption("f")) {
-                getConfig().setFlip(Boolean.TRUE);
+                config.setCommandLineOptions(args);
             }
 
-            if (cmd.hasOption("sf")) {
-                // Skip Features.
-                getConfig().setSkipFeatures(Boolean.TRUE);
-            }
+            if (cmd.hasOption("reset-right")) {
+                getConfig().setResetRight(Boolean.TRUE);
+                getConfig().setDatabaseOnly(Boolean.TRUE);
+            } else {
+                if (cmd.hasOption("f")) {
+                    getConfig().setFlip(Boolean.TRUE);
+                }
 
-            if (cmd.hasOption("q")) {
-                // Skip Features.
-                this.setQuiet(Boolean.TRUE);
-            }
+                if (cmd.hasOption("sf")) {
+                    // Skip Features.
+                    getConfig().setSkipFeatures(Boolean.TRUE);
+                }
 
-            if (cmd.hasOption("r")) {
-                // replace
-                getConfig().setReplace(Boolean.TRUE);
-            }
+                if (cmd.hasOption("q")) {
+                    // Skip Features.
+                    this.setQuiet(Boolean.TRUE);
+                }
+
+                if (cmd.hasOption("r")) {
+                    // replace
+                    getConfig().setReplace(Boolean.TRUE);
+                }
 
 //        if (cmd.hasOption("t")) {
 //            Translator translator = null;
@@ -357,362 +359,369 @@ public class Mirror {
 //            }
 //        }
 
-            if (cmd.hasOption("dtd")) {
-                getConfig().setDumpTestData(Boolean.TRUE);
-            }
-            if (cmd.hasOption("ltd")) {
-                getConfig().setLoadTestDataFile(cmd.getOptionValue("ltd"));
-            }
-            if (cmd.hasOption("rdl")) {
-                getConfig().setResetToDefaultLocation(Boolean.TRUE);
-            }
-            if (cmd.hasOption("fel")) {
-                getConfig().getTranslator().setForceExternalLocation(Boolean.TRUE);
-            }
-            if (cmd.hasOption("slt")) {
-                getConfig().setSkipLegacyTranslation(Boolean.TRUE);
-            }
-
-            if (cmd.hasOption("ap")) {
-                getConfig().getMigrateACID().setPartitionLimit(Integer.valueOf(cmd.getOptionValue("ap")));
-            }
-
-            if (cmd.hasOption("sp")) {
-                getConfig().getHybrid().setSqlPartitionLimit(Integer.valueOf(cmd.getOptionValue("sp")));
-            }
-
-            if (cmd.hasOption("ep")) {
-                getConfig().getHybrid().setExportImportPartitionLimit(Integer.valueOf(cmd.getOptionValue("ep")));
-            }
-
-            if (cmd.hasOption("dbp")) {
-                getConfig().setDbPrefix(cmd.getOptionValue("dbp"));
-            }
-
-            if (cmd.hasOption("dbr")) {
-                getConfig().setDbRename(cmd.getOptionValue("dbr"));
-            }
-
-            if (cmd.hasOption("v")) {
-                getConfig().getMigrateVIEW().setOn(Boolean.TRUE);
-            }
-
-            if (cmd.hasOption("dbo")) {
-                getConfig().setDatabaseOnly(Boolean.TRUE);
-            }
-
-            if (cmd.hasOption("epl")) {
-                getConfig().setEvaluatePartitionLocation(Boolean.TRUE);
-            }
-
-            if (cmd.hasOption("slc")) {
-                getConfig().setSkipLinkCheck(Boolean.TRUE);
-            }
-
-            if (cmd.hasOption("cine")) {
-                if (getConfig().getCluster(Environment.LEFT) != null) {
-                    getConfig().getCluster(Environment.LEFT).setCreateIfNotExists(Boolean.TRUE);
+                if (cmd.hasOption("dtd")) {
+                    getConfig().setDumpTestData(Boolean.TRUE);
                 }
-                if (getConfig().getCluster(Environment.RIGHT) != null) {
-                    getConfig().getCluster(Environment.RIGHT).setCreateIfNotExists(Boolean.TRUE);
+                if (cmd.hasOption("ltd")) {
+                    getConfig().setLoadTestDataFile(cmd.getOptionValue("ltd"));
                 }
-            }
-            if (cmd.hasOption("ma")) {
-                getConfig().getMigrateACID().setOn(Boolean.TRUE);
-                String bucketLimit = cmd.getOptionValue("ma");
-                if (bucketLimit != null) {
-                    getConfig().getMigrateACID().setArtificialBucketThreshold(Integer.valueOf(bucketLimit));
+                if (cmd.hasOption("rdl")) {
+                    getConfig().setResetToDefaultLocation(Boolean.TRUE);
                 }
-            }
+                if (cmd.hasOption("fel")) {
+                    getConfig().getTranslator().setForceExternalLocation(Boolean.TRUE);
+                }
+                if (cmd.hasOption("slt")) {
+                    getConfig().setSkipLegacyTranslation(Boolean.TRUE);
+                }
 
-            if (cmd.hasOption("mao")) {
-                getConfig().getMigrateACID().setOnly(Boolean.TRUE);
-                String bucketLimit = cmd.getOptionValue("mao");
-                if (bucketLimit != null) {
-                    getConfig().getMigrateACID().setArtificialBucketThreshold(Integer.valueOf(bucketLimit));
+                if (cmd.hasOption("ap")) {
+                    getConfig().getMigrateACID().setPartitionLimit(Integer.valueOf(cmd.getOptionValue("ap")));
                 }
-            }
 
-            if (getConfig().getMigrateACID().isOn()) {
-                if (cmd.hasOption("da")) {
-                    // Downgrade ACID tables
-                    getConfig().getMigrateACID().setDowngrade(Boolean.TRUE);
+                if (cmd.hasOption("sp")) {
+                    getConfig().getHybrid().setSqlPartitionLimit(Integer.valueOf(cmd.getOptionValue("sp")));
                 }
-                if (cmd.hasOption("ip")) {
-                    // Downgrade ACID tables
-                    getConfig().getMigrateACID().setInplace(Boolean.TRUE);
-                    // For 'in-place' downgrade, only applies to ACID tables.
-                    // Implies `-mao`.
+
+                if (cmd.hasOption("ep")) {
+                    getConfig().getHybrid().setExportImportPartitionLimit(Integer.valueOf(cmd.getOptionValue("ep")));
+                }
+
+                if (cmd.hasOption("dbp")) {
+                    getConfig().setDbPrefix(cmd.getOptionValue("dbp"));
+                }
+
+                if (cmd.hasOption("dbr")) {
+                    getConfig().setDbRename(cmd.getOptionValue("dbr"));
+                }
+
+                if (cmd.hasOption("v")) {
+                    getConfig().getMigrateVIEW().setOn(Boolean.TRUE);
+                }
+
+                if (cmd.hasOption("dbo")) {
+                    getConfig().setDatabaseOnly(Boolean.TRUE);
+                }
+
+                if (cmd.hasOption("epl")) {
+                    getConfig().setEvaluatePartitionLocation(Boolean.TRUE);
+                }
+
+                if (cmd.hasOption("slc")) {
+                    getConfig().setSkipLinkCheck(Boolean.TRUE);
+                }
+
+                if (cmd.hasOption("cine")) {
+                    if (getConfig().getCluster(Environment.LEFT) != null) {
+                        getConfig().getCluster(Environment.LEFT).setCreateIfNotExists(Boolean.TRUE);
+                    }
+                    if (getConfig().getCluster(Environment.RIGHT) != null) {
+                        getConfig().getCluster(Environment.RIGHT).setCreateIfNotExists(Boolean.TRUE);
+                    }
+                }
+                if (cmd.hasOption("ma")) {
                     getConfig().getMigrateACID().setOn(Boolean.TRUE);
+                    String bucketLimit = cmd.getOptionValue("ma");
+                    if (bucketLimit != null) {
+                        getConfig().getMigrateACID().setArtificialBucketThreshold(Integer.valueOf(bucketLimit));
+                    }
                 }
-            }
 
-            // Skip Optimizations.
-            if (cmd.hasOption("so")) {
-                getConfig().getOptimization().setSkip(Boolean.TRUE);
-            }
+                if (cmd.hasOption("mao")) {
+                    getConfig().getMigrateACID().setOnly(Boolean.TRUE);
+                    String bucketLimit = cmd.getOptionValue("mao");
+                    if (bucketLimit != null) {
+                        getConfig().getMigrateACID().setArtificialBucketThreshold(Integer.valueOf(bucketLimit));
+                    }
+                }
 
-            if (cmd.hasOption("ssc")) {
-                getConfig().getOptimization().setSkipStatsCollection(Boolean.TRUE);
-            }
+                if (getConfig().getMigrateACID().isOn()) {
+                    if (cmd.hasOption("da")) {
+                        // Downgrade ACID tables
+                        getConfig().getMigrateACID().setDowngrade(Boolean.TRUE);
+                    }
+                    if (cmd.hasOption("ip")) {
+                        // Downgrade ACID tables
+                        getConfig().getMigrateACID().setInplace(Boolean.TRUE);
+                        // For 'in-place' downgrade, only applies to ACID tables.
+                        // Implies `-mao`.
+                        getConfig().getMigrateACID().setOn(Boolean.TRUE);
+                    }
+                }
 
-            // Sort Dynamic Partitions
-            if (cmd.hasOption("sdpi")) {
-                getConfig().getOptimization().setSortDynamicPartitionInserts(Boolean.TRUE);
-            }
-            // AutoTune.
-            if (cmd.hasOption("at")) {
-                getConfig().getOptimization().setAutoTune(Boolean.TRUE);
-            }
+                // Skip Optimizations.
+                if (cmd.hasOption("so")) {
+                    getConfig().getOptimization().setSkip(Boolean.TRUE);
+                }
 
-            //Compress TEXT Output.
-            if (cmd.hasOption("cto")) {
-                getConfig().getOptimization().setCompressTextOutput(Boolean.TRUE);
-            }
+                if (cmd.hasOption("ssc")) {
+                    getConfig().getOptimization().setSkipStatsCollection(Boolean.TRUE);
+                }
 
-            if (cmd.hasOption("po")) {
-                // property overrides.
-                String[] overrides = cmd.getOptionValues("po");
-                if (overrides != null)
-                    getConfig().getOptimization().getOverrides().setPropertyOverridesStr(overrides, Overrides.Side.BOTH);
-            }
+                // Sort Dynamic Partitions
+                if (cmd.hasOption("sdpi")) {
+                    getConfig().getOptimization().setSortDynamicPartitionInserts(Boolean.TRUE);
+                }
+                // AutoTune.
+                if (cmd.hasOption("at")) {
+                    getConfig().getOptimization().setAutoTune(Boolean.TRUE);
+                }
 
-            if (cmd.hasOption("pol")) {
-                // property overrides.
-                String[] overrides = cmd.getOptionValues("pol");
-                if (overrides != null)
-                    getConfig().getOptimization().getOverrides().setPropertyOverridesStr(overrides, Overrides.Side.LEFT);
-            }
+                //Compress TEXT Output.
+                if (cmd.hasOption("cto")) {
+                    getConfig().getOptimization().setCompressTextOutput(Boolean.TRUE);
+                }
 
-            if (cmd.hasOption("por")) {
-                // property overrides.
-                String[] overrides = cmd.getOptionValues("por");
-                if (overrides != null)
-                    getConfig().getOptimization().getOverrides().setPropertyOverridesStr(overrides, Overrides.Side.RIGHT);
-            }
+                if (cmd.hasOption("po")) {
+                    // property overrides.
+                    String[] overrides = cmd.getOptionValues("po");
+                    if (overrides != null)
+                        getConfig().getOptimization().getOverrides().setPropertyOverridesStr(overrides, Overrides.Side.BOTH);
+                }
 
-            if (cmd.hasOption("mnn")) {
-                getConfig().setMigratedNonNative(Boolean.TRUE);
-            }
+                if (cmd.hasOption("pol")) {
+                    // property overrides.
+                    String[] overrides = cmd.getOptionValues("pol");
+                    if (overrides != null)
+                        getConfig().getOptimization().getOverrides().setPropertyOverridesStr(overrides, Overrides.Side.LEFT);
+                }
 
-            if (cmd.hasOption("mnno")) {
-                getConfig().setMigratedNonNative(Boolean.TRUE);
-            }
+                if (cmd.hasOption("por")) {
+                    // property overrides.
+                    String[] overrides = cmd.getOptionValues("por");
+                    if (overrides != null)
+                        getConfig().getOptimization().getOverrides().setPropertyOverridesStr(overrides, Overrides.Side.RIGHT);
+                }
 
-            // AVRO Schema Migration
-            if (cmd.hasOption("asm")) {
-                getConfig().setCopyAvroSchemaUrls(Boolean.TRUE);
-            }
+                if (cmd.hasOption("mnn")) {
+                    getConfig().setMigratedNonNative(Boolean.TRUE);
+                }
 
-            if (cmd.hasOption("to")) {
-                getConfig().setTransferOwnership(Boolean.TRUE);
-            }
+                if (cmd.hasOption("mnno")) {
+                    getConfig().setMigratedNonNative(Boolean.TRUE);
+                }
 
-            if (cmd.hasOption("rid")) {
-                getConfig().getCluster(Environment.RIGHT).getHiveServer2().setDisconnected(Boolean.TRUE);
-            }
+                // AVRO Schema Migration
+                if (cmd.hasOption("asm")) {
+                    getConfig().setCopyAvroSchemaUrls(Boolean.TRUE);
+                }
 
-            String dataStrategyStr = cmd.getOptionValue("d");
-            // default is SCHEMA_ONLY
-            if (dataStrategyStr != null) {
-                DataStrategy dataStrategy = DataStrategy.valueOf(dataStrategyStr.toUpperCase());
-                getConfig().setDataStrategy(dataStrategy);
-                if (getConfig().getDataStrategy() == DataStrategy.DUMP) {
-                    getConfig().setExecute(Boolean.FALSE); // No Actions.
-                    getConfig().setSync(Boolean.FALSE);
-                    // If a source cluster is specified for the cluster to DUMP from, set it.
-                    if (cmd.hasOption("ds")) {
+                if (cmd.hasOption("to")) {
+                    getConfig().setTransferOwnership(Boolean.TRUE);
+                }
+
+                if (cmd.hasOption("rid")) {
+                    getConfig().getCluster(Environment.RIGHT).getHiveServer2().setDisconnected(Boolean.TRUE);
+                }
+
+                String dataStrategyStr = cmd.getOptionValue("d");
+                // default is SCHEMA_ONLY
+                if (dataStrategyStr != null) {
+                    DataStrategy dataStrategy = DataStrategy.valueOf(dataStrategyStr.toUpperCase());
+                    getConfig().setDataStrategy(dataStrategy);
+                    if (getConfig().getDataStrategy() == DataStrategy.DUMP) {
+                        getConfig().setExecute(Boolean.FALSE); // No Actions.
+                        getConfig().setSync(Boolean.FALSE);
+                        // If a source cluster is specified for the cluster to DUMP from, set it.
+                        if (cmd.hasOption("ds")) {
+                            try {
+                                Environment source = Environment.valueOf(cmd.getOptionValue("ds").toUpperCase());
+                                getConfig().setDumpSource(source);
+                            } catch (RuntimeException re) {
+                                LOG.error("The `-ds` option should be either: (LEFT|RIGHT). " + cmd.getOptionValue("ds") +
+                                        " is NOT a valid option.");
+                                throw new RuntimeException("The `-ds` option should be either: (LEFT|RIGHT). " + cmd.getOptionValue("ds") +
+                                        " is NOT a valid option.");
+                            }
+                        } else {
+                            getConfig().setDumpSource(Environment.LEFT);
+                        }
+                    }
+                    if (getConfig().getDataStrategy() == DataStrategy.LINKED) {
+                        if (cmd.hasOption("ma") || cmd.hasOption("mao")) {
+                            LOG.error("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy.");
+                            throw new RuntimeException("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy.");
+                        }
+                    }
+                    if (cmd.hasOption("smn")) {
+                        getConfig().getTransfer().setCommonStorage(cmd.getOptionValue("smn"));
+                    }
+                    if (cmd.hasOption("sms")) {
                         try {
-                            Environment source = Environment.valueOf(cmd.getOptionValue("ds").toUpperCase());
-                            getConfig().setDumpSource(source);
-                        } catch (RuntimeException re) {
-                            LOG.error("The `-ds` option should be either: (LEFT|RIGHT). " + cmd.getOptionValue("ds") +
-                                    " is NOT a valid option.");
-                            throw new RuntimeException("The `-ds` option should be either: (LEFT|RIGHT). " + cmd.getOptionValue("ds") +
-                                    " is NOT a valid option.");
+                            DataStrategy migrationStrategy = DataStrategy.valueOf(cmd.getOptionValue("sms"));
+                            getConfig().getTransfer().getStorageMigration().setStrategy(migrationStrategy);
+                        } catch (Throwable t) {
+                            LOG.error("Only SQL, EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
+                            throw new RuntimeException("Only SQL, EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
                         }
-                    } else {
-                        getConfig().setDumpSource(Environment.LEFT);
                     }
                 }
-                if (getConfig().getDataStrategy() == DataStrategy.LINKED) {
-                    if (cmd.hasOption("ma") || cmd.hasOption("mao")) {
-                        LOG.error("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy.");
-                        throw new RuntimeException("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy.");
+
+                if (cmd.hasOption("wd")) {
+                    if (getConfig().getTransfer().getWarehouse() == null)
+                        getConfig().getTransfer().setWarehouse(new WarehouseConfig());
+                    String wdStr = cmd.getOptionValue("wd");
+                    // Remove/prevent duplicate namespace config.
+                    if (getConfig().getTransfer().getCommonStorage() != null) {
+                        if (wdStr.startsWith(getConfig().getTransfer().getCommonStorage())) {
+                            wdStr = wdStr.substring(getConfig().getTransfer().getCommonStorage().length());
+                            LOG.warn("Managed Warehouse Location Modified (stripped duplicate namespace): " + wdStr);
+                        }
                     }
+                    getConfig().getTransfer().getWarehouse().setManagedDirectory(wdStr);
                 }
-                if (cmd.hasOption("smn")) {
-                    getConfig().getTransfer().setCommonStorage(cmd.getOptionValue("smn"));
-                }
-                if (cmd.hasOption("sms")) {
-                    try {
-                        DataStrategy migrationStrategy = DataStrategy.valueOf(cmd.getOptionValue("sms"));
-                        getConfig().getTransfer().getStorageMigration().setStrategy(migrationStrategy);
-                    } catch (Throwable t) {
-                        LOG.error("Only SQL, EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
-                        throw new RuntimeException("Only SQL, EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
+
+                if (cmd.hasOption("ewd")) {
+                    if (getConfig().getTransfer().getWarehouse() == null)
+                        getConfig().getTransfer().setWarehouse(new WarehouseConfig());
+                    String ewdStr = cmd.getOptionValue("ewd");
+                    // Remove/prevent duplicate namespace config.
+                    if (getConfig().getTransfer().getCommonStorage() != null) {
+                        if (ewdStr.startsWith(getConfig().getTransfer().getCommonStorage())) {
+                            ewdStr = ewdStr.substring(getConfig().getTransfer().getCommonStorage().length());
+                            LOG.warn("External Warehouse Location Modified (stripped duplicate namespace): " + ewdStr);
+                        }
                     }
+                    getConfig().getTransfer().getWarehouse().setExternalDirectory(ewdStr);
                 }
-            }
 
-            if (cmd.hasOption("wd")) {
-                if (getConfig().getTransfer().getWarehouse() == null)
-                    getConfig().getTransfer().setWarehouse(new WarehouseConfig());
-                String wdStr = cmd.getOptionValue("wd");
-                // Remove/prevent duplicate namespace config.
-                if (getConfig().getTransfer().getCommonStorage() != null) {
-                    if (wdStr.startsWith(getConfig().getTransfer().getCommonStorage())) {
-                        wdStr = wdStr.substring(getConfig().getTransfer().getCommonStorage().length());
-                        LOG.warn("Managed Warehouse Location Modified (stripped duplicate namespace): " + wdStr);
-                    }
+                // GLOBAL (EXTERNAL) LOCATION MAP
+                if (cmd.hasOption("glm")) {
+                    String[] globalLocMap = cmd.getOptionValues("glm");
+                    if (globalLocMap != null)
+                        getConfig().setGlobalLocationMapKV(globalLocMap);
                 }
-                getConfig().getTransfer().getWarehouse().setManagedDirectory(wdStr);
-            }
 
-            if (cmd.hasOption("ewd")) {
-                if (getConfig().getTransfer().getWarehouse() == null)
-                    getConfig().getTransfer().setWarehouse(new WarehouseConfig());
-                String ewdStr = cmd.getOptionValue("ewd");
-                // Remove/prevent duplicate namespace config.
-                if (getConfig().getTransfer().getCommonStorage() != null) {
-                    if (ewdStr.startsWith(getConfig().getTransfer().getCommonStorage())) {
-                        ewdStr = ewdStr.substring(getConfig().getTransfer().getCommonStorage().length());
-                        LOG.warn("External Warehouse Location Modified (stripped duplicate namespace): " + ewdStr);
-                    }
-                }
-                getConfig().getTransfer().getWarehouse().setExternalDirectory(ewdStr);
-            }
+                // When the pkey is specified, we assume the config passwords are encrytped and we'll decrypt them before continuing.
+                if (cmd.hasOption("pkey")) {
+                    // Loop through the HiveServer2 Configs and decode the password.
+                    System.out.println("Password Key specified.  Decrypting config password before submitting.");
 
-            // GLOBAL (EXTERNAL) LOCATION MAP
-            if (cmd.hasOption("glm")) {
-                String[] globalLocMap = cmd.getOptionValues("glm");
-                if (globalLocMap != null)
-                    getConfig().setGlobalLocationMapKV(globalLocMap);
-            }
+                    String pkey = cmd.getOptionValue("pkey");
+                    Protect protect = new Protect(pkey);
 
-            // When the pkey is specified, we assume the config passwords are encrytped and we'll decrypt them before continuing.
-            if (cmd.hasOption("pkey")) {
-                // Loop through the HiveServer2 Configs and decode the password.
-                System.out.println("Password Key specified.  Decrypting config password before submitting.");
-
-                String pkey = cmd.getOptionValue("pkey");
-                Protect protect = new Protect(pkey);
-
-                for (Environment env : Environment.values()) {
-                    Cluster cluster = getConfig().getCluster(env);
-                    if (cluster != null) {
-                        HiveServer2Config hiveServer2Config = cluster.getHiveServer2();
-                        // Don't process shadow, transfer clusters.
-                        if (hiveServer2Config != null) {
-                            Properties props = hiveServer2Config.getConnectionProperties();
-                            String password = props.getProperty("password");
-                            if (password != null) {
-                                try {
-                                    String decryptedPassword = protect.decrypt(password);
-                                    props.put("password", decryptedPassword);
-                                } catch (Exception e) {
-                                    getConfig().getErrors().set(MessageCode.PASSWORD_DECRYPT_ISSUE.getCode());
+                    for (Environment env : Environment.values()) {
+                        Cluster cluster = getConfig().getCluster(env);
+                        if (cluster != null) {
+                            HiveServer2Config hiveServer2Config = cluster.getHiveServer2();
+                            // Don't process shadow, transfer clusters.
+                            if (hiveServer2Config != null) {
+                                Properties props = hiveServer2Config.getConnectionProperties();
+                                String password = props.getProperty("password");
+                                if (password != null) {
+                                    try {
+                                        String decryptedPassword = protect.decrypt(password);
+                                        props.put("password", decryptedPassword);
+                                    } catch (Exception e) {
+                                        getConfig().getErrors().set(MessageCode.PASSWORD_DECRYPT_ISSUE.getCode());
+                                    }
                                 }
                             }
-                        }
 
-                        DBStore metastoreDirect = cluster.getMetastoreDirect();
-                        if (metastoreDirect != null) {
-                            Properties props = metastoreDirect.getConnectionProperties();
-                            String password = props.getProperty("password");
-                            if (password != null) {
-                                try {
-                                    String decryptedPassword = protect.decrypt(password);
-                                    props.put("password", decryptedPassword);
-                                } catch (Exception e) {
-                                    getConfig().getErrors().set(MessageCode.DECRYPTING_PASSWORD_ISSUE.getCode());
+                            DBStore metastoreDirect = cluster.getMetastoreDirect();
+                            if (metastoreDirect != null) {
+                                Properties props = metastoreDirect.getConnectionProperties();
+                                String password = props.getProperty("password");
+                                if (password != null) {
+                                    try {
+                                        String decryptedPassword = protect.decrypt(password);
+                                        props.put("password", decryptedPassword);
+                                    } catch (Exception e) {
+                                        getConfig().getErrors().set(MessageCode.DECRYPTING_PASSWORD_ISSUE.getCode());
+                                    }
                                 }
                             }
+
                         }
+                    }
+                    if (getConfig().getErrors().getReturnCode() > 0)
+                        return getConfig().getErrors().getReturnCode();
+                }
 
+                // To keep the connections and remainder of the processing in place, set the env for the cluster
+                //   to the abstract name.
+                Set<Environment> environmentSet = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
+                for (Environment lenv : environmentSet) {
+                    getConfig().getCluster(lenv).setEnvironment(lenv);
+                }
+
+                // Get intermediate Storage Location
+                if (cmd.hasOption("is")) {
+                    getConfig().getTransfer().setIntermediateStorage(cmd.getOptionValue("is"));
+                    // This usually means an on-prem to cloud migration, which should be a PUSH data flow for distcp from the
+                    // LEFT and PULL from the RIGHT.
+                    getConfig().getTransfer().getStorageMigration().setDataFlow(DistcpFlow.PUSH_PULL);
+                }
+
+                // Get intermediate Storage Location
+                if (cmd.hasOption("cs")) {
+                    getConfig().getTransfer().setCommonStorage(cmd.getOptionValue("cs"));
+                    // This usually means an on-prem to cloud migration, which should be a PUSH data flow for distcp.
+                    getConfig().getTransfer().getStorageMigration().setDataFlow(DistcpFlow.PUSH);
+                }
+
+                // Set this after the is and cd checks.  Those will set default movement, but you can override here.
+                if (cmd.hasOption("dc")) {
+                    getConfig().getTransfer().getStorageMigration().setDistcp(Boolean.TRUE);
+                    String flowStr = cmd.getOptionValue("dc");
+                    if (flowStr != null) {
+                        try {
+                            DistcpFlow flow = DistcpFlow.valueOf(flowStr.toUpperCase(Locale.ROOT));
+                            getConfig().getTransfer().getStorageMigration().setDataFlow(flow);
+                        } catch (IllegalArgumentException iae) {
+                            throw new RuntimeException("Optional argument for `distcp` is invalid. Valid values: " +
+                                    Arrays.toString(DistcpFlow.values()), iae);
+                        }
                     }
                 }
-                if (getConfig().getErrors().getReturnCode() > 0)
-                    return getConfig().getErrors().getReturnCode();
-            }
 
-            // To keep the connections and remainder of the processing in place, set the env for the cluster
-            //   to the abstract name.
-            Set<Environment> environmentSet = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
-            for (Environment lenv : environmentSet) {
-                getConfig().getCluster(lenv).setEnvironment(lenv);
-            }
-
-            // Get intermediate Storage Location
-            if (cmd.hasOption("is")) {
-                getConfig().getTransfer().setIntermediateStorage(cmd.getOptionValue("is"));
-                // This usually means an on-prem to cloud migration, which should be a PUSH data flow for distcp from the
-                // LEFT and PULL from the RIGHT.
-                getConfig().getTransfer().getStorageMigration().setDataFlow(DistcpFlow.PUSH_PULL);
-            }
-
-            // Get intermediate Storage Location
-            if (cmd.hasOption("cs")) {
-                getConfig().getTransfer().setCommonStorage(cmd.getOptionValue("cs"));
-                // This usually means an on-prem to cloud migration, which should be a PUSH data flow for distcp.
-                getConfig().getTransfer().getStorageMigration().setDataFlow(DistcpFlow.PUSH);
-            }
-
-            // Set this after the is and cd checks.  Those will set default movement, but you can override here.
-            if (cmd.hasOption("dc")) {
-                getConfig().getTransfer().getStorageMigration().setDistcp(Boolean.TRUE);
-                String flowStr = cmd.getOptionValue("dc");
-                if (flowStr != null) {
-                    try {
-                        DistcpFlow flow = DistcpFlow.valueOf(flowStr.toUpperCase(Locale.ROOT));
-                        getConfig().getTransfer().getStorageMigration().setDataFlow(flow);
-                    } catch (IllegalArgumentException iae) {
-                        throw new RuntimeException("Optional argument for `distcp` is invalid. Valid values: " +
-                                Arrays.toString(DistcpFlow.values()), iae);
+                if (cmd.hasOption("ro")) {
+                    switch (getConfig().getDataStrategy()) {
+                        case SCHEMA_ONLY:
+                        case LINKED:
+                        case COMMON:
+                        case SQL:
+                            getConfig().setReadOnly(Boolean.TRUE);
+                            break;
+                        default:
+                            throw new RuntimeException("RO option only valid with SCHEMA_ONLY, LINKED, SQL, and COMMON data strategies.");
                     }
                 }
-            }
-
-            if (cmd.hasOption("ro")) {
-                switch (getConfig().getDataStrategy()) {
-                    case SCHEMA_ONLY:
-                    case LINKED:
-                    case COMMON:
-                    case SQL:
-                        getConfig().setReadOnly(Boolean.TRUE);
-                        break;
-                    default:
-                        throw new RuntimeException("RO option only valid with SCHEMA_ONLY, LINKED, SQL, and COMMON data strategies.");
+                if (cmd.hasOption("np")) {
+                    getConfig().setNoPurge(Boolean.TRUE);
                 }
-            }
-            if (cmd.hasOption("np")) {
-                getConfig().setNoPurge(Boolean.TRUE);
-            }
-            if (cmd.hasOption("sync") && getConfig().getDataStrategy() != DataStrategy.DUMP) {
-                getConfig().setSync(Boolean.TRUE);
-            }
+                if (cmd.hasOption("sync") && getConfig().getDataStrategy() != DataStrategy.DUMP) {
+                    getConfig().setSync(Boolean.TRUE);
+                }
 
-            if (cmd.hasOption("dbRegEx")) {
-                getConfig().getFilter().setDbRegEx(cmd.getOptionValue("dbRegEx"));
-            }
+                if (cmd.hasOption("dbRegEx")) {
+                    getConfig().getFilter().setDbRegEx(cmd.getOptionValue("dbRegEx"));
+                }
 
-            if (cmd.hasOption("tf")) {
-                getConfig().getFilter().setTblRegEx(cmd.getOptionValue("tf"));
-            }
+                if (cmd.hasOption("tf")) {
+                    getConfig().getFilter().setTblRegEx(cmd.getOptionValue("tf"));
+                }
 
-            if (cmd.hasOption("tef")) {
-                getConfig().getFilter().setTblExcludeRegEx(cmd.getOptionValue("tef"));
-            }
+                if (cmd.hasOption("tef")) {
+                    getConfig().getFilter().setTblExcludeRegEx(cmd.getOptionValue("tef"));
+                }
 
-            if (cmd.hasOption("tfs")) {
-                getConfig().getFilter().setTblSizeLimit(Long.parseLong(cmd.getOptionValue("tfs")));
-            }
+                if (cmd.hasOption("tfs")) {
+                    getConfig().getFilter().setTblSizeLimit(Long.parseLong(cmd.getOptionValue("tfs")));
+                }
 
-            if (cmd.hasOption("tfp")) {
-                getConfig().getFilter().setTblPartitionLimit(Integer.parseInt(cmd.getOptionValue("tfp")));
-            }
+                if (cmd.hasOption("tfp")) {
+                    getConfig().getFilter().setTblPartitionLimit(Integer.parseInt(cmd.getOptionValue("tfp")));
+                }
 
+            }
+            if (cmd.hasOption("db")) {
+                String[] databases = cmd.getOptionValues("db");
+                if (databases != null)
+                    getConfig().setDatabases(databases);
+            }
         }
+
         if (cmd.hasOption("o")) {
             reportOutputDir = cmd.getOptionValue("o");
         } else {
@@ -752,12 +761,6 @@ public class Mirror {
             new FileOutputStream(testFile).close();
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }
-
-        if (cmd.hasOption("db")) {
-            String[] databases = cmd.getOptionValues("db");
-            if (databases != null)
-                getConfig().setDatabases(databases);
         }
 
         if (!getConfig().isLoadingTestData()) {
@@ -960,7 +963,7 @@ public class Mirror {
 
     public int doit() {
         int rtn = 0;
-        if (getConfig().isLoadingTestData()) {
+        if (getConfig().isLoadingTestData() && !getConfig().getReplay()) {
             // Load conversion test data from a file.
             try {
                 System.out.println("Test data file: " + getConfig().getLoadTestDataFile());
@@ -996,7 +999,8 @@ public class Mirror {
                 }
             }
 //            }
-        } else {
+        } else if (!getConfig().getReplay()) {
+            // Replay would have loaded the conversion from the file already. Don't load it again.
             conversion = new Conversion();
         }
 
@@ -1362,6 +1366,86 @@ public class Mirror {
         reporter.refresh(Boolean.TRUE);
         reporter.stop();
         return rtn;
+    }
+
+    /*
+    The directory is the output from the original run of the process.
+
+    NOTE: The report directory may have more than one set of files (one for each database).
+
+
+    1. Find the *_hms-mirror.yaml file and load it.
+        - If more than one db, loop through them all and run them.
+    2. Find the *_hms-mirror.md file and extract the 'config' from it.
+        - Load the config.
+    3. Remove the -execute, if set.
+    4. Set the loadTestData Flag.
+    5. run process.
+     */
+    private void replay(String reportDirectory) {
+        // 1. Find the *_hms-mirror.yaml file and load it.
+        File[] files = new File(reportDirectory).listFiles(new FilenameFilter() {
+            public boolean accept(File dir, String name) {
+                return name.toLowerCase().endsWith("_hms-mirror.yaml");
+            }
+        });
+        if (files.length == 0) {
+            LOG.error("No report files found in: " + reportDirectory);
+            return;
+        }
+        conversion = new Conversion();
+        for (File reportFile: files) {
+            LOG.info("Found report file: " + reportFile.getAbsolutePath());
+            DBMirror dbMirror = DBMirror.load(reportFile.getAbsolutePath());
+            conversion.addDBMirror(dbMirror);
+        }
+
+
+        // 2. Find the *_hms-mirror.md file and extract the 'config' from it.
+        files = new File(reportDirectory).listFiles(new FilenameFilter() {
+            public boolean accept(File dir, String name) {
+                return name.toLowerCase().endsWith("_hms-mirror.md");
+            }
+        });
+        if (files.length == 0) {
+            LOG.error("No report files found in: " + reportDirectory);
+            return;
+        }
+        File configFile = files[0];
+        LOG.info("Found config file: " + configFile.getAbsolutePath());
+        // Review the config file line by line
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(configFile));
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.startsWith("```")) {
+                    // Start of the config
+                    StringBuilder sb = new StringBuilder();
+                    while ((line = br.readLine()) != null) {
+                        if (line.startsWith("```")) {
+                            // End of the config
+                            break;
+                        }
+                        // Don't load the this line.
+                        if (!line.startsWith("loadingTestData"))
+                            sb.append(line).append("\n");
+                    }
+                    // Load the config
+                    config = Config.load(sb.toString());
+                    config.setExecute(Boolean.FALSE);
+                    config.setLoadTestDataFile("replay-"+reportDirectory);
+                    config.setReplay(Boolean.TRUE);
+                    Context.getInstance().setConfig(config);
+                    break;
+                }
+            }
+            br.close();
+        } catch (IOException ioe) {
+            LOG.error("Issue reading config file: " + configFile.getAbsolutePath(), ioe);
+            return;
+        }
+
+
     }
 
     public Conversion runTransfer(Conversion conversion) {
@@ -1851,6 +1935,11 @@ public class Mirror {
         decryptPWOption.setRequired(Boolean.FALSE);
         decryptPWOption.setArgName("encrypted-password");
 
+        Option replayOption = new Option("replay", "replay", true,
+                "Use to replay process from the report output.");
+        replayOption.setRequired(Boolean.FALSE);
+        replayOption.setArgName("report-directory");
+
         Option setupOption = new Option("su", "setup", false,
                 "Setup a default configuration file through a series of questions");
         setupOption.setRequired(Boolean.FALSE);
@@ -1869,6 +1958,7 @@ public class Mirror {
         dbGroup.addOption(setupOption);
         dbGroup.addOption(pwOption);
         dbGroup.addOption(decryptPWOption);
+        dbGroup.addOption(replayOption);
         dbGroup.setRequired(Boolean.TRUE);
         options.addOptionGroup(dbGroup);
 

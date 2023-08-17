@@ -111,6 +111,8 @@ public class Config {
     with a table by the same name but who's data lives in the common storage location.
      */
     private Boolean replace = Boolean.FALSE;
+    @JsonIgnore
+    private Boolean replay = Boolean.FALSE;
     private Boolean resetRight = Boolean.FALSE;
 
     private Boolean resetToDefaultLocation = Boolean.FALSE;
@@ -148,6 +150,12 @@ public class Config {
     private Translator translator = new Translator();
     @JsonIgnore
     private final Messages warnings = new Messages(100);
+
+    public static Config load(String configString) throws IOException {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        return mapper.readValue(configString, Config.class);
+    }
 
     /*
     Use this to initialize a default config.
@@ -319,6 +327,7 @@ public class Config {
         this.dumpTestData = dumpTestData;
     }
 
+    @JsonIgnore
     public Boolean isLoadingTestData() {
         if (loadTestDataFile != null) {
             return Boolean.TRUE;
@@ -485,6 +494,14 @@ public class Config {
 
     public void setDatabaseOnly(Boolean databaseOnly) {
         this.databaseOnly = databaseOnly;
+    }
+
+    public Boolean getReplay() {
+        return replay;
+    }
+
+    public void setReplay(Boolean replay) {
+        this.replay = replay;
     }
 
     public Boolean getSkipLinkCheck() {

@@ -20,9 +20,17 @@ import com.cloudera.utils.hadoop.HadoopSession;
 import com.cloudera.utils.hadoop.hms.Context;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import org.apache.commons.io.IOUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -61,9 +69,27 @@ public class DBMirror {
     public DBMirror() {
     }
 
-//    public DBMirror(String name) {
-//        this.name = name;
-//    }
+    /*
+    Load a DBMirror instance from a yaml file using the Jackson YAML parser.
+     */
+    public static DBMirror load(String fileName) {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        File dbMirrorFile = new File(fileName);
+        DBMirror dbMirror = null;
+        String yamlDBMirrorFile = null;
+        try {
+            yamlDBMirrorFile = IOUtils.toString(dbMirrorFile.toURI(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            dbMirror = mapper.readerFor(DBMirror.class).readValue(yamlDBMirrorFile);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        return dbMirror;
+    }
 
     public void setName(String name) {
         this.name = name;

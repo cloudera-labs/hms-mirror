@@ -16,8 +16,8 @@
 
 package com.cloudera.utils.hadoop.hms.util;
 
-import com.cloudera.utils.hadoop.hms.Context;
 import com.cloudera.utils.hadoop.hms.mirror.*;
+import com.cloudera.utils.hadoop.hms.mirror.feature.IcebergState;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -30,7 +30,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.DATA_SIZE;
 import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.FILE_FORMAT;
 import static com.cloudera.utils.hadoop.hms.mirror.TablePropertyVars.*;
 
