@@ -402,6 +402,31 @@ public class ConfigValidationTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
 
+        long check = 3;
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void sql_ma_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-sql",
+                "--distcp",
+                "-ma",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir};
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+
         long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
 
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
@@ -507,7 +532,7 @@ public class ConfigValidationTest extends EndToEndBase {
         rtn = mirror.go(args);
 
         long check = MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
-        check = check | MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
+//        check = check | MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
 
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }

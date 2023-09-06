@@ -1,19 +1,18 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
-import java.util.Map;
-import java.util.TreeMap;
+import com.cloudera.utils.hadoop.hms.mirror.datastrategy.DataStrategyEnum;
 
 public class StorageMigration {
 
-    private DataStrategy strategy = DataStrategy.SQL;
+    private DataStrategyEnum strategy = DataStrategyEnum.SQL;
     private Boolean distcp = Boolean.FALSE;
     private DistcpFlow dataFlow = DistcpFlow.PULL;
 
-    public DataStrategy getStrategy() {
+    public DataStrategyEnum getStrategy() {
         return strategy;
     }
 
-    public void setStrategy(DataStrategy strategy) {
+    public void setStrategy(DataStrategyEnum strategy) {
         switch (strategy) {
             case SQL:
             case EXPORT_IMPORT:

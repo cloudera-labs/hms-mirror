@@ -18,6 +18,7 @@
 package com.cloudera.utils.hadoop.hms;
 
 import com.cloudera.utils.hadoop.hms.mirror.*;
+import com.cloudera.utils.hadoop.hms.mirror.datastrategy.DataStrategyEnum;
 import com.cloudera.utils.hadoop.hms.stage.ReturnStatus;
 import com.cloudera.utils.hadoop.hms.stage.Setup;
 import com.cloudera.utils.hadoop.hms.stage.Transfer;
@@ -517,9 +518,9 @@ public class Mirror {
                 String dataStrategyStr = cmd.getOptionValue("d");
                 // default is SCHEMA_ONLY
                 if (dataStrategyStr != null) {
-                    DataStrategy dataStrategy = DataStrategy.valueOf(dataStrategyStr.toUpperCase());
+                    DataStrategyEnum dataStrategy = DataStrategyEnum.valueOf(dataStrategyStr.toUpperCase());
                     getConfig().setDataStrategy(dataStrategy);
-                    if (getConfig().getDataStrategy() == DataStrategy.DUMP) {
+                    if (getConfig().getDataStrategy() == DataStrategyEnum.DUMP) {
                         getConfig().setExecute(Boolean.FALSE); // No Actions.
                         getConfig().setSync(Boolean.FALSE);
                         // If a source cluster is specified for the cluster to DUMP from, set it.
@@ -537,7 +538,7 @@ public class Mirror {
                             getConfig().setDumpSource(Environment.LEFT);
                         }
                     }
-                    if (getConfig().getDataStrategy() == DataStrategy.LINKED) {
+                    if (getConfig().getDataStrategy() == DataStrategyEnum.LINKED) {
                         if (cmd.hasOption("ma") || cmd.hasOption("mao")) {
                             LOG.error("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy.");
                             throw new RuntimeException("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy.");
@@ -548,7 +549,7 @@ public class Mirror {
                     }
                     if (cmd.hasOption("sms")) {
                         try {
-                            DataStrategy migrationStrategy = DataStrategy.valueOf(cmd.getOptionValue("sms"));
+                            DataStrategyEnum migrationStrategy = DataStrategyEnum.valueOf(cmd.getOptionValue("sms"));
                             getConfig().getTransfer().getStorageMigration().setStrategy(migrationStrategy);
                         } catch (Throwable t) {
                             LOG.error("Only SQL, EXPORT_IMPORT, and HYBRID are valid strategies for STORAGE_MIGRATION");
@@ -690,7 +691,7 @@ public class Mirror {
                 if (cmd.hasOption("np")) {
                     getConfig().setNoPurge(Boolean.TRUE);
                 }
-                if (cmd.hasOption("sync") && getConfig().getDataStrategy() != DataStrategy.DUMP) {
+                if (cmd.hasOption("sync") && getConfig().getDataStrategy() != DataStrategyEnum.DUMP) {
                     getConfig().setSync(Boolean.TRUE);
                 }
 
@@ -764,7 +765,7 @@ public class Mirror {
         }
 
         if (!getConfig().isLoadingTestData()) {
-            if (cmd.hasOption("e") && getConfig().getDataStrategy() != DataStrategy.DUMP) {
+            if (cmd.hasOption("e") && getConfig().getDataStrategy() != DataStrategyEnum.DUMP) {
                 if (cmd.hasOption("accept")) {
                     getConfig().getAcceptance().setSilentOverride(Boolean.TRUE);
                 } else {
@@ -1397,6 +1398,10 @@ public class Mirror {
         for (File reportFile: files) {
             LOG.info("Found report file: " + reportFile.getAbsolutePath());
             DBMirror dbMirror = DBMirror.load(reportFile.getAbsolutePath());
+            // Set the table's phase state to INIT
+            for (TableMirror tableMirror : dbMirror.getTableMirrors().values()) {
+                tableMirror.setPhaseState(PhaseState.INIT);
+            }
             conversion.addDBMirror(dbMirror);
         }
 
@@ -1565,7 +1570,7 @@ public class Mirror {
         options.addOption(smDistCpOption);
 
         Option metadataStage = new Option("d", "data-strategy", true,
-                "Specify how the data will follow the schema. " + Arrays.deepToString(DataStrategy.visibleValues()));
+                "Specify how the data will follow the schema. " + Arrays.deepToString(DataStrategyEnum.visibleValues()));
         metadataStage.setOptionalArg(Boolean.TRUE);
         metadataStage.setArgName("strategy");
         metadataStage.setRequired(Boolean.FALSE);

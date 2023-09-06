@@ -15,7 +15,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.*;
 
-import static com.cloudera.utils.hadoop.hms.mirror.DataStrategy.STORAGE_MIGRATION;
+import static com.cloudera.utils.hadoop.hms.mirror.datastrategy.DataStrategyEnum.STORAGE_MIGRATION;
 
 public class Context {
     private static final Context instance = new Context();

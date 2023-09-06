@@ -17,6 +17,7 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
 import com.cloudera.utils.hadoop.hms.Context;
+import com.cloudera.utils.hadoop.hms.mirror.datastrategy.DataStrategyEnum;
 import com.cloudera.utils.hadoop.hms.mirror.feature.Feature;
 import com.cloudera.utils.hadoop.hms.mirror.feature.FeaturesEnum;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
@@ -61,7 +62,7 @@ public class TableMirror {
     private String removeReason = null;
     private Boolean reMapped = Boolean.FALSE;
 
-    private DataStrategy strategy = null;
+    private DataStrategyEnum strategy = null;
 
     // An ordinal value that we'll increment at each phase of the process
     private AtomicInteger currentPhase = new AtomicInteger(0);
@@ -305,324 +306,343 @@ public class TableMirror {
 
         EnvironmentTable source = getEnvironmentTable(copySpec.getSource());
         EnvironmentTable target = getEnvironmentTable(copySpec.getTarget());
+        try {
+            // Set Table Name
+            if (source.getExists()) {
+                target.setName(source.getName());
 
-        // Set Table Name
-        if (source.getExists()) {
-            target.setName(source.getName());
-
-            // Clear the target spec.
-            target.getDefinition().clear();
-            // Reset with Source
-            target.getDefinition().addAll(getTableDefinition(copySpec.getSource()));
-            if (Context.getInstance().getConfig().getEvaluatePartitionLocation() &&
-                    source.getPartitioned()) {
-                if (!TableUtils.isACID(source)) {
-                    // New Map.  So we can modify it..
-                    Map<String, String> targetPartitions = new HashMap<>();
-                    targetPartitions.putAll(source.getPartitions());
-                    target.setPartitions(targetPartitions);
-                    if (!config.getTranslator().translatePartitionLocations(this)) {
-                        rtn = Boolean.FALSE;
-                    }
+                // Clear the target spec.
+                target.getDefinition().clear();
+                // Reset with Source
+                target.getDefinition().addAll(getTableDefinition(copySpec.getSource()));
+                if (Context.getInstance().getConfig().getEvaluatePartitionLocation() &&
+                        source.getPartitioned()) {
+                    if (!TableUtils.isACID(source)) {
+                        // New Map.  So we can modify it..
+                        Map<String, String> targetPartitions = new HashMap<>();
+                        targetPartitions.putAll(source.getPartitions());
+                        target.setPartitions(targetPartitions);
+                        if (!config.getTranslator().translatePartitionLocations(this)) {
+                            rtn = Boolean.FALSE;
+                        }
 //                } else {
 //                    target.addIssue(SQL_ACID_W_DC.getDesc());
-                }
-            }
-            if (TableUtils.isHiveNative(source)) {
-                // Rules
-                // 1. Strip db from create state.  It's broken anyway with the way
-                //      the quotes are.  And we're setting the target db in the context anyways.
-                TableUtils.stripDatabase(target);
-
-                if (copySpec.getLocation() != null)
-                    TableUtils.updateTableLocation(target, copySpec.getLocation());
-
-                if (!TableUtils.doesTableNameMatchDirectoryName(target.getDefinition())) {
-                    if (config.getResetToDefaultLocation()) {
-                        target.addIssue("Tablename does NOT match last directory name. Using `rdl` will change " +
-                                "the implied path from the original.  This may affect other applications that aren't " +
-                                "relying on the metastore.");
-                        if (config.getTransfer().getStorageMigration().isDistcp()) {
-                            // We need to FAIL the table to ensure we point out that there is a disconnect.
-                            rtn = Boolean.FALSE;
-                            target.addIssue("Tablename does NOT match last directory name.  Using `dc|distcp` will copy " +
-                                    "the data but the table will not align with the directory.");
-                        }
                     }
                 }
+                if (TableUtils.isHiveNative(source)) {
+                    // Rules
+                    // 1. Strip db from create state.  It's broken anyway with the way
+                    //      the quotes are.  And we're setting the target db in the context anyways.
+                    TableUtils.stripDatabase(target);
 
-                // 1. If Managed, convert to EXTERNAL
-                // When coming from legacy and going to non-legacy (Hive 3).
-                Boolean converted = Boolean.FALSE;
-                if (!TableUtils.isACID(source)) {
-                    // Non ACID tables.
-                    if (copySpec.getUpgrade() && TableUtils.isManaged(source)) {
-                        converted = TableUtils.makeExternal(target);
-                        if (converted) {
-                            target.addIssue("Schema 'converted' from LEGACY managed to EXTERNAL");
-                            target.addProperty(HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
-                            target.addProperty(HMS_MIRROR_CONVERTED_FLAG, converted.toString());
+                    if (copySpec.getLocation() != null) {
+                        if (!TableUtils.updateTableLocation(target, copySpec.getLocation()))
+                            rtn = Boolean.FALSE;
+                    }
+
+                    if (!TableUtils.doesTableNameMatchDirectoryName(target.getDefinition())) {
+                        if (config.getResetToDefaultLocation()) {
+                            target.addIssue("Tablename does NOT match last directory name. Using `rdl` will change " +
+                                    "the implied path from the original.  This may affect other applications that aren't " +
+                                    "relying on the metastore.");
+                            if (config.getTransfer().getStorageMigration().isDistcp()) {
+                                // We need to FAIL the table to ensure we point out that there is a disconnect.
+                                rtn = Boolean.FALSE;
+                                target.addIssue("Tablename does NOT match last directory name.  Using `dc|distcp` will copy " +
+                                        "the data but the table will not align with the directory.");
+                            }
+                        }
+                    }
+
+                    // 1. If Managed, convert to EXTERNAL
+                    // When coming from legacy and going to non-legacy (Hive 3).
+                    Boolean converted = Boolean.FALSE;
+                    if (!TableUtils.isACID(source)) {
+                        // Non ACID tables.
+                        if (copySpec.getUpgrade() && TableUtils.isManaged(source)) {
+                            converted = TableUtils.makeExternal(target);
+                            if (converted) {
+                                target.addIssue("Schema 'converted' from LEGACY managed to EXTERNAL");
+                                target.addProperty(HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
+                                target.addProperty(HMS_MIRROR_CONVERTED_FLAG, converted.toString());
+                                if (copySpec.getTakeOwnership()) {
+                                    if (!config.isNoPurge()) {
+                                        target.addProperty(EXTERNAL_TABLE_PURGE, "true");
+                                    }
+                                } else {
+                                    target.addIssue("Ownership of the data not allowed in this scenario, PURGE flag NOT set.");
+                                }
+                            }
+                        } else {
+                            if (copySpec.isMakeExternal()) {
+                                converted = TableUtils.makeExternal(target);
+                            }
                             if (copySpec.getTakeOwnership()) {
-                                if (!config.isNoPurge()) {
+                                if (TableUtils.isACID(source)) {
+                                    if (config.getMigrateACID().isDowngrade() && !config.isNoPurge()) {
+                                        target.addProperty(EXTERNAL_TABLE_PURGE, "true");
+                                    }
+                                } else {
                                     target.addProperty(EXTERNAL_TABLE_PURGE, "true");
                                 }
-                            } else {
-                                target.addIssue("Ownership of the data not allowed in this scenario, PURGE flag NOT set.");
                             }
                         }
                     } else {
-                        if (copySpec.isMakeExternal()) {
-                            converted = TableUtils.makeExternal(target);
+                        // Handle ACID tables.
+                        if (copySpec.isMakeNonTransactional()) {
+                            TableUtils.removeTblProperty(TRANSACTIONAL, target);
+                            TableUtils.removeTblProperty(TRANSACTIONAL_PROPERTIES, target);
+                            TableUtils.removeTblProperty(BUCKETING_VERSION, target);
                         }
+
+                        if (copySpec.isMakeExternal())
+                            converted = TableUtils.makeExternal(target);
+
                         if (copySpec.getTakeOwnership()) {
                             if (TableUtils.isACID(source)) {
-                                if (config.getMigrateACID().isDowngrade() && !config.isNoPurge()) {
+                                if (copySpec.getTarget() == Environment.TRANSFER) {
+                                    target.addProperty(EXTERNAL_TABLE_PURGE, "true");
+                                } else if (config.getMigrateACID().isDowngrade() && !config.isNoPurge()) {
                                     target.addProperty(EXTERNAL_TABLE_PURGE, "true");
                                 }
                             } else {
                                 target.addProperty(EXTERNAL_TABLE_PURGE, "true");
                             }
                         }
-                    }
-                } else {
-                    // Handle ACID tables.
-                    if (copySpec.isMakeNonTransactional()) {
-                        TableUtils.removeTblProperty(TRANSACTIONAL, target);
-                        TableUtils.removeTblProperty(TRANSACTIONAL_PROPERTIES, target);
-                        TableUtils.removeTblProperty(BUCKETING_VERSION, target);
-                    }
 
-                    if (copySpec.isMakeExternal())
-                        converted = TableUtils.makeExternal(target);
-
-                    if (copySpec.getTakeOwnership()) {
-                        if (TableUtils.isACID(source)) {
-                            if (copySpec.getTarget() == Environment.TRANSFER) {
-                                target.addProperty(EXTERNAL_TABLE_PURGE, "true");
-                            } else if (config.getMigrateACID().isDowngrade() && !config.isNoPurge()) {
-                                target.addProperty(EXTERNAL_TABLE_PURGE, "true");
+                        if (copySpec.getStripLocation()) {
+                            if (config.getMigrateACID().isDowngrade()) {
+                                target.addIssue("Location Stripped from 'Downgraded' ACID definition.  Location will be the default " +
+                                        "external location as configured by the database/environment.");
+                            } else {
+                                target.addIssue("Location Stripped from ACID definition.  Location element in 'CREATE' " +
+                                        "not allowed in Hive3+");
                             }
-                        } else {
-                            target.addProperty(EXTERNAL_TABLE_PURGE, "true");
+                            TableUtils.stripLocation(target);
                         }
-                    }
 
-                    if (copySpec.getStripLocation()) {
-                        if (config.getMigrateACID().isDowngrade()) {
-                            target.addIssue("Location Stripped from 'Downgraded' ACID definition.  Location will be the default " +
-                                    "external location as configured by the database/environment.");
-                        } else {
-                            target.addIssue("Location Stripped from ACID definition.  Location element in 'CREATE' " +
-                                    "not allowed in Hive3+");
-                        }
-                        TableUtils.stripLocation(target);
-                    }
-
-                    if (config.getMigrateACID().isDowngrade() && copySpec.isMakeExternal()) {
+                        if (config.getMigrateACID().isDowngrade() && copySpec.isMakeExternal()) {
 //                        TableUtils.upsertTblProperty(MirrorConf.DOWNGRADED_FROM_ACID, Boolean.TRUE.toString(), target);
-                        converted = TableUtils.makeExternal(target);
-                        if (!config.isNoPurge()) {
-                            target.addProperty(EXTERNAL_TABLE_PURGE, Boolean.TRUE.toString());
+                            converted = TableUtils.makeExternal(target);
+                            if (!config.isNoPurge()) {
+                                target.addProperty(EXTERNAL_TABLE_PURGE, Boolean.TRUE.toString());
+                            }
+                            target.addProperty(DOWNGRADED_FROM_ACID, Boolean.TRUE.toString());
                         }
-                        target.addProperty(DOWNGRADED_FROM_ACID, Boolean.TRUE.toString());
+
+                        if (TableUtils.removeBuckets(target, config.getMigrateACID().getArtificialBucketThreshold())) {
+                            target.addIssue("Bucket Definition removed (was " + TableUtils.numOfBuckets(source) + ") because it was EQUAL TO or BELOW " +
+                                    "the configured 'artificialBucketThreshold' of " +
+                                    config.getMigrateACID().getArtificialBucketThreshold());
+                        }
                     }
 
-                    if (TableUtils.removeBuckets(target, config.getMigrateACID().getArtificialBucketThreshold())) {
-                        target.addIssue("Bucket Definition removed (was " + TableUtils.numOfBuckets(source) + ") because it was EQUAL TO or BELOW " +
-                                "the configured 'artificialBucketThreshold' of " +
-                                config.getMigrateACID().getArtificialBucketThreshold());
+                    // 2. Set mirror stage one flag
+                    if (copySpec.getTarget() == Environment.RIGHT) {
+                        target.addProperty(HMS_MIRROR_METADATA_FLAG, df.format(new Date()));
                     }
-                }
 
-                // 2. Set mirror stage one flag
-                if (copySpec.getTarget() == Environment.RIGHT) {
-                    target.addProperty(HMS_MIRROR_METADATA_FLAG, df.format(new Date()));
-                }
+                    // 3. Rename table
+                    if (copySpec.renameTable()) {
+                        TableUtils.changeTableName(target, copySpec.getTableNamePrefix() + getName());
+                    }
 
-                // 3. Rename table
-                if (copySpec.renameTable()) {
-                    TableUtils.changeTableName(target, copySpec.getTableNamePrefix() + getName());
-                }
-
-                // 4. identify this table as being converted by hms-mirror
+                    // 4. identify this table as being converted by hms-mirror
 //        TableUtils.upsertTblProperty(MirrorConf.HMS_MIRROR_CONVERTED_FLAG, Boolean.TRUE.toString(), upperTD);
 
-                // 5. Strip stat properties
-                TableUtils.removeTblProperty("COLUMN_STATS_ACCURATE", target);
-                TableUtils.removeTblProperty("numFiles", target);
-                TableUtils.removeTblProperty("numRows", target);
-                TableUtils.removeTblProperty("rawDataSize", target);
-                TableUtils.removeTblProperty("totalSize", target);
-                TableUtils.removeTblProperty("discover.partitions", target);
-                TableUtils.removeTblProperty("transient_lastDdlTime", target);
-                // This is control by the create, so we don't want any legacy values to
-                // interrupt that.
-                TableUtils.removeTblProperty("external", target);
-                TableUtils.removeTblProperty("last_modified_by", target);
-                TableUtils.removeTblProperty("last_modified_time", target);
+                    // 5. Strip stat properties
+                    TableUtils.removeTblProperty("COLUMN_STATS_ACCURATE", target);
+                    TableUtils.removeTblProperty("numFiles", target);
+                    TableUtils.removeTblProperty("numRows", target);
+                    TableUtils.removeTblProperty("rawDataSize", target);
+                    TableUtils.removeTblProperty("totalSize", target);
+                    TableUtils.removeTblProperty("discover.partitions", target);
+                    TableUtils.removeTblProperty("transient_lastDdlTime", target);
+                    // This is control by the create, so we don't want any legacy values to
+                    // interrupt that.
+                    TableUtils.removeTblProperty("external", target);
+                    TableUtils.removeTblProperty("last_modified_by", target);
+                    TableUtils.removeTblProperty("last_modified_time", target);
 
-                // 6. Set 'discover.partitions' if config and non-acid
-                if (config.getCluster(copySpec.getTarget()).getPartitionDiscovery().getAuto() && TableUtils.isPartitioned(target)) {
-                    if (converted) {
-                        target.addProperty(DISCOVER_PARTITIONS, Boolean.TRUE.toString());
-                    } else if (TableUtils.isExternal(target)) {
-                        target.addProperty(DISCOVER_PARTITIONS, Boolean.TRUE.toString());
-                    }
-                }
-
-                // 5. Location Adjustments
-                //    Since we are looking at the same data as the original, we're not changing this now.
-                //    Any changes to data location are a part of stage-2 (STORAGE).
-                switch (copySpec.getTarget()) {
-                    case LEFT:
-                    case RIGHT:
-                        if (copySpec.getReplaceLocation() && (!TableUtils.isACID(source) || config.getMigrateACID().isDowngrade())) {
-                            String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
-                            int level = 1;
-                            if (config.getFilter().isTableFiltering()) {
-                                level = 0;
-                            }
-                            String targetLocation = copySpec.getConfig().getTranslator().
-                                    translateTableLocation(this, sourceLocation, level, null);
-                            TableUtils.updateTableLocation(target, targetLocation);
-                            // Check if the locations align.  If not, warn.
-                            if (config.getTransfer().getWarehouse().getExternalDirectory() != null &&
-                                    config.getTransfer().getWarehouse().getManagedDirectory() != null) {
-                                if (TableUtils.isExternal(target)) {
-                                    // We store the DB LOCATION in the RIGHT dbDef so we can avoid changing the original LEFT
-                                    if (!targetLocation.startsWith(getParent().getDBDefinition(Environment.RIGHT).get(DB_LOCATION))) {
-                                        // Set warning that even though you've specified to warehouse directories, the current configuration
-                                        // will NOT place it in that directory.
-                                        String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
-                                                getParent().getDBDefinition(Environment.RIGHT).get(DB_LOCATION),
-                                                targetLocation);
-                                        addIssue(Environment.RIGHT, msg);
-                                    }
-                                } else {
-                                    if (!targetLocation.startsWith(getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION))) {
-                                        // Set warning that even though you've specified to warehouse directories, the current configuration
-                                        // will NOT place it in that directory.
-                                        String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
-                                                getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION),
-                                                targetLocation);
-                                        addIssue(Environment.RIGHT, msg);
-                                    }
-
-                                }
-                            }
-
+                    // 6. Set 'discover.partitions' if config and non-acid
+                    if (config.getCluster(copySpec.getTarget()).getPartitionDiscovery().getAuto() && TableUtils.isPartitioned(target)) {
+                        if (converted) {
+                            target.addProperty(DISCOVER_PARTITIONS, Boolean.TRUE.toString());
+                        } else if (TableUtils.isExternal(target)) {
+                            target.addProperty(DISCOVER_PARTITIONS, Boolean.TRUE.toString());
                         }
+                    }
+
+                    // 5. Location Adjustments
+                    //    Since we are looking at the same data as the original, we're not changing this now.
+                    //    Any changes to data location are a part of stage-2 (STORAGE).
+                    switch (copySpec.getTarget()) {
+                        case LEFT:
+                        case RIGHT:
+                            if (copySpec.getReplaceLocation() && (!TableUtils.isACID(source) || config.getMigrateACID().isDowngrade())) {
+                                String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
+                                int level = 1;
+                                if (config.getFilter().isTableFiltering()) {
+                                    level = 0;
+                                }
+                                String targetLocation = copySpec.getConfig().getTranslator().
+                                        translateTableLocation(this, sourceLocation, level, null);
+                                if (!TableUtils.updateTableLocation(target, targetLocation)) {
+                                    rtn = Boolean.FALSE;
+                                }
+                                // Check if the locations align.  If not, warn.
+                                if (config.getTransfer().getWarehouse().getExternalDirectory() != null &&
+                                        config.getTransfer().getWarehouse().getManagedDirectory() != null) {
+                                    if (TableUtils.isExternal(target)) {
+                                        // We store the DB LOCATION in the RIGHT dbDef so we can avoid changing the original LEFT
+                                        if (!targetLocation.startsWith(getParent().getDBDefinition(Environment.RIGHT).get(DB_LOCATION))) {
+                                            // Set warning that even though you've specified to warehouse directories, the current configuration
+                                            // will NOT place it in that directory.
+                                            String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
+                                                    getParent().getDBDefinition(Environment.RIGHT).get(DB_LOCATION),
+                                                    targetLocation);
+                                            addIssue(Environment.RIGHT, msg);
+                                        }
+                                    } else {
+                                        if (!targetLocation.startsWith(getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION))) {
+                                            // Set warning that even though you've specified to warehouse directories, the current configuration
+                                            // will NOT place it in that directory.
+                                            String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
+                                                    getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION),
+                                                    targetLocation);
+                                            addIssue(Environment.RIGHT, msg);
+                                        }
+
+                                    }
+                                }
+
+                            }
 //                        if (copySpec.getStripLocation()) {
 //                            TableUtils.stripLocation(target);
 //                        }
-                        if (getReMapped()) {
-                            target.addIssue(MessageCode.TABLE_LOCATION_REMAPPED.getDesc());
-                        } else if (config.getTranslator().getForceExternalLocation()) {
-                            target.addIssue(MessageCode.TABLE_LOCATION_FORCED.getDesc());
-                        } else if (config.getResetToDefaultLocation()) {
-                            TableUtils.stripLocation(target);
-                            target.addIssue(MessageCode.RESET_TO_DEFAULT_LOCATION_WARNING.getDesc());
-                        }
-                        break;
-                    case SHADOW:
-                    case TRANSFER:
-                        if (copySpec.getLocation() != null) {
-                            TableUtils.updateTableLocation(target, copySpec.getLocation());
-                        } else if (copySpec.getReplaceLocation()) {
-                            if (config.getTransfer().getIntermediateStorage() != null) {
-                                String isLoc = config.getTransfer().getIntermediateStorage();
-                                // Deal with extra '/'
-                                isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
-                                isLoc = isLoc + "/" + config.getTransfer().getRemoteWorkingDirectory() + "/" +
-                                        config.getRunMarker() + "/" +
-//                                        config.getTransfer().getTransferPrefix() + this.getUnique() + "_" +
-                                        this.getParent().getName() + "/" +
-                                        this.getName();
-                                TableUtils.updateTableLocation(target, isLoc);
-                            } else if (config.getTransfer().getCommonStorage() != null) {
-                                String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
-                                String targetLocation = copySpec.getConfig().getTranslator().
-                                        translateTableLocation(this, sourceLocation, 1, null);
-                                TableUtils.updateTableLocation(target, targetLocation);
-                            } else if (copySpec.getStripLocation()) {
+                            if (getReMapped()) {
+                                target.addIssue(MessageCode.TABLE_LOCATION_REMAPPED.getDesc());
+                            } else if (config.getTranslator().getForceExternalLocation()) {
+                                target.addIssue(MessageCode.TABLE_LOCATION_FORCED.getDesc());
+                            } else if (config.getResetToDefaultLocation()) {
                                 TableUtils.stripLocation(target);
-                            } else if (config.isReplace()) {
-                                String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
-                                String replacementLocation = sourceLocation + "_replacement";
-                                TableUtils.updateTableLocation(target, replacementLocation);
+                                target.addIssue(MessageCode.RESET_TO_DEFAULT_LOCATION_WARNING.getDesc());
+                            }
+                            break;
+                        case SHADOW:
+                        case TRANSFER:
+                            if (copySpec.getLocation() != null) {
+                                if (!TableUtils.updateTableLocation(target, copySpec.getLocation())) {
+                                    rtn = Boolean.FALSE;
+                                }
+                            } else if (copySpec.getReplaceLocation()) {
+                                if (config.getTransfer().getIntermediateStorage() != null) {
+                                    String isLoc = config.getTransfer().getIntermediateStorage();
+                                    // Deal with extra '/'
+                                    isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
+                                    isLoc = isLoc + "/" + config.getTransfer().getRemoteWorkingDirectory() + "/" +
+                                            config.getRunMarker() + "/" +
+//                                        config.getTransfer().getTransferPrefix() + this.getUnique() + "_" +
+                                            this.getParent().getName() + "/" +
+                                            this.getName();
+                                    if (!TableUtils.updateTableLocation(target, isLoc)) {
+                                        rtn = Boolean.FALSE;
+                                    }
+                                } else if (config.getTransfer().getCommonStorage() != null) {
+                                    String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
+                                    String targetLocation = copySpec.getConfig().getTranslator().
+                                            translateTableLocation(this, sourceLocation, 1, null);
+                                    if (!TableUtils.updateTableLocation(target, targetLocation)) {
+                                        rtn = Boolean.FALSE;
+                                    }
+                                } else if (copySpec.getStripLocation()) {
+                                    TableUtils.stripLocation(target);
+                                } else if (config.isReplace()) {
+                                    String sourceLocation = TableUtils.getLocation(getName(), getTableDefinition(copySpec.getSource()));
+                                    String replacementLocation = sourceLocation + "_replacement";
+                                    if (!TableUtils.updateTableLocation(target, replacementLocation)) {
+                                        rtn = Boolean.FALSE;
+                                    }
+                                } else {
+                                    // Need to use export location
+                                    String isLoc = config.getTransfer().getExportBaseDirPrefix();
+                                    // Deal with extra '/'
+                                    isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
+                                    isLoc = config.getCluster(Environment.LEFT).getHcfsNamespace() +
+                                            isLoc + this.getParent().getName() + "/" + this.getName();
+                                    if (!TableUtils.updateTableLocation(target, isLoc)) {
+                                        rtn = Boolean.FALSE;
+                                    }
+                                }
+                            }
+                            break;
+                    }
+
+                    switch (copySpec.getTarget()) {
+                        case TRANSFER:
+                            TableUtils.upsertTblProperty(HMS_MIRROR_TRANSFER_TABLE, "true", target);
+                            break;
+                        case SHADOW:
+                            TableUtils.upsertTblProperty(HMS_MIRROR_SHADOW_TABLE, "true", target);
+                            break;
+                    }
+                    // 6. Go through the features, if any.
+                    if (!config.getSkipFeatures()) {
+                        for (FeaturesEnum features : FeaturesEnum.values()) {
+                            Feature feature = features.getFeature();
+                            LOG.debug("Table: " + getName() + " - Checking Feature: " + features);
+                            if (feature.fixSchema(target)) {
+                                LOG.debug("Table: " + getName() + " - Feature Applicable: " + features);
+                                target.addIssue("Feature (" + features + ") was found applicable and adjustments applied. " +
+                                        feature.getDescription());
                             } else {
-                                // Need to use export location
-                                String isLoc = config.getTransfer().getExportBaseDirPrefix();
-                                // Deal with extra '/'
-                                isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
-                                isLoc = config.getCluster(Environment.LEFT).getHcfsNamespace() +
-                                        isLoc + this.getParent().getName() + "/" + this.getName();
-                                TableUtils.updateTableLocation(target, isLoc);
+                                LOG.debug("Table: " + getName() + " - Feature NOT Applicable: " + features);
                             }
                         }
-                        break;
-                }
+                    } else {
+                        LOG.debug("Table: " + getName() + " - Skipping Features Check...");
+                    }
 
-                switch (copySpec.getTarget()) {
-                    case TRANSFER:
-                        TableUtils.upsertTblProperty(HMS_MIRROR_TRANSFER_TABLE, "true", target);
-                        break;
-                    case SHADOW:
-                        TableUtils.upsertTblProperty(HMS_MIRROR_SHADOW_TABLE, "true", target);
-                        break;
-                }
-                // 6. Go through the features, if any.
-                if (!config.getSkipFeatures()) {
-                    for (FeaturesEnum features : FeaturesEnum.values()) {
-                        Feature feature = features.getFeature();
-                        LOG.debug("Table: " + getName() + " - Checking Feature: " + features);
-                        if (feature.fixSchema(target)) {
-                            LOG.debug("Table: " + getName() + " - Feature Applicable: " + features);
-                            target.addIssue("Feature (" + features + ") was found applicable and adjustments applied. " +
-                                    feature.getDescription());
-                        } else {
-                            LOG.debug("Table: " + getName() + " - Feature NOT Applicable: " + features);
+                    if (config.isTranslateLegacy()) {
+                        if (config.getLegacyTranslations().fixSchema(target)) {
+                            LOG.info("Legacy Translation applied to: " + getParent().getName() + target.getName());
                         }
                     }
+
+                    // Add props to definition.
+                    if (whereTherePropsAdded(copySpec.getTarget())) {
+                        Set<String> keys = target.getAddProperties().keySet();
+                        for (String key : keys) {
+                            TableUtils.upsertTblProperty(key, target.getAddProperties().get(key), target);
+                        }
+                    }
+
+                    if (!copySpec.getTakeOwnership() && config.getDataStrategy() != DataStrategyEnum.STORAGE_MIGRATION) {
+                        TableUtils.removeTblProperty(EXTERNAL_TABLE_PURGE, target);
+                    }
+
+                    if (config.getCluster(copySpec.getTarget()).getLegacyHive() && config.getDataStrategy() != DataStrategyEnum.STORAGE_MIGRATION) {
+                        // remove newer flags;
+                        TableUtils.removeTblProperty(EXTERNAL_TABLE_PURGE, target);
+                        TableUtils.removeTblProperty(DISCOVER_PARTITIONS, target);
+                        TableUtils.removeTblProperty(BUCKETING_VERSION, target);
+                    }
+
+                } else if (TableUtils.isView(target)) {
+                    source.addIssue("This is a VIEW.  It will be translated AS-IS.  View transitions will NOT honor " +
+                            "target db name changes For example: `-dbp`.  VIEW creation depends on the referenced tables existing FIRST. " +
+                            "VIEW creation failures may mean that all referenced tables don't exist yet.");
                 } else {
-                    LOG.debug("Table: " + getName() + " - Skipping Features Check...");
+                    // This is a connector table.  IE: HBase, Kafka, JDBC, etc.  We just past it through.
+                    source.addIssue("This is not a NATIVE Hive table.  It will be translated 'AS-IS'.  If the libraries or dependencies required for this table definition are not available on the target cluster, the 'create' statement may fail.");
                 }
 
-                if (config.isTranslateLegacy()) {
-                    if (config.getLegacyTranslations().fixSchema(target)) {
-                        LOG.info("Legacy Translation applied to: " + getParent().getName() + target.getName());
-                    }
-                }
-
-                // Add props to definition.
-                if (whereTherePropsAdded(copySpec.getTarget())) {
-                    Set<String> keys = target.getAddProperties().keySet();
-                    for (String key : keys) {
-                        TableUtils.upsertTblProperty(key, target.getAddProperties().get(key), target);
-                    }
-                }
-
-                if (!copySpec.getTakeOwnership() && config.getDataStrategy() != DataStrategy.STORAGE_MIGRATION) {
-                    TableUtils.removeTblProperty(EXTERNAL_TABLE_PURGE, target);
-                }
-
-                if (config.getCluster(copySpec.getTarget()).getLegacyHive() && config.getDataStrategy() != DataStrategy.STORAGE_MIGRATION) {
-                    // remove newer flags;
-                    TableUtils.removeTblProperty(EXTERNAL_TABLE_PURGE, target);
-                    TableUtils.removeTblProperty(DISCOVER_PARTITIONS, target);
-                    TableUtils.removeTblProperty(BUCKETING_VERSION, target);
-                }
-
-            } else if (TableUtils.isView(target)) {
-                source.addIssue("This is a VIEW.  It will be translated AS-IS.  View transitions will NOT honor " +
-                        "target db name changes For example: `-dbp`.  VIEW creation depends on the referenced tables existing FIRST. " +
-                        "VIEW creation failures may mean that all referenced tables don't exist yet.");
-            } else {
-                // This is a connector table.  IE: HBase, Kafka, JDBC, etc.  We just past it through.
-                source.addIssue("This is not a NATIVE Hive table.  It will be translated 'AS-IS'.  If the libraries or dependencies required for this table definition are not available on the target cluster, the 'create' statement may fail.");
+                TableUtils.fixTableDefinition(target);
             }
-
-            TableUtils.fixTableDefinition(target);
+        } catch (Exception e) {
+            LOG.error("Error building table schema: " + e.getMessage(), e);
+            source.addIssue("Error building table schema: " + e.getMessage());
+            rtn = Boolean.FALSE;
         }
         return rtn;
     }
@@ -849,133 +869,138 @@ public class TableMirror {
         LOG.debug("Database: " + dbMirror.getName() + " buildout EXPORT_IMPORT SQL");
 
         String database = null;
-
         database = config.getResolvedDB(dbMirror.getName());
 
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT);
         EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT);
 
-        // LEFT Export to directory
-        String useLeftDb = MessageFormat.format(MirrorConf.USE, dbMirror.getName());
-        let.addSql(TableUtils.USE_DESC, useLeftDb);
-        String exportLoc = null;
+        try {
+            // LEFT Export to directory
+            String useLeftDb = MessageFormat.format(MirrorConf.USE, dbMirror.getName());
+            let.addSql(TableUtils.USE_DESC, useLeftDb);
+            String exportLoc = null;
 
-        if (config.getTransfer().getIntermediateStorage() != null) {
-            String isLoc = config.getTransfer().getIntermediateStorage();
-            // Deal with extra '/'
-            isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
-            exportLoc = isLoc + "/" +
-                    config.getTransfer().getRemoteWorkingDirectory() + "/" +
-                    config.getRunMarker() + "/" +
+            if (config.getTransfer().getIntermediateStorage() != null) {
+                String isLoc = config.getTransfer().getIntermediateStorage();
+                // Deal with extra '/'
+                isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
+                exportLoc = isLoc + "/" +
+                        config.getTransfer().getRemoteWorkingDirectory() + "/" +
+                        config.getRunMarker() + "/" +
 //                    config.getTransfer().getTransferPrefix() + this.getUnique() + "_" +
-                    this.getParent().getName() + "/" +
-                    this.getName();
-        } else if (config.getTransfer().getCommonStorage() != null) {
-            String isLoc = config.getTransfer().getCommonStorage();
-            // Deal with extra '/'
-            isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
-            exportLoc = isLoc + "/" + config.getTransfer().getRemoteWorkingDirectory() + "/" +
-                    config.getRunMarker() + "/" +
+                        this.getParent().getName() + "/" +
+                        this.getName();
+            } else if (config.getTransfer().getCommonStorage() != null) {
+                String isLoc = config.getTransfer().getCommonStorage();
+                // Deal with extra '/'
+                isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
+                exportLoc = isLoc + "/" + config.getTransfer().getRemoteWorkingDirectory() + "/" +
+                        config.getRunMarker() + "/" +
 //                    config.getTransfer().getTransferPrefix() + this.getUnique() + "_" +
-                    this.getParent().getName() + "/" +
-                    this.getName();
-        } else {
-            exportLoc = config.getTransfer().getExportBaseDirPrefix() + dbMirror.getName() + "/" + let.getName();
-        }
-        String origTableName = let.getName();
-        if (isACIDDowngradeInPlace(config, let)) {
-            // Rename original table.
-            // Remove property (if exists) to prevent rename from happening.
-            if (TableUtils.hasTblProperty(TRANSLATED_TO_EXTERNAL, let)) {
-                String unSetSql = MessageFormat.format(MirrorConf.REMOVE_TABLE_PROP, origTableName, TRANSLATED_TO_EXTERNAL);
-                let.addSql(MirrorConf.REMOVE_TABLE_PROP_DESC, unSetSql);
-            }
-            String newTblName = let.getName() + "_archive";
-            String renameSql = MessageFormat.format(MirrorConf.RENAME_TABLE, origTableName, newTblName);
-            TableUtils.changeTableName(let, newTblName);
-            let.addSql(TableUtils.RENAME_TABLE, renameSql);
-        }
-
-        String exportSql = MessageFormat.format(MirrorConf.EXPORT_TABLE, let.getName(), exportLoc);
-        let.addSql(TableUtils.EXPORT_TABLE, exportSql);
-
-        // RIGHT IMPORT from Directory
-        if (!isACIDDowngradeInPlace(config, let)) {
-            String useRightDb = MessageFormat.format(MirrorConf.USE, database);
-            ret.addSql(TableUtils.USE_DESC, useRightDb);
-        }
-
-        String importLoc = null;
-        if (config.getTransfer().getIntermediateStorage() != null || config.getTransfer().getCommonStorage() != null) {
-            importLoc = exportLoc;
-        } else {
-            importLoc = config.getCluster(Environment.LEFT).getHcfsNamespace() + exportLoc;
-        }
-
-        String sourceLocation = TableUtils.getLocation(let.getName(), let.getDefinition());
-        String targetLocation = config.getTranslator().translateTableLocation(this, sourceLocation, 1, null);
-        String importSql;
-        if (TableUtils.isACID(let)) {
-            if (!config.getMigrateACID().isDowngrade()) {
-                importSql = MessageFormat.format(MirrorConf.IMPORT_TABLE, let.getName(), importLoc);
+                        this.getParent().getName() + "/" +
+                        this.getName();
             } else {
-                if (config.getMigrateACID().isDowngradeInPlace()) {
-                    importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, origTableName, importLoc);
-                } else {
-                    importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
-                }
+                exportLoc = config.getTransfer().getExportBaseDirPrefix() + dbMirror.getName() + "/" + let.getName();
             }
-        } else {
-            if (config.getResetToDefaultLocation()) {
-                if (config.getTransfer().getWarehouse().getExternalDirectory() != null) {
-                    // Build default location, because in some cases when location isn't specified, it will use the "FROM"
-                    // location in the IMPORT statement.
-                    targetLocation = config.getCluster(Environment.RIGHT).getHcfsNamespace() + config.getTransfer().getWarehouse().getExternalDirectory() +
-                            "/" + config.getResolvedDB(dbMirror.getName()) + ".db/" + getName();
+            String origTableName = let.getName();
+            if (isACIDDowngradeInPlace(config, let)) {
+                // Rename original table.
+                // Remove property (if exists) to prevent rename from happening.
+                if (TableUtils.hasTblProperty(TRANSLATED_TO_EXTERNAL, let)) {
+                    String unSetSql = MessageFormat.format(MirrorConf.REMOVE_TABLE_PROP, origTableName, TRANSLATED_TO_EXTERNAL);
+                    let.addSql(MirrorConf.REMOVE_TABLE_PROP_DESC, unSetSql);
+                }
+                String newTblName = let.getName() + "_archive";
+                String renameSql = MessageFormat.format(MirrorConf.RENAME_TABLE, origTableName, newTblName);
+                TableUtils.changeTableName(let, newTblName);
+                let.addSql(TableUtils.RENAME_TABLE, renameSql);
+            }
+
+            String exportSql = MessageFormat.format(MirrorConf.EXPORT_TABLE, let.getName(), exportLoc);
+            let.addSql(TableUtils.EXPORT_TABLE, exportSql);
+
+            // RIGHT IMPORT from Directory
+            if (!isACIDDowngradeInPlace(config, let)) {
+                String useRightDb = MessageFormat.format(MirrorConf.USE, database);
+                ret.addSql(TableUtils.USE_DESC, useRightDb);
+            }
+
+            String importLoc = null;
+            if (config.getTransfer().getIntermediateStorage() != null || config.getTransfer().getCommonStorage() != null) {
+                importLoc = exportLoc;
+            } else {
+                importLoc = config.getCluster(Environment.LEFT).getHcfsNamespace() + exportLoc;
+            }
+
+            String sourceLocation = TableUtils.getLocation(let.getName(), let.getDefinition());
+            String targetLocation = config.getTranslator().translateTableLocation(this, sourceLocation, 1, null);
+            String importSql;
+            if (TableUtils.isACID(let)) {
+                if (!config.getMigrateACID().isDowngrade()) {
+                    importSql = MessageFormat.format(MirrorConf.IMPORT_TABLE, let.getName(), importLoc);
+                } else {
+                    if (config.getMigrateACID().isDowngradeInPlace()) {
+                        importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, origTableName, importLoc);
+                    } else {
+                        importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
+                    }
+                }
+            } else {
+                if (config.getResetToDefaultLocation()) {
+                    if (config.getTransfer().getWarehouse().getExternalDirectory() != null) {
+                        // Build default location, because in some cases when location isn't specified, it will use the "FROM"
+                        // location in the IMPORT statement.
+                        targetLocation = config.getCluster(Environment.RIGHT).getHcfsNamespace() + config.getTransfer().getWarehouse().getExternalDirectory() +
+                                "/" + config.getResolvedDB(dbMirror.getName()) + ".db/" + getName();
+                        importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
+                    } else {
+                        importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
+                    }
+                } else {
                     importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
-                } else {
-                    importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
                 }
+            }
+
+            if (ret.getExists()) {
+                if (config.isSync()) {
+                    // Need to Drop table first.
+                    String dropExistingTable = MessageFormat.format(MirrorConf.DROP_TABLE, let.getName());
+                    ;
+                    if (isACIDDowngradeInPlace(config, let)) {
+                        let.addSql(MirrorConf.DROP_TABLE_DESC, dropExistingTable);
+                        let.addIssue(EXPORT_IMPORT_SYNC.getDesc());
+                    } else {
+                        ret.addSql(MirrorConf.DROP_TABLE_DESC, dropExistingTable);
+                        ret.addIssue(EXPORT_IMPORT_SYNC.getDesc());
+                    }
+                }
+            }
+            if (isACIDDowngradeInPlace(config, let)) {
+                let.addSql(TableUtils.IMPORT_TABLE, importSql);
             } else {
-                importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
-            }
-        }
-
-        if (ret.getExists()) {
-            if (config.isSync()) {
-                // Need to Drop table first.
-                String dropExistingTable = MessageFormat.format(MirrorConf.DROP_TABLE, let.getName());;
-                if (isACIDDowngradeInPlace(config, let)) {
-                    let.addSql(MirrorConf.DROP_TABLE_DESC, dropExistingTable);
-                    let.addIssue(EXPORT_IMPORT_SYNC.getDesc());
-                } else {
-                    ret.addSql(MirrorConf.DROP_TABLE_DESC, dropExistingTable);
-                    ret.addIssue(EXPORT_IMPORT_SYNC.getDesc());
+                ret.addSql(TableUtils.IMPORT_TABLE, importSql);
+                if (!config.getCluster(Environment.RIGHT).getLegacyHive() && config.getTransferOwnership() && let.getOwner() != null) {
+                    String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, let.getName(), let.getOwner());
+                    ret.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
                 }
             }
-        }
-        if (isACIDDowngradeInPlace(config, let)) {
-            let.addSql(TableUtils.IMPORT_TABLE, importSql);
-        } else {
-            ret.addSql(TableUtils.IMPORT_TABLE, importSql);
-            if (!config.getCluster(Environment.RIGHT).getLegacyHive() && config.getTransferOwnership() && let.getOwner() != null) {
-                String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, let.getName(), let.getOwner());
-                ret.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
+
+            if (let.getPartitions().size() > config.getHybrid().getExportImportPartitionLimit() &&
+                    config.getHybrid().getExportImportPartitionLimit() > 0) {
+                // The partition limit has been exceeded.  The process will need to be done manually.
+                let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
+                        "limit (hybrid->exportImportPartitionLimit) of " + config.getHybrid().getExportImportPartitionLimit() +
+                        ".  This value is used to abort migrations that have a high potential for failure.  " +
+                        "The migration will need to be done manually OR try increasing the limit. Review commandline option '-ep'.");
+                rtn = Boolean.FALSE;
+            } else {
+                rtn = Boolean.TRUE;
             }
-        }
-
-        if (let.getPartitions().size() > config.getHybrid().getExportImportPartitionLimit() &&
-                config.getHybrid().getExportImportPartitionLimit() > 0) {
-            // The partition limit has been exceeded.  The process will need to be done manually.
-            let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
-                    "limit (hybrid->exportImportPartitionLimit) of " + config.getHybrid().getExportImportPartitionLimit() +
-                    ".  This value is used to abort migrations that have a high potential for failure.  " +
-                    "The migration will need to be done manually OR try increasing the limit. Review commandline option '-ep'.");
+        } catch (Throwable t) {
+            LOG.error("Error building EXPORT_IMPORT SQL: " + t.getMessage(), t);
+            let.addIssue("Error building EXPORT_IMPORT SQL: " + t.getMessage());
             rtn = Boolean.FALSE;
-        } else {
-            rtn = Boolean.TRUE;
         }
-
         return rtn;
     }
 
@@ -2067,11 +2092,11 @@ public class TableMirror {
         return steps;
     }
 
-    public DataStrategy getStrategy() {
+    public DataStrategyEnum getStrategy() {
         return strategy;
     }
 
-    public void setStrategy(DataStrategy strategy) {
+    public void setStrategy(DataStrategyEnum strategy) {
         this.strategy = strategy;
     }
 

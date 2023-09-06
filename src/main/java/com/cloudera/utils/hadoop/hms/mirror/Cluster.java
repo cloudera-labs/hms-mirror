@@ -32,8 +32,8 @@ import java.text.*;
 import java.util.*;
 import java.util.regex.Matcher;
 
-import static com.cloudera.utils.hadoop.hms.mirror.DataStrategy.DUMP;
-import static com.cloudera.utils.hadoop.hms.mirror.DataStrategy.STORAGE_MIGRATION;
+import static com.cloudera.utils.hadoop.hms.mirror.datastrategy.DataStrategyEnum.DUMP;
+import static com.cloudera.utils.hadoop.hms.mirror.datastrategy.DataStrategyEnum.STORAGE_MIGRATION;
 import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.*;
 import static com.cloudera.utils.hadoop.hms.mirror.TablePropertyVars.HMS_STORAGE_MIGRATION_FLAG;
 

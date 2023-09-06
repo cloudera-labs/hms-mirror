@@ -19,6 +19,7 @@ package com.cloudera.utils.hadoop.hms.mirror;
 import com.cloudera.utils.hadoop.HadoopSession;
 import com.cloudera.utils.hadoop.HadoopSessionFactory;
 import com.cloudera.utils.hadoop.HadoopSessionPool;
+import com.cloudera.utils.hadoop.hms.mirror.datastrategy.DataStrategyEnum;
 import com.cloudera.utils.hadoop.hms.mirror.feature.LegacyTranslations;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -59,7 +60,7 @@ public class Config {
     private String commandLineOptions = null;
     private boolean copyAvroSchemaUrls = Boolean.FALSE;
     private ConnectionPoolLibs connectionPoolLib = HYBRID; // DBCP2 is Alternate.
-    private DataStrategy dataStrategy = DataStrategy.SCHEMA_ONLY;
+    private DataStrategyEnum dataStrategy = DataStrategyEnum.SCHEMA_ONLY;
     private Boolean databaseOnly = Boolean.FALSE;
     private Boolean dumpTestData = Boolean.FALSE;
     private String loadTestDataFile = null;
@@ -512,13 +513,13 @@ public class Config {
         this.skipLinkCheck = skipLinkCheck;
     }
 
-    public DataStrategy getDataStrategy() {
+    public DataStrategyEnum getDataStrategy() {
         return dataStrategy;
     }
 
-    public void setDataStrategy(DataStrategy dataStrategy) {
+    public void setDataStrategy(DataStrategyEnum dataStrategy) {
         this.dataStrategy = dataStrategy;
-        if (this.dataStrategy != null && this.dataStrategy == DataStrategy.DUMP) {
+        if (this.dataStrategy != null && this.dataStrategy == DataStrategyEnum.DUMP) {
             this.getMigrateACID().setOn(Boolean.TRUE);
             this.getMigrateVIEW().setOn(Boolean.TRUE);
             this.setMigratedNonNative(Boolean.TRUE);
@@ -749,7 +750,7 @@ public class Config {
             rtn = Boolean.FALSE;
         }
 
-        if (getCluster(Environment.LEFT).isHdpHive3() && this.getDataStrategy() == DataStrategy.STORAGE_MIGRATION) {
+        if (getCluster(Environment.LEFT).isHdpHive3() && this.getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION) {
             this.getTranslator().setForceExternalLocation(Boolean.TRUE);
             if (getMigrateACID().isOn() && !getTransfer().getStorageMigration().isDistcp()) {
                 errors.set(HIVE3_ON_HDP_ACID_TRANSFERS.getCode());
@@ -758,11 +759,11 @@ public class Config {
         }
 
         if (resetToDefaultLocation) {
-            if (!(dataStrategy == DataStrategy.SCHEMA_ONLY ||
-                    dataStrategy == DataStrategy.STORAGE_MIGRATION ||
-                    dataStrategy == DataStrategy.SQL ||
-                    dataStrategy == DataStrategy.EXPORT_IMPORT ||
-                    dataStrategy == DataStrategy.HYBRID)) {
+            if (!(dataStrategy == DataStrategyEnum.SCHEMA_ONLY ||
+                    dataStrategy == DataStrategyEnum.STORAGE_MIGRATION ||
+                    dataStrategy == DataStrategyEnum.SQL ||
+                    dataStrategy == DataStrategyEnum.EXPORT_IMPORT ||
+                    dataStrategy == DataStrategyEnum.HYBRID)) {
                 errors.set(RESET_TO_DEFAULT_LOCATION.getCode());
                 rtn = Boolean.FALSE;
             }
@@ -878,16 +879,16 @@ public class Config {
 //                errors.set(DISTCP_VALID_DISTCP_RESET_TO_DEFAULT_LOCATION.getCode());
 //                rtn = Boolean.FALSE;
 //            }
-            if (getDataStrategy() == DataStrategy.EXPORT_IMPORT
-                    || getDataStrategy() == DataStrategy.COMMON
-                    || getDataStrategy() == DataStrategy.DUMP
-                    || getDataStrategy() == DataStrategy.LINKED
-                    || getDataStrategy() == DataStrategy.CONVERT_LINKED
-                    || getDataStrategy() == DataStrategy.HYBRID) {
+            if (getDataStrategy() == DataStrategyEnum.EXPORT_IMPORT
+                    || getDataStrategy() == DataStrategyEnum.COMMON
+                    || getDataStrategy() == DataStrategyEnum.DUMP
+                    || getDataStrategy() == DataStrategyEnum.LINKED
+                    || getDataStrategy() == DataStrategyEnum.CONVERT_LINKED
+                    || getDataStrategy() == DataStrategyEnum.HYBRID) {
                 errors.set(DISTCP_VALID_STRATEGY.getCode());
                 rtn = Boolean.FALSE;
             }
-            if (getDataStrategy() == DataStrategy.STORAGE_MIGRATION
+            if (getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION
                     && getTransfer().getStorageMigration().isDistcp()) {
                 warnings.set(STORAGE_MIGRATION_DISTCP_EXECUTE.getCode());
             }
@@ -902,17 +903,20 @@ public class Config {
 //                errors.set(STORAGE_MIGRATION_DISTCP_ACID.getCode());
 //                rtn = Boolean.FALSE;
 //            }
-            if (getDataStrategy() == DataStrategy.SQL
+            if (getDataStrategy() == DataStrategyEnum.SQL
                     && getMigrateACID().isOn()
                     && getMigrateACID().isDowngrade()
                     && (getTransfer().getWarehouse().getExternalDirectory() == null)) {
                 errors.set(SQL_ACID_DA_DISTCP_WO_EXT_WAREHOUSE.getCode());
                 rtn = Boolean.FALSE;
             }
-            if (getDataStrategy() == DataStrategy.SQL) {
-                if (!(getMigrateACID().isOn() && getMigrateACID().isOnly() && getMigrateACID().isDowngrade())) {
-                    errors.set(SQL_DISTCP_ONLY_W_DA_ACID.getCode());
-                    rtn = Boolean.FALSE;
+            if (getDataStrategy() == DataStrategyEnum.SQL) {
+                // For SQL, we can only migrate ACID tables with `distcp` if we're downgrading of them.
+                if (getMigrateACID().isOn() || getMigrateACID().isOnly()) {
+                    if (!getMigrateACID().isDowngrade()) {
+                        errors.set(SQL_DISTCP_ONLY_W_DA_ACID.getCode());
+                        rtn = Boolean.FALSE;
+                    }
                 }
                 if (getTransfer().getCommonStorage() != null
 //                        || getTransfer().getIntermediateStorage() != null)
@@ -924,12 +928,12 @@ public class Config {
         }
 
         // Because the ACID downgrade requires some SQL transformation, we can't do this via SCHEMA_ONLY.
-        if (getDataStrategy() == DataStrategy.SCHEMA_ONLY && getMigrateACID().isOn() && getMigrateACID().isDowngrade()) {
+        if (getDataStrategy() == DataStrategyEnum.SCHEMA_ONLY && getMigrateACID().isOn() && getMigrateACID().isDowngrade()) {
             errors.set(ACID_DOWNGRADE_SCHEMA_ONLY.getCode());
             rtn = Boolean.FALSE;
         }
 
-        if (getDataStrategy() == DataStrategy.SCHEMA_ONLY) {
+        if (getDataStrategy() == DataStrategyEnum.SCHEMA_ONLY) {
             if (!getTransfer().getStorageMigration().isDistcp()) {
                 if (resetToDefaultLocation) {
                     // requires distcp.
@@ -951,26 +955,26 @@ public class Config {
         if (sync && (getFilter().getTblRegEx() != null || getFilter().getTblExcludeRegEx() != null)) {
             warnings.set(SYNC_TBL_FILTER.getCode());
         }
-        if (sync && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.LINKED ||
-                dataStrategy == DataStrategy.SQL || dataStrategy == DataStrategy.EXPORT_IMPORT ||
-                dataStrategy == DataStrategy.HYBRID)) {
+        if (sync && !(dataStrategy == DataStrategyEnum.SCHEMA_ONLY || dataStrategy == DataStrategyEnum.LINKED ||
+                dataStrategy == DataStrategyEnum.SQL || dataStrategy == DataStrategyEnum.EXPORT_IMPORT ||
+                dataStrategy == DataStrategyEnum.HYBRID)) {
             errors.set(VALID_SYNC_STRATEGIES.getCode());
             rtn = Boolean.FALSE;
         }
-        if (migrateACID.isOn() && !(dataStrategy == DataStrategy.SCHEMA_ONLY || dataStrategy == DataStrategy.DUMP ||
-                dataStrategy == DataStrategy.EXPORT_IMPORT || dataStrategy == DataStrategy.HYBRID ||
-                dataStrategy == DataStrategy.SQL || dataStrategy == DataStrategy.STORAGE_MIGRATION)) {
+        if (migrateACID.isOn() && !(dataStrategy == DataStrategyEnum.SCHEMA_ONLY || dataStrategy == DataStrategyEnum.DUMP ||
+                dataStrategy == DataStrategyEnum.EXPORT_IMPORT || dataStrategy == DataStrategyEnum.HYBRID ||
+                dataStrategy == DataStrategyEnum.SQL || dataStrategy == DataStrategyEnum.STORAGE_MIGRATION)) {
             errors.set(VALID_ACID_STRATEGIES.getCode());
             rtn = Boolean.FALSE;
         }
 
         // DUMP does require Execute.
-        if (isExecute() && dataStrategy == DataStrategy.DUMP) {
+        if (isExecute() && dataStrategy == DataStrategyEnum.DUMP) {
             setExecute(Boolean.FALSE);
         }
 
         if (migrateACID.isOn() && migrateACID.isInplace()) {
-            if (!(dataStrategy == DataStrategy.SQL)) {
+            if (!(dataStrategy == DataStrategyEnum.SQL)) {
                 errors.set(VALID_ACID_DA_IP_STRATEGIES.getCode());
                 rtn = Boolean.FALSE;
             }
@@ -992,7 +996,7 @@ public class Config {
             }
         }
 
-        if (dataStrategy == DataStrategy.STORAGE_MIGRATION) {
+        if (dataStrategy == DataStrategyEnum.STORAGE_MIGRATION) {
             // The commonStorage and Storage Migration Namespace are the same thing.
             if (this.getTransfer().getCommonStorage() == null) {
                 // Use the same namespace, we're assuming that was the intent.
@@ -1024,7 +1028,7 @@ public class Config {
             }
         }
 
-        if (dataStrategy == DataStrategy.ACID) {
+        if (dataStrategy == DataStrategyEnum.ACID) {
             errors.set(ACID_NOT_TOP_LEVEL_STRATEGY.getCode());
             rtn = Boolean.FALSE;
         }
@@ -1087,7 +1091,7 @@ public class Config {
         }
 
         if (isReplace()) {
-            if (getDataStrategy() != DataStrategy.SQL) {
+            if (getDataStrategy() != DataStrategyEnum.SQL) {
                 errors.set(REPLACE_ONLY_WITH_SQL.getCode());
                 rtn = Boolean.FALSE;
             }
@@ -1100,7 +1104,7 @@ public class Config {
         }
 
         if (getCluster(Environment.RIGHT) != null) {
-            if (getDataStrategy() != DataStrategy.SCHEMA_ONLY &&
+            if (getDataStrategy() != DataStrategyEnum.SCHEMA_ONLY &&
             getCluster(Environment.RIGHT).getCreateIfNotExists()) {
                 warnings.set(CINE_WITH_DATASTRATEGY.getCode());
             }
@@ -1138,8 +1142,8 @@ public class Config {
                 // - Only applies to SCHEMA_ONLY, SQL, EXPORT_IMPORT, and HYBRID data strategies.
                 // -
                 //
-                if (getDataStrategy() != DataStrategy.STORAGE_MIGRATION && !rightHS2.isValidUri()) {
-                    if (!this.getDataStrategy().equals(DataStrategy.DUMP)) {
+                if (getDataStrategy() != DataStrategyEnum.STORAGE_MIGRATION && !rightHS2.isValidUri()) {
+                    if (!this.getDataStrategy().equals(DataStrategyEnum.DUMP)) {
                         rtn = Boolean.FALSE;
                         errors.set(RIGHT_HS2_URI_INVALID.getCode());
                     }
@@ -1157,7 +1161,7 @@ public class Config {
                     }
                 }
             } else {
-                if (!(getDataStrategy() == DataStrategy.STORAGE_MIGRATION || getDataStrategy() == DataStrategy.DUMP)) {
+                if (!(getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION || getDataStrategy() == DataStrategyEnum.DUMP)) {
                     if (!getMigrateACID().isDowngradeInPlace()) {
                         rtn = Boolean.FALSE;
                         errors.set(RIGHT_HS2_DEFINITION_MISSING.getCode());
@@ -1219,7 +1223,7 @@ public class Config {
     public Boolean checkConnections() {
         Boolean rtn = Boolean.FALSE;
         Set<Environment> envs = null;
-        if (!(getDataStrategy() == DataStrategy.DUMP || getDataStrategy() == DataStrategy.STORAGE_MIGRATION))
+        if (!(getDataStrategy() == DataStrategyEnum.DUMP || getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION))
             envs = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
         else
             envs = Sets.newHashSet(Environment.LEFT);

@@ -7,6 +7,7 @@ import com.cloudera.utils.hadoop.hms.mirror.PhaseState;
 import org.junit.Test;
 
 import static com.cloudera.utils.hadoop.hms.EnvironmentConstants.*;
+import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.SQL_DISTCP_ONLY_W_DA_ACID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -76,6 +77,28 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 2; // Two tables exceed partition count limit of 100 (default).
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
+    }
+
+    @Test
+    public void ei_bad_hcfsns_01() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "EXPORT_IMPORT",
+                "-sql", "-ltd", ASSORTED_TBLS_04,
+                "-cfg", CDP_CDP_BNS,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 6; // Two tables exceed partition count limit of 100 (default).
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
     }
@@ -344,6 +367,29 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 1; // exceed partition count
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+
+    }
+
+    @Test
+    public void hybrid_bad_hcfsns_01() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "HYBRID",
+                "-sql",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", CDP_CDP_BNS,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 6; // exceed partition count and bad hcfsns
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
     }
@@ -1027,7 +1073,7 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
+        long check = 3; // acid tables.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
     }
@@ -1100,6 +1146,28 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         int check = 3; // acid tables.
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+    }
+
+    @Test
+    public void sql_bad_hcfsns_02() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-sql",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", CDP_CDP_BNS,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 6; // acid tables.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
     }
 
@@ -1220,6 +1288,30 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, rtn, check);
+    }
+
+    @Test
+    public void sql_mao_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-mao",
+                "-dc",
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", CDP_CDP,
+                "-o", outputDir
+        };
+
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = SQL_DISTCP_ONLY_W_DA_ACID.getLong();
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, rtn, check * -1);
     }
 
     @Test

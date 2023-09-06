@@ -17,6 +17,7 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
 import com.cloudera.utils.hadoop.hms.Context;
+import com.cloudera.utils.hadoop.hms.mirror.datastrategy.DataStrategyEnum;
 import com.cloudera.utils.hadoop.hms.stage.Transfer;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -146,8 +147,8 @@ public class Translator {
         // Fix formatting of partition names.
         for (Map.Entry<String, String> item : environmentTable.getPartitions().entrySet()) {
             String partitionName = item.getKey();
-            String[] partitionNameParts = partitionName.split("=");
-            partitions.put("`" + partitionNameParts[0] + "`='" + partitionNameParts[1] + "'", item.getValue());
+            String partSpec = TableUtils.toPartitionSpec(partitionName);
+            partitions.put(partSpec, item.getValue());
         }
         // Transfer partitions map to a string using streaming
         partitions.entrySet().stream().forEach(e -> sbPartitionDetails.append("\tPARTITION (" + e.getKey() + ") LOCATION '" + e.getValue() + "' \n"));
@@ -160,7 +161,7 @@ public class Translator {
         Map<String, String> dbRef = tblMirror.getParent().getDBDefinition(Environment.RIGHT);
         Boolean chkLocation = config.getTransfer().getWarehouse().getManagedDirectory() != null && config.getTransfer().getWarehouse().getExternalDirectory() != null;
         if (config.getEvaluatePartitionLocation() && tblMirror.getEnvironmentTable(Environment.LEFT).getPartitioned()
-                && (tblMirror.getStrategy() == DataStrategy.SCHEMA_ONLY)) {
+                && (tblMirror.getStrategy() == DataStrategyEnum.SCHEMA_ONLY)) {
             // Only Translate for SCHEMA_ONLY.  Leave the DUMP location as is.
             EnvironmentTable target = tblMirror.getEnvironmentTable(Environment.RIGHT);
             /*
@@ -238,7 +239,7 @@ public class Translator {
         return rtn;
     }
 
-    public String translateTableLocation(TableMirror tableMirror, String originalLocation, int level, String partitionSpec) {
+    public String translateTableLocation(TableMirror tableMirror, String originalLocation, int level, String partitionSpec) throws Exception{
         String rtn = originalLocation;
         StringBuilder dirBuilder = new StringBuilder();
         String tableName = tableMirror.getName();
@@ -253,7 +254,7 @@ public class Translator {
 
         // Get the relative dir.
         if (!rtn.startsWith(config.getCluster(Environment.LEFT).getHcfsNamespace())) {
-            throw new RuntimeException("Table/Partition Location prefix: `" + originalLocation +
+            throw new Exception("Table/Partition Location prefix: `" + originalLocation +
                     "` doesn't match the LEFT clusters defined hcfsNamespace: `" + config.getCluster(Environment.LEFT).getHcfsNamespace() +
                     "`. We can't reliably make this translation.");
         }
@@ -268,7 +269,7 @@ public class Translator {
             // under conditions like, STORAGE_MIGRATION, same namespace, !rdl and glm we need to ensure ALL locations are
             //   mapped...  If they aren't, they won't be moved as the translation wouldn't change.  So we need to throw
             //   an error that ensures the table fails to process.
-            if (config.getDataStrategy() == DataStrategy.STORAGE_MIGRATION &&
+            if (config.getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION &&
                     config.getTransfer().getCommonStorage().equals(config.getCluster(Environment.LEFT).getHcfsNamespace()) &&
                     !config.getResetToDefaultLocation()) {
                 throw new RuntimeException("Location Mapping can't be determined.  No matching `glm` entry to make translation." +
@@ -315,8 +316,8 @@ public class Translator {
         LOG.debug("Translate Table Location: " + originalLocation + ": " + dirBuilder);
         // Add Location Map for table to a list.
         // TODO: Need to handle RIGHT locations.
-        if (config.getTransfer().getStorageMigration().isDistcp() && config.getDataStrategy() != DataStrategy.SQL) {
-            if (config.getDataStrategy() == DataStrategy.STORAGE_MIGRATION) {
+        if (config.getTransfer().getStorageMigration().isDistcp() && config.getDataStrategy() != DataStrategyEnum.SQL) {
+            if (config.getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION) {
                 addLocation(dbName, Environment.LEFT, originalLocation, dirBuilder.toString().trim(), level);
             } else if (config.getTransfer().getStorageMigration().getDataFlow() == DistcpFlow.PULL && !config.isFlip()) {
                 addLocation(dbName, Environment.RIGHT, originalLocation, dirBuilder.toString().trim(), level);

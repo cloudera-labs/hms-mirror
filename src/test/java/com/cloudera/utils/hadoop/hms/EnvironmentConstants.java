@@ -4,6 +4,7 @@ public interface EnvironmentConstants {
     String HDP2_CDP = "/config/default.yaml.hdp2-cdp";
     String HDP3_CDP = "/config/default.yaml.hdp3-cdp";
     String CDP_CDP = "/config/default.yaml.cdp-cdp";
+    String CDP_CDP_BNS = "/config/default.yaml.cdp-cdp.bad.hcfsns";
     String CDP = "/config/default.yaml.cdp";
     String CDH_CDP = "/config/default.yaml.cdh-cdp";
     String ENCRYPTED = "/config/default.yaml.encrypted";

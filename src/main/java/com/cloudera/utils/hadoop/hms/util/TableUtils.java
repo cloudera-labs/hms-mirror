@@ -239,6 +239,11 @@ public class TableUtils {
         return updateTableLocation(envTable.getName(), envTable.getDefinition(), newLocation);
     }
 
+    /*
+    Update the table location in the table definition.
+
+    return true if the location was updated, false if not.
+     */
     public static Boolean updateTableLocation(String tableName, List<String> tableDefinition,
                                               String newLocation) {
         Boolean rtn = Boolean.FALSE;

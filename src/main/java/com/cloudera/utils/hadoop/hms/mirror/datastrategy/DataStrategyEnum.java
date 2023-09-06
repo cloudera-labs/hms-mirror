@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-package com.cloudera.utils.hadoop.hms.mirror;
+package com.cloudera.utils.hadoop.hms.mirror.datastrategy;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public enum DataStrategy {
+public enum DataStrategyEnum {
     /*
     The DUMP strategy will run against the LEFT cluster (attaching to it) and build scripts
      based on the configuration in that cluster.  You can optionally use the -f|--flip
      option to use the RIGHT cluster as the target for the dump.
      */
-    DUMP(Boolean.FALSE),
+    DUMP(Boolean.FALSE, DumpDataStrategy.class),
     /*
     The DOWNGRADE strategy is intended to downgrade ACID tables to EXTERNAL/PURGE tables on the
     LEFT cluster.  This process will only run against ACID tables (implies -mao|--migrate-acid-only).
@@ -49,29 +49,29 @@ public enum DataStrategy {
     clusters location namespace and maintain the relative path.
     The data is transferred by an external process, like 'distcp'.
      */
-    SCHEMA_ONLY(Boolean.FALSE),
+    SCHEMA_ONLY(Boolean.FALSE, SchemaOnlyDataStrategy.class),
     /*
     Assumes the clusters are LINKED.  We'll transfer the schema and leave
     the location as is on the new cluster.  This provides a means to test
     Hive on the RIGHT cluster using the LEFT clusters storage.
      */
-    LINKED(Boolean.FALSE),
+    LINKED(Boolean.FALSE, LinkedDataStrategy.class),
     /*
     Assumes the clusters are LINKED.  We'll use SQL to migrate the data
     from one cluster to another.
      */
-    SQL(Boolean.FALSE),
+    SQL(Boolean.FALSE, SQLDataStrategy.class),
     /*
     Assumes the clusters are LINKED.  We'll use EXPORT_IMPORT to get the
     data to the new cluster.  EXPORT to a location on the LEFT cluster
     where the RIGHT cluster can pick it up with IMPORT.
      */
-    EXPORT_IMPORT(Boolean.FALSE),
+    EXPORT_IMPORT(Boolean.FALSE, ExportImportDataStrategy.class),
     /*
     Hybrid is a strategy that select either SQL or EXPORT_IMPORT for the
     tables data strategy depending on the criteria of the table.
      */
-    HYBRID(Boolean.FALSE),
+    HYBRID(Boolean.FALSE, HybridDataStrategy.class),
     /*
     If you had previously created a schema on the RIGHT that is LINKED to the LEFT's data,
     this option provides a way to 'convert' the LINKED schemas to SCHEMA_ONLY without having to
@@ -80,7 +80,7 @@ public enum DataStrategy {
     to the RIGHT's NAMESPACE.  In addition, tables that were 'legacy' managed and converted to EXTERNAL
     WITHOUT purge, will have the purge flag set since the data is now owned by the RIGHT cluster.
      */
-    CONVERT_LINKED(Boolean.FALSE),
+    CONVERT_LINKED(Boolean.FALSE, ConvertLinkedDataStrategy.class),
     /*
     Using the LEFT cluster configuration (or RIGHT when `-f|--flip` is used), migrate the tables from
     the current storage location to one of two possibilities: The default locations in 'hms' as identified by
@@ -115,33 +115,51 @@ public enum DataStrategy {
     this process.
 
      */
-    STORAGE_MIGRATION(Boolean.FALSE),
+    STORAGE_MIGRATION(Boolean.FALSE, StorageMigrationDataStrategy.class),
     /*
     The data storage is shared between the two clusters and no data
     migration is required.  Schema's are transferred using the same
     location.  Commit/ownership?
      */
-    COMMON(Boolean.FALSE),
+    COMMON(Boolean.FALSE, CommonDataStrategy.class),
     /*
     ACID Transfer is a hidden strategy applied to the table.
      */
-    ACID(Boolean.TRUE),
-    ICEBERG_CONVERSION(Boolean.FALSE);
+    ACID(Boolean.TRUE, AcidDataStrategy.class),
+    ICEBERG_CONVERSION(Boolean.FALSE, IcebergConversionDataStrategy.class),
+    INTERMEDIATE(Boolean.TRUE, IntermediateDataStrategy.class),
+    SQL_ACID_DOWNGRADE_INPLACE(Boolean.TRUE, SQLAcidDowngradeInPlaceDataStrategy.class),
+    EXPORT_IMPORT_ACID_DOWNGRADE_INPLACE(Boolean.TRUE, ExportImportAcidDowngradeInPlaceDataStrategy.class),
+    HYBRID_ACID_DOWNGRADE_INPLACE(Boolean.TRUE, HybridAcidDowngradeInPlaceDataStrategy.class);
 
     private final boolean hidden;
+    private final Class clazz;
 
-    DataStrategy(boolean hidden) {
+    DataStrategyEnum(boolean hidden, Class clazz) {
         this.hidden = hidden;
+        this.clazz = clazz;
     }
 
-    public static DataStrategy[] visibleValues() {
-        List<DataStrategy> dsList = new ArrayList<DataStrategy>();
-        for (DataStrategy dataStrategy: values()) {
+    public static DataStrategyEnum[] visibleValues() {
+        List<DataStrategyEnum> dsList = new ArrayList<DataStrategyEnum>();
+        for (DataStrategyEnum dataStrategy : values()) {
             if (!dataStrategy.hidden) {
                 dsList.add(dataStrategy);
             }
         }
-        DataStrategy[] rtn = dsList.toArray(new DataStrategy[0]);
+        DataStrategyEnum[] rtn = dsList.toArray(new DataStrategyEnum[0]);
+        return rtn;
+    }
+
+    public DataStrategy getDataStrategy() {
+        DataStrategy rtn = null;
+        try {
+            rtn = (DataStrategy) clazz.newInstance();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
         return rtn;
     }
 }
