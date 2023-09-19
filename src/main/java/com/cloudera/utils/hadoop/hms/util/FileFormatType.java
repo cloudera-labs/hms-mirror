@@ -20,7 +20,7 @@ package com.cloudera.utils.hadoop.hms.util;
 import java.util.ArrayList;
 import java.util.List;
 
-public enum StorageType {
+public enum FileFormatType {
     ORC("org.apache.hadoop.hive.ql.io.orc.OrcSerde","org.apache.hadoop.hive.ql.io.orc.OrcInputFormat", "org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat"),
     TEXTFILE("org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe","org.apache.hadoop.mapred.TextInputFormat", "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat"),
     SEQUENCEFILE("org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe","org.apache.hadoop.mapred.SequenceFileInputFormat", "org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat"),
@@ -34,16 +34,16 @@ public enum StorageType {
     private String inputFormat;
     private String outputFormat;
 
-    StorageType(String rowFormatSerde, String inputFormat, String outputFormat) {
+    FileFormatType(String rowFormatSerde, String inputFormat, String outputFormat) {
         this.rowFormatSerde = rowFormatSerde;
         this.inputFormat = inputFormat;
         this.outputFormat = outputFormat;
     }
 
-    public static StorageType from(String rowFormatSerde, String inputFormat) {
-        StorageType rtn = UNKNOWN;
+    public static FileFormatType from(String rowFormatSerde, String inputFormat) {
+        FileFormatType rtn = UNKNOWN;
         // Remove Quotes if they exists.
-        List<StorageType> storageTypeList = new ArrayList<StorageType>();
+        List<FileFormatType> fileFormatTypeList = new ArrayList<FileFormatType>();
 
         String inputFormatLcl = inputFormat;
         if (inputFormatLcl.startsWith("'")) {
@@ -54,16 +54,16 @@ public enum StorageType {
             rowFormatSerdeLcl = rowFormatSerde.substring(1, rowFormatSerde.length() - 1);
         }
         if (rowFormatSerdeLcl != null) {
-            for (StorageType storageType : StorageType.values()) {
+            for (FileFormatType storageType : FileFormatType.values()) {
                 if (storageType.rowFormatSerde.equals(rowFormatSerdeLcl)) {
-                    storageTypeList.add(storageType);
+                    fileFormatTypeList.add(storageType);
 //                    rtn = storageType;
 //                    break;
                 }
             }
         }
 
-        for (StorageType storageType : storageTypeList) {
+        for (FileFormatType storageType : fileFormatTypeList) {
             if (storageType.inputFormat.equals(inputFormatLcl)) {
                 rtn = storageType;
                 break;

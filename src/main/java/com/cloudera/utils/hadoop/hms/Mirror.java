@@ -450,6 +450,18 @@ public class Mirror {
                     }
                 }
 
+                if (cmd.hasOption("iv")) {
+                    getConfig().getIcebergConfig().setVersion(Integer.parseInt(cmd.getOptionValue("iv")));
+                }
+
+                if (cmd.hasOption("itpo")) {
+                        // property overrides.
+                        String[] overrides = cmd.getOptionValues("itpo");
+                        if (overrides != null)
+                            getConfig().getIcebergConfig().setPropertyOverridesStr(overrides);
+
+                }
+
                 // Skip Optimizations.
                 if (cmd.hasOption("so")) {
                     getConfig().getOptimization().setSkip(Boolean.TRUE);
@@ -1464,6 +1476,11 @@ public class Mirror {
         Set<String> collectedDbs = conversion.getDatabases().keySet();
         for (String database : collectedDbs) {
             DBMirror dbMirror = conversion.getDatabase(database);
+            if (config.getDataStrategy() == DataStrategyEnum.ICEBERG_CONVERSION) {
+                dbMirror.addIssue(Environment.LEFT, "This will only process tables that are not already Iceberg.");
+                dbMirror.addIssue(Environment.LEFT, "This Hive Script will only run against HS2's on CDP PvC DS 1.5.1+, CDP Public Cloud Datahub August 2023+, or CDP Data Warehouse Public Cloud August 2023+");
+                dbMirror.addIssue(Environment.LEFT, "CDP Private Cloud Base 7.1.9 does NOT support Hive with Iceberg.  This will fail.");
+            }
             // Loop through the tables in the database
             Set<String> tables = dbMirror.getTableMirrors().keySet();
             for (String table : tables) {
@@ -1640,6 +1657,21 @@ public class Mirror {
                         "table.");
         compressTextOutputOption.setRequired(Boolean.FALSE);
         options.addOption(compressTextOutputOption);
+
+        Option icebergVersionOption = new Option("iv", "iceberg-version", true,
+                "Specify the Iceberg Version to use.  Specify 1 or 2.  Default is 2.");
+        icebergVersionOption.setOptionalArg(Boolean.TRUE);
+        icebergVersionOption.setArgName("version");
+        icebergVersionOption.setRequired(Boolean.FALSE);
+        options.addOption(icebergVersionOption);
+
+        Option icebergTablePropertyOverrides = new Option("itpo", "iceberg-table-property-overrides", true,
+                "Comma separated key=value pairs of Iceberg Table Properties to set/override.");
+        icebergTablePropertyOverrides.setArgName("key=value");
+        icebergTablePropertyOverrides.setRequired(Boolean.FALSE);
+        icebergTablePropertyOverrides.setValueSeparator(',');
+        icebergTablePropertyOverrides.setArgs(100);
+        options.addOption(icebergTablePropertyOverrides);
 
         Option createIfNotExistsOption = new Option("cine", "create-if-not-exist", false,
                 "CREATE table/partition statements will be adjusted to include 'IF NOT EXISTS'.  This will ensure " +

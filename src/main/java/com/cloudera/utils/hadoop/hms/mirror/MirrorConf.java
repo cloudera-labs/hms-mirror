@@ -104,4 +104,7 @@ public interface MirrorConf {
     String PARTITION_COUNT = "partition.count";
     String NOT_SET = "NOT_SET";
 
+//    String CONVERT_TO_ICEBERG_V1 = "ALTER TABLE {0} SET TBLPROPERTIES ('storage_handler'='org.apache.iceberg.mr.hive.HiveIcebergStorageHandler')";
+    String CONVERT_TO_ICEBERG = "ALTER TABLE {0} SET TBLPROPERTIES ({1})";
+    String CONVERT_TO_ICEBERG_DESC = "Convert to Iceberg table format v{0}.";
 }

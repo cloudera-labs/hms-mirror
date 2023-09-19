@@ -17,7 +17,9 @@
 
 package com.cloudera.utils.hadoop.hms.util;
 
-import com.cloudera.utils.hadoop.hms.mirror.*;
+import com.cloudera.utils.hadoop.hms.mirror.Cluster;
+import com.cloudera.utils.hadoop.hms.mirror.EnvironmentTable;
+import com.cloudera.utils.hadoop.hms.mirror.SerdeType;
 import com.cloudera.utils.hadoop.hms.mirror.feature.IcebergState;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -25,6 +27,7 @@ import org.apache.log4j.Logger;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -33,10 +36,9 @@ import java.util.stream.Collectors;
 
 import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.FILE_FORMAT;
 import static com.cloudera.utils.hadoop.hms.mirror.TablePropertyVars.*;
+import static com.cloudera.utils.hadoop.hms.util.FileFormatType.*;
 
 public class TableUtils {
-    private static final Logger LOG = LogManager.getLogger(TableUtils.class);
-
     public static final String CREATE = "CREATE";
     public static final String CREATE_TABLE = "CREATE TABLE";
     public static final String CREATE_EXTERNAL_TABLE = "CREATE EXTERNAL TABLE";
@@ -53,6 +55,7 @@ public class TableUtils {
     public static final String BUCKETS = "BUCKETS";
     public static final String INTO = "INTO";
     public static final String TBL_PROPERTIES = "TBLPROPERTIES (";
+    public static final String STORED_BY = "STORED BY";
     public static final String USE_DESC = "Selecting DB";
     public static final String CREATE_DESC = "Creating Table";
     public static final String CREATE_SHADOW_DESC = "Creating Shadow Table";
@@ -72,8 +75,10 @@ public class TableUtils {
     public static final String IMPORT_TABLE = "IMPORT Table";
     public static final String RENAME_TABLE = "RENAME Table";
     public static final String ACID_NOT_ON = "This is an ACID table.  Turn on ACID migration `-ma|--migrate-acid`.";
-    public static Pattern tableCreatePattern = Pattern.compile(".*TABLE `?([a-z,A-Z,_,0-9,_]+)`?\\.?`?([a-z,A-Z,_,0-9,_]+)?");
+    private static final Logger LOG = LogManager.getLogger(TableUtils.class);
+    private static final List<FileFormatType> validateIcebergFileFormats = new ArrayList<FileFormatType>(Arrays.asList(ORC, PARQUET, AVRO));
 //    public static Pattern dbdottable = Pattern.compile(".*`?\\.`?(.*)");
+    public static Pattern tableCreatePattern = Pattern.compile(".*TABLE `?([a-z,A-Z,_,0-9,_]+)`?\\.?`?([a-z,A-Z,_,0-9,_]+)?");
 
     public static String getLocation(String tableName, List<String> tableDefinition) {
         LOG.trace("Getting table location data for: " + tableName);
@@ -150,7 +155,6 @@ public class TableUtils {
 
         return location;
     }
-
 
     public static String prefixTableNameLocation(EnvironmentTable envTable, String prefix) {
         return prefixTableNameLocation(envTable.getName(), envTable.getDefinition(), prefix);
@@ -461,7 +465,6 @@ public class TableUtils {
         }
     }
 
-
     public static Boolean prefixTableName(String tableName, String prefix, List<String> tableDefinition) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Prefixing table: " + tableName + " with " + prefix);
@@ -710,7 +713,6 @@ public class TableUtils {
         return hashText;
     }
 
-
     public static Boolean isPartitioned(EnvironmentTable envTable) {
         Boolean rtn = Boolean.FALSE;
         LOG.debug("Checking if table '" + envTable.getName() + "' is 'Partitioned'");
@@ -854,15 +856,15 @@ public class TableUtils {
         }
     }
 
-    public static StorageType getStorageType(List<String> tblDef) {
+    public static FileFormatType getFileFormatType(List<String> tblDef) {
 //        String rtn = null;
         int tpIdx = tblDef.indexOf("ROW FORMAT SERDE");
         String rowformatSerde = tblDef.get(tpIdx + 1);
         tpIdx = tblDef.indexOf("STORED AS INPUTFORMAT");
         String inputFormat = tblDef.get(tpIdx + 1);
-        StorageType storageType = StorageType.from(rowformatSerde, inputFormat);
+        FileFormatType fileFormatType = FileFormatType.from(rowformatSerde, inputFormat);
 
-        return storageType;
+        return fileFormatType;
     }
 
     public static boolean hasTblProperty(String key, EnvironmentTable environmentTable) {
@@ -881,17 +883,52 @@ public class TableUtils {
         }
     }
 
+    public static boolean isIceberg(EnvironmentTable envTable) {
+        // TODO: WIP for Iceberg Hive table Conversion.
+        /*
+        | STORED BY                                          |
+        |   'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler'  |
+         */
+        String rtn = null;
+        int sbIdx = envTable.getDefinition().indexOf(STORED_BY);
+        if (sbIdx != -1) {
+            String storedBy = envTable.getDefinition().get(sbIdx + 1);
+            if (storedBy.contains("iceberg")) {
+                return Boolean.TRUE;
+            }
+        }
+        return Boolean.FALSE;
+    }
+
     /*
       Returns: IcebergState
      */
-    public IcebergState getIcebergConversionState(EnvironmentTable envTable) {
+    public static IcebergState getIcebergConversionState(EnvironmentTable envTable) {
 
         IcebergState rtn = IcebergState.NOT_CONVERTABLE;
 
         // TODO: WIP for Iceberg Hive table Conversion.
+        if (TableUtils.isIceberg(envTable)) {
+            // TODO: Determine version.
+            envTable.addIssue("Table is already converted to Iceberg.");
+            rtn = IcebergState.V2_FORMAT;
+        } else if (TableUtils.isExternal(envTable)) {
+            FileFormatType fileFormat = TableUtils.getFileFormatType(envTable.getDefinition());
+            // Using the validateFileFormats list, check to see if the fileFormat is in it.
+            if (validateIcebergFileFormats.contains(fileFormat)) {
+                // Check to see if the table is already converted.
+                    rtn = IcebergState.CONVERTABLE;
+            } else {
+                envTable.addIssue("File format is not compatible with Iceberg.  Cannot convert to Iceberg.");
+                rtn = IcebergState.NOT_CONVERTABLE;
+            }
+        } else {
+            envTable.addIssue("Table is not external.  Cannot convert to Iceberg.");
+            rtn = IcebergState.NOT_CONVERTABLE;
+        }
 
         return rtn;
-    }
+}
 
     public static String getTblProperty(String key, EnvironmentTable environmentTable) {
         return getTblProperty(key, environmentTable.getDefinition());

@@ -652,9 +652,12 @@ public class Cluster implements Comparable<Cluster> {
                         for (Pair pair : sqlList) {
                             LOG.debug(getEnvironment() + ":SQL:" + pair.getDescription() + ":" + pair.getAction());
                             tblMirror.setMigrationStageMessage("Executing SQL: " + pair.getDescription());
-                            if (config.isExecute())
+                            if (config.isExecute()) {
                                 stmt.execute(pair.getAction());
-                            tblMirror.addStep(getEnvironment().toString(), "Sql Run Complete for: " + pair.getDescription());
+                                tblMirror.addStep(getEnvironment().toString(), "Sql Run Complete for: " + pair.getDescription());
+                            } else {
+                                tblMirror.addStep(getEnvironment().toString(), "Sql Run SKIPPED (DRY-RUN) for: " + pair.getDescription());
+                            }
                         }
                     } catch (SQLException throwables) {
                         LOG.error(throwables);

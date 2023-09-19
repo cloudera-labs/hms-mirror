@@ -93,6 +93,7 @@ public class Config {
      */
     private Boolean flip = Boolean.FALSE;
     private HybridConfig hybrid = new HybridConfig();
+    private IcebergConfig icebergConfig = new IcebergConfig();
     private MigrateACID migrateACID = new MigrateACID();
     private MigrateVIEW migrateVIEW = new MigrateVIEW();
     private Boolean migratedNonNative = Boolean.FALSE;
@@ -551,6 +552,14 @@ public class Config {
         this.hybrid = hybrid;
     }
 
+    public IcebergConfig getIcebergConfig() {
+        return icebergConfig;
+    }
+
+    public void setIcebergConfig(IcebergConfig icebergConfig) {
+        this.icebergConfig = icebergConfig;
+    }
+
     public boolean isExecute() {
         if (!execute) {
             LOG.debug("Dry-run: ON");
@@ -726,6 +735,7 @@ public class Config {
             switch (getDataStrategy()) {
                 case DUMP:
                 case STORAGE_MIGRATION:
+                case ICEBERG_CONVERSION:
                     break;
                 default:
                     if (getCluster(Environment.RIGHT).isHdpHive3()) {
@@ -1224,7 +1234,8 @@ public class Config {
     public Boolean checkConnections() {
         Boolean rtn = Boolean.FALSE;
         Set<Environment> envs = null;
-        if (!(getDataStrategy() == DataStrategyEnum.DUMP || getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION))
+        if (!(getDataStrategy() == DataStrategyEnum.DUMP || getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION ||
+                getDataStrategy() == DataStrategyEnum.ICEBERG_CONVERSION))
             envs = Sets.newHashSet(Environment.LEFT, Environment.RIGHT);
         else
             envs = Sets.newHashSet(Environment.LEFT);

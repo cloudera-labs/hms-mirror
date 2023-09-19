@@ -22,6 +22,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [`--intermediate-storage` Workflow Patterns and Where to Run From](#--intermediate-storage-workflow-patterns-and-where-to-run-from)
   * [`--common-storage` Workflow Patterns and Where to Run From](#--common-storage-workflow-patterns-and-where-to-run-from)
 - [Features](#features)
+  * [Iceberg Table Migration via Hive](#iceberg-table-migration-via-hive)
   * [File System Stats](#file-system-stats)
   * [CREATE [EXTERNAL] TABLE IF NOT EXISTS Option](#create-external-table-if-not-exists-option)
   * [Auto Gathering Stats (disabled by default)](#auto-gathering-stats-disabled-by-default)
@@ -97,6 +98,7 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
   * [Hybrid](#hybrid)
   * [Common](#common)
   * [Storage Migration](#storage-migration)
+  * [ICEBERG Migration](#iceberg-migration)
 - [Troubleshooting / Issues](#troubleshooting--issues)
   * [Application doesn't seem to be making progress](#application-doesnt-seem-to-be-making-progress)
   * [Application won't start `NoClassDefFoundError`](#application-wont-start-noclassdeffounderror)
@@ -223,6 +225,10 @@ For On-Prem to Cloud migrations, we typically use a `PUSH` model because that is
 `hms-mirror` is designed to migrate schema definitions from one cluster to another or simply provide an extract of the schemas via `-d DUMP`.
 
 Under certain conditions, `hms-mirror` will 'move' data too.  Using the data strategies `-d SQL|EXPORT_IMPORT|HYBRID` well use a combination of SQL temporary tables and [Linking Clusters Storage Layers](#linking-clusters-storage-layers) to facilitate this.
+
+### Iceberg Table Migration via Hive
+
+See [Iceberg Migration](../strategy_docs/iceberg_migration.md) for details.
 
 ### File System Stats
 
@@ -1068,7 +1074,7 @@ For example, the following would yield a code of `-2305843009214742528` (20 and 
 
 ```
 usage: hms-mirror <options>
-                  version:1.6.0.0-SNAPSHOT
+                  version:1.6.5.0-SNAPSHOT
 Hive Metastore Migration Utility
  -accept,--accept                                              Accept ALL confirmations and silence
                                                                prompts
@@ -1095,6 +1101,12 @@ Hive Metastore Migration Utility
  -cfg,--config <filename>                                      Config with details for the
                                                                HMS-Mirror.  Default:
                                                                $HOME/.hms-mirror/cfg/default.yaml
+ -cine,--create-if-not-exist                                   CREATE table/partition statements
+                                                               will be adjusted to include 'IF NOT
+                                                               EXISTS'.  This will ensure all
+                                                               remaining sql statements will be run.
+                                                               This can be used to sync partition
+                                                               definitions for existing tables.
  -cs,--common-storage <storage-path>                           Common Storage used with Data
                                                                Strategy HYBRID, SQL, EXPORT_IMPORT.
                                                                This will change the way these
@@ -1116,7 +1128,7 @@ Hive Metastore Migration Utility
                                                                schema. [DUMP, SCHEMA_ONLY, LINKED,
                                                                SQL, EXPORT_IMPORT, HYBRID,
                                                                CONVERT_LINKED, STORAGE_MIGRATION,
-                                                               COMMON]
+                                                               COMMON, ICEBERG_CONVERSION]
  -da,--downgrade-acid                                          Downgrade ACID tables to EXTERNAL
                                                                tables with purge.
  -db,--database <databases>                                    Comma separated list of Databases
@@ -1140,6 +1152,8 @@ Hive Metastore Migration Utility
                                                                from `-p`.
  -ds,--dump-source <source>                                    Specify which 'cluster' is the source
                                                                for the DUMP strategy (LEFT|RIGHT).
+ -dtd,--dump-test-data                                         Used to dump a data set that can be
+                                                               feed into the process for testing.
  -e,--execute                                                  Execute actions request, without this
                                                                flag the process is a dry-run.
  -ep,--export-partition-count <limit>                          Set the limit of partitions that the
@@ -1205,6 +1219,13 @@ Hive Metastore Migration Utility
                                                                mean additional configuration
                                                                requirements for 'hdfs' to ensure
                                                                this seamless access.
+ -itpo,--iceberg-table-property-overrides <key=value>          Comma separated key=value pairs of
+                                                               Iceberg Table Properties to
+                                                               set/override.
+ -iv,--iceberg-version <version>                               Specify the Iceberg Version to use.
+                                                               Specify 1 or 2.  Default is 2.
+ -ltd,--load-test-data <file>                                  Use the data saved by the `-dtd`
+                                                               option to test the process.
  -ma,--migrate-acid <bucket-threshold (2)>                     Migrate ACID tables (if strategy
                                                                allows). Optional:
                                                                ArtificialBucketThreshold count that
@@ -1265,6 +1286,8 @@ Hive Metastore Migration Utility
                                                                the system defaults to take over and
                                                                define the location of the new
                                                                datasets.
+ -replay,--replay <report-directory>                           Use to replay process from the report
+                                                               output.
  -rid,--right-is-disconnected                                  Don't attempt to connect to the
                                                                'right' cluster and run in this mode
  -ro,--read-only                                               For SCHEMA_ONLY, COMMON, and LINKED
@@ -1366,6 +1389,7 @@ Hive Metastore Migration Utility
                                                                database directory. This will be used
                                                                to set the MANAGEDLOCATION database
                                                                option.
+
 ```
 
 ### Running Against a LEGACY (Non-CDP) Kerberized HiveServer2
@@ -1733,6 +1757,9 @@ Schemas are transferred using the same location.
 
 See [Storage Migration](./strategy_docs/storage_migration.md)
 
+### ICEBERG Migration
+
+See [Iceberg Migration](./strategy_docs/iceberg_migration.md)
 
 ## Troubleshooting / Issues
 
