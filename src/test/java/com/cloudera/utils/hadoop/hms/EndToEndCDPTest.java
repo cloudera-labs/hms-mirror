@@ -400,4 +400,109 @@ public class EndToEndCDPTest extends EndToEndBase {
 
     }
 
+    @Test
+    public void sql_da_ip() {
+        /*
+        Issues: Need to post warning when table/partition(s) new location isn't in the -[e]wd location.
+
+         */
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-da", "-ip", "-mao", "-rid",
+                "-ltd", ACID_W_PARTS_05, "-cfg", CDP_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+
+        // Read the output and verify the results.
+//        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+
+//        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+//        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1);
+
+//        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",  "Remove table property",
+//                "ALTER TABLE web_sales UNSET TBLPROPERTIES (\"TRANSLATED_TO_EXTERNAL\")")) {
+//            fail("Remove Table Property not found");
+//        }
+
+    }
+
+    @Test
+    public void sql_leg_mngd_da_ip() {
+        /*
+        Issues: Need to post warning when table/partition(s) new location isn't in the -[e]wd location.
+
+         */
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-da", "-ip", "-mao", "-rid",
+                "-ltd", LEGACY_MNGD_NO_PARTS_02, "-cfg", CDP_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+
+        // Read the output and verify the results.
+//        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+
+//        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+//        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1);
+
+//        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",  "Remove table property",
+//                "ALTER TABLE web_sales UNSET TBLPROPERTIES (\"TRANSLATED_TO_EXTERNAL\")")) {
+//            fail("Remove Table Property not found");
+//        }
+
+    }
+
+    @Test
+    public void sql_leg_mngd_ewd_da_ip() {
+        /*
+        Issues: Need to post warning when table/partition(s) new location isn't in the -[e]wd location.
+
+         */
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-da", "-ip", "-mao", "-ewd", "/my_base_loc/external",
+                "-ltd", LEGACY_MNGD_NO_PARTS_02, "-cfg", CDP_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+
+        // Read the output and verify the results.
+//        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+
+//        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+//        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1);
+
+//        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",  "Remove table property",
+//                "ALTER TABLE web_sales UNSET TBLPROPERTIES (\"TRANSLATED_TO_EXTERNAL\")")) {
+//            fail("Remove Table Property not found");
+//        }
+
+    }
+
 }

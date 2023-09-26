@@ -442,11 +442,18 @@ public class Mirror {
                         getConfig().getMigrateACID().setDowngrade(Boolean.TRUE);
                     }
                     if (cmd.hasOption("ip")) {
-                        // Downgrade ACID tables
+                        // Downgrade ACID tables inplace
+                        // Only work on LEFT cluster definition.
+                        LOG.info("Inplace ACID Downgrade");
+                        getConfig().getMigrateACID().setDowngrade(Boolean.TRUE);
                         getConfig().getMigrateACID().setInplace(Boolean.TRUE);
                         // For 'in-place' downgrade, only applies to ACID tables.
                         // Implies `-mao`.
-                        getConfig().getMigrateACID().setOn(Boolean.TRUE);
+                        LOG.info("Only ACID Tables will be looked at since 'ip' was specified.");
+                        getConfig().getMigrateACID().setOnly(Boolean.TRUE);
+                        // Remove RIGHT cluster and enforce mao
+                        LOG.info("RIGHT Cluster definition will be disconnected if exists since this is a LEFT cluster ONLY operation");
+                        getConfig().getCluster(Environment.RIGHT).getHiveServer2().setDisconnected(Boolean.TRUE);
                     }
                 }
 

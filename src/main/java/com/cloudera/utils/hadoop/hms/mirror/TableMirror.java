@@ -234,66 +234,69 @@ public class TableMirror {
                     source.getName());
             source.addCleanUpSql(MirrorConf.DROP_TABLE_DESC, dropOriginalTable);
         }
-        // Set Override Properties.
-        if (config.getOptimization().getOverrides() != null) {
-            for (String key : config.getOptimization().getOverrides().getLeft().keySet()) {
-                source.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
+        if (config.getTransfer().getStorageMigration().isDistcp()) {
+            source.addSql("distcp specified", "-- Run distcp commands");
+        } else {
+            // Set Override Properties.
+            if (config.getOptimization().getOverrides() != null) {
+                for (String key : config.getOptimization().getOverrides().getLeft().keySet()) {
+                    source.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
+                }
             }
-        }
 
-        if (transfer.isDefined()) {
-            StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), source, source);
-            if (source.getPartitioned()) {
-                if (config.getOptimization().getSkip()) {
-                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
-                        source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
-                    }
-                    String partElement = TableUtils.getPartitionElements(source);
-                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
-                            source.getName(), transfer.getName(), partElement);
-                    String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
-                    source.addSql(new Pair(transferDesc, transferSql));
-                } else if (config.getOptimization().getSortDynamicPartitionInserts()) {
-                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
-                        source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
-                        if (!config.getCluster(Environment.LEFT).getHdpHive3()) {
-                            source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+            if (transfer.isDefined()) {
+                StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), source, source);
+                if (source.getPartitioned()) {
+                    if (config.getOptimization().getSkip()) {
+                        if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                            source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
                         }
+                        String partElement = TableUtils.getPartitionElements(source);
+                        String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
+                                source.getName(), transfer.getName(), partElement);
+                        String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
+                        source.addSql(new Pair(transferDesc, transferSql));
+                    } else if (config.getOptimization().getSortDynamicPartitionInserts()) {
+                        if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                            source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
+                            if (!config.getCluster(Environment.LEFT).getHdpHive3()) {
+                                source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                            }
+                        }
+                        String partElement = TableUtils.getPartitionElements(source);
+                        String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
+                                source.getName(), transfer.getName(), partElement);
+                        String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
+                        source.addSql(new Pair(transferDesc, transferSql));
+                    } else {
+                        if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
+                            source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
+                            if (!config.getCluster(Environment.LEFT).getHdpHive3()) {
+                                source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                            }
+                        }
+                        String partElement = TableUtils.getPartitionElements(source);
+                        String distPartElement = StatsCalculator.getDistributedPartitionElements(source);
+                        String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
+                                source.getName(), transfer.getName(), partElement, distPartElement);
+                        String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
+                        source.addSql(new Pair(transferDesc, transferSql));
                     }
-                    String partElement = TableUtils.getPartitionElements(source);
-                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
-                            source.getName(), transfer.getName(), partElement);
-                    String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
-                    source.addSql(new Pair(transferDesc, transferSql));
                 } else {
-                    if (!config.getCluster(Environment.LEFT).getLegacyHive()) {
-                        source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
-                        if (!config.getCluster(Environment.LEFT).getHdpHive3()) {
-                            source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
-                        }
-                    }
-                    String partElement = TableUtils.getPartitionElements(source);
-                    String distPartElement = StatsCalculator.getDistributedPartitionElements(source);
-                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
-                            source.getName(), transfer.getName(), partElement, distPartElement);
+                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_OVERWRITE,
+                            source.getName(), transfer.getName());
                     String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
                     source.addSql(new Pair(transferDesc, transferSql));
                 }
-            } else {
-                String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_OVERWRITE,
-                        source.getName(), transfer.getName());
-                String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
-                source.addSql(new Pair(transferDesc, transferSql));
-            }
-            // Drop Transfer Table
-            if (!isACIDDowngradeInPlace(config, source)) {
-                String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, transfer.getName());
-                source.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
-            }
+                // Drop Transfer Table
+                if (!isACIDDowngradeInPlace(config, source)) {
+                    String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, transfer.getName());
+                    source.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
+                }
 //        } else {
 //            StatsCalculator.setSessionOptions(config.getCluster(Environment.LEFT), source, target);
+            }
         }
-
         return rtn;
     }
 
@@ -1207,37 +1210,39 @@ public class TableMirror {
 
         ret.getSql().clear();
 
-        // LEFT Transfer Table
-        database = dbMirror.getName();
-        useDb = MessageFormat.format(MirrorConf.USE, database);
+        if (TableUtils.isACID(let) || !config.getTransfer().getStorageMigration().isDistcp()) {
+            // LEFT Transfer Table
+            database = dbMirror.getName();
+            useDb = MessageFormat.format(MirrorConf.USE, database);
 
-        let.addSql(TableUtils.USE_DESC, useDb);
-        // Drop any previous TRANSFER table, if it exists.
-        String transferDropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, tet.getName());
-        let.addSql(TableUtils.DROP_DESC, transferDropStmt);
+            let.addSql(TableUtils.USE_DESC, useDb);
+            // Drop any previous TRANSFER table, if it exists.
+            String transferDropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, tet.getName());
+            let.addSql(TableUtils.DROP_DESC, transferDropStmt);
 
-        // Create Transfer Table
-        String transferCreateStmt = getCreateStatement(Environment.TRANSFER);
-        let.addSql(TableUtils.CREATE_TRANSFER_DESC, transferCreateStmt);
+            // Create Transfer Table
+            String transferCreateStmt = getCreateStatement(Environment.TRANSFER);
+            let.addSql(TableUtils.CREATE_TRANSFER_DESC, transferCreateStmt);
 
-        database = config.getResolvedDB(dbMirror.getName());
-        useDb = MessageFormat.format(MirrorConf.USE, database);
-        ret.addSql(TableUtils.USE_DESC, useDb);
+            database = config.getResolvedDB(dbMirror.getName());
+            useDb = MessageFormat.format(MirrorConf.USE, database);
+            ret.addSql(TableUtils.USE_DESC, useDb);
 
-        // RIGHT SHADOW Table
-        if (set.getDefinition().size() > 0) { //config.getTransfer().getCommonStorage() == null || !config.getMigrateACID().isDowngrade()) {
+            // RIGHT SHADOW Table
+            if (set.getDefinition().size() > 0) { //config.getTransfer().getCommonStorage() == null || !config.getMigrateACID().isDowngrade()) {
 
-            // Drop any previous SHADOW table, if it exists.
-            String dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
-            ret.addSql(TableUtils.DROP_DESC, dropStmt);
-            // Create Shadow Table
-            String shadowCreateStmt = getCreateStatement(Environment.SHADOW);
-            ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
-            // Repair Partitions
+                // Drop any previous SHADOW table, if it exists.
+                String dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
+                ret.addSql(TableUtils.DROP_DESC, dropStmt);
+                // Create Shadow Table
+                String shadowCreateStmt = getCreateStatement(Environment.SHADOW);
+                ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
+                // Repair Partitions
 //            if (let.getPartitioned()) {
 //                String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
 //                ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
 //            }
+            }
         }
 
         // RIGHT Final Table
@@ -1526,7 +1531,7 @@ public class TableMirror {
         // If partitioned, !ACID, repair
         if (let.getPartitioned() && !TableUtils.isACID(let) &&
                 (ret.getCreateStrategy() == CreateStrategy.REPLACE || ret.getCreateStrategy() == CreateStrategy.CREATE
-                || ret.getCreateStrategy() == CreateStrategy.AMEND_PARTS)) {
+                        || ret.getCreateStrategy() == CreateStrategy.AMEND_PARTS)) {
             if (config.getEvaluatePartitionLocation()) {
                 // TODO: Write out the SQL to build the partitions.  NOTE: We need to get the partition locations and modify them
                 //       to the new namespace.

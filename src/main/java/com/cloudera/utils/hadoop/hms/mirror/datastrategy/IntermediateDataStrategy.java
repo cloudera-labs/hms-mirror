@@ -46,7 +46,7 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
 
         if (rtn) {
             // Construct Transfer SQL
-            if (config.getCluster(Environment.LEFT).getLegacyHive()) {
+            if (config.getCluster(Environment.LEFT).getLegacyHive() && !config.getTransfer().getStorageMigration().isDistcp()) {
                 // We need to ensure that 'tez' is the execution engine.
                 let.addSql(new Pair(TEZ_EXECUTION_DESC, SET_TEZ_AS_EXECUTION_ENGINE));
             }

@@ -32,8 +32,8 @@ public class Filter {
     private Pattern tblFilterPattern = null;
     private String tblExcludeRegEx = null;
     private String tblRegEx = null;
-    private Long tblSizeLimit = null;
-    private Integer tblPartitionLimit = null;
+    private Long tblSizeLimit = -1l;
+    private Integer tblPartitionLimit = -1;
 
     public String getDbRegEx() {
         return dbRegEx;

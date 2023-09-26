@@ -161,6 +161,11 @@ public class Setup {
             }
         }
 
+        // Need to filter out tables that don't match our criteria.
+
+
+
+
         // Create the databases we'll need on the LEFT and RIGHT
         Callable<ReturnStatus> createDatabases = new CreateDatabases(conversion);
         gtf.add(getConfig().getTransferThreadPool().schedule(createDatabases, 1, TimeUnit.MILLISECONDS));
@@ -197,7 +202,9 @@ public class Setup {
         }
 
         // Shortcut.  Only DB's.
-        if (!getConfig().getDatabaseOnly() && !getConfig().isLoadingTestData()) {
+        if (!getConfig().getDatabaseOnly()
+//                && !getConfig().isLoadingTestData()
+        ) {
 
             // Get the table METADATA for the tables collected in the databases.
             LOG.info(">>>>>>>>>>> Getting Table Metadata");
@@ -207,7 +214,7 @@ public class Setup {
                 Set<String> tables = dbMirror.getTableMirrors().keySet();
                 for (String table : tables) {
                     TableMirror tblMirror = dbMirror.getTableMirrors().get(table);
-                    GetTableMetadata tmd = new GetTableMetadata(config, dbMirror, tblMirror);
+                    GetTableMetadata tmd = new GetTableMetadata(dbMirror, tblMirror);
                     gtf.add(getConfig().getMetadataThreadPool().schedule(tmd, 1, TimeUnit.MILLISECONDS));
                 }
             }
@@ -220,7 +227,7 @@ public class Setup {
                         break;
                     }
                     try {
-                        if (sf.isDone() && sf.get() != null) {
+                        if (sf.isDone() & sf.get() != null) {
                             if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
                                 throw new RuntimeException(sf.get().getException());
                             }

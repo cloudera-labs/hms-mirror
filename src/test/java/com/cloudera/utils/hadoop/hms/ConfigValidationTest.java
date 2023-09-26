@@ -402,7 +402,7 @@ public class ConfigValidationTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
 
-        long check = 3;
+        long check = 0;
 
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }

@@ -68,12 +68,12 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
 
             // Construct Transfer SQL
             if (rtn) {
-                DataStrategy dsIt = DataStrategyEnum.INTERMEDIATE.getDataStrategy();
-                dsIt.setTableMirror(tableMirror);
-                dsIt.setDBMirror(dbMirror);
-                dsIt.setConfig(config);
-                rtn = dsIt.buildOutSql();
-//                rtn = tableMirror.buildTransferSql(let, set, ret, config);
+//                DataStrategy dsIt = DataStrategyEnum.INTERMEDIATE.getDataStrategy();
+//                dsIt.setTableMirror(tableMirror);
+//                dsIt.setDBMirror(dbMirror);
+//                dsIt.setConfig(config);
+//                rtn = dsIt.buildOutSql();
+                rtn = tableMirror.buildTransferSql(let, set, ret, config);
 
                 // Execute the RIGHT sql if config.execute.
                 if (rtn) {

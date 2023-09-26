@@ -731,7 +731,7 @@ public class Config {
         // Set distcp options.
         canDeriveDistcpPlan();
 
-        if (getCluster(Environment.RIGHT).isInitialized()) {
+//        if (getCluster(Environment.RIGHT).isInitialized()) {
             switch (getDataStrategy()) {
                 case DUMP:
                 case STORAGE_MIGRATION:
@@ -749,7 +749,7 @@ public class Config {
                         rtn = Boolean.FALSE;
                     }
             }
-        }
+//        }
 
         if (getCluster(Environment.LEFT).isHdpHive3() && getCluster(Environment.LEFT).getLegacyHive()) {
             errors.set(LEGACY_AND_HIVE3.getCode());
@@ -942,6 +942,13 @@ public class Config {
         if (getDataStrategy() == DataStrategyEnum.SCHEMA_ONLY && getMigrateACID().isOn() && getMigrateACID().isDowngrade()) {
             errors.set(ACID_DOWNGRADE_SCHEMA_ONLY.getCode());
             rtn = Boolean.FALSE;
+        }
+
+        if (getMigrateACID().isDowngradeInPlace()) {
+            if (getDataStrategy() != DataStrategyEnum.SQL) {
+                errors.set(VALID_ACID_DA_IP_STRATEGIES.getCode());
+                rtn = Boolean.FALSE;
+            }
         }
 
         if (getDataStrategy() == DataStrategyEnum.SCHEMA_ONLY) {
@@ -1331,9 +1338,9 @@ public class Config {
 
     public void setClusters(Map<Environment, Cluster> clusters) {
         this.clusters = clusters;
-        for (Map.Entry<Environment, Cluster> entry : clusters.entrySet()) {
-            entry.getValue().setConfig(this);
-        }
+//        for (Map.Entry<Environment, Cluster> entry : clusters.entrySet()) {
+//            entry.getValue().setConfig(this);
+//        }
     }
 
     public Cluster getCluster(Environment environment) {

@@ -17,6 +17,7 @@
 
 package com.cloudera.utils.hadoop.hms.stage;
 
+import com.cloudera.utils.hadoop.hms.Context;
 import com.cloudera.utils.hadoop.hms.mirror.Config;
 import com.cloudera.utils.hadoop.hms.mirror.DBMirror;
 import com.cloudera.utils.hadoop.hms.mirror.Environment;
@@ -31,7 +32,7 @@ import java.util.concurrent.Callable;
 public class GetTableMetadata implements Callable<ReturnStatus> {
     private static final Logger LOG = LogManager.getLogger(GetTableMetadata.class);
 
-    private Config config = null;
+    private Config config = Context.getInstance().getConfig();
     private DBMirror dbMirror = null;
     private TableMirror tblMirror = null;
     private boolean successful = Boolean.TRUE;
@@ -48,8 +49,8 @@ public class GetTableMetadata implements Callable<ReturnStatus> {
         return successful;
     }
 
-    public GetTableMetadata(Config config, DBMirror dbMirror, TableMirror tblMirror) {
-        this.config = config;
+    public GetTableMetadata(DBMirror dbMirror, TableMirror tblMirror) {
+//        this.config = config;
         this.dbMirror = dbMirror;
         this.tblMirror = tblMirror;
     }

@@ -228,9 +228,9 @@ public class Transfer implements Callable<ReturnStatus> {
                                 sbDir.append(config.getResolvedDB(dbMirror.getName())).append(".db").append("/").append(tableMirror.getName());
                                 rLoc = sbDir.toString();
                             }
-//                            config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
-//                                    TableUtils.getLocation(tblMirror.getName(), let.getDefinition())
-//                                    , rLoc,1);
+                            config.getTranslator().addLocation(dbMirror.getName(), Environment.RIGHT,
+                                    TableUtils.getLocation(tableMirror.getName(), let.getDefinition())
+                                    , rLoc,1);
                         }
                     }
                 }

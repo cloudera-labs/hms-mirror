@@ -245,19 +245,19 @@ databases:
             issues: []
             sql: []
             cleanUpSql: []
-          RIGHT:
-            name: null
-            exists: false
-            createStrategy: "NOTHING"
-            definition: []
-            owner: null
-            partitions: {}
-            actions: []
-            addProperties: {}
-            statistics: {}
-            issues: []
-            sql: []
-            cleanUpSql: []
+#          RIGHT:
+#            name: null
+#            exists: false
+#            createStrategy: "NOTHING"
+#            definition: []
+#            owner: null
+#            partitions: {}
+#            actions: []
+#            addProperties: {}
+#            statistics: {}
+#            issues: []
+#            sql: []
+#            cleanUpSql: []
     phaseSummary:
       INIT: 6
     dbdefinitions:

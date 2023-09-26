@@ -46,7 +46,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 3;
+        int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -138,7 +138,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 4;
+        int check = 1;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -160,7 +160,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 4;
+        int check = 1;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -182,7 +182,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 4; // 3 acid from older version and 1 table that exceed partition counts
+        int check = 3; // 3 acid from older version
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -204,7 +204,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 4;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -226,7 +226,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 4;
+        int check = 3;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -248,7 +248,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 3; // acids tables
+        int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -271,7 +271,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 3;
+        int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -493,7 +493,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 3; //acid tables.
+        int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -580,7 +580,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 3;
+        int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
         // Testing for existing schemas.
@@ -644,7 +644,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 3;
+        int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -689,7 +689,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 3;
+        int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -815,7 +815,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 3;
+        int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -1075,9 +1075,9 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
                 "-o", outputDir
         };
 
-        long rtn = 3;
+//        long rtn = ;
         Mirror mirror = new Mirror();
-        rtn = mirror.go(args);
+        long rtn = mirror.go(args);
         long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
 
@@ -1150,7 +1150,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 3; // acid tables.
+        int check = 0; // acid tables.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -1177,15 +1177,15 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 3;
+        int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
         // Read the output and verify the results.
         DBMirror resultsMirror = getResults(outputDir + "/" + "assorted_test_db_hms-mirror.yaml");
 
-        validatePhase(resultsMirror, "acid_01", PhaseState.ERROR);
-        validatePhase(resultsMirror, "acid_02", PhaseState.ERROR);
         validatePhase(resultsMirror, "ext_part_01", PhaseState.SUCCESS);
+        validatePhase(resultsMirror, "ext_part_01", PhaseState.SUCCESS);
+        validatePhase(resultsMirror, "legacy_mngd_01", PhaseState.SUCCESS);
 
         validateTableIssueCount(resultsMirror, "ext_part_01", Environment.RIGHT, 2);
         validateTableLocation(resultsMirror, "ext_part_01", Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/assorted_test_db.db/ext_part_01");
@@ -1215,14 +1215,12 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 3;
+        int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
         // Read the output and verify the results.
         DBMirror resultsMirror = getResults(outputDir + "/" + "assorted_test_db_hms-mirror.yaml");
 
-        validatePhase(resultsMirror, "acid_01", PhaseState.ERROR);
-        validatePhase(resultsMirror, "acid_02", PhaseState.ERROR);
         validatePhase(resultsMirror, "ext_part_01", PhaseState.SUCCESS);
 
         validateTableIssueCount(resultsMirror, "ext_part_01", Environment.RIGHT, 3);
@@ -1253,14 +1251,12 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 3;
+        int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
         // Read the output and verify the results.
         DBMirror resultsMirror = getResults(outputDir + "/" + "assorted_test_db_hms-mirror.yaml");
 
-        validatePhase(resultsMirror, "acid_01", PhaseState.ERROR);
-        validatePhase(resultsMirror, "acid_02", PhaseState.ERROR);
         validatePhase(resultsMirror, "ext_part_01", PhaseState.SUCCESS);
 
         validateTableIssueCount(resultsMirror, "ext_part_01", Environment.RIGHT, 3);
@@ -1492,7 +1488,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
 
         String outputDir = getOutputDirBase() + nameofCurrMethod;
 
-        String[] args = new String[]{"-d", "SQL",
+        String[] args = new String[]{"-d", "SCHEMA_ONLY",
                 "-sql",
                 "-rdl",
                 "-wd", "/warehouse/managed",
@@ -1505,8 +1501,8 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 3;
-        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+        long check = MessageCode.DISTCP_REQUIRED_FOR_SCHEMA_ONLY_RDL.getLong();
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
     }
 
     @Test
@@ -1530,7 +1526,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        int check = 3;
+        int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
     }
 
@@ -1605,7 +1601,32 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
     }
 
     @Test
-    public void sql_dc_ext_purge_err() {
+    public void sql_ext_purge() {
+        // Issue:
+        /*
+        FIXED: 1. Partitions are on HOME90, not ofs..
+         */
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-ltd", EXT_PURGE_ODD_PARTS_03, "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = 0;
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
+    }
+
+    @Test
+    public void sql_dc_ext_purge() {
         // Issue:
         /*
         FIXED: 1. Partitions are on HOME90, not ofs..
@@ -1624,7 +1645,33 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
+        long check = 0;
+
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
+    }
+
+    @Test
+    public void sql_dc_is_ext_purge() {
+        // Issue:
+        /*
+        FIXED: 1. Partitions are on HOME90, not ofs..
+         */
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-dc", "-is", "s3a://my_intermediate_bucket",
+                "-ltd", EXT_PURGE_ODD_PARTS_03, "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = 0;
 
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
 
@@ -1678,6 +1725,55 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         int check = 0;
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    public void sql_ma_is() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-ma",
+                "-is", INTERMEDIATE_STORAGE,
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        int check = 0;
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
+    }
+
+    @Test
+    /*
+    TODO: We can implement this.  But for now, don't allow.
+     */
+    public void sql_ma_is_dc() {
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-ma", "-dc",
+                "-is", INTERMEDIATE_STORAGE,
+                "-ltd", ASSORTED_TBLS_04,
+                "-cfg", HDP2_CDP,
+                "-o", outputDir
+        };
+
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
+        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check * -1, rtn);
     }
 
     // ====
@@ -1989,7 +2085,7 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long rtn = 0;
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
-        long check = 3; //acid tables.
+        long check = 0;
 
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 

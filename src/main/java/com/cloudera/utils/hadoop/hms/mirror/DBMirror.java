@@ -507,6 +507,17 @@ public class DBMirror {
                                 break;
                         }
                 }
+            } else {
+                // Downgrade in place.
+                if (config.getTransfer().getWarehouse().getExternalDirectory() != null) {
+                    // Set the location to the external directory for the database.
+                    database = config.getResolvedDB(getName());
+                    location = config.getCluster(Environment.LEFT).getHcfsNamespace() + config.getTransfer().getWarehouse().getExternalDirectory() +
+                            "/" + database + ".db";
+                    String alterDB_location = MessageFormat.format(MirrorConf.ALTER_DB_LOCATION, database, location);
+                    this.getSql(Environment.LEFT).add(new Pair(MirrorConf.ALTER_DB_LOCATION_DESC, alterDB_location));
+                    dbDefLeft.put(DB_LOCATION, location);
+                }
             }
         } else {
             // Reset Right DB.
