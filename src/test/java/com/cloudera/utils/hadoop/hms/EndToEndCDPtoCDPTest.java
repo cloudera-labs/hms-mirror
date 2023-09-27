@@ -838,12 +838,12 @@ public class EndToEndCDPtoCDPTest extends EndToEndBase {
 
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "assorted_test_db_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir,ASSORTED_TBLS_04);
 
-        validatePhase(resultsMirror, "ext_part_01", PhaseState.SUCCESS);
-        validateTableIssueCount(resultsMirror, "ext_part_01", Environment.LEFT, 441);
+        validatePhase(resultsMirrors[0], "ext_part_01", PhaseState.SUCCESS);
+        validateTableIssueCount(resultsMirrors[0], "ext_part_01", Environment.LEFT, 441);
 
-        if (!validateSqlPair(resultsMirror, Environment.LEFT, "ext_part_01", "Alter Table Location",
+        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "ext_part_01", "Alter Table Location",
                 "ALTER TABLE ext_part_01 SET LOCATION \"s3a://my_cs_bucket/warehouse/tablespace/external/hive/assorted_test_db.db/ext_part_01\"")) {
             fail("Alter Table Location not found");
         }

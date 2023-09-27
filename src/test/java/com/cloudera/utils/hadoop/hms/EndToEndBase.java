@@ -19,6 +19,7 @@ package com.cloudera.utils.hadoop.hms;
 
 import com.cloudera.utils.hadoop.hms.mirror.*;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
@@ -26,8 +27,15 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.commons.io.IOUtils;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -37,6 +45,7 @@ public class EndToEndBase {
     protected static String separator = System.getProperty("file.separator");
 
     private String outputDirBase = null;
+    private Pattern filePattern = Pattern.compile("[^/]+(?=/$|$)");
 
     protected String getOutputDirBase() {
         if (outputDirBase == null) {
@@ -47,38 +56,91 @@ public class EndToEndBase {
         return outputDirBase;
     }
 
-    protected DBMirror getResults(String resultsFileStr) {
-        DBMirror rtn = null;
-        try {
-            System.out.println("Results file: " + resultsFileStr);
-//            LOG.info("Check 'classpath' for test data file");
-            URL resultURL = null;//this.getClass().getResource(getConfig().getLoadTestDataFile());
-//            LOG.info("Checking filesystem for test data file");
-            File resultsFile = new File(resultsFileStr);
-            if (!resultsFile.exists())
-                throw new RuntimeException("Couldn't locate results file: " + resultsFileStr);
-            resultURL = resultsFile.toURI().toURL();
-            ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-            mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+//    protected String getResultsFile(String testDataFile) {
+//        // Extract the filePattern from the testDataFile with the filePattern pattern.
+//        Matcher matcher = filePattern.matcher(testDataFile);
+//        String resultsFile = matcher.find() ? matcher.group(0) : null;
+//        resultsFile = resultsFile.substring(0, resultsFile.lastIndexOf("."));
+//        return resultsFile + "_hms-mirror-results.yaml";
+//    }
 
-            String yamlCfgFile = IOUtils.toString(resultURL, StandardCharsets.UTF_8);
-            rtn = mapper.readerFor(DBMirror.class).readValue(yamlCfgFile);
-            // Set Config Databases;
-        } catch (UnrecognizedPropertyException upe) {
-            throw new RuntimeException("\nThere may have been a breaking change in the configuration since the previous " +
-                    "release. Review the note below and remove the 'Unrecognized field' from the configuration and try " +
-                    "again.\n\n", upe);
-        } catch (Throwable t) {
-            // Look for yaml update errors.
-            if (t.toString().contains("MismatchedInputException")) {
-                throw new RuntimeException("The format of the 'config' yaml file MAY HAVE CHANGED from the last release.  Please make a copy and run " +
-                        "'-su|--setup' again to recreate in the new format", t);
-            } else {
-//                LOG.error(t);
-                throw new RuntimeException("A configuration element is no longer valid, progress.  Please remove the element from the configuration yaml and try again.", t);
+//    @Test
+//    public void testResultFilePattern() {
+//        String testDataFile = "/src/test/resources/com/cloudera/utils/hadoop/hms/mirror/EndToEndBaseTest.yaml";
+//        String resultsFile = getResultsFile(testDataFile);
+//        assertEquals("EndToEndBaseTest", resultsFile);
+//    }
+
+    protected String[] getDatabasesFromTestDataFile(String testDataSet) {
+        System.out.println("Test data file: " + testDataSet);
+
+        URL configURL = this.getClass().getResource(testDataSet);
+        if (configURL == null) {
+
+            File conversionFile = new File(testDataSet);
+            if (!conversionFile.exists())
+                throw new RuntimeException("Couldn't locate test data file: " + testDataSet);
+            try {
+                configURL = conversionFile.toURI().toURL();
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
             }
         }
-        return rtn;
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        String yamlCfgFile = null;
+        try {
+            yamlCfgFile = IOUtils.toString(configURL, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        Conversion conversion = null;
+        try {
+            conversion = mapper.readerFor(Conversion.class).readValue(yamlCfgFile);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        // Set Config Databases;
+        String[] databases = conversion.getDatabases().keySet().toArray(new String[0]);
+        return databases;
+    }
+
+
+    protected DBMirror[] getResults(String outputDirBase, String sourceTestDataSet) {
+        List<DBMirror> dbMirrorList = new ArrayList<>();
+        System.out.println("Source Dataset: " + sourceTestDataSet);
+        String[] databases = getDatabasesFromTestDataFile(sourceTestDataSet);
+        for (String database : databases) {
+            try {
+                String resultsFileStr = outputDirBase + "/" + database + "_hms-mirror.yaml";
+                URL resultURL = null;
+                File resultsFile = new File(resultsFileStr);
+                if (!resultsFile.exists())
+                    throw new RuntimeException("Couldn't locate results file: " + resultsFileStr);
+                resultURL = resultsFile.toURI().toURL();
+                ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+                mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+                String yamlCfgFile = IOUtils.toString(resultURL, StandardCharsets.UTF_8);
+                DBMirror dbMirror = mapper.readerFor(DBMirror.class).readValue(yamlCfgFile);
+                dbMirrorList.add(dbMirror);
+            } catch (UnrecognizedPropertyException upe) {
+                throw new RuntimeException("\nThere may have been a breaking change in the configuration since the previous " +
+                        "release. Review the note below and remove the 'Unrecognized field' from the configuration and try " +
+                        "again.\n\n", upe);
+            } catch (Throwable t) {
+                // Look for yaml update errors.
+                if (t.toString().contains("MismatchedInputException")) {
+                    throw new RuntimeException("The format of the 'config' yaml file MAY HAVE CHANGED from the last release.  Please make a copy and run " +
+                            "'-su|--setup' again to recreate in the new format", t);
+                } else {
+//                LOG.error(t);
+                    throw new RuntimeException("A configuration element is no longer valid, progress.  Please remove the element from the configuration yaml and try again.", t);
+                }
+            }
+        }
+        return dbMirrorList.toArray(new DBMirror[0]);
     }
 
     protected Boolean validateSqlPair(DBMirror dbMirror, Environment environment, String tableName, String description, String actionTest) {

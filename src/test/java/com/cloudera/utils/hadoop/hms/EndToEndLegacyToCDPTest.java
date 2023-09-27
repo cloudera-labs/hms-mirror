@@ -1181,14 +1181,14 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "assorted_test_db_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir,ASSORTED_TBLS_04);
 
-        validatePhase(resultsMirror, "ext_part_01", PhaseState.SUCCESS);
-        validatePhase(resultsMirror, "ext_part_01", PhaseState.SUCCESS);
-        validatePhase(resultsMirror, "legacy_mngd_01", PhaseState.SUCCESS);
+        validatePhase(resultsMirrors[0], "ext_part_01", PhaseState.SUCCESS);
+        validatePhase(resultsMirrors[0], "ext_part_01", PhaseState.SUCCESS);
+        validatePhase(resultsMirrors[0], "legacy_mngd_01", PhaseState.SUCCESS);
 
-        validateTableIssueCount(resultsMirror, "ext_part_01", Environment.RIGHT, 2);
-        validateTableLocation(resultsMirror, "ext_part_01", Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/assorted_test_db.db/ext_part_01");
+        validateTableIssueCount(resultsMirrors[0], "ext_part_01", Environment.RIGHT, 2);
+        validateTableLocation(resultsMirrors[0], "ext_part_01", Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/assorted_test_db.db/ext_part_01");
 
     }
 
@@ -1219,12 +1219,12 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "assorted_test_db_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir,ASSORTED_TBLS_04);
 
-        validatePhase(resultsMirror, "ext_part_01", PhaseState.SUCCESS);
+        validatePhase(resultsMirrors[0], "ext_part_01", PhaseState.SUCCESS);
 
-        validateTableIssueCount(resultsMirror, "ext_part_01", Environment.RIGHT, 3);
-        validateTableLocation(resultsMirror, "ext_part_01", Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/assorted_test_db.db/ext_part_01");
+        validateTableIssueCount(resultsMirrors[0], "ext_part_01", Environment.RIGHT, 3);
+        validateTableLocation(resultsMirrors[0], "ext_part_01", Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/assorted_test_db.db/ext_part_01");
 
     }
 
@@ -1255,12 +1255,12 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "assorted_test_db_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir,ASSORTED_TBLS_04);
 
-        validatePhase(resultsMirror, "ext_part_01", PhaseState.SUCCESS);
+        validatePhase(resultsMirrors[0], "ext_part_01", PhaseState.SUCCESS);
 
-        validateTableIssueCount(resultsMirror, "ext_part_01", Environment.RIGHT, 3);
-        validateTableLocation(resultsMirror, "ext_part_01", Environment.RIGHT, "hdfs://HOME90/chuck/me/assorted_test_db.db/ext_part_01");
+        validateTableIssueCount(resultsMirrors[0], "ext_part_01", Environment.RIGHT, 3);
+        validateTableLocation(resultsMirrors[0], "ext_part_01", Environment.RIGHT, "hdfs://HOME90/chuck/me/assorted_test_db.db/ext_part_01");
 
     }
 
@@ -1285,12 +1285,12 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "tpcds_bin_partitioned_orc_10_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir,LEGACY_MNGD_PARTS_01);
 
-        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
 
-        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 3);
-        validateTableLocation(resultsMirror, "web_sales", Environment.RIGHT, "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales");
+        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 3);
+        validateTableLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales");
 
     }
 
@@ -1320,18 +1320,18 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir,EXT_PURGE_ODD_PARTS_03);
 
-        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
 
-        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 18);
-        validatePartitionCount(resultsMirror, "web_sales", Environment.RIGHT, 16);
-        validateTableLocation(resultsMirror, "web_sales", Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/ext_purge_odd_parts.db/web_sales");
-        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452035", "hdfs://HOME90/user/dstreev/datasets/alt-locations/load_web_sales/odd");
+        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 18);
+        validatePartitionCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 16);
+        validateTableLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/ext_purge_odd_parts.db/web_sales");
+        validatePartitionLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452035", "hdfs://HOME90/user/dstreev/datasets/alt-locations/load_web_sales/odd");
         // ws_sold_date_sk=2451188: "hdfs://HOME90/user/dstreev/datasets/alt-locations/web_sales/ws_sold_date_sk=2451188"
-        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2451188", "hdfs://HOME90/user/dstreev/datasets/alt-locations/web_sales/ws_sold_date_sk=2451188");
+        validatePartitionLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "ws_sold_date_sk=2451188", "hdfs://HOME90/user/dstreev/datasets/alt-locations/web_sales/ws_sold_date_sk=2451188");
         // ws_sold_date_sk=2451793: "hdfs://HOME90/warehouse/tablespace/external/hive/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451793"
-        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2451793", "hdfs://HOME90/warehouse/tablespace/external/hive/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451793");
+        validatePartitionLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "ws_sold_date_sk=2451793", "hdfs://HOME90/warehouse/tablespace/external/hive/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451793");
 
     }
 
@@ -1357,16 +1357,16 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "tpcds_bin_partitioned_orc_10_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir,LEGACY_MNGD_PARTS_01);
 
-        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
 
-        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1827);
-        validatePartitionCount(resultsMirror, "web_sales", Environment.RIGHT, 1824);
-        validateTableLocation(resultsMirror, "web_sales", Environment.RIGHT, "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales");
-        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452033", "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452033");
+        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1827);
+        validatePartitionCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1824);
+        validateTableLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales");
+        validatePartitionLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452033", "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452033");
         // ws_sold_date_sk=2452036: "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036"
-        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452036", "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036");
+        validatePartitionLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452036", "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036");
 
     }
 
@@ -1393,13 +1393,13 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 1, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "tpcds_bin_partitioned_orc_10_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir,LEGACY_MNGD_PARTS_01);
 
         // Will error because there isn't a mapping required for 'dc' to align locations.
-        validatePhase(resultsMirror, "web_sales", PhaseState.ERROR);
+        validatePhase(resultsMirrors[0], "web_sales", PhaseState.ERROR);
 
-        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 3651);
-        validatePartitionCount(resultsMirror, "web_sales", Environment.RIGHT, 1824);
+        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 3651);
+        validatePartitionCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1824);
 
     }
 
@@ -1425,17 +1425,17 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "tpcds_bin_partitioned_orc_10_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir,LEGACY_MNGD_PARTS_01);
 
         // Will error because there isn't a mapping required for 'dc' to align locations.
-        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
 
-        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1827);
-        validatePartitionCount(resultsMirror, "web_sales", Environment.RIGHT, 1824);
-        validateTableLocation(resultsMirror, "web_sales", Environment.RIGHT, "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales");
-        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452033", "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452033");
+        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1827);
+        validatePartitionCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1824);
+        validateTableLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales");
+        validatePartitionLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452033", "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452033");
         // ws_sold_date_sk=2452036: "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036"
-        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452036", "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036");
+        validatePartitionLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452036", "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036");
 
     }
 
@@ -1464,20 +1464,20 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "tpcds_bin_partitioned_orc_10_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir,LEGACY_MNGD_PARTS_01);
 
         // Will error because there isn't a mapping required for 'dc' to align locations.
-        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
 
-        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1827);
-        validatePartitionCount(resultsMirror, "web_sales", Environment.RIGHT, 1824);
-        validateTableLocation(resultsMirror, "web_sales", Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/tpcds_bin_partitioned_orc_10.db/web_sales");
-        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452033", "hdfs://HOME90/warehouse/tablespace/external/hive/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452033");
+        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1827);
+        validatePartitionCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1824);
+        validateTableLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/tpcds_bin_partitioned_orc_10.db/web_sales");
+        validatePartitionLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452033", "hdfs://HOME90/warehouse/tablespace/external/hive/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452033");
         // ws_sold_date_sk=2452036: "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036"
-        validatePartitionLocation(resultsMirror, "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452036", "hdfs://HOME90/warehouse/tablespace/external/hive/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036");
+        validatePartitionLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "ws_sold_date_sk=2452036", "hdfs://HOME90/warehouse/tablespace/external/hive/tpcds_bin_partitioned_orc_10.db/web_sales/ws_sold_date_sk=2452036");
 
-        validateDBLocation(resultsMirror, Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/tpcds_bin_partitioned_orc_10.db");
-        validateDBManagedLocation(resultsMirror, Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/managed/hive/tpcds_bin_partitioned_orc_10.db");
+        validateDBLocation(resultsMirrors[0], Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/tpcds_bin_partitioned_orc_10.db");
+        validateDBManagedLocation(resultsMirrors[0], Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/managed/hive/tpcds_bin_partitioned_orc_10.db");
     }
 
     @Test

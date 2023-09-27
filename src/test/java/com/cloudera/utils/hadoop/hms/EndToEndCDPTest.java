@@ -57,9 +57,9 @@ public class EndToEndCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir, EXT_PURGE_ODD_PARTS_03);
 
-        assertEquals("Phase State doesn't match", PhaseState.SUCCESS, resultsMirror.getTableMirrors().get("web_sales").getPhaseState());
+        assertEquals("Phase State doesn't match", PhaseState.SUCCESS, resultsMirrors[0].getTableMirrors().get("web_sales").getPhaseState());
 
         // Verify the results
         // Find ALTER TABLE STATEMENT and verify the location
@@ -67,7 +67,7 @@ public class EndToEndCDPTest extends EndToEndBase {
         Boolean foundOddPart = Boolean.FALSE;
         Boolean foundOddPart2 = Boolean.FALSE;
 
-        for (Pair pair : resultsMirror.getTableMirrors().get("web_sales").getEnvironmentTable(Environment.LEFT).getSql()) {
+        for (Pair pair : resultsMirrors[0].getTableMirrors().get("web_sales").getEnvironmentTable(Environment.LEFT).getSql()) {
             if (pair.getDescription().trim().equals("Alter Table Location")) {
                 assertEquals("Location doesn't match", "ALTER TABLE web_sales SET LOCATION \"ofs://OHOME90/warehouse/tablespace/external/hive/ext_purge_odd_parts.db/web_sales\"", pair.getAction());
                 foundAT = Boolean.TRUE;
@@ -112,20 +112,20 @@ public class EndToEndCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir, EXT_PURGE_ODD_PARTS_03);
 
-        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
 
-        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",  "Alter Table Location",
+        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Alter Table Location",
                 "ALTER TABLE web_sales SET LOCATION \"hdfs://HDP50/finance/external-fso/ext_purge_odd_parts.db/web_sales\"")) {
             fail("Alter Table Location not found");
         }
-        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",
+        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",
                 "Alter Table Partition Spec `ws_sold_date_sk`='2451180' Location",
                 "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451180') SET LOCATION \"hdfs://HDP50/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451180\"")) {
             fail("Alter Table Partition Location not found");
         }
-        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",
+        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",
                 "Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location",
                 "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451188') SET LOCATION \"hdfs://HDP50/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451188\"")) {
             fail("Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location");
@@ -195,9 +195,9 @@ public class EndToEndCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 1, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir, EXT_PURGE_ODD_PARTS_03);
 
-        validatePhase(resultsMirror, "web_sales", PhaseState.ERROR);
+        validatePhase(resultsMirrors[0], "web_sales", PhaseState.ERROR);
 
     }
 
@@ -230,10 +230,10 @@ public class EndToEndCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir, EXT_PURGE_ODD_PARTS_03);
 
-        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
-        validateTableIssueCount(resultsMirror, "web_sales", Environment.LEFT, 3);
+        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.LEFT, 3);
         /*
         - description: "Alter Table Location"
           action: "ALTER TABLE web_sales SET LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales\""
@@ -247,15 +247,15 @@ public class EndToEndCDPTest extends EndToEndBase {
           action: "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2452035') SET\
             \ LOCATION \"ofs://OHOME90/finance/external-fso/load_web_sales/odd\""
          */
-        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",  "Alter Table Location",
+        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Alter Table Location",
                 "ALTER TABLE web_sales SET LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales\"")) {
             fail("Alter Table Location not found");
         }
-        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",  "Alter Table Partition Spec `ws_sold_date_sk`='2451180' Location",
+        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Alter Table Partition Spec `ws_sold_date_sk`='2451180' Location",
                 "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451180') SET LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451180\"")) {
             fail("Alter Table Partition Location not found");
         }
-        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",  "Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location",
+        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location",
                 "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451188') SET LOCATION \"ofs://OHOME90/user/dstreev/datasets/alt-locations/web_sales/ws_sold_date_sk=2451188\"")) {
             fail("Alter Table Partition Location not found");
         }
@@ -290,10 +290,10 @@ public class EndToEndCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 1, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir, EXT_PURGE_ODD_PARTS_03);
 
-        validatePhase(resultsMirror, "web_sales", PhaseState.ERROR);
-        validateTableIssueCount(resultsMirror, "web_sales", Environment.LEFT, 3);
+        validatePhase(resultsMirrors[0], "web_sales", PhaseState.ERROR);
+        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.LEFT, 3);
         // One of the locations is not accounted for in the glm and isn't standard.  So we can't translate it..
 
     }
@@ -327,10 +327,10 @@ public class EndToEndCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir, EXT_PURGE_ODD_PARTS_03);
 
-        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
-        validateTableIssueCount(resultsMirror, "web_sales", Environment.LEFT, 3);
+        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.LEFT, 3);
         /*
         - description: "Alter Table Location"
           action: "ALTER TABLE web_sales SET LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales\""
@@ -344,15 +344,15 @@ public class EndToEndCDPTest extends EndToEndBase {
           action: "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2452035') SET\
             \ LOCATION \"ofs://OHOME90/finance/external-fso/load_web_sales/odd\""
          */
-        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",  "Alter Table Location",
+        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Alter Table Location",
                 "ALTER TABLE web_sales SET LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales\"")) {
             fail("Alter Table Location not found");
         }
-        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",  "Alter Table Partition Spec `ws_sold_date_sk`='2451180' Location",
+        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Alter Table Partition Spec `ws_sold_date_sk`='2451180' Location",
                 "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451180') SET LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451180\"")) {
             fail("Alter Table Partition Location not found");
         }
-        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",  "Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location",
+        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location",
                 "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451188') SET LOCATION \"ofs://OHOME90/user/dstreev/datasets/alt-locations/web_sales/ws_sold_date_sk=2451188\"")) {
             fail("Alter Table Partition Location not found");
         }
@@ -388,12 +388,12 @@ public class EndToEndCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
 
         // Read the output and verify the results.
-        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir,EXT_PURGE_ODD_PARTS_03);
 
-        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
-        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1);
+        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1);
 
-        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",  "Remove table property",
+        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Remove table property",
                 "ALTER TABLE web_sales UNSET TBLPROPERTIES (\"TRANSLATED_TO_EXTERNAL\")")) {
             fail("Remove Table Property not found");
         }
@@ -423,12 +423,12 @@ public class EndToEndCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
 
         // Read the output and verify the results.
-//        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir,ACID_W_PARTS_05);
 
-//        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
+//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
 //        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1);
 
-//        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",  "Remove table property",
+//        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Remove table property",
 //                "ALTER TABLE web_sales UNSET TBLPROPERTIES (\"TRANSLATED_TO_EXTERNAL\")")) {
 //            fail("Remove Table Property not found");
 //        }
@@ -458,12 +458,12 @@ public class EndToEndCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
 
         // Read the output and verify the results.
-//        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir,LEGACY_MNGD_NO_PARTS_02);
 
-//        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
-//        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1);
+//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+//        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1);
 
-//        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",  "Remove table property",
+//        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Remove table property",
 //                "ALTER TABLE web_sales UNSET TBLPROPERTIES (\"TRANSLATED_TO_EXTERNAL\")")) {
 //            fail("Remove Table Property not found");
 //        }
@@ -493,12 +493,12 @@ public class EndToEndCDPTest extends EndToEndBase {
         assertEquals("Return Code Failure: " + rtn, 0, rtn);
 
         // Read the output and verify the results.
-//        DBMirror resultsMirror = getResults(outputDir + "/" + "ext_purge_odd_parts_hms-mirror.yaml");
+        DBMirror[] resultsMirrors = getResults(outputDir,LEGACY_MNGD_NO_PARTS_02);
 
-//        validatePhase(resultsMirror, "web_sales", PhaseState.SUCCESS);
-//        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1);
+//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+//        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1);
 
-//        if (!validateSqlPair(resultsMirror, Environment.LEFT, "web_sales",  "Remove table property",
+//        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Remove table property",
 //                "ALTER TABLE web_sales UNSET TBLPROPERTIES (\"TRANSLATED_TO_EXTERNAL\")")) {
 //            fail("Remove Table Property not found");
 //        }
