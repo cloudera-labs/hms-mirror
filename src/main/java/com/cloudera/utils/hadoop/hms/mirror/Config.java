@@ -701,7 +701,8 @@ public class Config {
         Set<Environment> envs = clusters.keySet();
         for (Environment env : envs) {
             Cluster cluster = clusters.get(env);
-            if (cluster.getHiveServer2() != null && cluster.getHiveServer2().isValidUri() && cluster.getHiveServer2().getUri().contains("principal")) {
+            if (cluster.getHiveServer2() != null && cluster.getHiveServer2().isValidUri()
+                    && cluster.getHiveServer2().getUri() != null && cluster.getHiveServer2().getUri().contains("principal")) {
                 rtn = Boolean.TRUE;
             }
         }
@@ -743,10 +744,13 @@ public class Config {
                         warnings.set(HDP3_HIVE.getCode());
 
                     }
-                    if (getCluster(Environment.RIGHT).getLegacyHive() && !getCluster(Environment.LEFT).getLegacyHive() &&
-                            !getDumpTestData()) {
-                        errors.set(NON_LEGACY_TO_LEGACY.getCode());
-                        rtn = Boolean.FALSE;
+                    // Check for INPLACE DOWNGRADE, in which case no RIGHT needs to be defined or check.
+                    if (!getMigrateACID().isDowngradeInPlace()) {
+                        if (getCluster(Environment.RIGHT).getLegacyHive() && !getCluster(Environment.LEFT).getLegacyHive() &&
+                                !getDumpTestData()) {
+                            errors.set(NON_LEGACY_TO_LEGACY.getCode());
+                            rtn = Boolean.FALSE;
+                        }
                     }
             }
 //        }
@@ -875,12 +879,14 @@ public class Config {
             }
             if (getCluster(Environment.RIGHT) != null) {
                 Cluster cluster = getCluster(Environment.RIGHT);
-                cluster.getHiveServer2().getConnectionProperties().setProperty("initialSize", Integer.toString((Integer) getTransfer().getConcurrency() / 2));
-                cluster.getHiveServer2().getConnectionProperties().setProperty("minIdle", Integer.toString((Integer) getTransfer().getConcurrency() / 2));
-                if (cluster.getHiveServer2().getDriverClassName().equals(HiveServer2Config.APACHE_HIVE_DRIVER_CLASS_NAME)) {
-                    cluster.getHiveServer2().getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency()));
-                    cluster.getHiveServer2().getConnectionProperties().setProperty("maxWaitMillis", "10000");
-                    cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
+                if (cluster.getHiveServer2() != null) {
+                    cluster.getHiveServer2().getConnectionProperties().setProperty("initialSize", Integer.toString((Integer) getTransfer().getConcurrency() / 2));
+                    cluster.getHiveServer2().getConnectionProperties().setProperty("minIdle", Integer.toString((Integer) getTransfer().getConcurrency() / 2));
+                    if (cluster.getHiveServer2().getDriverClassName().equals(HiveServer2Config.APACHE_HIVE_DRIVER_CLASS_NAME)) {
+                        cluster.getHiveServer2().getConnectionProperties().setProperty("maxIdle", Integer.toString(getTransfer().getConcurrency()));
+                        cluster.getHiveServer2().getConnectionProperties().setProperty("maxWaitMillis", "10000");
+                        cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", Integer.toString(getTransfer().getConcurrency()));
+                    }
                 }
             }
         }
@@ -1066,7 +1072,10 @@ public class Config {
             case EXPORT_IMPORT:
             case SQL:
                 // Only do link test when NOT using intermediate storage.
-                if (!this.getCluster(Environment.RIGHT).getHiveServer2().isDisconnected() && this.getTransfer().getIntermediateStorage() == null && this.getTransfer().getCommonStorage() == null) {
+                if (this.getCluster(Environment.RIGHT).getHiveServer2() != null
+                        && !this.getCluster(Environment.RIGHT).getHiveServer2().isDisconnected()
+                        && this.getTransfer().getIntermediateStorage() == null
+                        && this.getTransfer().getCommonStorage() == null) {
                     if (!getMigrateACID().isDowngradeInPlace() && !linkTest()) {
                         errors.set(LINK_TEST_FAILED.getCode());
                         rtn = Boolean.FALSE;
@@ -1249,8 +1258,10 @@ public class Config {
 
         for (Environment env : envs) {
             Cluster cluster = clusters.get(env);
-            if (cluster != null && cluster.getHiveServer2() != null && cluster.getHiveServer2().isValidUri() &&
-                    !cluster.getHiveServer2().isDisconnected()) {
+            if (cluster != null
+                    && cluster.getHiveServer2() != null
+                    && cluster.getHiveServer2().isValidUri()
+                    && !cluster.getHiveServer2().isDisconnected()) {
                 Connection conn = null;
                 try {
                     conn = cluster.getConnection();

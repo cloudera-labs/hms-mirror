@@ -31,14 +31,15 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 public class EndToEndBase {
     protected static String homedir = System.getProperty("user.home");
@@ -70,6 +71,27 @@ public class EndToEndBase {
 //        String resultsFile = getResultsFile(testDataFile);
 //        assertEquals("EndToEndBaseTest", resultsFile);
 //    }
+
+    protected String getDistcpLine(String outputDir, DBMirror[] dbMirrors, int dbInstance, Environment side, int distcpSource, int lineNum) {
+        String rtn = null;
+        String dbName = dbMirrors[dbInstance].getName();
+
+        // Open the distcp file for the RIGHT.
+        String distcpFile = outputDir + "/" + dbName + "_" + side.toString() + "_" + distcpSource + "_distcp_source.txt";
+        File file = new File(distcpFile);
+        if (!file.exists()) {
+            fail("Distcp file doesn't exist: " + distcpFile);
+        } else {
+            try {
+                List<String> lines = Files.readAllLines(file.toPath());
+                rtn = lines.get(lineNum);
+            } catch (IOException e) {
+                e.printStackTrace();
+                fail("Error reading distcp file: " + distcpFile);
+            }
+        }
+        return rtn;
+    }
 
     protected String[] getDatabasesFromTestDataFile(String testDataSet) {
         System.out.println("Test data file: " + testDataSet);

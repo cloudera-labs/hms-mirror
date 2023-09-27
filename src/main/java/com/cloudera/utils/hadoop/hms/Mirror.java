@@ -453,7 +453,8 @@ public class Mirror {
                         getConfig().getMigrateACID().setOnly(Boolean.TRUE);
                         // Remove RIGHT cluster and enforce mao
                         LOG.info("RIGHT Cluster definition will be disconnected if exists since this is a LEFT cluster ONLY operation");
-                        getConfig().getCluster(Environment.RIGHT).getHiveServer2().setDisconnected(Boolean.TRUE);
+                        if (null != getConfig().getCluster(Environment.RIGHT).getHiveServer2())
+                            getConfig().getCluster(Environment.RIGHT).getHiveServer2().setDisconnected(Boolean.TRUE);
                     }
                 }
 
@@ -531,7 +532,8 @@ public class Mirror {
                 }
 
                 if (cmd.hasOption("rid")) {
-                    getConfig().getCluster(Environment.RIGHT).getHiveServer2().setDisconnected(Boolean.TRUE);
+                    if (null != getConfig().getCluster(Environment.RIGHT).getHiveServer2())
+                        getConfig().getCluster(Environment.RIGHT).getHiveServer2().setDisconnected(Boolean.TRUE);
                 }
 
                 String dataStrategyStr = cmd.getOptionValue("d");
@@ -889,7 +891,7 @@ public class Mirror {
                 case EXPORT_IMPORT:
                 case HYBRID:
                     // When doing inplace downgrade of ACID tables, we're only dealing with the LEFT cluster.
-                    if (!getConfig().getMigrateACID().isInplace()) {
+                    if (!getConfig().getMigrateACID().isInplace() && null != getConfig().getCluster(Environment.RIGHT).getHiveServer2()) {
                         connPools.addHiveServer2(Environment.RIGHT, getConfig().getCluster(Environment.RIGHT).getHiveServer2());
                         hs2Envs.add(Environment.RIGHT);
                     }

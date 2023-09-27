@@ -241,8 +241,8 @@ public class Cluster implements Comparable<Cluster> {
 
     public HiveServer2Config getHiveServer2() {
         // Only create when using test data.  Otherwise, leave to expose config issue.
-        if (hiveServer2 == null && Context.getInstance().getConfig().isLoadingTestData())
-            hiveServer2 = new HiveServer2Config();
+//        if (hiveServer2 == null) // && (Context.getInstance().getConfig().isLoadingTestData() && !Context.getInstance().getConfig().getMigrateACID().isDowngradeInPlace()))
+//            hiveServer2 = new HiveServer2Config();
         return hiveServer2;
     }
 

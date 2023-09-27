@@ -29,6 +29,18 @@ import static org.junit.Assert.*;
 
 public class EndToEndCDPTest extends EndToEndBase {
 
+    /*
+    STORAGE_MIGRATION test.  Defining the warehouse directories (-wd and -ewd) along with -epl (evaluation of partition locations).
+    We've also added -dc to this to produce a distcp plan for this data migration.
+    It should only evaluate non-acid tables.
+
+    In this test, the locations of the partitions doesn't line up with the warehouse directories listed.  And since we're
+    not using -rdl (reset default location), we issue warnings about the partitions that don't line up.
+
+    This storage migration doesn't require the creation of any new tables.  We will simply ALTER the table and partition
+    locations.
+
+     */
     @Test
     public void sm_smn_wd_epl_dc() {
         /*
@@ -86,9 +98,22 @@ public class EndToEndCDPTest extends EndToEndBase {
         assertEquals("Alter Table Location not found", Boolean.TRUE, foundAT);
         assertEquals("Alter Odd Part Location not found", Boolean.TRUE, foundOddPart);
         assertEquals("Alter Odd Part 2 Location not found", Boolean.TRUE, foundOddPart2);
+
+        // Issues are reported for each partition that doesn't match the warehouse directory.
+        assertEquals("Issue Count not as expected", 17, resultsMirrors[0].getTableMirrors().get("web_sales").getEnvironmentTable(Environment.LEFT).getIssues().size());
 //        System.out.println("Results: " + resultsMirror.toString());
     }
 
+    /*
+    STORAGE_MIGRATION test used to show how to move data from one directory to another, within the same namespace.
+
+    Since the -smn is not specified, the namespace is assumed to be the same as the original table location.
+    The -wd and -ewd are used to define the warehouse directories.  The -epl is used to evaluate the partition locations and
+    with -rdl, the default location is reset to the new warehouse directory.
+
+    There should be no issue now that the default location is reset to the new warehouse directory.
+
+     */
     @Test
     public void sm_wd_epl_rdl_dc() {
         String nameofCurrMethod = new Throwable()
@@ -130,6 +155,8 @@ public class EndToEndCDPTest extends EndToEndBase {
                 "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451188') SET LOCATION \"hdfs://HDP50/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451188\"")) {
             fail("Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location");
         }
+
+        assertEquals("Issue Count not as expected", 0, resultsMirrors[0].getTableMirrors().get("web_sales").getEnvironmentTable(Environment.LEFT).getIssues().size());
 
     }
 
@@ -415,6 +442,79 @@ public class EndToEndCDPTest extends EndToEndBase {
         String[] args = new String[]{"-d", "SQL",
                 "-da", "-ip", "-mao", "-rid",
                 "-ltd", ACID_W_PARTS_05, "-cfg", CDP_CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+
+        // Read the output and verify the results.
+        DBMirror[] resultsMirrors = getResults(outputDir,ACID_W_PARTS_05);
+
+//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+//        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1);
+
+//        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Remove table property",
+//                "ALTER TABLE web_sales UNSET TBLPROPERTIES (\"TRANSLATED_TO_EXTERNAL\")")) {
+//            fail("Remove Table Property not found");
+//        }
+
+    }
+
+    @Test
+    public void sql_da_ip_left_only() {
+        /*
+        Issues: Need to post warning when table/partition(s) new location isn't in the -[e]wd location.
+
+         */
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-da", "-ip", "-mao",
+                "-ltd", ACID_W_PARTS_05, "-cfg", CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+
+        // Read the output and verify the results.
+        DBMirror[] resultsMirrors = getResults(outputDir,ACID_W_PARTS_05);
+
+//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+//        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1);
+
+//        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Remove table property",
+//                "ALTER TABLE web_sales UNSET TBLPROPERTIES (\"TRANSLATED_TO_EXTERNAL\")")) {
+//            fail("Remove Table Property not found");
+//        }
+
+    }
+
+    @Test
+    public void sql_da_ip_rdl_ewd_left_only() {
+        /*
+        Issues: Need to post warning when table/partition(s) new location isn't in the -[e]wd location.
+
+         */
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-da", "-ip", "-mao",
+                "-ewd", "/my/new/external/space",
+                "-wd", "/my/new/managed/space",
+                "-rdl",
+                "-ltd", ACID_W_PARTS_05, "-cfg", CDP,
                 "-o", outputDir
         };
         long rtn = 0;

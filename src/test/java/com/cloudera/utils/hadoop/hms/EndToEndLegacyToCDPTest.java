@@ -23,8 +23,14 @@ import com.cloudera.utils.hadoop.hms.mirror.MessageCode;
 import com.cloudera.utils.hadoop.hms.mirror.PhaseState;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.List;
+
 import static com.cloudera.utils.hadoop.hms.EnvironmentConstants.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class EndToEndLegacyToCDPTest extends EndToEndBase {
 
@@ -1651,6 +1657,9 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
 
     }
 
+    /*
+    Issue 86 https://github.com/cloudera-labs/hms-mirror/issues/86
+     */
     @Test
     public void sql_dc_is_ext_purge() {
         // Issue:
@@ -1674,6 +1683,11 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         long check = 0;
 
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
+
+        DBMirror[] resultsMirrors = getResults(outputDir,EXT_PURGE_ODD_PARTS_03);
+
+        String line = getDistcpLine(outputDir, resultsMirrors, 0, Environment.RIGHT, 1, 0);
+        assertEquals("Right Distcp source file isn't correct.", "s3a://my_intermediate_bucket/hms_mirror_working/20230927_084820/ext_purge_odd_parts.db", line);
 
     }
 

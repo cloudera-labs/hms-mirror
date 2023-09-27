@@ -75,16 +75,22 @@ public class HiveServer2Config {
     @JsonIgnore
     public Boolean isValidUri() {
         Boolean rtn = Boolean.TRUE;
-        if (getUri() == null || !getUri().startsWith("jdbc:hive2://")) {
-            rtn = Boolean.FALSE;
+        if (!isDisconnected()) {
+            if (getUri() == null || !getUri().startsWith("jdbc:hive2://")) {
+                rtn = Boolean.FALSE;
+            }
         }
         return rtn;
     }
 
     @JsonIgnore
     public Boolean isKerberosConnection() {
-        if (getUri().contains("principal")) {
-            return Boolean.TRUE;
+        if (!isDisconnected()) {
+            if (getUri() != null && getUri().contains("principal")) {
+                return Boolean.TRUE;
+            } else {
+                return Boolean.FALSE;
+            }
         } else {
             return Boolean.FALSE;
         }
@@ -92,7 +98,7 @@ public class HiveServer2Config {
 
     @JsonIgnore
     public Boolean isZooKeeperConnection() {
-        if (getUri().contains("serviceDiscoveryMode=zooKeeper")) {
+        if (getUri() != null && getUri().contains("serviceDiscoveryMode=zooKeeper")) {
             return Boolean.TRUE;
         } else {
             return Boolean.FALSE;
