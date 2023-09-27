@@ -141,7 +141,7 @@ public class Transfer implements Callable<ReturnStatus> {
                         isLoc = isLoc + "/" +
                                 config.getTransfer().getRemoteWorkingDirectory() + "/" +
                                 config.getRunMarker() + "/" +
-                                dbMirror.getName() + "/" +
+                                dbMirror.getName() + ".db/" +
                                 tableMirror.getName();
 
                         config.getTranslator().addLocation(dbMirror.getName(), Environment.LEFT,

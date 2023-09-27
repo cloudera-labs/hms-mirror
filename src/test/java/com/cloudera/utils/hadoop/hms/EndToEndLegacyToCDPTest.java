@@ -1687,7 +1687,10 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         DBMirror[] resultsMirrors = getResults(outputDir,EXT_PURGE_ODD_PARTS_03);
 
         String line = getDistcpLine(outputDir, resultsMirrors, 0, Environment.RIGHT, 1, 0);
-        assertEquals("Right Distcp source file isn't correct.", "s3a://my_intermediate_bucket/hms_mirror_working/20230927_084820/ext_purge_odd_parts.db", line);
+        String checkStr = "s3a://my_intermediate_bucket/hms_mirror_working/"
+                + Context.getInstance().getConfig().getRunMarker()
+                + "/ext_purge_odd_parts.db";
+        assertEquals("Right Distcp source file isn't correct.", checkStr, line);
 
     }
 
