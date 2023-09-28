@@ -498,6 +498,41 @@ public class EndToEndCDPTest extends EndToEndBase {
     }
 
     @Test
+    public void sql_da_ip_np_left_only() {
+        /*
+        Issues: Need to post warning when table/partition(s) new location isn't in the -[e]wd location.
+
+         */
+        String nameofCurrMethod = new Throwable()
+                .getStackTrace()[0]
+                .getMethodName();
+
+        String outputDir = getOutputDirBase() + nameofCurrMethod;
+
+        String[] args = new String[]{"-d", "SQL",
+                "-da", "-ip", "-mao", "-np",
+                "-ltd", ACID_W_PARTS_05, "-cfg", CDP,
+                "-o", outputDir
+        };
+        long rtn = 0;
+        Mirror mirror = new Mirror();
+        rtn = mirror.go(args);
+        assertEquals("Return Code Failure: " + rtn, 0, rtn);
+
+        // Read the output and verify the results.
+        DBMirror[] resultsMirrors = getResults(outputDir,ACID_W_PARTS_05);
+
+//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+//        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1);
+
+//        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Remove table property",
+//                "ALTER TABLE web_sales UNSET TBLPROPERTIES (\"TRANSLATED_TO_EXTERNAL\")")) {
+//            fail("Remove Table Property not found");
+//        }
+
+    }
+
+    @Test
     public void sql_da_ip_rdl_ewd_left_only() {
         /*
         Issues: Need to post warning when table/partition(s) new location isn't in the -[e]wd location.

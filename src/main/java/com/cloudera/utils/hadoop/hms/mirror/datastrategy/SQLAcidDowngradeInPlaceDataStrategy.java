@@ -17,6 +17,7 @@
 
 package com.cloudera.utils.hadoop.hms.mirror.datastrategy;
 
+import com.cloudera.utils.hadoop.hms.Context;
 import com.cloudera.utils.hadoop.hms.mirror.*;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
 import org.apache.log4j.LogManager;
@@ -34,6 +35,16 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
     @Override
     public Boolean execute() {
         Boolean rtn = Boolean.TRUE;
+
+        /*
+        In this case, the LEFT is the source and we'll us the RIGHT cluster definition to hold the work. We need to ensure
+        the RIGHT cluster is configured the same as the LEFT.
+         */
+        Config config = Context.getInstance().getConfig();
+        Cluster leftCluster = config.getCluster(Environment.LEFT);
+        Cluster rightCluster = config.getCluster(Environment.RIGHT);
+        rightCluster.setLegacyHive(leftCluster.getLegacyHive());
+        rightCluster.setHdpHive3(leftCluster.isHdpHive3());
         /*
         rename original table
         remove artificial bucket in new table def
@@ -88,6 +99,7 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
         leftNewTableSpec.setMakeExternal(Boolean.TRUE);
         // Location of converted data will got to default location.
         leftNewTableSpec.setStripLocation(Boolean.TRUE);
+//        leftNewTableSpec.set
 
         rtn = tableMirror.buildTableSchema(leftNewTableSpec);
 
