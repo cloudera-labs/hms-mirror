@@ -179,7 +179,7 @@ public enum MessageCode {
     SCHEMA_EXISTS_NO_ACTION(89, "Schema exists already and matches. No action necessary"),
     SQL_SYNC_WO_CINE(90, "Sync NOT supported with the SQL strategy without the `-cine|create-if-not-exist` flag."),
     SQL_SYNC_W_CINE(90, "The schema already exists and you've asked for 'sync'.  The target tables schema will remain in" +
-            "place and the tables data will be overwrite via SQL. NOTE: If the table is partitioned and source partitions " +
+            "place and the tables data will be overwritten via SQL. NOTE: If the table is partitioned and source partitions " +
             "are deleted, those will NOT be removed through this process and may lead to data inconsistencies.  If this is an " +
             "issue, you should 'drop' the target table and restart the process to get a clean bootstrap of the data."),
     SCHEMA_WILL_BE_CREATED(91, "Schema will be created"),

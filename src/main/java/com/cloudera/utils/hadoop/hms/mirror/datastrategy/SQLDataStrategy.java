@@ -115,7 +115,7 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
                 ret.addIssue(SQL_SYNC_W_CINE.getDesc());
                 ret.setCreateStrategy(CreateStrategy.CREATE);
             } else {
-                ret.addIssue(SQL_SYNC_WO_CINE.getDesc());
+                ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
                 return Boolean.FALSE;
             }
         } else {
