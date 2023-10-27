@@ -40,59 +40,12 @@ public class Optimization {
     private Overrides overrides = new Overrides();
     private Boolean buildShadowStatistics = Boolean.FALSE;
 
-    public Boolean getSortDynamicPartitionInserts() {
-        return sortDynamicPartitionInserts;
-    }
-
-    public void setSortDynamicPartitionInserts(Boolean sortDynamicPartitionInserts) {
-        this.sortDynamicPartitionInserts = sortDynamicPartitionInserts;
-    }
-
-    public Boolean getSkip() {
-        return skip;
-    }
-
-    public void setSkip(Boolean skip) {
-        this.skip = skip;
-    }
-
     public Boolean getAutoTune() {
         return autoTune;
     }
 
     public void setAutoTune(Boolean autoTune) {
         this.autoTune = autoTune;
-    }
-
-    public Boolean getCompressTextOutput() {
-        return compressTextOutput;
-    }
-
-    public void setCompressTextOutput(Boolean compressTextOutput) {
-        this.compressTextOutput = compressTextOutput;
-    }
-
-    public Boolean getSkipStatsCollection() {
-        // Reset skipStatsCollection to true if we're doing a dump or schema only. (and a few other conditions)
-        if (skipStatsCollection != null && !skipStatsCollection) {
-            switch (Context.getInstance().getConfig().getDataStrategy()) {
-                case DUMP:
-                case SCHEMA_ONLY:
-                case EXPORT_IMPORT:
-                    skipStatsCollection = Boolean.TRUE;
-                    break;
-                case STORAGE_MIGRATION:
-                    if (Context.getInstance().getConfig().getTransfer().getStorageMigration().isDistcp()) {
-                        skipStatsCollection = Boolean.TRUE;
-                    }
-                    break;
-            }
-        }
-        return skipStatsCollection;
-    }
-
-    public void setSkipStatsCollection(Boolean skipStatsCollection) {
-        this.skipStatsCollection = skipStatsCollection;
     }
 
     public Boolean getBuildShadowStatistics() {
@@ -103,12 +56,63 @@ public class Optimization {
         this.buildShadowStatistics = buildShadowStatistics;
     }
 
+    public Boolean getCompressTextOutput() {
+        return compressTextOutput;
+    }
+
+    public void setCompressTextOutput(Boolean compressTextOutput) {
+        this.compressTextOutput = compressTextOutput;
+    }
+
     public Overrides getOverrides() {
         return overrides;
     }
 
     public void setOverrides(Overrides overrides) {
         this.overrides = overrides;
+    }
+
+    public Boolean getSkip() {
+        return skip;
+    }
+
+    public void setSkip(Boolean skip) {
+        this.skip = skip;
+    }
+
+    public Boolean getSkipStatsCollection() {
+        // Reset skipStatsCollection to true if we're doing a dump or schema only. (and a few other conditions)
+        if (skipStatsCollection != null && !skipStatsCollection) {
+            try {
+                switch (Context.getInstance().getConfig().getDataStrategy()) {
+                    case DUMP:
+                    case SCHEMA_ONLY:
+                    case EXPORT_IMPORT:
+                        skipStatsCollection = Boolean.TRUE;
+                        break;
+                    case STORAGE_MIGRATION:
+                        if (Context.getInstance().getConfig().getTransfer().getStorageMigration().isDistcp()) {
+                            skipStatsCollection = Boolean.TRUE;
+                        }
+                        break;
+                }
+            } catch (NullPointerException npe) {
+                // Ignore: Caused during 'setup' since the context and config don't exist.
+            }
+        }
+        return skipStatsCollection;
+    }
+
+    public void setSkipStatsCollection(Boolean skipStatsCollection) {
+        this.skipStatsCollection = skipStatsCollection;
+    }
+
+    public Boolean getSortDynamicPartitionInserts() {
+        return sortDynamicPartitionInserts;
+    }
+
+    public void setSortDynamicPartitionInserts(Boolean sortDynamicPartitionInserts) {
+        this.sortDynamicPartitionInserts = sortDynamicPartitionInserts;
     }
 
 }
