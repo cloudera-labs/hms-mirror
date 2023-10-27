@@ -58,6 +58,9 @@ VERBOSE=
 HADOOP_CLASSPATH=
 APP_JAVA_OPTS=${JAVA_OPTS:-"-Xms2048m -Xmx4096m -XX:+UseG1GC"}
 
+APP_OUTPUT_DIR=${HOME}/.hms-mirror/reports
+DIR_OVERRIDE=
+
 if [[ ! -d ${AUX_LIBS_DIR} ]]; then
   mkdir -p ${AUX_LIBS_DIR}
 fi
@@ -86,6 +89,13 @@ while [[ $# -gt 0 ]]; do
     shift
     SHOW_CP="true"
     ;;
+  -o|--output-dir)
+    shift
+    PRG_ARGS="${PRG_ARGS} -o \"$1\""
+    APP_OUTPUT_DIR=$1
+    DIR_OVERRIDE="x"
+    shift
+    ;;
   *)
     PRG_ARGS="${PRG_ARGS} \"$1\""
     shift
@@ -93,7 +103,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-#echo "Program Args: ${PRG_ARGS}"
+if [[ "${DIR_OVERRIDE}x" == "x" ]]; then
+  # Add Date to output dir path
+  APP_OUTPUT_PATH=${APP_OUTPUT_DIR}/$(date +%y-%m-%d_%H-%M-%S)
+else
+  APP_OUTPUT_PATH=${APP_OUTPUT_DIR}
+fi
+
+export APP_OUTPUT_PATH
+APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dapp.path.dir=\"$APP_OUTPUT_PATH\""
 
 if [[ ! -d ${AUX_LIBS_DIR} ]]; then
   mkdir -p ${AUX_LIBS_DIR}
