@@ -745,14 +745,10 @@ public class Mirror {
         }
 
         reportOutputDir = System.getenv("APP_OUTPUT_PATH");
-//        if (cmd.hasOption("o")) {
-//            reportOutputDir = cmd.getOptionValue("o");
-//        } else {
-//            Date now = new Date();
-//            DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
-//            reportOutputDir = System.getProperty("user.home") + System.getProperty("file.separator") +
-//                    ".hms-mirror/reports/" + df.format(now);
-//        }
+        /*
+        Output directory is set and handled via the wrapper script by setting the
+        'environment' variable APP_OUTPUT_PATH.
+         */
 
         // Action Files
         reportOutputFile = reportOutputDir + System.getProperty("file.separator") + "<db>_hms-mirror.md|html|yaml";
@@ -1895,11 +1891,11 @@ public class Mirror {
 //        translateConfigOption.setArgName("translate-config-file");
 //        options.addOption(translateConfigOption);
 
-//        Option outputOption = new Option("o", "output-dir", true,
-//                "Output Directory (default: $HOME/.hms-mirror/reports/<yyyy-MM-dd_HH-mm-ss>");
-//        outputOption.setRequired(Boolean.FALSE);
-//        outputOption.setArgName("outputdir");
-//        options.addOption(outputOption);
+        Option outputOption = new Option("o", "output-dir", true,
+                "Output Directory (default: $HOME/.hms-mirror/reports/<yyyy-MM-dd_HH-mm-ss>");
+        outputOption.setRequired(Boolean.FALSE);
+        outputOption.setArgName("outputdir");
+        options.addOption(outputOption);
 
         Option skipFeaturesOption = new Option("sf", "skip-features", false,
                 "Skip Features evaluation.");
