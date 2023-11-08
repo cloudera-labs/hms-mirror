@@ -1,0 +1,52 @@
+# Output
+
+The output from `hms-mirror` will, by default, be sent to `$HOME/.hms-mirror/reports`.  Each run will be place in a sub-directory with a timestamp.  You can choose to redirect the output to a different location with the `-o` option.  In this case the directory will be created if it doesn't exist and the output will be written to that location (without the timestamp sub-directory).
+
+If you wish to have the reports written to a different location AND have the timestamp sub-directory, use a symbolic link redirect the `$HOME/.hms-mirror/reports` directory to the desired output directory.
+
+A report for each **database** processed will be created in the output directory. Files for a database will be prefixed with the database name.  This applies to each of the following report/script types.
+
+## Application Report
+
+The output report is in markdown format.  You can use a markdown renderer to view the report.  If you don't have a renderer, you can still read the report, it will just be harder to read.
+
+The report include various stats regarding the run and details for each tables migration process.  In this report, you'll find details on "why" a particular table was skipped, or what actions were taken to migrate the table.  The report will even list issue encountered during the process.
+
+## SQL Scripts
+
+`hms-mirror` will produce the SQL scripts used to migrate the data. These scripts are written to the output directory.  The scripts are prefixed with the **database** name.
+
+- `<db_name>_LEFT_Clueanup_execute.sql` - When present, this scripts represents SQL statements that should be run on the LEFT cluster to cleanup artifacts from the migration process.
+- `<db_name>_LEFT_execute.sql` - When present, this scripts represents SQL statements that should be run on the LEFT cluster to migrate the data. If the `-e` option was used, the contents of this script will be executed on the LEFT cluster by `hms-mirror`.  If the `-e` option was NOT specified, these script can be verified and executed manually on the LEFT cluster.
+- `<db_name>_RIGHT_execute.sql` - When present, this scripts represents SQL statements that should be run on the RIGHT cluster to migrate the data. If the `-e` option was used, the contents of this script will be executed on the RIGHT cluster by `hms-mirror`.  If the `-e` option was NOT specified, these script can be verified and executed manually on the RIGHT cluster.
+- `<db_name>_RIGHT_Clueanup_execute.sql` - When present, this scripts represents SQL statements that should be run on the RIGHT cluster to cleanup artifacts from the migration process.
+
+## YAML Output
+
+The `<db_name>_hms-mirror.yaml` file is a full listing of the migration process as a document.  Use this file to programmatically determine what actions were taken during the migration process.
+
+## Runbook
+
+The `<db_name>_runbook.md` is a markdown file that is a workbook of 'what' to do.  It lays out the steps taken and the steps to be taken to complete the migration process.
+
+## `distcp` Scripts and Workbook
+
+When you include the `-dc|--distcp` option when running `hms-mirror`, we'll build a template `distcp` job for each database that has data to be migrated.  The result is a set of **bash scripts** and source files listing the contents to be used in the migration.
+
+Depending other influencing options, there may be a `distcp` script for the LEFT and RIGHT clusters.  The scripts will be prefixed with the database name.
+
+The various **distcp** reports include:
+- `<db_name>_RIGHT_n_distcp_source.txt` - A list of the source directories to be copied to the RIGHT cluster. The `n` will increment for each one of the jobs created for the database being migrated.  These files must be copied to the RIGHT clusters HDFS filesystem.  When running the distcp bash shell script, set the bash environment variable `$HCFS_BASE_DIR` to set the 'directory' these are copied to.
+- `<db_name>_RIGHT_distcp_script.sh` - The bash script created that will run the `distcp` jobs.  This script will be run on the RIGHT cluster.  Review the comments in the script for details on how to run it.
+- `<db_name>_RIGHT_distcp_workbook.md` - A markdown report table that breakdown what will be moved by the process.
+
+** Example distcp Workbook **
+
+| Database | Target | Sources |
+|:---|:---|:--|
+| tpcds_bin_partitioned_orc_10 | | |
+| | hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db | hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/call_center<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/catalog_page<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/catalog_returns<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/catalog_sales<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/customer<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/customer_address<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/customer_demographics<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/date_dim<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/household_demographics<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/income_band<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/inventory<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/item<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/promotion<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/reason<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/ship_mode<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/store<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/store_returns<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/store_sales<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/time_dim<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/warehouse<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_page<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_returns<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales<br></br>hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_site<br> | 
+
+## Logs
+    
+Logs, as of 1.6.5.6 are now in the same output directory as the reports.

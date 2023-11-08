@@ -48,6 +48,9 @@ public class Cluster implements Comparable<Cluster> {
 
     @JsonIgnore
     private Boolean initialized = Boolean.FALSE;
+    @JsonIgnore
+    private Map<String, String> envVars = new HashMap<String, String>();
+
 //    @JsonIgnore
 //    private Config config = null;
 //    private Config config =
@@ -130,6 +133,32 @@ public class Cluster implements Comparable<Cluster> {
 
     public void setCreateIfNotExists(Boolean createIfNotExists) {
         this.createIfNotExists = createIfNotExists;
+    }
+
+    public Map<String, String> getEnvVars() {
+        return envVars;
+    }
+
+    public void setEnvVars(Map<String, String> envVars) {
+        this.envVars = envVars;
+    }
+
+    public void addEnvVar(String varSet) {
+        String[] var = varSet.split("=");
+        String key;
+        if (var.length > 0) {
+            key = var[0];
+        } else {
+            key = "";
+        }
+        String value;
+        if (var.length > 1) {
+            value = var[1];
+        } else {
+            value = "";
+        }
+        LOG.info(getEnvironment() +": Adding Environment Variable: " + key + "=" + value);
+        this.envVars.put(key, value);
     }
 
     public Boolean getDatabase(Config config, DBMirror dbMirror) throws SQLException {

@@ -20,6 +20,7 @@ package com.cloudera.utils.hadoop.hms.mirror;
 public interface MirrorConf {
     String DESCRIBE_DB = "DESCRIBE DATABASE EXTENDED {0}";
     String SHOW_DATABASES = "SHOW DATABASES";
+    String GET_ENV_VARS = "SET -v";
     String SHOW_TABLES = "SHOW TABLES";
     String SHOW_VIEWS = "SHOW VIEWS";
     String SHOW_TABLE_EXTENDED_WITH_PARTITION = "SHOW TABLE EXTENDED LIKE {0} PARTITION ({1})";
@@ -41,6 +42,12 @@ public interface MirrorConf {
     String ALTER_DB_LOCATION_DESC =
             "Alter Database Location";
     String DEFAULT_MANAGED_BASE_DIR = "/warehouse/tablespace/managed/hive";
+    String DEFAULT_FS = "fs.defaultFS";
+
+    String METASTOREWAREHOUSE = "hive.metastore.warehouse.dir";
+
+    String HIVE_METASTORE_WAREHOUSE_EXTERNAL="hive.metastore.warehouse.external.dir";
+
     String ALTER_DB_MNGD_LOCATION =
             "ALTER DATABASE {0} SET MANAGEDLOCATION \"{1}\"";
     String ALTER_DB_MNGD_LOCATION_DESC =

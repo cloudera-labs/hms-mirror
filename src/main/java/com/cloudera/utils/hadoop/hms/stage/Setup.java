@@ -34,6 +34,7 @@ import java.util.concurrent.*;
 import java.util.regex.Matcher;
 
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.*;
+import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.GET_ENV_VARS;
 import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.SHOW_DATABASES;
 
 /*
@@ -76,6 +77,7 @@ public class Setup {
             try {
                 conn = getConfig().getCluster(Environment.LEFT).getConnection();
                 if (conn != null) {
+                    LOG.info("Retrieved LEFT Cluster Connection");
                     stmt = conn.createStatement();
                     ResultSet rs = stmt.executeQuery(SHOW_DATABASES);
                     while (rs.next()) {
@@ -91,6 +93,61 @@ public class Setup {
             } catch (SQLException se) {
                 // Issue
                 LOG.error("Issue getting databases for dbRegEx");
+            } finally {
+                if (conn != null) {
+                    try {
+                        conn.close();
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        }
+
+        if (!getConfig().isLoadingTestData()) {
+            // Look for the dbRegEx.
+            Connection conn = null;
+            Statement stmt = null;
+            LOG.info("Loading Environment Variables");
+            try {
+                conn = getConfig().getCluster(Environment.LEFT).getConnection();
+                if (conn != null) {
+                    LOG.info("Retrieving LEFT Cluster Connection");
+                    stmt = conn.createStatement();
+                    // Load Session Environment Variables.
+                    ResultSet rs = stmt.executeQuery(GET_ENV_VARS);
+                    while (rs.next()) {
+                        String envVarSet = rs.getString(1);
+                        getConfig().getCluster(Environment.LEFT).addEnvVar(envVarSet);
+                    }
+                }
+            } catch (SQLException se) {
+                // Issue
+                LOG.error("Issue getting LEFT database connection");
+            } finally {
+                if (conn != null) {
+                    try {
+                        conn.close();
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+            try {
+                conn = getConfig().getCluster(Environment.RIGHT).getConnection();
+                if (conn != null) {
+                    LOG.info("Retrieving RIGHT Cluster Connection");
+                    stmt = conn.createStatement();
+                    // Load Session Environment Variables.
+                    ResultSet rs = stmt.executeQuery(GET_ENV_VARS);
+                    while (rs.next()) {
+                        String envVarSet = rs.getString(1);
+                        getConfig().getCluster(Environment.RIGHT).addEnvVar(envVarSet);
+                    }
+                }
+            } catch (SQLException se) {
+                // Issue
+                LOG.error("Issue getting RIGHT databases connection");
             } finally {
                 if (conn != null) {
                     try {

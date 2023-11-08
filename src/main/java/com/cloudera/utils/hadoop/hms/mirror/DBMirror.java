@@ -41,8 +41,7 @@ import java.util.*;
 
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.HDPHIVE3_DB_LOCATION;
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.RO_DB_DOESNT_EXIST;
-import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.DB_LOCATION;
-import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.DB_MANAGED_LOCATION;
+import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.*;
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.EXT_DB_LOCATION_PROP;
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.LEGACY_DB_LOCATION_PROP;
 
@@ -243,13 +242,16 @@ public class DBMirror {
                         dbDefLeft = getDBDefinition(Environment.LEFT);
                         database = config.getResolvedDB(getName());
                         location = dbDefLeft.get(DB_LOCATION);
-                        if (config.getTransfer().getWarehouse() != null && config.getTransfer().getWarehouse().getExternalDirectory() != null) {
+                        if (config.getTransfer().getWarehouse() != null
+                                && config.getTransfer().getWarehouse().getExternalDirectory() != null) {
                             if (config.getTransfer().getCommonStorage() == null) {
-                                location = config.getCluster(Environment.RIGHT).getHcfsNamespace() + config.getTransfer().getWarehouse().getExternalDirectory() +
-                                        "/" + this.getName() + ".db";
+                                location = config.getCluster(Environment.RIGHT).getHcfsNamespace()
+                                        + config.getTransfer().getWarehouse().getExternalDirectory()
+                                        + "/" + this.getName() + ".db";
                             } else {
-                                location = config.getTransfer().getCommonStorage() + config.getTransfer().getWarehouse().getExternalDirectory() +
-                                        "/" + this.getName() + ".db";
+                                location = config.getTransfer().getCommonStorage()
+                                        + config.getTransfer().getWarehouse().getExternalDirectory()
+                                        + "/" + this.getName() + ".db";
                             }
                         }
 
@@ -257,14 +259,31 @@ public class DBMirror {
                             // Check for Managed Location.
                             managedLocation = dbDefLeft.get(MirrorConf.DB_MANAGED_LOCATION);
                         }
-                        if (config.getTransfer().getWarehouse() != null && config.getTransfer().getWarehouse().getManagedDirectory() != null &&
-                                !config.getCluster(Environment.RIGHT).getLegacyHive()) {
+                        if (config.getTransfer().getWarehouse() != null
+                                && config.getTransfer().getWarehouse().getManagedDirectory() != null
+                                && !config.getCluster(Environment.RIGHT).getLegacyHive()) {
                             if (config.getTransfer().getCommonStorage() == null) {
-                                managedLocation = config.getCluster(Environment.RIGHT).getHcfsNamespace() + config.getTransfer().getWarehouse().getManagedDirectory() +
-                                        "/" + this.getName() + ".db";
+                                managedLocation = config.getCluster(Environment.RIGHT).getHcfsNamespace()
+                                        + config.getTransfer().getWarehouse().getManagedDirectory()
+                                        + "/" + this.getName() + ".db";
                             } else {
-                                managedLocation = config.getTransfer().getCommonStorage() + config.getTransfer().getWarehouse().getManagedDirectory() +
-                                        "/" + this.getName() + ".db";
+                                managedLocation = config.getTransfer().getCommonStorage()
+                                        + config.getTransfer().getWarehouse().getManagedDirectory()
+                                        + "/" + this.getName() + ".db";
+                            }
+                            // Check is the Managed Location matches the system default.  If it does,
+                            //  then we don't need to set it.
+                            String envDefaultFS = config.getCluster(Environment.RIGHT).getEnvVars().get(DEFAULT_FS);
+                            String envWarehouseDir = config.getCluster(Environment.RIGHT).getEnvVars().get(METASTOREWAREHOUSE);
+                            String defaultManagedLocation = envDefaultFS + envWarehouseDir;
+                            LOG.info("Comparing Managed Location: " + managedLocation + " to default: " + defaultManagedLocation);
+                            if (managedLocation.startsWith(defaultManagedLocation)) {
+                                managedLocation = null;
+                                LOG.info("The location for the DB '" + database + "' is the same as the default FS + warehouse dir.  " +
+                                        "The database location will NOT be set and will depend on the system default.");
+                                this.addIssue(Environment.RIGHT, "The location for the DB '" + database
+                                        + "' is the same as the default FS + warehouse dir. The database " +
+                                        "location will NOT be set and will depend on the system default.");
                             }
                         }
 
