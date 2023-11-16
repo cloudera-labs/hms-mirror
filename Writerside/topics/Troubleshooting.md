@@ -29,10 +29,15 @@ java/sql/Driver at java.base/java.lang.ClassLoader.defineClass1
 
 **Solution**
 
-
 Please use Java 8 to run `hms-mirror`.
 
-## CDP Hive Standalone Driver for CDP 7.1.8 CHF x (Cummulative Hot Fix) won't connect
+## Application Logs aren't showing up in the output directory
+
+After the releases of `hms-mirror` v1.6.5.6, the application log was moved to the report output directory.  If you're running CDP 7.1.8 or later, the application log may not show up there or in the original location unless you have added the log4j jars to the `jarFile` property. 
+
+See [Log4j Jars](#log4j-jars-required-for-cdp-718-chf-and-above) below.
+
+## CDP Hive Standalone Driver for CDP 7.1.8 CHF won't connect
 
 If you are attempting to connect to a CDP 7.1.8 clusters Hive Server 2 with the CDP Hive Standalone Driver identified in the clusters `jarFile` property, you may not be able to connect. A security item addressed in these drivers changed the required classes.
 
@@ -41,6 +46,10 @@ If you see:
 ```
 java.lang.RuntimeException: java.lang.RuntimeException: java.lang.NoClassDefFoundError: org/apache/log4j/Level
 ```
+
+See [Log4j Jars](#log4j-jars-required-for-cdp-718-chf-and-above) below.
+
+## Log4j jars required for CDP 7.1.8 CHF and Above
 
 You will need to include additional jars in the `jarFile` property.  The following jars are required:
 

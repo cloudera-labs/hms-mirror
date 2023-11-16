@@ -1075,6 +1075,7 @@ public class Mirror {
         long returnCode = 0;
         LOG.info("===================================================");
         LOG.info("Running: hms-mirror " + ReportingConf.substituteVariablesFromManifest("v.${Implementation-Version}"));
+        LOG.info("On Java Version: " + System.getProperty("java.version"));
         LOG.info(" with commandline parameters: " + String.join(",", args));
         LOG.info("===================================================");
         try {

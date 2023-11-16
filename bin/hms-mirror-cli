@@ -39,6 +39,7 @@ fi
 
 PRG_ARGS=
 CMD_CP=
+APP_OUTPUT_DIR=${HOME}/.hadoop-cli/logs
 
 if [ ! -z ${JAVA_HOME} ]; then
   JAVA="${JAVA_HOME}/bin/java"
@@ -54,7 +55,9 @@ CMD_ARGS=
 VERBOSE=
 ENV_VAR_FILE=
 HADOOP_CLASSPATH=
-APP_JAVA_OPTS=${JAVA_OPTS:-}
+LOGGING_THRESHOLD=${LOGGING_THRESHOLD:-"INFO"}
+APP_LOG_FILE=${APP_LOG_FILE:-"hadoop-cli.log"}
+APP_JAVA_OPTS=${JAVA_OPTS:-"-Xms1024m -Xmx2048m -XX:+UseG1GC"}
 
 if [[ -f ${HOME}/.hadoop-cli/env-var.props || -L ${HOME}/.hadoop-cli/env-var.props ]]; then
     ENV_VAR_FILE=${HOME}/.hadoop-cli/env-var.props
@@ -144,11 +147,21 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+echo "App Logs will be written to: ${APP_OUTPUT_DIR}"
+
 if [[ "${ENV_VAR_FILE}x" != "x" ]]; then
     PRG_ARGS="${PRG_ARGS} -ef \"${ENV_VAR_FILE}\""
 fi
 
-#echo "Program Args: ${PRG_ARGS}"
+#if [[ "${DIR_OVERRIDE}x" == "x" ]]; then
+#   Add Date to output dir path
+#  APP_OUTPUT_PATH=${APP_OUTPUT_DIR}/$(date +%y-%m-%d_%H-%M-%S)
+#else
+  APP_OUTPUT_PATH=${APP_OUTPUT_DIR}
+#fi
+
+export APP_OUTPUT_PATH
+APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dapp.path.dir=\"$APP_OUTPUT_PATH\" -Dlogging.threshold=\"$LOGGING_THRESHOLD\" -Dapp.log.file=\"$APP_LOG_FILE\""
 
 if [[ ! -d ${AUX_LIBS_DIR} ]]; then
     mkdir -p ${AUX_LIBS_DIR}
@@ -190,9 +203,9 @@ if [[ "${APP_JAVA_OPTS}x" != "x" ]]; then
     echo "Application JAVA_OPTS=${APP_JAVA_OPTS}"
 fi
 
+echo "Using Java Version: "
 JV=$(${JAVA} -version)
 
-echo "Using Java Version: "
 echo $JV
 
 CLI_CMD="${JAVA} -cp ${CMD_CP} ${APP_JAVA_OPTS} com.cloudera.utils.hadoop.HadoopShell ${PRG_ARGS}"

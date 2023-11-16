@@ -57,6 +57,8 @@ CMD_ARGS=
 VERBOSE=
 HADOOP_CLASSPATH=
 APP_JAVA_OPTS=${JAVA_OPTS:-"-Xms2048m -Xmx4096m -XX:+UseG1GC"}
+LOGGING_THRESHOLD=${LOGGING_THRESHOLD:-"DEBUG"}
+APP_LOG_FILE=${APP_LOG_FILE:-"hms-mirror.log"}
 
 APP_OUTPUT_DIR=${HOME}/.hms-mirror/reports
 DIR_OVERRIDE=
@@ -111,7 +113,7 @@ else
 fi
 
 export APP_OUTPUT_PATH
-APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dapp.path.dir=\"$APP_OUTPUT_PATH\""
+APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dapp.path.dir=\"$APP_OUTPUT_PATH\" -Dlogging.threshold=\"$LOGGING_THRESHOLD\" -Dapp.log.file=\"$APP_LOG_FILE\""
 
 if [[ ! -d ${AUX_LIBS_DIR} ]]; then
   mkdir -p ${AUX_LIBS_DIR}
@@ -155,7 +157,9 @@ if [[ "${PRG_ARGS}x" != "x" ]]; then
   echo "PRG_ARGS=${PRG_ARGS}" 1>&2
 fi
 
+echo "Using Java Version: "
 $(${JAVA} -version)
+echo ""
 
 CLI_CMD="${JAVA} -cp ${CMD_CP} ${APP_JAVA_OPTS} com.cloudera.utils.hadoop.hms.Mirror ${PRG_ARGS}"
 
