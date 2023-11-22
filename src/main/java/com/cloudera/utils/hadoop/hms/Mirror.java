@@ -34,13 +34,13 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.commonmark.Extension;
 import org.commonmark.ext.front.matter.YamlFrontMatterExtension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.node.Node;
 import org.commonmark.renderer.html.HtmlRenderer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.math.RoundingMode;
@@ -62,7 +62,7 @@ import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.ENVIRONMENT_CONNE
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.ENVIRONMENT_DISCONNECTED;
 
 public class Mirror {
-    private static final Logger LOG = LogManager.getLogger(Mirror.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Mirror.class);
     private final String leftActionFile = null;
     private final String rightActionFile = null;
     private final Boolean retry = Boolean.FALSE;
@@ -116,7 +116,7 @@ public class Mirror {
                     throw new RuntimeException("The format of the 'config' yaml file MAY HAVE CHANGED from the last release.  Please make a copy and run " +
                             "'-su|--setup' again to recreate in the new format", t);
                 } else {
-                    LOG.error(t);
+                    LOG.error(t.getMessage(), t);
                     throw new RuntimeException("A configuration element is no longer valid, progress.  Please remove the element from the configuration yaml and try again.", t);
                 }
             }
@@ -485,8 +485,8 @@ public class Mirror {
 
         LOG.info("HMS-Mirror: Completed in " +
                 decf.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
-        reporter.refresh(Boolean.TRUE);
         reporter.stop();
+        reporter.refresh(Boolean.TRUE);
         return rtn;
     }
 
@@ -1780,12 +1780,12 @@ public class Mirror {
                             // Set warning that RIGHT is disconnected.
                             getConfig().getWarnings().set(ENVIRONMENT_DISCONNECTED.getCode(), new Object[]{target});
                         } else {
-                            LOG.error(se);
+                            LOG.error(se.getMessage(), se);
                             getConfig().getErrors().set(ENVIRONMENT_CONNECTION_ISSUE.getCode(), new Object[]{target});
                             return getConfig().getErrors().getReturnCode();
                         }
                     } catch (Throwable t) {
-                        LOG.error(t);
+                        LOG.error(t.getMessage(), t);
                         getConfig().getErrors().set(ENVIRONMENT_CONNECTION_ISSUE.getCode(), new Object[]{target});
                         return getConfig().getErrors().getReturnCode();
                     } finally {
@@ -1866,7 +1866,7 @@ public class Mirror {
             }
         }
 
-        LOG.info("Check log '" + System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/logs/hms-mirror.log'" +
+        LOG.info("Check log '" + System.getProperty("app.path.dir") + System.getProperty("file.separator") + System.getProperty("app.log.file") +
                 " for progress.");
 
         try {
@@ -1884,7 +1884,7 @@ public class Mirror {
                 throw new RuntimeException("The format of the 'config' yaml file MAY HAVE CHANGED from the last release.  Please make a copy and run " +
                         "'-su|--setup' again to recreate in the new format", t);
             } else {
-                LOG.error(t);
+                LOG.error(t.getMessage(), t);
                 throw new RuntimeException("A configuration element is no longer valid, progress.  Please remove the element from the configuration yaml and try again.", t);
             }
         }

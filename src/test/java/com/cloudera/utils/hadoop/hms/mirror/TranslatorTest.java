@@ -23,8 +23,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,7 +34,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 public class TranslatorTest {
-    private static final Logger LOG = LogManager.getLogger(TranslatorTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TranslatorTest.class);
 
     public static Translator deserializeResource(String configResource) throws IOException {
         Translator translator = null;

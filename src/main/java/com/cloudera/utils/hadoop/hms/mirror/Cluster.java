@@ -25,8 +25,8 @@ import com.cloudera.utils.hive.config.DBStore;
 import com.cloudera.utils.hive.config.QueryDefinitions;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.text.DateFormat;
@@ -41,7 +41,7 @@ import static com.cloudera.utils.hadoop.hms.mirror.datastrategy.DataStrategyEnum
 import static com.cloudera.utils.hadoop.hms.mirror.datastrategy.DataStrategyEnum.STORAGE_MIGRATION;
 
 public class Cluster implements Comparable<Cluster> {
-    private static final Logger LOG = LogManager.getLogger(Cluster.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Cluster.class);
     private final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     @JsonIgnore
     private ConnectionPools pools = null;
@@ -157,7 +157,7 @@ public class Cluster implements Comparable<Cluster> {
         } else {
             value = "";
         }
-        LOG.info(getEnvironment() +": Adding Environment Variable: " + key + "=" + value);
+        LOG.debug(getEnvironment() +": Adding Environment Variable: " + key + "=" + value);
         this.envVars.put(key, value);
     }
 
@@ -993,7 +993,7 @@ public class Cluster implements Comparable<Cluster> {
                     }
                 }
             } catch (SQLException throwables) {
-                LOG.error("Issue", throwables);
+                LOG.error(getEnvironment().toString(), throwables);
                 throw new RuntimeException(throwables);
             } finally {
                 try {
@@ -1065,7 +1065,7 @@ public class Cluster implements Comparable<Cluster> {
                             }
                         }
                     } catch (SQLException throwables) {
-                        LOG.error(throwables);
+                        LOG.error(getEnvironment().toString() + ":" + throwables.getMessage(), throwables);
                         String message = throwables.getMessage();
                         if (throwables.getMessage().contains("HiveAccessControlException Permission denied")) {
                             message = message + " See [Hive SQL Exception / HDFS Permissions Issues](https://github.com/cloudera-labs/hms-mirror#hive-sql-exception--hdfs-permissions-issues)";
@@ -1088,7 +1088,7 @@ public class Cluster implements Comparable<Cluster> {
                 }
             } catch (SQLException throwables) {
                 tblMirror.getEnvironmentTable(environment).addIssue("Connecting: " + throwables.getMessage());
-                LOG.error(throwables);
+                LOG.error(getEnvironment().toString() + ":" + throwables.getMessage(), throwables);
                 rtn = Boolean.FALSE;
             } finally {
                 try {

@@ -20,8 +20,8 @@ package com.cloudera.utils.hadoop.hms.stage;
 import com.cloudera.utils.hadoop.hms.Context;
 import com.cloudera.utils.hadoop.hms.mirror.*;
 import com.cloudera.utils.hadoop.hms.mirror.*;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.RoundingMode;
 import java.sql.Connection;
@@ -43,7 +43,7 @@ Using the config, go through the databases and tables and collect the current st
 Create the target databases, where needed to support the migration.
  */
 public class Setup {
-    private static final Logger LOG = LogManager.getLogger(Setup.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Setup.class);
 
     private Config config = null;
     private Conversion conversion = null;

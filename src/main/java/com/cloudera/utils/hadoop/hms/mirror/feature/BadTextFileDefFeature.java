@@ -18,8 +18,8 @@
 package com.cloudera.utils.hadoop.hms.mirror.feature;
 
 import com.cloudera.utils.hadoop.hms.mirror.EnvironmentTable;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.regex.Pattern;
@@ -33,7 +33,7 @@ public class BadTextFileDefFeature extends BaseFeature implements Feature {
     private final String ROW_FORMAT_SERDE = "ROW FORMAT SERDE";
     private final String LAZY_SERDE = "'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'";
 
-    private static final Logger LOG = LogManager.getLogger(BadTextFileDefFeature.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BadTextFileDefFeature.class);
 
     public String getDescription() {
         return "Table schema definitions that include both ROW FORMAT DELIMITED BY and " +

@@ -18,8 +18,8 @@
 package com.cloudera.utils.hadoop.hms.mirror.feature;
 
 import com.cloudera.utils.hadoop.hms.mirror.EnvironmentTable;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -32,7 +32,7 @@ public class BadParquetDefFeature extends BaseFeature implements Feature {
     private final String INPUT_FORMAT_CLASS = "'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'";
     private final String OUTPUT_FORMAT_CLASS = "'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'";
     private final String STORED_AS_PARQUET = "STORED AS PARQUET";
-    private static final Logger LOG = LogManager.getLogger(BadParquetDefFeature.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BadParquetDefFeature.class);
 
     public String getDescription() {
         return "Table schema definitions for Parquet files that don't include include INPUT and " +

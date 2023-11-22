@@ -21,13 +21,13 @@ import com.cloudera.utils.hadoop.hms.mirror.Environment;
 import com.cloudera.utils.hadoop.hms.mirror.EnvironmentTable;
 import com.cloudera.utils.hadoop.hms.mirror.MirrorConf;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 
 public class ExportImportAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implements DataStrategy {
-    private static final Logger LOG = LogManager.getLogger(ExportImportAcidDowngradeInPlaceDataStrategy.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ExportImportAcidDowngradeInPlaceDataStrategy.class);
 
     @Override
     public Boolean execute() {

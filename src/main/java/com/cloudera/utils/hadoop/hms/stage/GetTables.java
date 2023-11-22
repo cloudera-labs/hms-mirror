@@ -20,14 +20,14 @@ package com.cloudera.utils.hadoop.hms.stage;
 import com.cloudera.utils.hadoop.hms.mirror.Config;
 import com.cloudera.utils.hadoop.hms.mirror.DBMirror;
 import com.cloudera.utils.hadoop.hms.mirror.Environment;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.concurrent.Callable;
 
 public class GetTables implements Callable<ReturnStatus> {
-    private static final Logger LOG = LogManager.getLogger(GetTables.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GetTables.class);
 
     private Config config = null;
     private DBMirror dbMirror = null;

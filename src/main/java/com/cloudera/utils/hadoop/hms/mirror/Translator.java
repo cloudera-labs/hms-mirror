@@ -23,8 +23,8 @@ import com.cloudera.utils.hadoop.hms.stage.Transfer;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.codehaus.jackson.annotate.JsonIgnore;
 
 import java.text.MessageFormat;
@@ -37,7 +37,7 @@ import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.DB_MANAGED_LOCATIO
 
 @JsonIgnoreProperties({"dbLocationMap"})
 public class Translator {
-    private static final Logger LOG = LogManager.getLogger(Translator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Translator.class);
 
     /*
     Use this to force the location element in the external table create statements and

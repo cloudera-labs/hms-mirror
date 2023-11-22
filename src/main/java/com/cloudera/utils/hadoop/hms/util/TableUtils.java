@@ -21,8 +21,8 @@ import com.cloudera.utils.hadoop.hms.mirror.Cluster;
 import com.cloudera.utils.hadoop.hms.mirror.EnvironmentTable;
 import com.cloudera.utils.hadoop.hms.mirror.SerdeType;
 import com.cloudera.utils.hadoop.hms.mirror.feature.IcebergState;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
 import java.security.MessageDigest;
@@ -75,7 +75,7 @@ public class TableUtils {
     public static final String IMPORT_TABLE = "IMPORT Table";
     public static final String RENAME_TABLE = "RENAME Table";
     public static final String ACID_NOT_ON = "This is an ACID table.  Turn on ACID migration `-ma|--migrate-acid`.";
-    private static final Logger LOG = LogManager.getLogger(TableUtils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TableUtils.class);
     private static final List<FileFormatType> validateIcebergFileFormats = new ArrayList<FileFormatType>(Arrays.asList(ORC, PARQUET, AVRO));
 //    public static Pattern dbdottable = Pattern.compile(".*`?\\.`?(.*)");
     public static Pattern tableCreatePattern = Pattern.compile(".*TABLE `?([a-z,A-Z,_,0-9,_]+)`?\\.?`?([a-z,A-Z,_,0-9,_]+)?");

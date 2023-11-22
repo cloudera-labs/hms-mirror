@@ -19,8 +19,8 @@ package com.cloudera.utils.hadoop.hms.mirror.datastrategy;
 
 import com.cloudera.utils.hadoop.hms.mirror.*;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 
@@ -28,7 +28,7 @@ import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.SCHEMA_EXISTS_NO_
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.SCHEMA_EXISTS_SYNC_PARTS;
 
 public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStrategy {
-    private static final Logger LOG = LogManager.getLogger(SchemaOnlyDataStrategy.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SchemaOnlyDataStrategy.class);
 
     @Override
     public Boolean execute() {

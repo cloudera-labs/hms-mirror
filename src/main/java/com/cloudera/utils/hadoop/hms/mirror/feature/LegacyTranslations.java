@@ -19,8 +19,8 @@ package com.cloudera.utils.hadoop.hms.mirror.feature;
 
 import com.cloudera.utils.hadoop.hms.mirror.EnvironmentTable;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 import static com.cloudera.utils.hadoop.hms.util.TableUtils.*;
 
 public class LegacyTranslations extends BaseFeature implements Feature {
-    private static final Logger LOG = LogManager.getLogger(LegacyTranslations.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LegacyTranslations.class);
 
     private final Pattern RFS = Pattern.compile(ROW_FORMAT_SERDE + " '(.*)'");
     private final Pattern SAIF = Pattern.compile(STORED_AS_INPUTFORMAT + " '(.*)'");

@@ -21,8 +21,8 @@ import com.cloudera.utils.hadoop.hms.mirror.*;
 import com.cloudera.utils.hadoop.hms.mirror.datastrategy.DataStrategy;
 import com.cloudera.utils.hadoop.hms.mirror.datastrategy.DataStrategyEnum;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Date;
 import java.util.concurrent.Callable;
@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.DISTCP_FOR_SO_ACID;
 
 public class Transfer implements Callable<ReturnStatus> {
-    private static final Logger LOG = LogManager.getLogger(Transfer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Transfer.class);
     public static Pattern protocolNSPattern = Pattern.compile("(^.*://)([a-zA-Z0-9](?:(?:[a-zA-Z0-9-]*|(?<!-)\\.(?![-.]))*[a-zA-Z0-9]+)?)(:\\d{4})?");
     // Pattern to find the value of the last directory in a url.
     public static Pattern lastDirPattern = Pattern.compile(".*/([^/?]+).*");

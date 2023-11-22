@@ -23,14 +23,14 @@ import com.cloudera.utils.hadoop.hms.mirror.DBMirror;
 import com.cloudera.utils.hadoop.hms.mirror.Environment;
 import com.cloudera.utils.hadoop.hms.mirror.TableMirror;
 import com.cloudera.utils.hadoop.hms.mirror.*;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.concurrent.Callable;
 
 public class GetTableMetadata implements Callable<ReturnStatus> {
-    private static final Logger LOG = LogManager.getLogger(GetTableMetadata.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GetTableMetadata.class);
 
     private Config config = Context.getInstance().getConfig();
     private DBMirror dbMirror = null;

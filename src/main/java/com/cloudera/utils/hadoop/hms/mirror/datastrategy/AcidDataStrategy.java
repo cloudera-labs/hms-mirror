@@ -17,11 +17,11 @@
 
 package com.cloudera.utils.hadoop.hms.mirror.datastrategy;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AcidDataStrategy extends DataStrategyBase implements DataStrategy {
-    private static final Logger LOG = LogManager.getLogger(AcidDataStrategy.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AcidDataStrategy.class);
     @Override
     public Boolean execute() {
         return null;

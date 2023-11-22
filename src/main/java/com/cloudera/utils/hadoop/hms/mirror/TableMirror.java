@@ -24,8 +24,8 @@ import com.cloudera.utils.hadoop.hms.mirror.feature.FeaturesEnum;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.text.DateFormat;
@@ -43,7 +43,7 @@ import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.SORT_DYNAMIC_PART
 import static com.cloudera.utils.hadoop.hms.mirror.TablePropertyVars.*;
 
 public class TableMirror {
-    private static final Logger LOG = LogManager.getLogger(TableMirror.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TableMirror.class);
     /*
     Use to indicate the tblMirror should be removed from processing, post setup.
      */

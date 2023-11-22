@@ -19,15 +19,15 @@ package com.cloudera.utils.hadoop.hms.mirror.datastrategy;
 
 import com.cloudera.utils.hadoop.hms.mirror.*;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.SCHEMA_EXISTS_NO_ACTION_DATA;
 
 public class CommonDataStrategy extends DataStrategyBase implements DataStrategy {
-    private static final Logger LOG = LogManager.getLogger(CommonDataStrategy.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CommonDataStrategy.class);
 
     @Override
     public Boolean execute() {

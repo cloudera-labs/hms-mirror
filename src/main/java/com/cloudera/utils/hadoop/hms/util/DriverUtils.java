@@ -19,8 +19,8 @@ package com.cloudera.utils.hadoop.hms.util;
 
 import com.cloudera.utils.hadoop.hms.mirror.Environment;
 import com.cloudera.utils.hadoop.hms.mirror.ReportingConf;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -31,7 +31,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DriverUtils {
-    private static final Logger LOG = LogManager.getLogger(DriverUtils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DriverUtils.class);
 
     // This is a shim process that allows us to load a Hive Driver from
     // a jar File, via a new ClassLoader.

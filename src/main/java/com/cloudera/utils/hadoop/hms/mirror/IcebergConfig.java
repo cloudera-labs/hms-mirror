@@ -18,14 +18,14 @@
 package com.cloudera.utils.hadoop.hms.mirror;
 
 import net.minidev.json.annotate.JsonIgnore;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class IcebergConfig {
-    private static final Logger LOG = LogManager.getLogger(IcebergConfig.class);
+    private static final Logger LOG = LoggerFactory.getLogger(IcebergConfig.class);
 
     private int version = 2;
     private Map<String, String> tableProperties = new HashMap<String, String>();

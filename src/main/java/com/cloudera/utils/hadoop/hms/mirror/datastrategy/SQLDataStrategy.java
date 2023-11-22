@@ -19,15 +19,15 @@ package com.cloudera.utils.hadoop.hms.mirror.datastrategy;
 
 import com.cloudera.utils.hadoop.hms.mirror.*;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 
 import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.*;
 
 public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
-    private static final Logger LOG = LogManager.getLogger(SQLDataStrategy.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SQLDataStrategy.class);
     @Override
     public Boolean execute() {
         Boolean rtn = Boolean.FALSE;

@@ -21,8 +21,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class StateMaintenance implements Runnable {
-    private static final Logger LOG = LogManager.getLogger(StateMaintenance.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StateMaintenance.class);
     private final String startDateStr = null;
     private Thread worker;
     private Conversion conversion;

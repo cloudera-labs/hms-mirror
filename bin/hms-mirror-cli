@@ -2,7 +2,7 @@
 
 
 #
-# Copyright (c) 2022. David W. Streever All Rights Reserved
+# Copyright (c) 2022. Cloudera All Rights Reserved
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ fi
 
 PRG_ARGS=
 CMD_CP=
-APP_OUTPUT_DIR=${HOME}/.hadoop-cli/logs
+APP_OUTPUT_DIR=${HOME}/.hms-mirror/logs
 
 if [ ! -z ${JAVA_HOME} ]; then
   JAVA="${JAVA_HOME}/bin/java"
@@ -47,7 +47,7 @@ else
   JAVA=java
 fi
 
-AUX_LIBS_DIR=${HADOOP_CLI_AUX_LIBS:-${HOME}/.hadoop-cli/aux_libs}
+AUX_LIBS_DIR=${HADOOP_CLI_AUX_LIBS:-${HOME}/.hms-mirror/aux_libs}
 
 SHOW_CP=
 CMD_DIRECTIVE=
@@ -56,15 +56,15 @@ VERBOSE=
 ENV_VAR_FILE=
 HADOOP_CLASSPATH=
 LOGGING_THRESHOLD=${LOGGING_THRESHOLD:-"INFO"}
-APP_LOG_FILE=${APP_LOG_FILE:-"hadoop-cli.log"}
+APP_LOG_FILE=${APP_LOG_FILE:-"hms-mirror-cli.log"}
 APP_JAVA_OPTS=${JAVA_OPTS:-"-Xms1024m -Xmx2048m -XX:+UseG1GC"}
 
-if [[ -f ${HOME}/.hadoop-cli/env-var.props || -L ${HOME}/.hadoop-cli/env-var.props ]]; then
-    ENV_VAR_FILE=${HOME}/.hadoop-cli/env-var.props
+if [[ -f ${HOME}/.hms-mirror/env-var.props || -L ${HOME}/.hms-mirror/env-var.props ]]; then
+    ENV_VAR_FILE=${HOME}/.hms-mirror/env-var.props
 fi
 
-if [[ ! -d ${HOME}/.hadoop-cli/aux_libs ]]; then
-    mkdir -p ${HOME}/.hadoop-cli/aux_libs
+if [[ ! -d ${HOME}/.hms-mirror/aux_libs ]]; then
+    mkdir -p ${HOME}/.hms-mirror/aux_libs
 fi
 
 while [[ $# -gt 0 ]]; do

@@ -26,8 +26,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.commons.io.IOUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,7 +46,7 @@ import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.EXT_DB_LOCATION_P
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.LEGACY_DB_LOCATION_PROP;
 
 public class DBMirror {
-    private static final Logger LOG = LogManager.getLogger(DBMirror.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DBMirror.class);
 
     private String name;
     @JsonIgnore

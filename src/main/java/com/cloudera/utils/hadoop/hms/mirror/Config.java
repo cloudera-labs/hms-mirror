@@ -32,8 +32,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.Sets;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -51,7 +51,7 @@ import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.*;
 @JsonIgnoreProperties({"featureList"})
 public class Config {
 
-    private static final Logger LOG = LogManager.getLogger(Config.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Config.class);
     @JsonIgnore
     private Date initDate = new Date();
     private Acceptance acceptance = new Acceptance();

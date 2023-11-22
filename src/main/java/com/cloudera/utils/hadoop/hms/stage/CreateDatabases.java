@@ -19,13 +19,13 @@ package com.cloudera.utils.hadoop.hms.stage;
 
 import com.cloudera.utils.hadoop.hms.Context;
 import com.cloudera.utils.hadoop.hms.mirror.*;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Callable;
 
 public class CreateDatabases implements Callable<ReturnStatus> {
-    private static final Logger LOG = LogManager.getLogger(CreateDatabases.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CreateDatabases.class);
 
     private Conversion conversion = null;
 

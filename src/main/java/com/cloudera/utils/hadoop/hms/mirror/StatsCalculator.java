@@ -19,8 +19,8 @@ package com.cloudera.utils.hadoop.hms.mirror;
 
 import com.cloudera.utils.hadoop.hms.Context;
 import com.cloudera.utils.hadoop.hms.util.TableUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.*;
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.*;
@@ -29,7 +29,7 @@ import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.*;
 Provide a class where rules can be generated based on the hms-mirror stats collected.
  */
 public class StatsCalculator {
-    private static final Logger LOG = LogManager.getLogger(StatsCalculator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StatsCalculator.class);
 
     /*
     This will return the ratio of files to the average partition size. For example, if the average partition size is 1GB
@@ -161,19 +161,21 @@ public class StatsCalculator {
         }
 
         // Handle Auto Stats Gathering.
-        if (cluster.getEnableAutoTableStats()) {
-            applyEnv.addIssue("Setting " + HIVE_AUTO_TABLE_STATS + " because you've set that optimization");
-            applyEnv.addSql("Setting: " + HIVE_AUTO_TABLE_STATS, "set " + HIVE_AUTO_TABLE_STATS + "=true");
-        } else {
-            applyEnv.addIssue("Setting " + HIVE_AUTO_TABLE_STATS + " because you've set that optimization");
-            applyEnv.addSql("Setting: " + HIVE_AUTO_TABLE_STATS, "set " + HIVE_AUTO_TABLE_STATS + "=false");
-        }
-        if (cluster.getEnableAutoColumnStats()) {
-            applyEnv.addIssue("Setting " + HIVE_AUTO_COLUMN_STATS + " because you've set that optimization");
-            applyEnv.addSql("Setting: " + HIVE_AUTO_COLUMN_STATS, "set " + HIVE_AUTO_COLUMN_STATS + "=true");
-        } else {
-            applyEnv.addIssue("Setting " + HIVE_AUTO_COLUMN_STATS + " because you've set that optimization");
-            applyEnv.addSql("Setting: " + HIVE_AUTO_COLUMN_STATS, "set " + HIVE_AUTO_COLUMN_STATS + "=false");
+        if (!cluster.getLegacyHive()) {
+            if (cluster.getEnableAutoTableStats()) {
+                applyEnv.addIssue("Setting " + HIVE_AUTO_TABLE_STATS + " because you've set that optimization");
+                applyEnv.addSql("Setting: " + HIVE_AUTO_TABLE_STATS, "set " + HIVE_AUTO_TABLE_STATS + "=true");
+            } else {
+                applyEnv.addIssue("Setting " + HIVE_AUTO_TABLE_STATS + " because you've set that optimization");
+                applyEnv.addSql("Setting: " + HIVE_AUTO_TABLE_STATS, "set " + HIVE_AUTO_TABLE_STATS + "=false");
+            }
+            if (cluster.getEnableAutoColumnStats()) {
+                applyEnv.addIssue("Setting " + HIVE_AUTO_COLUMN_STATS + " because you've set that optimization");
+                applyEnv.addSql("Setting: " + HIVE_AUTO_COLUMN_STATS, "set " + HIVE_AUTO_COLUMN_STATS + "=true");
+            } else {
+                applyEnv.addIssue("Setting " + HIVE_AUTO_COLUMN_STATS + " because you've set that optimization");
+                applyEnv.addSql("Setting: " + HIVE_AUTO_COLUMN_STATS, "set " + HIVE_AUTO_COLUMN_STATS + "=false");
+            }
         }
     }
 }
