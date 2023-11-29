@@ -775,6 +775,10 @@ public class Cluster implements Comparable<Cluster> {
                 envTable.setPartitions(partDef);
 
             }
+        } catch (SQLException throwables) {
+            envTable.addIssue(throwables.getMessage());
+            LOG.error(getEnvironment() + ":" + database + "." + envTable.getName() +
+                    ": Issue loading Partitions.", throwables);
         } finally {
             if (resultSet != null) {
                 try {
@@ -830,7 +834,9 @@ public class Cluster implements Comparable<Cluster> {
             LOG.debug(getEnvironment() + ":" + database + "." + envTable.getName() +
                     ": Loaded Partitions from Metastore Direct Connection.");
         } catch (SQLException throwables) {
-            throwables.printStackTrace();
+            envTable.addIssue(throwables.getMessage());
+            LOG.error(getEnvironment() + ":" + database + "." + envTable.getName() +
+                    ": Issue loading Partitions from Metastore Direct Connection.", throwables);
         } finally {
             try {
                 if (conn != null)

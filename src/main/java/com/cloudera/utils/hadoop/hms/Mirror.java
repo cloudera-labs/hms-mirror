@@ -1799,7 +1799,8 @@ public class Mirror {
                 }
             } catch (SQLException cnfe) {
                 LOG.error("Issue initializing connections.  Check driver locations", cnfe);
-                throw new RuntimeException(cnfe);
+                return -1;
+//                throw new RuntimeException(cnfe);
             }
 
             getConfig().getCluster(Environment.LEFT).setPools(connPools);
