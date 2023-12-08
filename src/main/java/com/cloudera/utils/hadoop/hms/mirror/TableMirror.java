@@ -1052,9 +1052,12 @@ public class TableMirror {
         CopySpec rightSpec = new CopySpec(config, Environment.LEFT, Environment.RIGHT);
 
         if (ret.getExists()) {
-            if (config.getCluster(Environment.RIGHT).getCreateIfNotExists() && config.isSync()) {
+            if (!TableUtils.isACID(ret) && config.getCluster(Environment.RIGHT).getCreateIfNotExists() && config.isSync()) {
                 ret.addIssue(CINE_WITH_EXIST.getDesc());
                 ret.setCreateStrategy(CreateStrategy.CREATE);
+            } else if(TableUtils.isACID(ret) && config.isSync()) {
+                ret.addIssue(SCHEMA_EXISTS_SYNC_ACID.getDesc());
+                ret.setCreateStrategy(CreateStrategy.REPLACE);
             } else {
                 // Already exists, no action.
                 ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());

@@ -1616,6 +1616,9 @@ public class Mirror {
         } catch (StringIndexOutOfBoundsException stringIndexOutOfBoundsException) {
             // no dir in -f variable.
         }
+        if (reportOutputDir == null) {
+            throw new RuntimeException("Report Output Directory is required. Use -o <dir> to specify or set the APP_OUTPUT_PATH environment variable.");
+        }
 
         File testFile = new File(reportOutputDir + System.getProperty("file.separator") + ".dir-check");
 
@@ -1630,7 +1633,7 @@ public class Mirror {
         try {
             new FileOutputStream(testFile).close();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Can't write to output directory. ", e);
         }
 
         if (!getConfig().isLoadingTestData()) {
