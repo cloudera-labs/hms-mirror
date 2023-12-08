@@ -24,8 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.text.MessageFormat;
 
-import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.CINE_WITH_EXIST;
-import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.SCHEMA_EXISTS_NO_ACTION_DATA;
+import static com.cloudera.utils.hadoop.hms.mirror.MessageCode.*;
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.SET_TEZ_AS_EXECUTION_ENGINE;
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.TEZ_EXECUTION_DESC;
 
@@ -112,11 +111,15 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
             if (config.getCluster(Environment.RIGHT).getCreateIfNotExists() && config.isSync()) {
                 ret.addIssue(CINE_WITH_EXIST.getDesc());
                 ret.setCreateStrategy(CreateStrategy.CREATE);
+            } else if(TableUtils.isACID(ret) && config.isSync()) {
+                ret.addIssue(SCHEMA_EXISTS_SYNC_ACID.getDesc());
+                ret.setCreateStrategy(CreateStrategy.REPLACE);
             } else {
-                // Already exists, no action.
-                ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
-                ret.setCreateStrategy(CreateStrategy.NOTHING);
-                return Boolean.FALSE;
+                    // Already exists, no action.
+                    ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                    ret.setCreateStrategy(CreateStrategy.NOTHING);
+                    return Boolean.FALSE;
+
             }
         } else {
             ret.setCreateStrategy(CreateStrategy.CREATE);

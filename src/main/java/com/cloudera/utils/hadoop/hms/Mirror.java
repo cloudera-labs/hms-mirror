@@ -855,7 +855,8 @@ public class Mirror {
                         "compare all the tables in a database and sync (bi-directional).  Meaning it will DROP tables on the RIGHT " +
                         "that aren't in the LEFT and ADD tables to the RIGHT that are missing.  When used with `-ro`, table schemas can be updated " +
                         "by dropping and recreating.  When used with `-tf`, only the tables that match the filter (on both " +
-                        "sides) will be considered.");
+                        "sides) will be considered.\n When used with HYBRID, SQL, and EXPORT_IMPORT data strategies and ACID tables " +
+                        "are involved, the tables will be dropped and recreated.  The data in this case WILL be dropped and replaced.");
         syncOption.setRequired(Boolean.FALSE);
         options.addOption(syncOption);
 

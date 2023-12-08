@@ -185,12 +185,14 @@ public enum MessageCode {
     SCHEMA_WILL_BE_CREATED(91, "Schema will be created"),
     EXPORT_IMPORT_SYNC(90, "Schema EXISTS in target.  Table will be 'dropped' before IMPORT attempt.  If the table " +
             "isn't ACID or EXTERNAL/PURGE, existing data may prevent the RE-CREATION of the table when script is executed."),
-    VALID_SYNC_STRATEGIES(91, "'-sync' only valid for SCHEMA_ONLY, LINKED, SQL, EXPORT_IMPORT, HYBRID, and COMMON data strategies"),
+    VALID_SYNC_STRATEGIES(91, "'--sync' only valid for SCHEMA_ONLY, LINKED, SQL, EXPORT_IMPORT, HYBRID, and COMMON data strategies"),
     VALID_ACID_STRATEGIES(92, "Migrating ACID tables only valid for SCHEMA_ONLY, DUMP, SQL, EXPORT_IMPORT, " +
             "HYBRID, and STORAGE_MIGRATION data strategies"),
     SCHEMA_EXISTS_NO_ACTION_DATA (93, "Schema exists already. Drop it and " +
-            "try again or add `-sync` to OVERWRITE current tables data."),
-    SCHEMA_EXISTS_SYNC_PARTS(94, "Schema exists already and matches. `-sync` and `-epl` specified, adding partition sync.")
+            "try again or add `--sync` to OVERWRITE current tables data."),
+    SCHEMA_EXISTS_SYNC_PARTS(94, "Schema exists already and matches. `--sync` and `-epl` specified, adding partition sync."),
+    SCHEMA_EXISTS_SYNC_ACID(95, "Schema already exists.  You've specified '--sync', the target table will be dropped and " +
+            "re-created.  The data will be overwritten.")
 
     ;
 
