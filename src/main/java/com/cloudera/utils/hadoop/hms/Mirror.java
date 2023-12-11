@@ -1601,6 +1601,12 @@ public class Mirror {
             reportOutputDir = System.getenv("APP_OUTPUT_PATH");
         }
 
+        if (reportOutputDir == null) {
+            reportOutputDir = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror" +
+                    System.getProperty("file.separator") + "reports" +
+                    System.getProperty("file.separator") + new SimpleDateFormat("yy-MM-dd_HH-mm-ss").format(new Date());
+        }
+
         // Action Files
         reportOutputFile = reportOutputDir + System.getProperty("file.separator") + "<db>_hms-mirror.md|html|yaml";
         leftExecuteFile = reportOutputDir + System.getProperty("file.separator") + "<db>_LEFT_execute.sql";
@@ -1956,6 +1962,11 @@ public class Mirror {
             // Set the table's phase state to INIT
             for (TableMirror tableMirror : dbMirror.getTableMirrors().values()) {
                 tableMirror.setPhaseState(PhaseState.INIT);
+                for (EnvironmentTable environmentTable : tableMirror.getEnvironments().values()) {
+                    environmentTable.getIssues().clear();
+                    environmentTable.getSql().clear();
+                    environmentTable.getCleanUpSql().clear();
+                }
             }
             conversion.addDBMirror(dbMirror);
         }

@@ -22,6 +22,8 @@ import com.cloudera.utils.hadoop.hms.util.TableUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
+
 import static com.cloudera.utils.hadoop.hms.mirror.MirrorConf.*;
 import static com.cloudera.utils.hadoop.hms.mirror.SessionVars.*;
 
@@ -41,7 +43,7 @@ public class StatsCalculator {
         Long ratio = 0L;
         if (!Context.getInstance().getConfig().getOptimization().getSkipStatsCollection()) {
             try {
-                SerdeType stype = (SerdeType) envTable.getStatistics().get(FILE_FORMAT);
+                SerdeType stype = serdeFromStats(envTable.getStatistics());
                 Long dataSize = (Long) envTable.getStatistics().get(DATA_SIZE);
                 Long avgPartSize = Math.floorDiv(dataSize, (long) envTable.getPartitions().size());
                 ratio = Math.floorDiv(avgPartSize, stype.targetSize) - 1;
@@ -59,13 +61,11 @@ public class StatsCalculator {
 
             if (Context.getInstance().getConfig().getOptimization().getAutoTune() &&
                     !Context.getInstance().getConfig().getOptimization().getSkipStatsCollection()) {
-                SerdeType stype = (SerdeType) envTable.getStatistics().get(FILE_FORMAT);
-                if (stype != null) {
-                    if (envTable.getStatistics().get(DATA_SIZE) != null) {
-                        Long ratio = StatsCalculator.getPartitionDistributionRatio(envTable);
-                        if (ratio >= 1) {
-                            sb.append("ROUND((rand() * 1000) % ").append(ratio.toString()).append(")");
-                        }
+                SerdeType stype = serdeFromStats(envTable.getStatistics());
+                if (envTable.getStatistics().get(DATA_SIZE) != null) {
+                    Long ratio = StatsCalculator.getPartitionDistributionRatio(envTable);
+                    if (ratio >= 1) {
+                        sb.append("ROUND((rand() * 1000) % ").append(ratio.toString()).append(")");
                     }
                 }
             }
@@ -84,9 +84,7 @@ public class StatsCalculator {
     }
 
     protected static Long getTezMaxGrouping(EnvironmentTable envTable) {
-        SerdeType serdeType = (SerdeType) envTable.getStatistics().get(FILE_FORMAT);
-        if (serdeType == null)
-            serdeType = SerdeType.UNKNOWN;
+        SerdeType serdeType = serdeFromStats(envTable.getStatistics());
 
         Long maxGrouping = serdeType.targetSize * 2L;
 
@@ -108,20 +106,18 @@ public class StatsCalculator {
         if (Context.getInstance().getConfig().getOptimization().getSkipStatsCollection())
             return;
 
-        // Small File settings.
-        SerdeType stype = (SerdeType) controlEnv.getStatistics().get(FILE_FORMAT);
-        if (stype != null) {
-            // TODO: Trying to figure out if making this setting will bleed over to other sessions while reusing a connection.
-            if (controlEnv.getStatistics().get(AVG_FILE_SIZE) != null) {
-                Double avgFileSize = (Double) controlEnv.getStatistics().get(AVG_FILE_SIZE);
-                // If not 50% of target size.
-                if (avgFileSize < stype.targetSize * .5) {
-                    applyEnv.addIssue("Setting " + TEZ_GROUP_MAX_SIZE + " to account for the sources 'small files'");
-                    // Set the tez group max size.
-                    Long maxGrouping = getTezMaxGrouping(controlEnv);
-                    applyEnv.addSql("Setting the " + TEZ_GROUP_MAX_SIZE,
-                            "set " + TEZ_GROUP_MAX_SIZE + "=" + maxGrouping);
-                }
+        // Small File Checks
+        SerdeType serdeType = serdeFromStats(controlEnv.getStatistics());
+        // TODO: Trying to figure out if making this setting will bleed over to other sessions while reusing a connection.
+        if (controlEnv.getStatistics().get(AVG_FILE_SIZE) != null) {
+            Double avgFileSize = (Double) controlEnv.getStatistics().get(AVG_FILE_SIZE);
+            // If not 50% of target size.
+            if (avgFileSize < serdeType.targetSize * .5) {
+                applyEnv.addIssue("Setting " + TEZ_GROUP_MAX_SIZE + " to account for the sources 'small files'");
+                // Set the tez group max size.
+                Long maxGrouping = getTezMaxGrouping(controlEnv);
+                applyEnv.addSql("Setting the " + TEZ_GROUP_MAX_SIZE,
+                        "set " + TEZ_GROUP_MAX_SIZE + "=" + maxGrouping);
             }
         }
 
@@ -149,8 +145,7 @@ public class StatsCalculator {
         }
 
         // Compression Settings.
-        if (controlEnv.getStatistics().get(FILE_FORMAT) != null
-                && controlEnv.getStatistics().get(FILE_FORMAT) == SerdeType.TEXT) {
+        if (serdeType == SerdeType.TEXT) {
             if (Context.getInstance().getConfig().getOptimization().getCompressTextOutput()) {
                 applyEnv.addIssue("Setting " + HIVE_COMPRESS_OUTPUT + " because you've setting that optimization");
                 applyEnv.addSql("Setting: " + HIVE_COMPRESS_OUTPUT, "set " + HIVE_COMPRESS_OUTPUT + "=true");
@@ -177,5 +172,21 @@ public class StatsCalculator {
                 applyEnv.addSql("Setting: " + HIVE_AUTO_COLUMN_STATS, "set " + HIVE_AUTO_COLUMN_STATS + "=false");
             }
         }
+    }
+
+    private static SerdeType serdeFromStats(Map<String, Object> stats) {
+        String sStype = stats.get(FILE_FORMAT).toString();
+        SerdeType serdeType = null;
+        if (sStype == null) {
+            serdeType = SerdeType.UNKNOWN;
+        } else {
+            try {
+                serdeType = SerdeType.valueOf(sStype);
+            } catch (IllegalArgumentException iae) {
+                LOG.warn("Unable to determine type for file format: " + sStype);
+                serdeType = SerdeType.UNKNOWN;
+            }
+        }
+        return serdeType;
     }
 }
