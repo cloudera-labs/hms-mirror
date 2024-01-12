@@ -6,7 +6,7 @@ Under certain conditions, `hms-mirror` will 'move' data too.  Using the data str
 
 ## Iceberg Table Migration via Hive
 
-See [Iceberg Migration](iceberg-mirgation_datastrategy.md) for details.
+See [Iceberg Migration](hms-mirror-iceberg_migration.md) for details.
 
 ## File System Stats
 

@@ -2,7 +2,7 @@
 
 Moving metadata and data between two clusters is a pretty straightforward process but depends entirely on the proper configurations in each cluster.  Listed here are a few tips on some crucial configurations.
 
-NOTE: HMS-Mirror only moves data with the [SQL](sql_datastrategy.md) and [EXPORT_IMPORT](export-import_datastrategy.md) data strategies.  All other strategies either use the data as-is ([LINKED](linked_datastrategy.md) or [COMMON](common_datastrategy.md)) or depend on the data being moved by something like `distcp`.
+NOTE: HMS-Mirror only moves data with the [SQL](hms-mirror-sql.md) and [EXPORT_IMPORT](hms-mirror-export-import.md) data strategies.  All other strategies either use the data as-is ([LINKED](hms-mirror-linked.md) or [COMMON](hms-mirror-common.md)) or depend on the data being moved by something like `distcp`.
 
 ## Controlling the YARN Queue that runs the SQL queries from `hms-mirror`
 
@@ -26,7 +26,7 @@ The migration of schemas can put a heavy load on HS2 and the HMS server it's usi
 
 To prevent average user operational impact, I suggest establishing an isolated HMS and HS2 environment for the migration process.
 
-<img src="images/isolation.png" alt="Isolation"/>
+![Isolate Migration Service Endpoints](images/isolation.png)
 
 ## Speed up CREATE/ALTER Table Statements - with existing data
 

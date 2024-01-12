@@ -4,7 +4,7 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 
 ## Assumptions
 
-1. This process will only 'migrate' EXTERNAL and MANAGED (non-ACID/Transactional) table METADATA (not data, except with [SQL](sql_datastrategy.md) and [EXPORT_IMPORT](export-import_datastrategy.md) ).
+1. This process will only 'migrate' EXTERNAL and MANAGED (non-ACID/Transactional) table METADATA (not data, except with [SQL](hms-mirror-sql.md) and [EXPORT_IMPORT](hms-mirror-export-import.md) ).
 2. MANAGED tables replicated to the **RIGHT** cluster will be converted to "EXTERNAL" tables for the 'metadata' stage.  They will be tagged as 'legacy managed' in the **RIGHT** cluster.  They will be assigned the `external.table.purge=true` flag, to continue the behaviors of the legacy managed tables.
 1. The **RIGHT** cluster has 'line of sight' to the **LEFT** cluster.
 2. The **RIGHT** cluster has been configured to access the **LEFT** cluster storage. See [link clusters](Linking-Cluster-Storage-Layers.md).  This is the same configuration required to support `distcp` from the **RIGHT** cluster to the **LEFT** cluster.
@@ -18,7 +18,7 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 
 ### Transfer DATA, beyond the METADATA
 
-HMS-Mirror does NOT migrate data between clusters unless you're using the [SQL](sql_datastrategy.md) and [EXPORT_IMPORT](export-import_datastrategy.md) data strategies.  In some cases where data is co-located, you don't need to move it.  IE: Cloud to Cloud.  As long as the new cluster environment has access to the original location.  This is the intended target for strategies [COMMON](common_datastrategy.md) and to some extend [LINKED](linked_datastrategy.md).
+HMS-Mirror does NOT migrate data between clusters unless you're using the [SQL](hms-mirror-sql.md) and [EXPORT_IMPORT](hms-mirror-export-import.md) data strategies.  In some cases where data is co-located, you don't need to move it.  IE: Cloud to Cloud.  As long as the new cluster environment has access to the original location.  This is the intended target for strategies [COMMON](hms-mirror-common.md) and to some extend [LINKED](hms-mirror-linked.md).
 
 When you do need to move data, `hms-mirror` create a workbook of 'source' and 'target' locations in an output file called `distcp_workbook.md`.  Use this to help build a transfer job in `distcp` using the `-f` option to specify multiple sources.  This construct is still a work in progress, so feedback is welcome [Email - David Streever](mailto:dstreever@cloudera.com).
 
@@ -44,6 +44,8 @@ For example, the following would yield a code of `-2305843009214742528` (20 and 
 `hms-mirror` is pre-built with CDP libraries and WILL NOT be compatible with LEGACY kerberos environments. A Kerberos connection can only be made to ONE cluster when the clusters are NOT running the same 'major' version of Hadoop.
 
 To attach to a LEGACY HS2, run `hms-mirror` with the `--hadoop-classpath` command-line option.  This will strip the CDP libraries from `hms-mirror` and use the hosts Hadoop libraries by calling `hadoop classpath` to locate the binaries needed to do this.
+
+
 
 ## On-Prem to Cloud Migrations
 
@@ -71,7 +73,7 @@ There will be a [`distcp` Planning Workbook](hms-mirror-features.md#distcp-plann
 - JDBC drivers to match the JDBC endpoints
 - For **non** CDP 7.x environments and Kerberos connections, an edge node with the current Hadoop libraries.
 
-See the [config](Configuration.md) section to setup the config file for `hms-mirror`.
+See the [config](hms-mirror-cfg.md) section to setup the config file for `hms-mirror`.
 
 ### Configuring the Libraries
 

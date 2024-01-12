@@ -6,7 +6,7 @@ Rebuilding METADATA can be an expensive scenario.  Especially when you are tryin
 
 Using the SQL and EXPORT_IMPORT strategies will move metadata AND data, but rebuilding the metastore elements can be pretty expensive.  So consider migrating the metadata separately from the data (distcp) and use MSCK on the RIGHT cluster to discover the data.  This will be considerably more efficient.
 
-If you will be doing a lot of metadata work on the RIGHT cluster. That cluster also serves a current user base; consider setting up separate HS2 pods for the migration to minimize the impact on the current user community. [Isolate Migration Activities](Optimizations.md#isolate-migration-activities)
+If you will be doing a lot of metadata work on the RIGHT cluster. That cluster also serves a current user base; consider setting up separate HS2 pods for the migration to minimize the impact on the current user community. [Isolate Migration Activities](hms-mirror-optimizations.md#isolate-migration-activities)
 
 ## Partition Handling for Data Transfers
 

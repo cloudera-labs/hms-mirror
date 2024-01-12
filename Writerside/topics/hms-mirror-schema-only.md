@@ -16,13 +16,13 @@ The default behaviour is NOT to handle ACID tables.  ACID tables require some ad
 
 Migrations from legacy hive environments may have had to create tables with an unnecessary `CLUSTERED BY` clause to support `bucketing` for these ACID tables.  The `artificial bucket limit` is an opportunity to remove those definitions for the migrated tables.  For example: If you've defined a table with 2 buckets, the default `artificial bucket limit` is 2, so the table `CLUSTERED BY ... INTO 2 BUCKETS` will be removed from the definition.
 
-#### [`-mnno|--migrate-non-native-only`](README.md#non-native-hive-tables-hbase-kafka-jdbc-druid-etc)
+#### [`-mnno|--migrate-non-native-only`](hms-mirror-intro.md#non-native-hive-tables-hbase-kafka-jdbc-druid-etc)
 
 Use this to migrate *non-native* hive tables like: Kafka, HBase, JDBC Federated, etc..  This option excludes *native* tables from processing, so you should run it separately.
 
 Note that many of these tables **REQUIRE** that the supporting references **EXIST** first, or their creation will **FAIL**.  For instance, migrating a table with the HBase Storage handler requires that the HBase table is *present* AND *visible* from Hive.
 
-#### [`-v|--views-only`](README.md#views)
+#### [`-v|--views-only`](hms-mirror-intro.md#views)
 
 Like `-mnno` the `-v` option excludes other tables from processing, so it's designed to run along.  And like the `-mnno` option, it too requires the supporting tables to exist, otherwise the view create statements will *fail*.
 

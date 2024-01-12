@@ -1,4 +1,4 @@
-# Help
+# Commandline Help (Options)
 
 ```
 usage: hms-mirror <options>
@@ -317,4 +317,5 @@ Hive Metastore Migration Utility
                                                                database directory. This will be used
                                                                to set the MANAGEDLOCATION database
                                                                option.
+
 ```

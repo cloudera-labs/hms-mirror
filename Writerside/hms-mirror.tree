@@ -7,48 +7,48 @@
                   start-page="hms-mirror-Introduction.md">
 
     <toc-element topic="hms-mirror-Introduction.md"/>
-    <toc-element topic="QuickStart.md"/>
+    <toc-element topic="hms-mirror-quickStart.md"/>
     <toc-element topic="Pre-Requisites.md">
-        <toc-element topic="Warning.md"/>
-        <toc-element topic="Permissions.md"/>
+        <toc-element topic="warning.md"/>
+        <toc-element topic="hms-mirror-permissions.md"/>
         <toc-element topic="Linking-Cluster-Storage-Layers.md"/>
     </toc-element>
-    <toc-element topic="Setup.md"/>
-    <toc-element topic="Configuration.md">
+    <toc-element topic="hms-mirror-setup.md"/>
+    <toc-element topic="hms-mirror-cfg.md">
         <toc-element topic="hms-mirror-Default-Configuration-Template.md"/>
     </toc-element>
     <toc-element topic="hms-mirror-running.md">
-        <toc-element topic="hms-mirror-Help.md"/>
-        <toc-element topic="Output.md"/>
-        <toc-element topic="Optimizations.md"/>
-        <toc-element topic="Tips.md"/>
+        <toc-element topic="cli-options.md"/>
+        <toc-element topic="hms-mirror-output.md"/>
+        <toc-element topic="hms-mirror-optimizations.md"/>
+        <toc-element topic="hms-mirror-tips.md"/>
     </toc-element>
     <toc-element topic="hms-mirror-features.md"/>
     <toc-element topic="Strategies.md">
-        <toc-element topic="schema-only_datastrategy.md"/>
-        <toc-element topic="dump_datastrategy.md">
+        <toc-element topic="hms-mirror-schema-only.md"/>
+        <toc-element topic="dump.md">
             <toc-element topic="dump-options.md"/>
         </toc-element>
-        <toc-element topic="linked_datastrategy.md"/>
-        <toc-element topic="convert-linked_datastrategy.md"/>
-        <toc-element topic="sql_datastrategy.md">
-            <toc-element topic="sql_options.md"/>
+        <toc-element topic="hms-mirror-linked.md"/>
+        <toc-element topic="convert-linked.md"/>
+        <toc-element topic="hms-mirror-sql.md">
+            <toc-element topic="hms-mirror-sql-options.md"/>
         </toc-element>
-        <toc-element topic="export-import_datastrategy.md">
-            <toc-element topic="export-import_options.md"/>
+        <toc-element topic="hms-mirror-export-import.md">
+            <toc-element topic="hms-mirror-EI_Options.md"/>
         </toc-element>
-        <toc-element topic="hybrid_datastrategy.md"/>
-        <toc-element topic="common_datastrategy.md"/>
-        <toc-element topic="storage-migration_datastrategy.md"/>
-        <toc-element topic="iceberg-mirgation_datastrategy.md"/>
+        <toc-element topic="hms-mirror-HYBRID.md"/>
+        <toc-element topic="hms-mirror-common.md"/>
+        <toc-element topic="storage_migration.md"/>
+        <toc-element topic="hms-mirror-iceberg_migration.md"/>
     </toc-element>
-    <toc-element topic="Troubleshooting.md"/>
-    <toc-element topic="Use-Cases.md">
+    <toc-element topic="troubleshooting.md"/>
+    <toc-element topic="license.md"/>
+    <toc-element topic="use-cases.md">
         <toc-element topic="hms-mirror-legacy-to-non-legacy.md">
             <toc-element topic="hms-mirror-leg-non-leg-scenarios.md"/>
         </toc-element>
         <toc-element topic="cloud_to_cloud_dr.md"/>
         <toc-element topic="hms-mirror-Hybrid-Data-LakeHouse.md"/>
     </toc-element>
-    <toc-element topic="LICENSE.md"/>
 </instance-profile>
