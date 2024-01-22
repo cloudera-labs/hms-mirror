@@ -78,6 +78,7 @@ public class Conversion {
             for (Pair sqlPair : dbSql) {
                 sb.append("-- ").append(sqlPair.getDescription()).append("\n");
                 sb.append(sqlPair.getAction()).append(";\n");
+                found = Boolean.TRUE;
             }
         }
 

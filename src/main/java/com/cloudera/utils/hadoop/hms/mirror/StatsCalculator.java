@@ -175,7 +175,7 @@ public class StatsCalculator {
     }
 
     private static SerdeType serdeFromStats(Map<String, Object> stats) {
-        String sStype = stats.get(FILE_FORMAT).toString();
+        String sStype = stats.getOrDefault(FILE_FORMAT, "UNKNOWN").toString();
         SerdeType serdeType = null;
         if (sStype == null) {
             serdeType = SerdeType.UNKNOWN;

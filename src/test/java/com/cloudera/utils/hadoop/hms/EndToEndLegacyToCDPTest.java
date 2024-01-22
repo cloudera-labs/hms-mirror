@@ -1085,6 +1085,10 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         long rtn = mirror.go(args);
         long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
+
+        // TODO: Current testing doesn't have ability to check a filesystem, which this test relies on.
+        // This test is expected to fail at this point.
+
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
 
     }
@@ -1109,6 +1113,8 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
 
+        // TODO: Current testing doesn't have ability to check a filesystem, which this test relies on.
+        // This test is expected to fail at this point.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
 
     }
@@ -1133,7 +1139,8 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         Mirror mirror = new Mirror();
         rtn = mirror.go(args);
         long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
-
+        // TODO: Current testing doesn't have ability to check a filesystem, which this test relies on.
+        // This test is expected to fail at this point.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
 
     }
@@ -2079,7 +2086,8 @@ public class EndToEndLegacyToCDPTest extends EndToEndBase {
         rtn = mirror.go(args);
         // Should fail because DB dir doesn't exist.  RO assumes data moved already.
         long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
-
+        // TODO: Current testing doesn't have ability to check a filesystem, which this test relies on.
+        // This test is expected to fail at this point.
         assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check * -1, check * -1, rtn);
 
     }

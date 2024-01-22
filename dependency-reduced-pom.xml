@@ -4,7 +4,7 @@
   <groupId>com.cloudera.utils.hadoop</groupId>
   <artifactId>hms-mirror</artifactId>
   <name>hms-mirror</name>
-  <version>1.6.5.9-SNAPSHOT</version>
+  <version>1.6.5.10-SNAPSHOT</version>
   <url>https://github.com/cloudera-labs/hms_mirror</url>
   <build>
     <finalName>${project.artifactId}</finalName>
