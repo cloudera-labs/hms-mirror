@@ -4,7 +4,7 @@
   <groupId>com.cloudera.utils.hadoop</groupId>
   <artifactId>hms-mirror</artifactId>
   <name>hms-mirror</name>
-  <version>1.6.5.10-SNAPSHOT</version>
+  <version>1.6.5.11-SNAPSHOT</version>
   <url>https://github.com/cloudera-labs/hms_mirror</url>
   <build>
     <finalName>${project.artifactId}</finalName>
@@ -240,34 +240,34 @@
     </dependency>
   </dependencies>
   <properties>
-    <slf4j-reload4j.version>1.7.36</slf4j-reload4j.version>
-    <jcabi.manifests.version>1.1</jcabi.manifests.version>
-    <maven.surefire.version>3.1.2</maven.surefire.version>
-    <maven.site.version>3.7.1</maven.site.version>
-    <maven.jar.version>3.3.0</maven.jar.version>
-    <hadoop-cli.version>2.4.3.3</hadoop-cli.version>
-    <hikari.version>4.0.3</hikari.version>
-    <oracle.client.version>12.1.0.2</oracle.client.version>
-    <mariadb.client.version>2.5.3</mariadb.client.version>
-    <commons-text.version>1.10.0</commons-text.version>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <junit.version>4.13.1</junit.version>
-    <postgresql.client.version>42.3.3</postgresql.client.version>
-    <maven.deploy.version>3.1.1</maven.deploy.version>
-    <maven.assembly.version>3.6.0</maven.assembly.version>
-    <hive-sre.version>2.5.1.4</hive-sre.version>
-    <logback-classic.version>1.2.12</logback-classic.version>
-    <commonmark.version>0.17.1</commonmark.version>
-    <maven.resources.version>3.3.1</maven.resources.version>
     <commons-dbcp2.version>2.9.0</commons-dbcp2.version>
-    <maven.clean.version>3.3.1</maven.clean.version>
-    <maven.compiler.target>1.8</maven.compiler.target>
-    <maven.shade.plugin.version>3.5.0</maven.shade.plugin.version>
-    <maven.compiler.version>3.11.0</maven.compiler.version>
+    <hikari.version>4.0.3</hikari.version>
     <jackson.version>2.13.5</jackson.version>
+    <maven.shade.plugin.version>3.5.0</maven.shade.plugin.version>
+    <postgresql.client.version>42.3.3</postgresql.client.version>
+    <junit.version>4.13.1</junit.version>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <hive-sre.version>2.5.1.4</hive-sre.version>
+    <mariadb.client.version>2.5.3</mariadb.client.version>
+    <commonmark.version>0.17.1</commonmark.version>
+    <oracle.client.version>12.1.0.2</oracle.client.version>
+    <hadoop-cli.version>2.4.3.3</hadoop-cli.version>
+    <slf4j-reload4j.version>1.7.36</slf4j-reload4j.version>
     <maven.reports.version>3.0.0</maven.reports.version>
+    <maven.assembly.version>3.6.0</maven.assembly.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.site.version>3.7.1</maven.site.version>
+    <maven.clean.version>3.3.1</maven.clean.version>
+    <maven.surefire.version>3.1.2</maven.surefire.version>
     <javax.validation.version>2.0.1.Final</javax.validation.version>
+    <maven.compiler.version>3.11.0</maven.compiler.version>
+    <maven.resources.version>3.3.1</maven.resources.version>
+    <maven.deploy.version>3.1.1</maven.deploy.version>
     <maven.install.version>3.1.1</maven.install.version>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <commons-text.version>1.10.0</commons-text.version>
+    <logback-classic.version>1.2.12</logback-classic.version>
+    <maven.jar.version>3.3.0</maven.jar.version>
+    <jcabi.manifests.version>1.1</jcabi.manifests.version>
   </properties>
 </project>

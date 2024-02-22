@@ -230,10 +230,10 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
                 ret.addSql(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION_DESC, addPartSql);
             } else if (config.getCluster(Environment.RIGHT).getPartitionDiscovery().getInitMSCK()) {
                 String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, ret.getName());
+                // Add the MSCK repair to both initial and cleanup.
+                ret.addSql(TableUtils.REPAIR_DESC, msckStmt);
                 if (config.getTransfer().getStorageMigration().isDistcp()) {
                     ret.addCleanUpSql(TableUtils.REPAIR_DESC, msckStmt);
-                } else {
-                    ret.addSql(TableUtils.REPAIR_DESC, msckStmt);
                 }
             }
         }
