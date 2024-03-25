@@ -92,7 +92,7 @@
         <ozone.version>1.2.0</ozone.version>
 
         <hadoop-cli.version>3.0.1.0</hadoop-cli.version>
-        <hive-sre.version>2.5.1.4</hive-sre.version>
+        <hive-sre.version>3.0.1.4</hive-sre.version>
 
     </properties>
 
