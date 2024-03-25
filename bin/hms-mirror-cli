@@ -2,7 +2,7 @@
 
 
 #
-# Copyright (c) 2022. Cloudera All Rights Reserved
+# Copyright (c) 2022. David W. Streever All Rights Reserved
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -18,7 +18,14 @@
 #
 
 # Resolve Symlinks of exe
-RESOLVED_EXE_PATH=`readlink -f $0`
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # Mac OSX
+  RESOLVED_EXE_PATH=`readlink $0`
+else
+  # ...
+  RESOLVED_EXE_PATH=`readlink -f $0`
+fi
+
 # Find Dir of resolved script
 APP_DIR=$(dirname $RESOLVED_EXE_PATH)
 CURR_DIR=$(pwd)
@@ -31,7 +38,7 @@ if [ -f $DO_NOT_FILE ]; then
   exit 1
 fi
 
-if [[ "${APP_DIR}" == "${HOME}/.hms-mirror/bin" ]]; then
+if [[ "${APP_DIR}" == "${HOME}/.hadoop-cli/bin" ]]; then
   echo "Running from User Local Instance"
 else
   echo "Running Host instance"
@@ -39,7 +46,6 @@ fi
 
 PRG_ARGS=
 CMD_CP=
-APP_OUTPUT_DIR=${HOME}/.hms-mirror/logs
 
 if [ ! -z ${JAVA_HOME} ]; then
   JAVA="${JAVA_HOME}/bin/java"
@@ -47,24 +53,27 @@ else
   JAVA=java
 fi
 
-AUX_LIBS_DIR=${HADOOP_CLI_AUX_LIBS:-${HOME}/.hms-mirror/aux_libs}
+AUX_LIBS_DIR=${HADOOP_CLI_AUX_LIBS:-${HOME}/.hadoop-cli/aux_libs}
 
 SHOW_CP=
 CMD_DIRECTIVE=
 CMD_ARGS=
 VERBOSE=
 ENV_VAR_FILE=
-HADOOP_CLASSPATH=
-LOGGING_THRESHOLD=${LOGGING_THRESHOLD:-"INFO"}
-APP_LOG_FILE=${APP_LOG_FILE:-"hms-mirror-cli.log"}
-APP_JAVA_OPTS=${JAVA_OPTS:-"-Xms1024m -Xmx2048m -XX:+UseG1GC"}
 
-if [[ -f ${HOME}/.hms-mirror/env-var.props || -L ${HOME}/.hms-mirror/env-var.props ]]; then
-    ENV_VAR_FILE=${HOME}/.hms-mirror/env-var.props
+# Setting this to true ALWAYS.  No longer including all the hadoop lib in a shaded jar.
+HADOOP_CLASSPATH="true"
+
+APP_JAVA_OPTS=${JAVA_OPTS:-"-Xms2048m -Xmx4096m -XX:+UseG1GC"}
+LOGGING_THRESHOLD=${LOGGING_THRESHOLD:-"DEBUG"}
+APP_LOG_FILE=${APP_LOG_FILE:-"hadoop-cli.log"}
+
+if [[ -f ${HOME}/.hadoop-cli/env-var.props || -L ${HOME}/.hadoop-cli/env-var.props ]]; then
+    ENV_VAR_FILE=${HOME}/.hadoop-cli/env-var.props
 fi
 
-if [[ ! -d ${HOME}/.hms-mirror/aux_libs ]]; then
-    mkdir -p ${HOME}/.hms-mirror/aux_libs
+if [[ ! -d ${HOME}/.hadoop-cli/aux_libs ]]; then
+    mkdir -p ${HOME}/.hadoop-cli/aux_libs
 fi
 
 while [[ $# -gt 0 ]]; do
@@ -147,52 +156,33 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-echo "App Logs will be written to: ${APP_OUTPUT_DIR}"
-
 if [[ "${ENV_VAR_FILE}x" != "x" ]]; then
     PRG_ARGS="${PRG_ARGS} -ef \"${ENV_VAR_FILE}\""
 fi
 
-#if [[ "${DIR_OVERRIDE}x" == "x" ]]; then
-#   Add Date to output dir path
-#  APP_OUTPUT_PATH=${APP_OUTPUT_DIR}/$(date +%y-%m-%d_%H-%M-%S)
-#else
-  APP_OUTPUT_PATH=${APP_OUTPUT_DIR}
-#fi
-
-export APP_OUTPUT_PATH
-APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dapp.path.dir=\"$APP_OUTPUT_PATH\" -Dlogging.threshold=\"$LOGGING_THRESHOLD\" -Dapp.log.file=\"$APP_LOG_FILE\""
+#echo "Program Args: ${PRG_ARGS}"
+APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dapp.path.dir=${HOME}/.hadoop-cli/logs -Dlogging.threshold=${LOGGING_THRESHOLD} -Dapp.log.file=\"$APP_LOG_FILE\""
 
 if [[ ! -d ${AUX_LIBS_DIR} ]]; then
     mkdir -p ${AUX_LIBS_DIR}
 fi
 
-SHADED=
-# Choose to use embedded libs (Hadoop 3+) or get Hadoop Classpath locally
-if [[ "${HADOOP_CLASSPATH}x" != "x" ]]; then
-  echo "Picking up local Hadoop Classpath Libs."
-  SHADED=shaded-no-hadoop
-  CMD_CP=$(hadoop classpath):${CMD_CP}
-else
-  SHADED=shaded
-fi
+# Add Aux Libs to Classpath
+CMD_CP=${CMD_CP}:${AUX_LIBS_DIR}/*
 
-if [[ -f $APP_DIR/../lib/hms-mirror-$SHADED.jar ]]; then
-    CMD_CP=$APP_DIR/../lib/hms-mirror-$SHADED.jar:${CMD_CP}
-else
-    echo "Couldn't locate Hadoop Cli Library at: ${APP_DIR}/../lib/hms-mirror-${SHADED}.jar"
-    exit 1
+if [[ "${HADOOP_CLASSPATH}x" == "truex" ]]; then
+    echo "Picking up local Hadoop Classpath Libs."
+    CMD_CP=${CMD_CP}:$(hadoop classpath)
 fi
-
-for jarFile in `ls -d ${AUX_LIBS_DIR}/*.jar 2> /dev/null`; do
-    CMD_CP=${CMD_CP}:$jarFile
-done
 
 CLI_CMD=""
 
 if [[ "${VERBOSE}x" != "x" ]]; then
     echo "Passing app Params: ${PRG_ARGS}"
 fi
+
+# Replace colon with comma in $CMD_CP
+CMD_CP=$(echo $CMD_CP | sed 's/:/,/g')
 
 if [[ "${SHOW_CP}x" != "x" ]]; then
     echo "Classpath: ${CMD_CP}"
@@ -203,11 +193,9 @@ if [[ "${APP_JAVA_OPTS}x" != "x" ]]; then
     echo "Application JAVA_OPTS=${APP_JAVA_OPTS}"
 fi
 
-echo "Using Java Version: "
+echo "Using Java Version:"
 JV=$(${JAVA} -version)
 
-echo $JV
-
-CLI_CMD="${JAVA} -cp ${CMD_CP} ${APP_JAVA_OPTS} com.cloudera.utils.hadoop.HadoopShell ${PRG_ARGS}"
+CLI_CMD="${JAVA} -Dloader.path=${CMD_CP} ${APP_JAVA_OPTS} -Dloader.main=com.cloudera.utils.hadoop.HadoopShellConsoleApp -jar ${APP_DIR}/../lib/* ${PRG_ARGS}"
 
 eval "${CLI_CMD}"

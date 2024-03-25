@@ -41,7 +41,7 @@
                 <include>setup.sh</include>
                 <include>DO_NOT_RUN_APP_FROM_HERE.txt</include>
             </includes>
-            <outputDirectory>hms-mirror-install</outputDirectory>
+            <outputDirectory>hms-mirror-install-${project.version}</outputDirectory>
             <useDefaultExcludes>true</useDefaultExcludes>
         </fileSet>
         <fileSet>
@@ -49,16 +49,25 @@
             <includes>
                 <include>default.template.yaml</include>
             </includes>
-            <outputDirectory>hms-mirror-install</outputDirectory>
+            <outputDirectory>hms-mirror-install-${project.version}</outputDirectory>
             <useDefaultExcludes>true</useDefaultExcludes>
         </fileSet>
         <fileSet>
             <directory>${project.basedir}/target</directory>
             <includes>
-                <include>hms-mirror-shaded*.jar</include>
+                <include>hms-mirror-${project.version}.jar</include>
+                <include>hms-mirror-${project.version}-exec.jar</include>
             </includes>
-            <outputDirectory>hms-mirror-install</outputDirectory>
+            <outputDirectory>hms-mirror-install-${project.version}/lib</outputDirectory>
             <useDefaultExcludes>true</useDefaultExcludes>
         </fileSet>
     </fileSets>
+
+<!--    <dependencySets>-->
+<!--        <dependencySet>-->
+<!--            <useProjectArtifact>true</useProjectArtifact>-->
+<!--            <outputDirectory>hms-mirror-install-${project.version}/lib</outputDirectory>-->
+<!--            <unpack>false</unpack>-->
+<!--        </dependencySet>-->
+<!--    </dependencySets>-->
 </assembly>

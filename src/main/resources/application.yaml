@@ -1,0 +1,78 @@
+spring:
+  main:
+    banner-mode: "off"
+hms-mirror:
+  config-filename: ${HOME}/.hms-mirror/cfg/default.yaml
+  config:
+#    databases: "false"
+    output-dir: "false"
+  conversion:
+    test-filename: "false"
+  command-line-options:
+#    help: false
+# -ap,--acid-partition-count <limit>  Acid partition count
+# -asm,--avro-schema-migration
+# -at,--auto-tune
+# -cfg,--config <filename>
+# -cine,--create-if-not-exist
+# -cs,--common-storage <storage-path>
+# -cto,--compress-test-output
+# -d,--data-strategy <strategy>
+# -da,--downgrade-acid
+# -db,--database <databases>
+# -dbo,--database-only
+# -dbp,--db-prefix <prefix>
+# -dbr,--db-rename <rename>
+# -dbRegEx,--database-regex <regex>
+# -dc,--distcp <flow-direction default:PULL>
+# -dp,--decrypt-password <encrypted-password>
+# -ds,--dump-source <source>
+# -dtd,--dump-test-data
+# -e,--execute
+# -ep,--export-partition-count <limit>
+# -epl,--evaluate-partition-location
+# -ewd,--external-warehouse-directory <path>
+# -f,--flip
+# -fel,--force-external-location
+# -glm,--global-location-map <key=value>
+# -h,--help
+# -ip,--in-place
+# -is,--intermediate-storage <storage-path>
+# -itpo,--iceberg-table-property-overrides <key=value>
+# -iv,--iceberg-version <version>
+# -ltd,--load-test-data <file>
+# -ma,--migrate-acid <bucket-threshold (2)>
+# -mao,--migrate-acid-only <bucket-threshold (2)>
+# -mnn,--migrate-non-native <arg>
+# -mnno,--migrate-non-native-only
+# -np,--no-purge
+# -o,--output-dir <outputdir>
+# -p,--password <password>
+# -pkey,--password-key <password-key>
+# -po,--property-overrides <key=value>
+# -pol,--property-overrides-left <key=value>
+# -por,--property-overrides-right <key=value>
+# -q,--quiet
+# -rdl,--reset-to-default-location
+# -replay,--replay <report-directory>
+# -rid,--right-is-disconnected
+# -ro,--read-only
+# -rr,--reset-right
+# -s,--sync
+# -sdpi,--sort-dynamic-partition-inserts
+# -sf,--skip-features
+# -slc,--skip-link-check
+# -slt,--skip-legacy-translation
+# -smn,--storage-migration-namespace <namespace>
+# -so,--skip-optimizations
+# -sp,--sql-partition-count <limit>
+# -sql,--sql-output
+# -ssc,--skip-stats-collection
+# -su,--setup
+# -tef,--table-exclude-filter <regex>
+# -tf,--table-filter <regex>
+# -tfp,--table-filter-partition-count-limit <partition-count>
+# -tfs,--table-filter-size-limit <size MB>
+# -to,--transfer-ownership
+# -v,--views-only
+# -wd,--warehouse-directory <path>

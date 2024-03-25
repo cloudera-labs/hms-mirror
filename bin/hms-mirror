@@ -17,7 +17,14 @@
 #
 
 # Resolve Symlinks of exe
-RESOLVED_EXE_PATH=`readlink -f $0`
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # Mac OSX
+  RESOLVED_EXE_PATH=`readlink $0`
+else
+  # ...
+  RESOLVED_EXE_PATH=`readlink -f $0`
+fi
+
 # Find Dir of resolved script
 APP_DIR=$(dirname $RESOLVED_EXE_PATH)
 CURR_DIR=$(pwd)
@@ -55,10 +62,14 @@ SHOW_CP=
 CMD_DIRECTIVE=
 CMD_ARGS=
 VERBOSE=
-HADOOP_CLASSPATH=
+
+# The new default is to run using the `hadoop classpath`, which assumes that the host has Hadoop installed and
+#  we'll use the classpath from the host to include the current hadoop libraries.
+STANDALONE="false"
+
 APP_JAVA_OPTS=${JAVA_OPTS:-"-Xms2048m -Xmx4096m -XX:+UseG1GC"}
 LOGGING_THRESHOLD=${LOGGING_THRESHOLD:-"DEBUG"}
-APP_LOG_FILE=${APP_LOG_FILE:-"hms-mirror.log"}
+APP_LOG_FILE=${APP_LOG_FILE:-"hms-mirror"}
 
 APP_OUTPUT_DIR=${HOME}/.hms-mirror/reports
 DIR_OVERRIDE=
@@ -80,7 +91,16 @@ while [[ $# -gt 0 ]]; do
     ;;
   --hadoop-classpath)
     shift
-    HADOOP_CLASSPATH="true"
+    echo "--hadoop-classpath is `deprecated`.  The hadoop dependencies are pulled from the host by default using `hadoop classpath`"
+    echo "If you want to use your own hadoop dependencies, use the --standalone option and place those libraries in the"
+    echo " ${HOME}/.hms-mirror/hadoop_libs directory."
+#    HADOOP_CLASSPATH="true"
+    ;;
+  --standalone)
+    shift
+    echo "Running in Standalone Mode.  Collect and place the appropriate hadoop libraries in ${HOME}/.hms-mirror/hadoop_libs directory."
+    echo " The application will use the libraries in that directory instead of the host hadoop libraries (which may not be available)."
+    STANDALONE="true"
     ;;
   --aux-libs)
     shift
@@ -119,28 +139,14 @@ if [[ ! -d ${AUX_LIBS_DIR} ]]; then
   mkdir -p ${AUX_LIBS_DIR}
 fi
 
-for jarFile in $(ls -d ${AUX_LIBS_DIR}/*.jar 2>/dev/null); do
-  CMD_CP=${CMD_CP}:$jarFile
-done
+# Add aux_libs to classpath
+CMD_CP=${CMD_CP}:${AUX_LIBS_DIR}/*
 
-SHADED=
-# Choose to use embedded libs (Hadoop 3+) or get Hadoop Classpath locally
-if [[ "${HADOOP_CLASSPATH}x" != "x" ]]; then
+if [[ "${STANDALONE}x" == "truex" ]]; then
   echo "Picking up local Hadoop Classpath Libs."
-  SHADED=shaded-no-hadoop
-  CMD_CP=$(hadoop classpath):${CMD_CP}
+  CMD_CP=${CMD_CP}:${HOME}/.hms-mirror/hadoop_libs/*
 else
-  SHADED=shaded
-fi
-
-# Choose to use embedded libs (Hadoop 3+) or get Hadoop Classpath locally
-if [[ -f $APP_DIR/../lib/hms-mirror-$SHADED.jar ]]; then
-  # Look in /usr/local/hadoop-cli/lib
-  CMD_CP=$APP_DIR/../lib/hms-mirror-$SHADED.jar:${CMD_CP}
-  #echo "Using bin from installation directory"
-else
-  echo "Couldn't locate hms-mirror Library: ${APP_DIR}/../lib/hms-mirror-${SHADED}.jar"
-  exit 1
+  CMD_CP=${CMD_CP}:$(hadoop classpath)
 fi
 
 CLI_CMD=""
@@ -161,6 +167,8 @@ echo "Using Java Version: "
 $(${JAVA} -version)
 echo ""
 
-CLI_CMD="${JAVA} -cp ${CMD_CP} ${APP_JAVA_OPTS} com.cloudera.utils.hadoop.hms.Mirror ${PRG_ARGS}"
+CLI_CMD="${JAVA} -cp ${CMD_CP} ${APP_JAVA_OPTS} -Dloader.main=com.cloudera.utils.hms.Mirror -jar ${APP_DIR}/../lib/* ${PRG_ARGS}"
+
+echo "CLI_CMD: ${CLI_CMD}"
 
 eval "${CLI_CMD}"
