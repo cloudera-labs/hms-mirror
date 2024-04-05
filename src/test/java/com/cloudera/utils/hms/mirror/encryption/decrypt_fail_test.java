@@ -15,7 +15,7 @@
  *
  */
 
-package com.cloudera.utils.hms.mirror.config;
+package com.cloudera.utils.hms.mirror.encryption;
 
 import com.cloudera.utils.hms.mirror.MessageCode;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
@@ -30,7 +30,9 @@ import static org.junit.Assert.assertEquals;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
         args = {
-                "--hms-mirror.config.data-strategy=EXPORT_IMPORT",
+//                "--hms-mirror.config.data-strategy=EXPORT_IMPORT",
+                "--hms-mirror.config.password-key=test",
+                "--hms-mirror.config.decrypt-password=badencryptedpassword",
 //                "--hms-mirror.config.migrate-acid=true",
 //                "--hms-mirror.config.migrate-acid-only=true",
 //                "--hms-mirror.config.warehouse-directory=/warehouse/managed",
@@ -43,36 +45,39 @@ import static org.junit.Assert.assertEquals;
 //                "--hms-mirror.config.intermediate-storage=s3a://my_is_bucket",
 //                "--hms-mirror.config.common-storage=s3a://my_cs_bucket",
                 "--hms-mirror.config.reset-to-default-location=true",
-                "--hms-mirror.config.distcp=true",
+//                "--hms-mirror.config.distcp=true",
                 "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_01.yaml",
-                "--hms-mirror.config-filename=/config/default.yaml.hdp2-cdp",
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/config/ei_rdl_dc"
+                "--hms-mirror.config-filename=/config/default.yaml.encrypted",
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/encryption/decrypt_fail_test"
         })
 @Slf4j
-public class ei_rdl_dc extends E2EBaseTest {
-
-    //        String[] args = new String[]{"-d", "EXPORT_IMPORT",
-//                "--distcp",
-//                "-rdl",
-//                "-ltd", ASSORTED_TBLS_04,
-//                "-cfg", HDP2_CDP,
-//                "-o", outputDir};
+public class decrypt_fail_test extends E2EBaseTest {
+//        String[] args = new String[]{"-pkey", PKEY,
+//                "-dp", "badencryptedpassword",
+//                "-cfg", ENCRYPTED
+//        };
 //
 //        long rtn = 0;
-//        MirrorLegacy mirror = new MirrorLegacy();
-//        rtn = mirror.go(args);
+//        CommandLineOptions commandLineOptions = new CommandLineOptions();
+//        CommandLine cmd = commandLineOptions.getCommandLine(args);
+//        // TODO: Need to handle loading config for test.
 //
-//        long check = MessageCode.DISTCP_VALID_STRATEGY.getLong();
-//        check = check | MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
     @Test
     public void returnCodeTest() {
         // Get Runtime Return Code.
         long actual = getReturnCode();
         // Verify the return code.
-        long expected = getCheckCode(MessageCode.DISTCP_VALID_STRATEGY, MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS);
+        long expected = getCheckCode(MessageCode.PASSWORD_CFG, MessageCode.DECRYPTING_PASSWORD_ISSUE);
 
         assertEquals("Return Code Failure: ", expected, actual);
-
     }
+
+//    @Test
+//    public void validatePassword() {
+//        // Get Runtime Return Code.
+//        assertEquals("Decrypt Password Failure: ", "myspecialpassword",
+//                getConfigService().getConfig().getPassword());
+//    }
+
 }

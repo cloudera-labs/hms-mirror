@@ -38,13 +38,15 @@ import org.springframework.core.annotation.Order;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.FileSystems;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
 
-import static com.cloudera.utils.hms.mirror.MessageCode.*;
+import static com.cloudera.utils.hms.mirror.MessageCode.ENVIRONMENT_CONNECTION_ISSUE;
+import static com.cloudera.utils.hms.mirror.MessageCode.ENVIRONMENT_DISCONNECTED;
 
 @Configuration
 @Slf4j
@@ -567,7 +569,7 @@ public class CommandLineOptions {
     @Order(1)
     @ConditionalOnProperty(
             name = "app.path.dir")
-    CommandLineRunner configAppPathDir(Config config, CliReporter reporter,@Value("${app.path.dir}") String value) {
+    CommandLineRunner configAppPathDir(Config config, CliReporter reporter, @Value("${app.path.dir}") String value) {
         return configOutputDirInternal(config, reporter, value);
     }
 
@@ -575,7 +577,7 @@ public class CommandLineOptions {
     @Order(1)
     @ConditionalOnProperty(
             name = "hms-mirror.config.output-dir")
-    CommandLineRunner configOutputDir(Config config, CliReporter reporter,@Value("${hms-mirror.config.output-dir}") String value) {
+    CommandLineRunner configOutputDir(Config config, CliReporter reporter, @Value("${hms-mirror.config.output-dir}") String value) {
         return configOutputDirInternal(config, reporter, value);
     }
 
@@ -1568,6 +1570,7 @@ public class CommandLineOptions {
                         String epassword = null;
                         try {
                             epassword = protect.encrypt(config.getPassword());
+                            config.setDecryptPassword(epassword);
                             config.addWarning(MessageCode.ENCRYPTED_PASSWORD, epassword);
                         } catch (Exception e) {
                             config.addError(MessageCode.ENCRYPT_PASSWORD_ISSUE);
@@ -1576,6 +1579,7 @@ public class CommandLineOptions {
                         String password = null;
                         try {
                             password = protect.decrypt(config.getDecryptPassword());
+                            config.setPassword(password);
                             config.addWarning(MessageCode.DECRYPTED_PASSWORD, password);
                         } catch (Exception e) {
                             config.addError(MessageCode.DECRYPTING_PASSWORD_ISSUE);
@@ -1584,6 +1588,62 @@ public class CommandLineOptions {
                 } else {
                     config.addError(MessageCode.PKEY_PASSWORD_CFG);
                 }
+            } else if (config.getPasswordKey() != null) {
+                // Decrypt Passwords
+                Protect protect = new Protect(config.getPasswordKey());
+                if (config.getCluster(Environment.LEFT) != null
+                        && config.getCluster(Environment.LEFT).getHiveServer2() != null
+                        && config.getCluster(Environment.LEFT).getHiveServer2().getConnectionProperties().getProperty("password") != null) {
+                    try {
+                        config.getCluster(Environment.LEFT).getHiveServer2()
+                                .getConnectionProperties().setProperty("password",
+                                        protect.decrypt(config.getCluster(Environment.LEFT).getHiveServer2().getConnectionProperties().getProperty("password")));
+                        config.addWarning(MessageCode.DECRYPTED_PASSWORD, "*******");
+                    } catch (Exception e) {
+                        config.addError(MessageCode.DECRYPTING_PASSWORD_ISSUE, "LEFT HiveServer2");
+                    }
+                }
+                if (config.getCluster(Environment.RIGHT) != null
+                        && config.getCluster(Environment.RIGHT).getHiveServer2() != null
+                        && config.getCluster(Environment.RIGHT).getHiveServer2().getConnectionProperties().getProperty("password") != null) {
+                    try {
+                        config.getCluster(Environment.RIGHT).getHiveServer2()
+                                .getConnectionProperties().setProperty("password",
+                                        protect.decrypt(config.getCluster(Environment.RIGHT).getHiveServer2().getConnectionProperties().getProperty("password")));
+                        config.addWarning(MessageCode.DECRYPTED_PASSWORD, "*******");
+                    } catch (Exception e) {
+                        config.addError(MessageCode.DECRYPTING_PASSWORD_ISSUE, "RIGHT HiveServer2");
+                    }
+                }
+                if (config.getCluster(Environment.LEFT).getMetastoreDirect() != null
+                        && config.getCluster(Environment.LEFT).getMetastoreDirect().getConnectionProperties().getProperty("password") != null) {
+                    try {
+                        config.getCluster(Environment.LEFT).getMetastoreDirect()
+                                .getConnectionProperties().setProperty("password",
+                                        protect.decrypt(config.getCluster(Environment.LEFT).getMetastoreDirect().getConnectionProperties().getProperty("password")));
+                        config.addWarning(MessageCode.DECRYPTED_PASSWORD, "*******");
+                    } catch (Exception e) {
+                        config.addError(MessageCode.DECRYPTING_PASSWORD_ISSUE, "LEFT MetastoreDirect");
+                    }
+                }
+            }
+
+            // Before Proceeding, check if we are just working with password encryption/decryption.
+            long errorCode = config.getProgression().getErrors().getReturnCode() * -1;
+
+            if (BigInteger.valueOf(errorCode).testBit(MessageCode.DECRYPTING_PASSWORD_ISSUE.getCode())) {//|| BigInteger.valueOf(passcodeError).testBit(MessageCode.PASSWORD_CFG)) {
+                // Print Warnings to show the results of the password encryption/decryption.
+                for (String message : progression.getErrors().getMessages()) {
+                    log.error(message);
+                }
+                return;
+            }
+            if (BigInteger.valueOf(errorCode).testBit(MessageCode.PASSWORD_CFG.getCode())) {//|| BigInteger.valueOf(passcodeError).testBit(MessageCode.PASSWORD_CFG)) {
+                // Print Warnings to show the results of the password encryption/decryption.
+                for (String message : progression.getWarnings().getMessages()) {
+                    log.warn(message);
+                }
+                return;
             }
 
             if (!configService.validate()) {

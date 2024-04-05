@@ -22,6 +22,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -40,6 +41,10 @@ public class CliReporterConfig {
 
     @Bean
     @Order(21) // Needs to run before the main application logic in "ApplicationConfig".
+    // Don't run when encrypting/decrypting passwords.
+    @ConditionalOnProperty(
+            name = "hms-mirror.config.password",
+            matchIfMissing = true)
     public CommandLineRunner launchCliReporting() {
         return args -> {
             log.info("Launching CLI Reporting");

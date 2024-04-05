@@ -27,6 +27,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -76,6 +77,10 @@ public class ApplicationConfig {
     // TODO: Need to address failures here...
     @Bean
     @Order(1000) // Needs to be the last thing to run.
+    // Don't run when encrypting/decrypting passwords.
+    @ConditionalOnProperty(
+            name = "hms-mirror.config.password",
+            matchIfMissing = true)
     public CommandLineRunner start() {
         return args -> {
 //        context.setInitializing(Boolean.TRUE);

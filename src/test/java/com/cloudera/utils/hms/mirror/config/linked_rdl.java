@@ -30,7 +30,7 @@ import static org.junit.Assert.assertEquals;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
         args = {
-                "--hms-mirror.config.data-strategy=EXPORT_IMPORT",
+                "--hms-mirror.config.data-strategy=LINKED",
 //                "--hms-mirror.config.migrate-acid=true",
 //                "--hms-mirror.config.migrate-acid-only=true",
 //                "--hms-mirror.config.warehouse-directory=/warehouse/managed",
@@ -43,26 +43,24 @@ import static org.junit.Assert.assertEquals;
 //                "--hms-mirror.config.intermediate-storage=s3a://my_is_bucket",
 //                "--hms-mirror.config.common-storage=s3a://my_cs_bucket",
                 "--hms-mirror.config.reset-to-default-location=true",
-                "--hms-mirror.config.distcp=true",
+//                "--hms-mirror.config.distcp=true",
                 "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_01.yaml",
                 "--hms-mirror.config-filename=/config/default.yaml.hdp2-cdp",
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/config/ei_rdl_dc"
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/config/linked_rdl"
         })
 @Slf4j
-public class ei_rdl_dc extends E2EBaseTest {
+public class linked_rdl extends E2EBaseTest {
 
-    //        String[] args = new String[]{"-d", "EXPORT_IMPORT",
-//                "--distcp",
+    //        String[] args = new String[]{"-d", "LINKED",
 //                "-rdl",
 //                "-ltd", ASSORTED_TBLS_04,
 //                "-cfg", HDP2_CDP,
 //                "-o", outputDir};
-//
 //        long rtn = 0;
 //        MirrorLegacy mirror = new MirrorLegacy();
 //        rtn = mirror.go(args);
 //
-//        long check = MessageCode.DISTCP_VALID_STRATEGY.getLong();
+//        long check = MessageCode.RESET_TO_DEFAULT_LOCATION.getLong();
 //        check = check | MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
 
     @Test
@@ -70,9 +68,10 @@ public class ei_rdl_dc extends E2EBaseTest {
         // Get Runtime Return Code.
         long actual = getReturnCode();
         // Verify the return code.
-        long expected = getCheckCode(MessageCode.DISTCP_VALID_STRATEGY, MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS);
+        long expected = getCheckCode(MessageCode.RESET_TO_DEFAULT_LOCATION, MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS);
 
         assertEquals("Return Code Failure: ", expected, actual);
 
     }
+
 }

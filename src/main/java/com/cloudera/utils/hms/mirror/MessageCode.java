@@ -80,12 +80,12 @@ public enum MessageCode {
     SQL_DISTCP_ACID_W_STORAGE_OPTS(33, "SQL Strategy with `distcp` is only valid for ACID table transfers NOT using " +
             "storage options `-is` or `-cs`.  `distcp` is NOT required since the data has already been moved while preparing " +
             "the ACID table."),
-    PASSWORD_DECRYPT_ISSUE(34, "Password Decrypt Issue."),
+//    PASSWORD_DECRYPT_ISSUE(34, "Password Decrypt Issue."),
 //    SQL_DISTCP_ONLY_W_DA_ACID (34, "SQL Strategy with `distcp` is only valid for ACID table transfers.  " +
 //            "Use SCHEMA_ONLY from External and Legacy Managed (Non-Transactional) tables."),
 
     ENCRYPT_PASSWORD_ISSUE(35, "Issue Encrypting Password"),
-    DECRYPTING_PASSWORD_ISSUE(36, "Issue decrypting password"),
+    DECRYPTING_PASSWORD_ISSUE(36, "Issue decrypting password {0}"),
     PKEY_PASSWORD_CFG(37, "Need to include '-pkey' with '-p'."),
     PASSWORD_CFG(38, "Password en/de crypt"),
     VALID_ACID_DA_IP_STRATEGIES(39, "Inplace Downgrade of ACID tables only valid for the SQL data strategy"),
@@ -215,6 +215,21 @@ public enum MessageCode {
             }
         }
         return errors;
+    }
+
+    public static long getCheckCode(MessageCode... messageCodes) {
+        int check = 0;
+        BitSet bitSet = new BitSet(150);
+        long expected = 0;
+        for (MessageCode messageCode : messageCodes) {
+            bitSet.set(messageCode.getCode());
+        }
+        long[] messageSet = bitSet.toLongArray();
+        for (long messageBit : messageSet) {
+            expected = expected | messageBit;
+        }
+        // Errors should be negative return code.
+        return expected * -1;
     }
 
     public int getCode() {

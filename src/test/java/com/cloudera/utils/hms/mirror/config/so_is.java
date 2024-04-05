@@ -30,7 +30,7 @@ import static org.junit.Assert.assertEquals;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
         args = {
-                "--hms-mirror.config.data-strategy=EXPORT_IMPORT",
+//                "--hms-mirror.config.data-strategy=EXPORT_IMPORT",
 //                "--hms-mirror.config.migrate-acid=true",
 //                "--hms-mirror.config.migrate-acid-only=true",
 //                "--hms-mirror.config.warehouse-directory=/warehouse/managed",
@@ -40,20 +40,18 @@ import static org.junit.Assert.assertEquals;
 //                "--hms-mirror.config.read-only=true",
 //                "--hms-mirror.config.sync=true",
 //                "--hms-mirror.config.evaluate-partition-location=true",
-//                "--hms-mirror.config.intermediate-storage=s3a://my_is_bucket",
+                "--hms-mirror.config.intermediate-storage=s3a://my_is_bucket",
 //                "--hms-mirror.config.common-storage=s3a://my_cs_bucket",
-                "--hms-mirror.config.reset-to-default-location=true",
-                "--hms-mirror.config.distcp=true",
+//                "--hms-mirror.config.reset-to-default-location=true",
+//                "--hms-mirror.config.distcp=true",
                 "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_01.yaml",
                 "--hms-mirror.config-filename=/config/default.yaml.hdp2-cdp",
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/config/ei_rdl_dc"
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/config/so_is"
         })
 @Slf4j
-public class ei_rdl_dc extends E2EBaseTest {
-
-    //        String[] args = new String[]{"-d", "EXPORT_IMPORT",
-//                "--distcp",
-//                "-rdl",
+public class so_is extends E2EBaseTest {
+    //        String[] args = new String[]{
+//                "-is", "s3a://my_intermediate_storage",
 //                "-ltd", ASSORTED_TBLS_04,
 //                "-cfg", HDP2_CDP,
 //                "-o", outputDir};
@@ -61,18 +59,17 @@ public class ei_rdl_dc extends E2EBaseTest {
 //        long rtn = 0;
 //        MirrorLegacy mirror = new MirrorLegacy();
 //        rtn = mirror.go(args);
-//
-//        long check = MessageCode.DISTCP_VALID_STRATEGY.getLong();
-//        check = check | MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS.getLong();
+//        long check = MessageCode.DISTCP_REQUIRED_FOR_SCHEMA_ONLY_IS.getLong();
 
     @Test
     public void returnCodeTest() {
         // Get Runtime Return Code.
         long actual = getReturnCode();
         // Verify the return code.
-        long expected = getCheckCode(MessageCode.DISTCP_VALID_STRATEGY, MessageCode.RESET_TO_DEFAULT_LOCATION_WITHOUT_WAREHOUSE_DIRS);
+        long expected = getCheckCode(MessageCode.DISTCP_REQUIRED_FOR_SCHEMA_ONLY_IS);
 
         assertEquals("Return Code Failure: ", expected, actual);
 
     }
+
 }
