@@ -39,7 +39,7 @@
         <jdk.version>8</jdk.version>
 
         <!-- TODO: Remove once we retool tests for Spring -->
-<!--        <maven.test.skip>true</maven.test.skip>-->
+        <maven.test.skip>false</maven.test.skip>
 
         <!-- Maven Pluggins -->
         <maven.compiler.version>3.11.0</maven.compiler.version>
@@ -48,7 +48,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.clean.version>3.3.1</maven.clean.version>
         <maven.resources.version>3.3.1</maven.resources.version>
-        <maven.surefire.version>3.1.2</maven.surefire.version>
+        <maven.surefire.version>3.2.5</maven.surefire.version>
         <maven.jar.version>3.3.0</maven.jar.version>
         <maven.install.version>3.1.1</maven.install.version>
         <maven.deploy.version>3.1.1</maven.deploy.version>
@@ -126,6 +126,20 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <version>${springboot.version}</version>
             <scope>test</scope>
+        </dependency>
+        <!-- JUnit 5 Vintage
+            Allow it to pickup the Junit4 tests
+        -->
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.hamcrest</groupId>
+                    <artifactId>hamcrest-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -552,6 +566,9 @@
                     </execution>
                 </executions>
             </plugin>
+<!--            <plugin>-->
+<!--                <artifactId>maven-surefire-plugin</artifactId>-->
+<!--            </plugin>-->
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
