@@ -1,0 +1,16 @@
+server:
+  port: 8090
+  servlet:
+    context-path: /hms-mirror
+spring:
+  main:
+    banner-mode: "off"
+hadoop:
+  cli:
+    api: "true"
+hms-mirror:
+  config-filename: ${HOME}/.hms-mirror/cfg/default.yaml
+  config:
+    output-dir: "false"
+  conversion:
+    test-filename: "false"

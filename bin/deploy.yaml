@@ -43,15 +43,17 @@
 
     - name: Copy lib
       copy:
-        src: ../target/hms-mirror-shaded.jar
+        src: "{{ item }}"
         dest: /usr/local/hms-mirror/lib
         mode: 0755
+      with_fileglob:
+        - "../target/*.jar"
 
-    - name: Copy No Hadoop lib
-      copy:
-        src: ../target/hms-mirror-shaded-no-hadoop.jar
-        dest: /usr/local/hms-mirror/lib
-        mode: 0755
+#    - name: Copy No Hadoop lib
+#      copy:
+#        src: ../target/hms-mirror-*-thin.jar
+#        dest: /usr/local/hms-mirror/lib
+#        mode: 0755
 
     - name: Link executable
       file:

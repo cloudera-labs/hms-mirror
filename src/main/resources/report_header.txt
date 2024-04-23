@@ -1,4 +1,8 @@
-HMS-Mirror v.${Implementation-Version}                            Data Strategy: [32m${config.strategy}[0m${tik.tok}
+HMS-Mirror v.${HMS-Mirror-Version}                            Data Strategy: [32m${config.strategy}[0m${tik.tok}
+
+Java Version: ${java.version}
+          OS: ${os.name}    Arch: ${os.arch}
+       Cores: ${cores}    Memory: ${memory}
 
 DB/TBL  Total:([32m${total.dbs}/${total.tbls}[0m)
 ===================================================================================

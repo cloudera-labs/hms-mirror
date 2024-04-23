@@ -1,6 +1,6 @@
 
-Report file              : ${report.file}
-LEFT Execute file        : ${left.execute.file}
-LEFT CleanUp file        : ${left.cleanup.file}
-RIGHT Execute file       : ${right.execute.file}
-RIGHT CleanUp file        : ${right.cleanup.file}
+Report file(s)              : ${report.file}
+LEFT Execute file (s)       : ${left.execute.file}
+LEFT CleanUp file(s)        : ${left.cleanup.file}
+RIGHT Execute file(s)       : ${right.execute.file}
+RIGHT CleanUp file(s)       : ${right.cleanup.file}

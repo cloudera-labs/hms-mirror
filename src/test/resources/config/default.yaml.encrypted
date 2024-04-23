@@ -20,10 +20,18 @@ clusters:
       uri: "jdbc:hive2://k02.streever.local:10000/perf_test"
       connectionProperties:
         user: dstreev
-        password: "*****"
+        password: "FNLmFEI0F/n8acz45c3jVExMounSBklX"
       # Standalone jar file used to connect via JDBC to the LEFT environment Hive Server 2
       # NOTE: Hive 3 jars will NOT work against Hive 1.  The protocol isn't compatible.
       jarFile: "/Users/dstreev/.hms-mirror/aux_libs/ext/hive-jdbc-1.2.1000.2.6.5.1175-1-standalone.jar"
+    metastore_direct:
+        # The HMS connection information for the LEFT cluster.
+        # This is used to directly connect to the HMS to get metadata information.
+        # This is used to get the metadata information for the LEFT cluster.
+        uri: "thrift://k02.streever.local:9083"
+        connectionProperties:
+            user: dstreev
+            password: "rV+HtIWliZn2CxB+BlWCbQ=="
   RIGHT:
     legacyHive: false
     # Is the 'Hadoop COMPATIBLE File System' used to prefix data locations for this cluster.
@@ -39,7 +47,7 @@ clusters:
       uri: "jdbc:hive2://s03.streever.local:8443/perf_test;ssl=true;transportMode=http;httpPath=gateway/cdp-proxy-api/hive;sslTrustStore=/Users/dstreev/bin/certs/gateway-client-trust.jks;trustStorePassword=changeit"
       connectionProperties:
         user: dstreev
-        password: "uATEPahcX4PBqDvmsfAhJmhyThHGAXW9"
+        password: "FNLmFEI0F/n8acz45c3jVExMounSBklX"
       # Standalone jar file used to connect via JDBC to the LEFT environment Hive Server 2
       # NOTE: Hive 3 jars will NOT work against Hive 1.  The protocol isn't compatible.
       jarFile: "/Users/dstreev/.hms-mirror/aux_libs/ext/hive-jdbc-3.1.3000.7.1.6.0-297-standalone.jar"

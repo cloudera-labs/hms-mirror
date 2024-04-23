@@ -1,0 +1,281 @@
+/*
+ * Copyright (c) 2023-2024. Cloudera, Inc. All Rights Reserved
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+
+package com.cloudera.utils.hms.mirror.connections;
+
+import com.cloudera.utils.hive.config.DBStore;
+import com.cloudera.utils.hms.mirror.Environment;
+import com.cloudera.utils.hms.mirror.HiveServer2Config;
+import com.cloudera.utils.hms.mirror.service.HmsMirrorCfgService;
+import com.cloudera.utils.hms.util.DriverUtils;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.dbcp2.*;
+import org.apache.commons.pool2.ObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.*;
+
+@Slf4j
+public class ConnectionPoolsHybridImpl implements ConnectionPools {
+
+    private final Map<Environment, DataSource> hs2DataSources = new TreeMap<>();
+    private final Map<Environment, Driver> hs2Drivers = new TreeMap<>();
+    private final Map<Environment, HiveServer2Config> hiveServerConfigs = new TreeMap<>();
+    private final Map<Environment, DBStore> metastoreDirectConfigs = new TreeMap<>();
+    private final Map<Environment, HikariDataSource> metastoreDirectDataSources = new TreeMap<>();
+    @Getter
+    private final HmsMirrorCfgService hmsMirrorCfgService;
+
+    public ConnectionPoolsHybridImpl(HmsMirrorCfgService hmsMirrorCfgService) {
+        this.hmsMirrorCfgService = hmsMirrorCfgService;
+    }
+
+    public void addHiveServer2(Environment environment, HiveServer2Config hiveServer2) {
+        hiveServerConfigs.put(environment, hiveServer2);
+    }
+
+    public void addMetastoreDirect(Environment environment, DBStore dbStore) {
+        metastoreDirectConfigs.put(environment, dbStore);
+    }
+
+    public void close() {
+        try {
+            if (hs2DataSources.get(Environment.LEFT) != null) {
+                if (hs2DataSources.get(Environment.LEFT) instanceof PoolingDataSource) {
+                    ((PoolingDataSource<?>) hs2DataSources.get(Environment.LEFT)).close();
+                } else if (hs2DataSources.get(Environment.LEFT) instanceof HikariDataSource) {
+                    ((HikariDataSource) hs2DataSources.get(Environment.LEFT)).close();
+                }
+            }
+        } catch (SQLException throwables) {
+            //
+        }
+        try {
+            if (hs2DataSources.get(Environment.RIGHT) != null) {
+                if (hs2DataSources.get(Environment.RIGHT) instanceof PoolingDataSource) {
+                    ((PoolingDataSource<?>) hs2DataSources.get(Environment.RIGHT)).close();
+                } else if (hs2DataSources.get(Environment.RIGHT) instanceof HikariDataSource) {
+                    ((HikariDataSource) hs2DataSources.get(Environment.RIGHT)).close();
+                }
+            }
+        } catch (SQLException throwables) {
+            //
+        }
+        if (metastoreDirectDataSources.get(Environment.LEFT) != null)
+            metastoreDirectDataSources.get(Environment.LEFT).close();
+        if (metastoreDirectDataSources.get(Environment.RIGHT) != null)
+            metastoreDirectDataSources.get(Environment.RIGHT).close();
+    }
+
+    public synchronized Connection getHS2EnvironmentConnection(Environment environment) throws SQLException {
+        Driver lclDriver = getHS2EnvironmentDriver(environment);
+        Connection conn = null;
+        if (lclDriver != null) {
+            DriverManager.registerDriver(lclDriver);
+            try {
+                DataSource ds = getHS2EnvironmentDataSource(environment);
+                if (ds != null)
+                    conn = ds.getConnection();
+            } catch (Throwable se) {
+                log.error(se.getMessage(), se);
+                throw new RuntimeException(se);
+            } finally {
+                DriverManager.deregisterDriver(lclDriver);
+            }
+        }
+        return conn;
+    }
+
+    protected DataSource getHS2EnvironmentDataSource(Environment environment) {
+        return hs2DataSources.get(environment);
+    }
+
+    protected synchronized Driver getHS2EnvironmentDriver(Environment environment) {
+        return hs2Drivers.get(environment);
+    }
+
+    public synchronized Connection getMetastoreDirectEnvironmentConnection(Environment environment) throws SQLException {
+        Connection conn = null;
+        DataSource ds = getMetastoreDirectEnvironmentDataSource(environment);
+        if (ds != null)
+            conn = ds.getConnection();
+        return conn;
+    }
+
+    protected DataSource getMetastoreDirectEnvironmentDataSource(Environment environment) {
+        return metastoreDirectDataSources.get(environment);
+    }
+
+    public void init() throws SQLException {
+        if (!getHmsMirrorCfgService().getHmsMirrorConfig().isLoadingTestData()) {
+            initHS2Drivers();
+            initHS2PooledDataSources();
+            // Only init if we are going to use it. (`-epl`).
+            if (getHmsMirrorCfgService().loadPartitionMetadata()) {
+                initMetastoreDataSources();
+            }
+        }
+    }
+
+    protected void initHS2Drivers() throws SQLException {
+        Set<Environment> environments = new HashSet<>();
+        environments.add(Environment.LEFT);
+        environments.add(Environment.RIGHT);
+
+        for (Environment environment : environments) {
+            HiveServer2Config hs2Config = hiveServerConfigs.get(environment);
+            if (hs2Config != null) {
+                Driver driver = DriverUtils.getDriver(hs2Config.getDriverClassName(), hs2Config.getJarFile(), environment);
+                // Need to deregister, because it was registered in the getDriver.
+                try {
+                    DriverManager.deregisterDriver(driver);
+                } catch (SQLException throwables) {
+                    log.error(throwables.getMessage(), throwables);
+                    throw throwables;
+                }
+                hs2Drivers.put(environment, driver);
+            }
+        }
+    }
+
+    protected void initHS2PooledDataSources() {
+        Set<Environment> environments = hiveServerConfigs.keySet();
+
+        for (Environment environment : environments) {
+            HiveServer2Config hs2Config = hiveServerConfigs.get(environment);
+            if (!hs2Config.isDisconnected()) {
+                // Check for legacy.  If Legacy, use dbcp2 else hikaricp.
+                if (getHmsMirrorCfgService().getHmsMirrorConfig().getCluster(environment).isLegacyHive()) {
+                    ConnectionFactory connectionFactory =
+                            new DriverManagerConnectionFactory(hs2Config.getUri(), hs2Config.getConnectionProperties());
+
+                    PoolableConnectionFactory poolableConnectionFactory =
+                            new PoolableConnectionFactory(connectionFactory, null);
+
+                    ObjectPool<PoolableConnection> connectionPool =
+                            new GenericObjectPool<>(poolableConnectionFactory);
+
+                    poolableConnectionFactory.setPool(connectionPool);
+
+                    PoolingDataSource<PoolableConnection> poolingDatasource = new PoolingDataSource<>(connectionPool);
+
+                    hs2DataSources.put(environment, poolingDatasource);
+                    Connection conn = null;
+                    try {
+                        conn = getHS2EnvironmentConnection(environment);
+                    } catch (Throwable t) {
+                        if (conn != null) {
+                            try {
+                                conn.close();
+                            } catch (SQLException e) {
+                                throw new RuntimeException(e);
+                            }
+                        } else {
+                            throw new RuntimeException(t);
+                        }
+                    }
+                } else {
+                    Driver lclDriver = getHS2EnvironmentDriver(environment);
+                    if (lclDriver != null) {
+                        try {
+                            DriverManager.registerDriver(lclDriver);
+                            try {
+                                Properties props = new Properties();
+                                if (hs2Config.getDriverClassName().equals(HiveServer2Config.APACHE_HIVE_DRIVER_CLASS_NAME)) {
+                                    // Need with Apache Hive Driver, since it doesn't support
+                                    //      Connection.isValid() api (JDBC4) and prevents Hikari-CP from attempting to call it.
+                                    props.put("connectionTestQuery", "SELECT 1");
+                                }
+                                HikariConfig config = new HikariConfig(props);
+                                config.setJdbcUrl(hs2Config.getUri());
+                                config.setDataSourceProperties(hs2Config.getConnectionProperties());
+                                HikariDataSource poolingDatasource = new HikariDataSource(config);
+
+                                hs2DataSources.put(environment, poolingDatasource);
+                            } catch (Throwable se) {
+                                log.error(se.getMessage(), se);
+                                throw new RuntimeException(se);
+                            } finally {
+                                DriverManager.deregisterDriver(lclDriver);
+                            }
+                        } catch (SQLException e) {
+                            log.error(e.getMessage(), e);
+                            throw new RuntimeException(e);
+                        }
+                    }
+
+                    Connection conn = null;
+                    try {
+                        conn = getHS2EnvironmentConnection(environment);
+                    } catch (Throwable t) {
+                        if (conn != null) {
+                            try {
+                                conn.close();
+                            } catch (SQLException e) {
+                                throw new RuntimeException(e);
+                            }
+                        } else {
+                            throw new RuntimeException(t);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    protected void initMetastoreDataSources() {
+        // Metastore Direct
+        Set<Environment> environments = metastoreDirectConfigs.keySet();
+        for (Environment environment : environments) {
+            DBStore metastoreDirectConfig = metastoreDirectConfigs.get(environment);
+
+            if (metastoreDirectConfig != null) {
+
+                HikariConfig config = new HikariConfig();
+                config.setJdbcUrl(metastoreDirectConfig.getUri());
+                config.setDataSourceProperties(metastoreDirectConfig.getConnectionProperties());
+                HikariDataSource poolingDatasource = new HikariDataSource(config);
+
+                metastoreDirectDataSources.put(environment, poolingDatasource);
+                // Test Connection.
+                Connection conn = null;
+                try {
+                    conn = getMetastoreDirectEnvironmentConnection(environment);
+                } catch (Throwable t) {
+                    if (conn != null) {
+                        try {
+                            conn.close();
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    } else {
+                        throw new RuntimeException(t);
+                    }
+                }
+            }
+        }
+    }
+
+}

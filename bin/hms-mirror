@@ -17,7 +17,14 @@
 #
 
 # Resolve Symlinks of exe
-RESOLVED_EXE_PATH=`readlink -f $0`
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # Mac OSX
+  RESOLVED_EXE_PATH=`readlink $0`
+else
+  # ...
+  RESOLVED_EXE_PATH=`readlink -f $0`
+fi
+
 # Find Dir of resolved script
 APP_DIR=$(dirname $RESOLVED_EXE_PATH)
 CURR_DIR=$(pwd)
@@ -55,17 +62,17 @@ SHOW_CP=
 CMD_DIRECTIVE=
 CMD_ARGS=
 VERBOSE=
-HADOOP_CLASSPATH=
+
+# The new default is to run using the `hadoop classpath`, which assumes that the host has Hadoop installed and
+#  we'll use the classpath from the host to include the current hadoop libraries.
+HADOOP_CLASSPATH=false
+
 APP_JAVA_OPTS=${JAVA_OPTS:-"-Xms2048m -Xmx4096m -XX:+UseG1GC"}
-LOGGING_THRESHOLD=${LOGGING_THRESHOLD:-"DEBUG"}
-APP_LOG_FILE=${APP_LOG_FILE:-"hms-mirror.log"}
+LOGGING_THRESHOLD=${LOGGING_THRESHOLD:-"INFO"}
+LOGGING_FILE_PREFIX=${LOGGING_FILE_PREFIX:-"hms-mirror"}
 
 APP_OUTPUT_DIR=${HOME}/.hms-mirror/reports
 DIR_OVERRIDE=
-
-if [[ ! -d ${AUX_LIBS_DIR} ]]; then
-  mkdir -p ${AUX_LIBS_DIR}
-fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -93,13 +100,13 @@ while [[ $# -gt 0 ]]; do
     ;;
   -o|--output-dir)
     shift
-    PRG_ARGS="${PRG_ARGS} -o \"$1\""
+    PRG_ARGS="${PRG_ARGS} -o $1"
     APP_OUTPUT_DIR=$1
     DIR_OVERRIDE="x"
     shift
     ;;
   *)
-    PRG_ARGS="${PRG_ARGS} \"$1\""
+    PRG_ARGS="${PRG_ARGS} $1"
     shift
     ;;
   esac
@@ -108,40 +115,30 @@ done
 if [[ "${DIR_OVERRIDE}x" == "x" ]]; then
   # Add Date to output dir path
   APP_OUTPUT_PATH=${APP_OUTPUT_DIR}/$(date +%y-%m-%d_%H-%M-%S)
+  # Set the application output directory.
+#  PRG_ARGS="${PRG_ARGS} -o $1"
 else
   APP_OUTPUT_PATH=${APP_OUTPUT_DIR}
 fi
 
 export APP_OUTPUT_PATH
-APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dapp.path.dir=\"$APP_OUTPUT_PATH\" -Dlogging.threshold=${LOGGING_THRESHOLD} -Dapp.log.file=\"$APP_LOG_FILE\""
+APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dlogging.dir='${APP_OUTPUT_PATH}' -Dlogging.threshold=${LOGGING_THRESHOLD} -Dlogging.filename-prefix=\"$LOGGING_FILE_PREFIX\""
 
 if [[ ! -d ${AUX_LIBS_DIR} ]]; then
   mkdir -p ${AUX_LIBS_DIR}
 fi
 
-for jarFile in $(ls -d ${AUX_LIBS_DIR}/*.jar 2>/dev/null); do
-  CMD_CP=${CMD_CP}:$jarFile
-done
+# Add aux_libs to classpath
+#EXEC_JAR=$(ls ${APP_DIR}/../lib/*-exec.jar)
+CMD_CP="\${AUX_LIBS_DIR}/*"
 
-SHADED=
-# Choose to use embedded libs (Hadoop 3+) or get Hadoop Classpath locally
-if [[ "${HADOOP_CLASSPATH}x" != "x" ]]; then
+if [[ "${HADOOP_CLASSPATH}x" == "truex" ]]; then
   echo "Picking up local Hadoop Classpath Libs."
-  SHADED=shaded-no-hadoop
-  CMD_CP=$(hadoop classpath):${CMD_CP}
-else
-  SHADED=shaded
+  CMD_CP=${CMD_CP}:$(hadoop classpath)
 fi
 
-# Choose to use embedded libs (Hadoop 3+) or get Hadoop Classpath locally
-if [[ -f $APP_DIR/../lib/hms-mirror-$SHADED.jar ]]; then
-  # Look in /usr/local/hadoop-cli/lib
-  CMD_CP=$APP_DIR/../lib/hms-mirror-$SHADED.jar:${CMD_CP}
-  #echo "Using bin from installation directory"
-else
-  echo "Couldn't locate hms-mirror Library: ${APP_DIR}/../lib/hms-mirror-${SHADED}.jar"
-  exit 1
-fi
+# Replace colon with comma in $CMD_CP
+CMD_CP=$(echo $CMD_CP | sed 's/:/,/g')
 
 CLI_CMD=""
 
@@ -161,6 +158,12 @@ echo "Using Java Version: "
 $(${JAVA} -version)
 echo ""
 
-CLI_CMD="${JAVA} -cp ${CMD_CP} ${APP_JAVA_OPTS} com.cloudera.utils.hadoop.hms.Mirror ${PRG_ARGS}"
+if [[ "${HADOOP_CLASSPATH}x" == "truex" ]]; then
+  CLI_CMD="${JAVA} -Dloader.path=${CMD_CP} ${APP_JAVA_OPTS} -Dloader.main=com.cloudera.utils.hms.Mirror -Dloader.args=\"${PRG_ARGS}\" -jar ${APP_DIR}/../lib/*-thin.jar"
+else
+  CLI_CMD="${JAVA} -Dloader.path=${CMD_CP} ${APP_JAVA_OPTS} -Dloader.main=com.cloudera.utils.hms.Mirror -Dloader.args=\"${PRG_ARGS}\" -jar ${APP_DIR}/../lib/*-standalone.jar"
+fi
+
+echo "CLI_CMD: ${CLI_CMD}"
 
 eval "${CLI_CMD}"

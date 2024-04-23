@@ -110,7 +110,7 @@
                 <transformer />
                 <transformer />
                 <transformer>
-                  <mainClass>com.cloudera.utils.hadoop.hms.Mirror</mainClass>
+                  <mainClass>com.cloudera.utils.hadoop.hms.MirrorLegacy</mainClass>
                 </transformer>
               </transformers>
             </configuration>
@@ -169,7 +169,7 @@
                 <transformer />
                 <transformer />
                 <transformer>
-                  <mainClass>com.cloudera.utils.hadoop.hms.Mirror</mainClass>
+                  <mainClass>com.cloudera.utils.hadoop.hms.MirrorLegacy</mainClass>
                 </transformer>
               </transformers>
             </configuration>

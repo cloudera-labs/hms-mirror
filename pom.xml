@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
- Copyright 2021 Cloudera, Inc. All Rights Reserved.
+ Copyright 2024 Cloudera, Inc. All Rights Reserved.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -15,79 +15,68 @@
  limitations under the License.
 -->
 
-
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>com.cloudera.utils</groupId>
+        <artifactId>hadoop.parent</artifactId>
+        <version>1.0.0.0</version>
+        <relativePath>../cloudera-utils</relativePath>
+    </parent>
+
     <groupId>com.cloudera.utils.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>1.6.5.11-SNAPSHOT</version>
-    <name>hms-mirror</name>
+    <version>2.0.0.0</version>
+    <packaging>jar</packaging>
 
+    <name>hms-mirror</name>
     <url>https://github.com/cloudera-labs/hms_mirror</url>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <!-- Maven Pluggins -->
-        <maven.compiler.version>3.11.0</maven.compiler.version>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.clean.version>3.3.1</maven.clean.version>
-        <maven.resources.version>3.3.1</maven.resources.version>
-        <maven.surefire.version>3.1.2</maven.surefire.version>
-        <maven.jar.version>3.3.0</maven.jar.version>
-        <maven.install.version>3.1.1</maven.install.version>
-        <maven.deploy.version>3.1.1</maven.deploy.version>
-        <maven.site.version>3.7.1</maven.site.version>
-        <maven.reports.version>3.0.0</maven.reports.version>
-        <maven.shade.plugin.version>3.5.0</maven.shade.plugin.version>
-        <maven.assembly.version>3.6.0</maven.assembly.version>
-
         <!-- DB Support -->
         <mariadb.client.version>2.5.3</mariadb.client.version>
-        <postgresql.client.version>42.3.3</postgresql.client.version>
+        <postgresql.client.version>42.7.2</postgresql.client.version>
         <oracle.client.version>12.1.0.2</oracle.client.version>
 
-        <!-- Support Libs -->
+        <jaxb-api.version>2.3.1</jaxb-api.version>
+
         <javax.validation.version>2.0.1.Final</javax.validation.version>
-        <jackson.version>2.13.5</jackson.version>
 
         <hikari.version>4.0.3</hikari.version>
         <commons-dbcp2.version>2.9.0</commons-dbcp2.version>
 
-        <jcabi.manifests.version>1.1</jcabi.manifests.version>
+
         <commonmark.version>0.17.1</commonmark.version>
 
-        <commons-text.version>1.10.0</commons-text.version>
-        <junit.version>4.13.1</junit.version>
-        <slf4j-reload4j.version>1.7.36</slf4j-reload4j.version>
-        <logback-classic.version>1.2.12</logback-classic.version>
+        <cdp.scope>compile</cdp.scope>
 
-        <hadoop-cli.version>2.4.3.3</hadoop-cli.version>
-        <hive-sre.version>2.5.1.4</hive-sre.version>
+        <hadoop-cli.version>3.1.0.0</hadoop-cli.version>
+        <hive-sre.version>3.0.1.4</hive-sre.version>
 
     </properties>
 
-    <repositories>
-        <repository>
-            <id>cloudera</id>
-            <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
-        </repository>
-    </repositories>
-
     <dependencies>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-reload4j</artifactId>
-            <version>${slf4j-reload4j.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <version>${springboot.version}</version>
+            <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>ch.qos.logback</groupId>-->
-<!--            <artifactId>logback-classic</artifactId>-->
-<!--            <version>${logback-classic.version}</version>-->
-<!--        </dependency>-->
+
+        <!-- https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api -->
+        <dependency>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>${jaxb-api.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.cloudera.utils.hadoop</groupId>
             <artifactId>hadoop-cli</artifactId>
@@ -98,6 +87,7 @@
             <artifactId>hive-sre</artifactId>
             <version>${hive-sre.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.commonmark</groupId>
             <artifactId>commonmark</artifactId>
@@ -112,18 +102,6 @@
             <groupId>org.commonmark</groupId>
             <artifactId>commonmark-ext-yaml-front-matter</artifactId>
             <version>${commonmark.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.jcabi</groupId>
-            <artifactId>jcabi-manifests</artifactId>
-            <version>${jcabi.manifests.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-text</artifactId>
-            <version>${commons-text.version}</version>
         </dependency>
 
         <dependency>
@@ -153,238 +131,35 @@
             <version>${postgresql.client.version}</version>
             <scope>provided</scope>
         </dependency>
-
-        <!-- Jackson JSON Libraries -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-yaml</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-
         <dependency>
             <groupId>javax.validation</groupId>
             <artifactId>validation-api</artifactId>
             <version>${javax.validation.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
-        <finalName>${project.artifactId}</finalName>
-        <pluginManagement>
-            <plugins>
-                <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
-                <plugin>
-                    <artifactId>maven-clean-plugin</artifactId>
-                    <version>${maven.clean.version}</version>
-                </plugin>
-                <!-- default lifecycle, jar packaging: see https://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_jar_packaging -->
-                <plugin>
-                    <artifactId>maven-resources-plugin</artifactId>
-                    <version>${maven.resources.version}</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>${maven.compiler.version}</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>${maven.surefire.version}</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-install-plugin</artifactId>
-                    <version>${maven.install.version}</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-deploy-plugin</artifactId>
-                    <version>${maven.deploy.version}</version>
-                </plugin>
-                <!--            site lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#site_Lifecycle-->
-                <plugin>
-                    <artifactId>maven-site-plugin</artifactId>
-                    <version>${maven.site.version}</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-project-info-reports-plugin</artifactId>
-                    <version>${maven.reports.version}</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-shade-plugin</artifactId>
-                    <version>${maven.shade.plugin.version}</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-assembly-plugin</artifactId>
-                    <version>${maven.assembly.version}</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-jar-plugin</artifactId>
-                    <version>${maven.jar.version}</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
         <plugins>
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
-                </configuration>
-            </plugin>
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
                 <configuration>
                     <archive>
                         <manifest>
+                            <addClasspath>false</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
                             <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                             <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
                             <Apache-Hadoop-Version>${hadoop.version}</Apache-Hadoop-Version>
                             <Build-Timestamp>${maven.build.timestamp}</Build-Timestamp>
+                            <HadoopCLI-Version>${hadoop-cli.version}</HadoopCLI-Version>
+                            <HadoopCLI-Title>Hadoop CLI</HadoopCLI-Title>
+                            <HMS-Mirror-Title>hms-mirror</HMS-Mirror-Title>
+                            <HMS-Mirror-Version>${project.version}</HMS-Mirror-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-shade-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>full-shaded</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <createSourcesJar>false</createSourcesJar>
-                            <finalName>${project.artifactId}-shaded</finalName>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                        <exclude>META-INF/*.INF</exclude>
-                                        <exclude>META-INF/LICENSE</exclude>
-                                        <exclude>META-INF/**/pom.xml</exclude>
-                                        <exclude>META-INF/**/pom.properties</exclude>
-                                        <!-- CVE-2021-44228 -->
-                                        <exclude>org/apache/logging/log4j/core/lookup/JndiLookup.class</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                            <transformers>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ResourceBundleAppendingTransformer"/>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.cloudera.utils.hadoop.hms.Mirror</mainClass>
-                                </transformer>
-                            </transformers>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>shaded-no-hadoop</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <createSourcesJar>false</createSourcesJar>
-                            <finalName>${project.artifactId}-shaded-no-hadoop</finalName>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <artifactSet>
-                                <includes>
-                                    <include>com.jcabi:*</include>
-                                    <include>org.sonatype.jline:jline</include>
-                                    <include>commons-io:commons-io</include>
-                                    <include>org.apache.commons:commons-lang3</include>
-                                    <include>com.fasterxml.jackson.core:*</include>
-                                    <include>com.fasterxml.jackson.dataformat:*</include>
-                                    <include>org.yaml:snakeyaml</include>
-                                    <include>com.cloudera.utils.hadoop:*</include>
-                                    <include>com.cloudera.utils.hive:*</include>
-                                    <include>org.commonmark:*</include>
-                                    <include>org.apache.commons:commons-dbcp2</include>
-                                    <include>com.zaxxer:HikariCP</include>
-                                    <include>org.apache.commons:commons-pool2</include>
-                                    <include>commons-logging:commons-logging</include>
-<!--                                    <include>org.apache.commons:*</include>-->
-                                    <include>javax.validation:validation-api</include>
-                                </includes>
-                                <excludes>
-                                    <exclude>META-INF/*.SF</exclude>
-                                    <exclude>META-INF/*.RSA</exclude>
-                                    <exclude>META-INF/*.INF</exclude>
-                                    <exclude>META-INF/LICENSE</exclude>
-                                    <exclude>META-INF/**/pom.xml</exclude>
-                                    <exclude>META-INF/**/pom.properties</exclude>
-                                    <!-- CVE-2021-44228 -->
-                                    <exclude>org/apache/logging/log4j/core/lookup/JndiLookup.class</exclude>
-                                </excludes>
-                            </artifactSet>
-                            <filters>
-                                <filter>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                        <exclude>META-INF/*.INF</exclude>
-                                        <exclude>META-INF/LICENSE</exclude>
-                                        <exclude>META-INF/**/pom.xml</exclude>
-                                        <exclude>META-INF/**/pom.properties</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                            <transformers>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ResourceBundleAppendingTransformer"/>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.cloudera.utils.hadoop.hms.Mirror</mainClass>
-                                </transformer>
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <descriptors>
-                        <descriptor>src/main/assembly/assembly.xml</descriptor>
-                    </descriptors>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        <!-- this is used for inheritance merges -->
-                        <phase>package</phase>
-                        <!-- bind to the packaging phase -->
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
