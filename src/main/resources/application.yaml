@@ -12,5 +12,6 @@ hms-mirror:
   config-filename: ${HOME}/.hms-mirror/cfg/default.yaml
   config:
     output-dir: "false"
+    setup: "false"
   conversion:
     test-filename: "false"

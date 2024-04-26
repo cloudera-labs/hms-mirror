@@ -45,6 +45,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 
+import static com.cloudera.utils.hms.mirror.MessageCode.MISC_ERROR;
+
 /*
 Using the config, go through the databases and tables and collect the current states.
 
@@ -106,6 +108,7 @@ public class HmsMirrorAppCfg {
 
             if (!config.isValidated()) {
                 log.error("Configuration is not valid.  Exiting.");
+                wrapup();
                 return;
             }
             log.info("Setting 'running' to TRUE");
@@ -139,13 +142,17 @@ public class HmsMirrorAppCfg {
                     }
                 } catch (SQLException se) {
                     // Issue
-                    log.error("Issue getting databases for dbRegEx");
+                    log.error("Issue getting databases for dbRegEx", se);
+                    config.addError(MISC_ERROR, "LEFT:Issue getting databases for dbRegEx");
+                    wrapup();
+                    return;
                 } finally {
                     if (conn != null) {
                         try {
                             conn.close();
                         } catch (SQLException e) {
-                            throw new RuntimeException(e);
+                            log.error("Issue closing connection for LEFT", e);
+                            config.addError(MISC_ERROR, "LEFT:Issue closing connection.");
                         }
                     }
                 }
@@ -171,13 +178,17 @@ public class HmsMirrorAppCfg {
                     }
                 } catch (SQLException se) {
                     // Issue
-                    log.error("Issue getting LEFT database connection");
+                    log.error("Issue getting LEFT database connection", se);
+                    config.addError(MISC_ERROR, "LEFT:Issue getting database connection");
+                    wrapup();
+                    return;
                 } finally {
                     if (conn != null) {
                         try {
                             conn.close();
                         } catch (SQLException e) {
-                            throw new RuntimeException(e);
+                            log.error("Issue closing LEFT database connection", e);
+                            config.addError(MISC_ERROR, "LEFT:Issue closing database connection");
                         }
                     }
                 }
@@ -196,20 +207,27 @@ public class HmsMirrorAppCfg {
                     }
                 } catch (SQLException se) {
                     // Issue
-                    log.error("Issue getting RIGHT databases connection");
+                    log.error("Issue getting RIGHT databases connection", se);
+                    config.addError(MISC_ERROR, "RIGHT:Issue getting database connection");
+                    wrapup();
+                    return;
                 } finally {
                     if (conn != null) {
                         try {
                             conn.close();
                         } catch (SQLException e) {
-                            throw new RuntimeException(e);
+                            log.error("Issue closing RIGHT databases connection", e);
+                            config.addError(MISC_ERROR, "RIGHT:Issue closing database connection");
                         }
                     }
                 }
             }
 
             if (config.getDatabases() == null || config.getDatabases().length == 0) {
-                throw new RuntimeException("No databases specified OR found if you used dbRegEx");
+                log.error("No databases specified OR found if you used dbRegEx");
+                config.addError(MISC_ERROR, "No databases specified OR found if you used dbRegEx");
+                wrapup();
+                return;
             }
 
             List<Future<ReturnStatus>> gtf = new ArrayList<>();
@@ -231,7 +249,10 @@ public class HmsMirrorAppCfg {
                             rtn = Boolean.FALSE;
                         }
                     } catch (SQLException se) {
-                        throw new RuntimeException(se);
+                        log.error("Issue getting databases", se);
+                        config.addError(MISC_ERROR, "Issue getting databases");
+                        wrapup();
+                        return;
                     }
 
                     // Build out the table in a database.
@@ -268,14 +289,15 @@ public class HmsMirrorAppCfg {
                 // Failure, report and exit with FALSE
                 if (!rtn) {
                     getProgression().getErrors().set(MessageCode.COLLECTING_TABLES);
-                    rtn = Boolean.FALSE;
+                    wrapup();
+                    return; //rtn = Boolean.FALSE;
                 }
             }
 
             if (!getDatabaseService().createDatabases()) {
                 getProgression().getErrors().set(MessageCode.DATABASE_CREATION);
-                rtn = Boolean.FALSE;
-
+                wrapup();
+                return; //rtn = Boolean.FALSE;
             }
             // Create the databases we'll need on the LEFT and RIGHT
 //        Callable<ReturnStatus> createDatabases = new CreateDatabases(conversion);
@@ -313,10 +335,7 @@ public class HmsMirrorAppCfg {
 //        }
 
             // Shortcut.  Only DB's.
-            if (!config.isDatabaseOnly()
-//                && !getConfig().isLoadingTestData()
-            ) {
-
+            if (!config.isDatabaseOnly()) {
                 // ========================================
                 // Get the table METADATA for the tables collected in the databases.
                 // ========================================
@@ -421,25 +440,31 @@ public class HmsMirrorAppCfg {
                     if (check)
                         break;
                 }
-
-                log.info("Wrapping up the Application Workflow");
-                log.info("Setting 'running' to FALSE");
-                getHmsMirrorCfgService().getRunning().set(Boolean.FALSE);
-
-                // Give the underlying threads a chance to finish.
-                Thread.sleep(200);
-                log.info("Writing out report(s)");
-                getCliReportWriter().writeReport();
-                getCliReporter().refresh(Boolean.TRUE);
-                log.info("==============================");
-                log.info(conversion.toString());
-                log.info("==============================");
-                Date endTime = new Date();
-                DecimalFormat df = new DecimalFormat("#.###");
-                df.setRoundingMode(RoundingMode.CEILING);
-//                log.info("GATHERING METADATA: Completed in " + df.format((Double) ((endTime.getTime() - startTime.getTime()) / (double) 1000)) + " secs");
+                wrapup();
             }
         };
+    }
+
+    protected void wrapup () {
+        log.info("Wrapping up the Application Workflow");
+        log.info("Setting 'running' to FALSE");
+        getHmsMirrorCfgService().getRunning().set(Boolean.FALSE);
+
+        // Give the underlying threads a chance to finish.
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        log.info("Writing out report(s)");
+        getCliReportWriter().writeReport();
+        getCliReporter().refresh(Boolean.TRUE);
+        log.info("==============================");
+        log.info(conversion.toString());
+        log.info("==============================");
+        Date endTime = new Date();
+        DecimalFormat df = new DecimalFormat("#.###");
+        df.setRoundingMode(RoundingMode.CEILING);
     }
 
     @Autowired

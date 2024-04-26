@@ -27,7 +27,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.*;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -753,27 +752,28 @@ public class HmsMirrorCommandLineOptions {
     @Bean
     @Order(1)
     @ConditionalOnProperty(
-            name = "hms-mirror.config.setup")
-    CommandLineRunner configSetup(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.setup}") String value) {
+            name = "hms-mirror.config.setup",
+            havingValue = "true")
+    CommandLineRunner configSetup(@Value("${hms-mirror.config.setup}") String value) {
         return args -> {
             log.info("setup: {}", value);
-            throw new NotImplementedException("Setup is not implemented yet.");
-            // TODO: Implement Setup
-//            configFile = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/cfg/default.yaml";
-//            File defaultCfg = new File(configFile);
-//            if (defaultCfg.exists()) {
-//                Scanner scanner = new Scanner(System.in);
-//                System.out.print("Default Config exists.  Proceed with overwrite:(Y/N) ");
-//                String response = scanner.next();
-//                if (response.equalsIgnoreCase("y")) {
-//                    Config.setup(configFile);
-//                    System.exit(0);
-//                }
-//            } else {
-//                Config.setup(configFile);
-//                System.exit(0);
-//            }
-
+            if (Boolean.parseBoolean(value)) {
+//            throw new NotImplementedException("Setup is not implemented yet.");
+                String configFile = System.getProperty("user.home") + System.getProperty("file.separator") + ".hms-mirror/cfg/default.yaml";
+                File defaultCfg = new File(configFile);
+                if (defaultCfg.exists()) {
+                    Scanner scanner = new Scanner(System.in);
+                    System.out.print("Default Config exists.  Proceed with overwrite:(Y/N) ");
+                    String response = scanner.next();
+                    if (response.equalsIgnoreCase("y")) {
+                        HmsMirrorConfig.setup(configFile);
+                        System.exit(0);
+                    }
+                } else {
+                    HmsMirrorConfig.setup(configFile);
+                    System.exit(0);
+                }
+            }
         };
     }
 
