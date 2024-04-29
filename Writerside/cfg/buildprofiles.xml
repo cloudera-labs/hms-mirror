@@ -22,7 +22,7 @@
     <variables></variables>
     <build-profile instance="hms-mirror">
         <variables>
-            <noindex-content>false</noindex-content>
+            <noindex-content>true</noindex-content>
         </variables>
     </build-profile>
 
