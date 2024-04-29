@@ -3,7 +3,7 @@
 ## V2 Docs (Latest)
 [Tech Preview Docs v2](https://dstreev.github.io/hms-mirror)
 
-[Single Page]()
+[Single Page](https://dstreev.github.io/single_html/pdfSourceHMS-MIRROR.html)
 
 ## Legacy V1 Docs
 
