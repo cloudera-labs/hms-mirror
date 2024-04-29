@@ -26,6 +26,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -85,8 +86,23 @@ class HmsMirrorConfigInit {
 
     @Bean
     @Order(1)
+    @ConditionalOnProperty(
+            name = "hms-mirror.config.setup",
+            havingValue = "false")
     public HmsMirrorConfig loadConfig(Progression progression, @Value("${hms-mirror.config-filename}") String configFilename) {
         return initializeConfig(progression, configFilename);
+    }
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
+            name = "hms-mirror.config.setup",
+            havingValue = "true")
+    /*
+    Init empty for framework to fill in.
+     */
+    public HmsMirrorConfig loadSetupConfig() {
+        return new HmsMirrorConfig();
     }
 
 }

@@ -98,6 +98,22 @@ public class CliReporter {
             report.append("\n");
             report.append(ReportingConf.substituteAllVariables(reportTemplateOutput, varMap));
             log.info(report.toString());
+
+            Progression progression = hmsMirrorCfgService.getHmsMirrorConfig().getProgression();
+
+            if (progression.getErrors().getMessages().length > 0) {
+                report.append("\n=== Errors ===\n");
+                for (String message : progression.getErrors().getMessages()) {
+                    report.append("\t").append(message).append("\n");
+                }
+            }
+
+            if (progression.getWarnings().getMessages().length > 0) {
+                report.append("\n=== Warnings ===\n");
+                for (String message : progression.getWarnings().getMessages()) {
+                    report.append("\t").append(message).append("\n");
+                }
+            }
         }
 
         System.out.print(report);

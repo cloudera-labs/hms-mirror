@@ -18,9 +18,9 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 
 ### Transfer DATA, beyond the METADATA
 
-HMS-Mirror does NOT migrate data between clusters unless you're using the [SQL](hms-mirror-sql.md) and [EXPORT_IMPORT](hms-mirror-export-import.md) data strategies.  In some cases where data is co-located, you don't need to move it.  IE: Cloud to Cloud.  As long as the new cluster environment has access to the original location.  This is the intended target for strategies [COMMON](hms-mirror-common.md) and to some extend [LINKED](hms-mirror-linked.md).
+HMS-Mirror does NOT migrate data between clusters unless you're using the [SQL](hms-mirror-sql.md) or [EXPORT_IMPORT](hms-mirror-export-import.md) data strategies.  In some cases where data is co-located, you don't need to move it.  IE: Cloud to Cloud.  As long as the new cluster environment has access to the original location.  This is the intended target for strategies [COMMON](hms-mirror-common.md) and to some extend [LINKED](hms-mirror-linked.md).
 
-When you do need to move data, `hms-mirror` create a workbook of 'source' and 'target' locations in an output file called `distcp_workbook.md`.  Use this to help build a transfer job in `distcp` using the `-f` option to specify multiple sources.  This construct is still a work in progress, so feedback is welcome [Email - David Streever](mailto:dstreever@cloudera.com).
+When you do need to move data, `hms-mirror` creates a workbook of 'source' and 'target' locations in an output file called `distcp_workbook.md`.  Use this to help build a transfer job in `distcp` using the `-f` option to specify multiple sources. 
 
 ### Application Return Codes
 

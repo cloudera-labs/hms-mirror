@@ -23,6 +23,7 @@ import java.util.List;
 
 public enum MessageCode {
     // ERRORS
+    MISC_ERROR(1, "Check log for details. Miscellaneous Error: {0}"),
     ACID_NOT_TOP_LEVEL_STRATEGY(2, "The `ACID` strategy is not a valid `hms-mirror` top level strategy.  Use 'HYBRID' or 'SQL' " +
             "along with the `-ma|-mao` option to address ACID tables."),
     COMMON_STORAGE_WITH_LINKED(3, "Common Storage (-cs) is not a valid option for the LINKED data strategy."),
@@ -43,8 +44,8 @@ public enum MessageCode {
     RO_DB_DOESNT_EXIST(16, "Database directory: ** {0} ** on the RIGHT cluster does NOT exist.\n" +
             "In read-only mode, it must exist before creating the database to ensure we " +
             "don`t corrupt the Filesystems `Read-Only` State.\n" +
-            "\t\tErrCode: {1}\n" +
-            "\t\tHDFS Command: {2}\n" +
+            "> ErrCode: {1}\n" +
+            "> HCFS Command: {2}\n" +
             "WARNING: If you have created the Database on the RIGHT cluster already, " +
             "it is possible that the DB property LOCATION (external warehouse) does " +
             "NOT match to DB location on the LEFT.  They MUST match to process `--read-only`.\n" +

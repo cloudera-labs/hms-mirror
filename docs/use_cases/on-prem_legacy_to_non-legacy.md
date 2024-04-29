@@ -79,7 +79,7 @@ This will use the RIGHT cluster configuration for the schema DUMP of `tpcds_bin_
 
 ## Data Migration for Non-ACID tables using `SQL`
 
-This approach assumes the clusters are [linked](../README.md#linked).  The SQL data strategy uses the RIGHT's clusters view into the HDFS filesystem of the LEFT cluster to facilitate data movement.
+This approach assumes the clusters are [linked](../docs/README.md#linked).  The SQL data strategy uses the RIGHT's clusters view into the HDFS filesystem of the LEFT cluster to facilitate data movement.
 
 ### Command
 
@@ -87,7 +87,7 @@ This approach assumes the clusters are [linked](../README.md#linked).  The SQL d
 
 ## Data Migration for ACID tables using `SQL` or `HYBRID`
 
-This approach assumes the clusters are [linked](../README.md#linked).  The SQL data strategy uses the RIGHT's clusters view into the HDFS filesystem of the LEFT cluster to facilitate data movement.
+This approach assumes the clusters are [linked](../docs/README.md#linked).  The SQL data strategy uses the RIGHT's clusters view into the HDFS filesystem of the LEFT cluster to facilitate data movement.
 
 ### Command
 
@@ -117,7 +117,7 @@ View migration requires the underlying referenced tables exist BEFORE the 'view'
 
 This is a helpful scenario for 'testing' workflows on the RIGHT cluster.  The tables on the right cluster will NOT be configured with 'PURGE' to avoid the deletion of data on the LEFT cluster.  These tables should be considered READ-ONLY.  Test this against a sample dataset to THOROUGHLY understand the relationships here.  This is NOT intended for 'production' use and should be used only as a validation mechanism for the RIGHT cluster.
 
-The clusters must be [linked](../README.md#linked).  Only legacy managed tables, external tables, and views can be linked.  ACID tables can NOT be linked.
+The clusters must be [linked](../docs/README.md#linked).  Only legacy managed tables, external tables, and views can be linked.  ACID tables can NOT be linked.
 
 ### Command
 
@@ -129,7 +129,7 @@ WARNING:  If the LOCATION element is specified in the database definition AND yo
 
 ## Migrate SCHEMA's and Data using `SQL`
 
-The clusters must be [linked](../README.md#linked).  In this scenario, we'll use the connected clusters and SQL to migrate data from the LEFT cluster to the RIGHT.
+The clusters must be [linked](../docs/README.md#linked).  In this scenario, we'll use the connected clusters and SQL to migrate data from the LEFT cluster to the RIGHT.
 
 There are limits regarding partitioned tables.  For SQL migrations, the default is 500.  Meaning that tables with more than 500 partitions will NOT attempt this transfer.  This can be changed in the 'config' file by adding/changing `hybrid->sqlPartitionLimit`.  This was put in place as a general safeguard against attempts at tables with a partition count that may fail.  It doesn't mean they'll always fail, it's just a place holder.
 
@@ -149,7 +149,7 @@ EXPORT/IMPORT is a basic Hive process used to package table schemas and data int
 
 There are performance implications to using EXPORT_IMPORT with partitioned tables.  The IMPORT process is quite slow at loading partitions.  We've defined limits in the config (which can be changed) `hybrid->exportImportPartitionLimit`.  The default is 100.  If the number of partitions exceeds this value, we will NOT attempt the transfer and will note this in the output report.
 
-The clusters must be [linked](../README.md#linked).  The before mentioned prefix directory on the LEFT cluster is accessed by the IMPORT process that runs on the RIGHT cluster.  If the namespace (and permissions) aren't correct, the IMPORT process will fail.
+The clusters must be [linked](../docs/README.md#linked).  The before mentioned prefix directory on the LEFT cluster is accessed by the IMPORT process that runs on the RIGHT cluster.  If the namespace (and permissions) aren't correct, the IMPORT process will fail.
 
 ### Command
 
@@ -163,7 +163,7 @@ EXPORT_IMPORT will NOT work for ACIDv1 -> ACIDv2 (Hive 1/2 to 3) conversions.  U
 
 The `HYBRID` data strategy is a combination of the `SQL` and `EXPORT_IMPORT` data strategies.  It uses basic rules to choose the more appropriate method for the table in question.
 
-The clusters must be [linked](../README.md#linked).
+The clusters must be [linked](../docs/README.md#linked).
 
 The process will first consider using `EXPORT_IMPORT` unless:
 - The table is ACIDv1 and you're migrating to ACIDv2 (Legacy to Non-Legacy Clusters)

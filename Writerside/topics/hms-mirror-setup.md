@@ -6,18 +6,18 @@
 
 ## Binary Package
 
-[Download the latest version of `hms-mirror-dist.tar.gz`](https://github.com/cloudera-labs/hms-mirror/releases)
+[Download the latest version of `hms-mirror-<version>-dist.tar.gz`](https://github.com/cloudera-labs/hms-mirror/releases)
 
 ## HMS-Mirror Setup from Binary Distribution
 
 On the edgenode:
-- Remove previous install directory `rm -rf hms-mirror-install`
+- Remove previous install directory `rm -rf hms-mirror-install-<version>`
   - If you don't remove the previous install directory, the default `tar` behaviour will NOT overwrite the existing directory, hence you won't get the new version.
-- Expand the tarball `tar zxvf hms-mirror-dist.tar.gz`.
-  > This produces a child `hms-mirror-install` directory.
+- Expand the tarball `tar zxvf hms-mirror-<version>-dist.tar.gz`.
+  > This produces a child `hms-mirror-install-<version>` directory.
 - Two options for installation:
-    - As the root user (or `sudo`), run `hms-mirror-install/setup.sh`. This will install the `hms-mirror` packages in `/usr/local/hms-mirror` and create symlinks for the executables in `/usr/local/bin`.  At this point, `hms-mirror` should be available to all user and in the default path.
-    - As the local user, run `hms-mirror-install/setup.sh`.  This will install the `hms-mirror` packages in `$HOME/.hms-mirror` and create symlink in `$HOME/bin`.  Ensure `$HOME/bin` is in the users path and run `hms-mirror`.
+    - As the root user (or `sudo`), run `hms-mirror-install-<version>/setup.sh`. This will install the `hms-mirror` packages in `/usr/local/hms-mirror` and create symlinks for the executables in `/usr/local/bin`.  At this point, `hms-mirror` should be available to all user and in the default path.
+    - As the local user, run `hms-mirror-install-<version>/setup.sh`.  This will install the `hms-mirror` packages in `$HOME/.hms-mirror` and create symlink in `$HOME/bin`.  Ensure `$HOME/bin` is in the users path and run `hms-mirror`.
 
 *DO NOT RUN `hms-mirror` from the installation directory.*
 
@@ -27,8 +27,8 @@ If you install both options, your environment PATH will determine which one is r
 
 `hms-mirror` requires a configuration file describing the LEFT (source) and RIGHT (target) cluster connections.  There are two ways to create the config:
 
-- `hms-mirror --setup` - Prompts a series of questions about the LEFT and RIGHT clusters to build the default configuration file.
 - Use the [default config template](hms-mirror-Default-Configuration-Template.md)) as a starting point.  Edit and place a copy here `$HOME/.hms-mirror/cfg/default.yaml`.
+- `hms-mirror --setup` - Prompts a series of questions about the LEFT and RIGHT clusters to build the default configuration file.
 
 If either or both clusters are Kerberized, please review the detailed configuration guidance [here](hms-mirror-running.md#running-against-a-legacy-non-cdp-kerberized-hiveserver2) and [here](hms-mirror-running.md#kerberized-connections).
 

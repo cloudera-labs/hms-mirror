@@ -50,8 +50,9 @@ public class DatabaseService {
     private HmsMirrorCfgService hmsMirrorCfgService;
     private Conversion conversion;
 
-    public void buildDBStatements(DBMirror dbMirror) {
+    public boolean buildDBStatements(DBMirror dbMirror) {
 //        Config config = Context.getInstance().getConfig();
+        boolean rtn = Boolean.TRUE; // assume all good till we find otherwise.
         HmsMirrorConfig hmsMirrorConfig = hmsMirrorCfgService.getHmsMirrorConfig();
         // Start with the LEFT definition.
         Map<String, String> dbDefLeft = dbMirror.getDBDefinition(Environment.LEFT);
@@ -218,7 +219,6 @@ public class DatabaseService {
                                                 // Could get property.
                                                 throw new RuntimeException("Could not determine DB Location for: " + database);
                                             }
-
                                         } catch (SQLException throwables) {
                                             log.error("Issue", throwables);
                                             throw new RuntimeException(throwables);
@@ -253,9 +253,10 @@ public class DatabaseService {
                                             if (testCr.isError()) {
                                                 // Doesn't exist.  So we can't create the DB in a "read-only" mode.
                                                 hmsMirrorConfig.addError(RO_DB_DOESNT_EXIST, dbLocation,
-                                                        testCr, testCr.getCommand(), dbMirror.getName());
+                                                        testCr.getError(), testCr.getCommand(), dbMirror.getName());
                                                 dbMirror.addIssue(Environment.RIGHT, hmsMirrorConfig.getProgression().getErrorMessage(RO_DB_DOESNT_EXIST));
-                                                throw new RuntimeException(hmsMirrorConfig.getProgression().getErrorMessage(RO_DB_DOESNT_EXIST));
+                                                rtn = Boolean.FALSE;
+//                                                throw new RuntimeException(hmsMirrorConfig.getProgression().getErrorMessage(RO_DB_DOESNT_EXIST));
                                             }
                                         } catch (DisabledException e) {
                                             log.warn("Unable to test location {} because the CLI Interface is disabled.", dbLocation);
@@ -391,6 +392,7 @@ public class DatabaseService {
             String dropDb = MessageFormat.format(MirrorConf.DROP_DB, database);
             dbMirror.getSql(Environment.RIGHT).add(new Pair(MirrorConf.DROP_DB_DESC, dropDb));
         }
+        return rtn;
     }
 
     public boolean createDatabases() {
@@ -398,15 +400,16 @@ public class DatabaseService {
         HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
         for (String database : hmsMirrorConfig.getDatabases()) {
             DBMirror dbMirror = getConversion().getDatabase(database);
-            buildDBStatements(dbMirror);
+            rtn = buildDBStatements(dbMirror);
 
-            if (!runDatabaseSql(dbMirror, Environment.LEFT)) {
-                rtn = false;
+            if (rtn) {
+                if (!runDatabaseSql(dbMirror, Environment.LEFT)) {
+                    rtn = false;
+                }
+                if (!runDatabaseSql(dbMirror, Environment.RIGHT)) {
+                    rtn = false;
+                }
             }
-            if (!runDatabaseSql(dbMirror, Environment.RIGHT)) {
-                rtn = false;
-            }
-
         }
         return rtn;
     }

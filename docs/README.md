@@ -2,7 +2,7 @@
 
 [Tech Preview Docs v2](https://dstreev.github.io/hms-mirror)
 
-"hms-mirror" is a utility used to bridge the gap between two clusters and migrate `hive` _metadata_.  HMS-Mirror is distributed under the [APLv2](./LICENSE) license.
+"hms-mirror" is a utility used to bridge the gap between two clusters and migrate `hive` _metadata_.  HMS-Mirror is distributed under the [APLv2](../LICENSE) license.
 
 The application will migrate hive metastore data (metadata) between two clusters.  With [SQL](#sql) and [EXPORT_IMPORT](#export_import) data strategies, we can move data between the two clusters.  While this process functions on smaller datasets, it isn't too efficient for larger datasets.
 
@@ -120,11 +120,11 @@ The output reports are written in [Markdown](https://www.markdownguide.org/).  I
 
 ## Quick Start Scenarios
 
-- [On-prem Sidecar Migrations](./use_cases/on-prem_legacy_to_non-legacy.md)
+- [On-prem Sidecar Migrations](../use_cases/on-prem_legacy_to_non-legacy.md)
 
-- [Hybrid Migrations](./use_cases/hybrid.md)
+- [Hybrid Migrations](../use_cases/hybrid.md)
 
-- [Cloud to Cloud DR with Datahub](./use_cases/cloud_to_cloud_dr.md)
+- [Cloud to Cloud DR with Datahub](../use_cases/cloud_to_cloud_dr.md)
 
 ## WARNING
 
@@ -230,7 +230,7 @@ Under certain conditions, `hms-mirror` will 'move' data too.  Using the data str
 
 ### Iceberg Table Migration via Hive
 
-See [Iceberg Migration](../strategy_docs/iceberg_migration.md) for details.
+See [Iceberg Migration](strategy_docs/iceberg_migration.md) for details.
 
 ### File System Stats
 
@@ -613,7 +613,7 @@ database level for better control.
 ### Binary Package
 
 #### Don't Build. Download the LATEST binary here!!!
-[![Download the LATEST Binary](./images/download.png)](https://github.com/cloudera-labs/hms-mirror/releases)
+[![Download the LATEST Binary](images/download.png)](https://github.com/cloudera-labs/hms-mirror/releases)
 
 ### HMS-Mirror Setup from Binary Distribution
 
@@ -634,7 +634,7 @@ If you install both options, your environment PATH will determine which one is r
 `hms-mirror` requires a configuration file describing the LEFT (source) and RIGHT (target) cluster connections.  There are two ways to create the config:
 
 - `hms-mirror --setup` - Prompts a series of questions about the LEFT and RIGHT clusters to build the default configuration file.
-- Use the [default config template](configs/default.template.yaml) as a starting point.  Edit and place a copy here `$HOME/.hms-mirror/cfg/default.yaml`.
+- Use the [default config template](../configs/default.template.yaml) as a starting point.  Edit and place a copy here `$HOME/.hms-mirror/cfg/default.yaml`.
 
 If either or both clusters are Kerberized, please review the detailed configuration guidance [here](#running-against-a-legacy-non-cdp-kerberized-hiveserver2) and [here](#kerberized-connections).
 
@@ -679,13 +679,13 @@ Take snapshots of areas you'll touch:
 The migration of schemas can put a heavy load on HS2 and the HMS server it's using.  That impact can manifest itself as 'pauses' for other clients trying to run queries. Extended schema/discovery operations have a 'blocking' tendency in HS2.
 
 To prevent average user operational impact, I suggest establishing an isolated HMS and HS2 environment for the migration process.
-![Isolate Migration Service Endpoints](./images/isolation.png)
+![Isolate Migration Service Endpoints](images/isolation.png)
 
 ### Speed up CREATE/ALTER Table Statements - with existing data
 
 Set `ranger.plugin.hive.urlauth.filesystem.schemes=file` in the Hive Server 2(hive_on_tez) Ranger Plugin Safety Value, via Cloudera Manager.
 
-![Safety Value](./images/hs2_ranger_schemas.png)
+![Safety Value](images/hs2_ranger_schemas.png)
 
 Add this to the HS2 instance on the RIGHT cluster when Ranger is used for Auth.
 This skips the check done against every directory at the table location (for CREATE or ALTER LOCATION). It is allowing the process of CREATE/ALTER to run much faster.
@@ -905,7 +905,7 @@ There are two ways to get started:
   - Username and Password for non-kerberized connections.
     - Note: `hms-mirror` will only support one kerberos connection.  For the other, use another AUTH method.
   - The hcfs (Hadoop Compatible FileSystem) protocol and prefix used for the hive table locations in EACH cluster.
-- Use the [template yaml](./configs/default.template.yaml) for reference and create a `default.yaml` in the running users `$HOME/.hms-mirror/cfg` directory.
+- Use the [template yaml](../configs/default.template.yaml) for reference and create a `default.yaml` in the running users `$HOME/.hms-mirror/cfg` directory.
 
 You'll need JDBC driver jar files that are **specific* to the clusters you'll integrate.  If the **LEFT** cluster isn't the same version as the **RIGHT** cluster, don't use the same JDBC jar file, especially when integrating Hive 1 and Hive 3 services.  The Hive 3 driver is NOT backwardly compatible with Hive 1.
 
@@ -1674,13 +1674,13 @@ When the option `-ma` (migrate acid) is specified, the ACID schema's will be mig
 
 With the DUMP strategy, you'll have a 'translated' (for legacy hive) table DDL that can be run on the new cluster independently.
 
-[Sample Reports - SCHEMA_ONLY](./sample_reports/schema_only)
+[Sample Reports - SCHEMA_ONLY](sample_reports/schema_only)
 
-[Sample Reports - DUMP](./sample_reports/dump)
+[Sample Reports - DUMP](sample_reports/dump)
 
-![schema_only](./images/schema_only.png)
+![schema_only](images/schema_only.png)
 
-![schema_only_cloud](./images/schema_only_cloud.png)
+![schema_only_cloud](images/schema_only_cloud.png)
 
 ### LINKED
 
@@ -1690,9 +1690,9 @@ This provides a means to test hive on the RIGHT cluster using the LEFT cluster's
 
 The `-ma` (migrate acid) tables option is NOT valid in this scenario and will result in an error if specified.
 
-[Sample Reports - LINKED](./sample_reports/linked)
+[Sample Reports - LINKED](sample_reports/linked)
 
-![linked](./images/linked.png)
+![linked](images/linked.png)
 
 WARNING:  If the LOCATION element is specified in the database definition AND you use `DROP DATABASE ... CASCADE` from the RIGHT cluster, YOU WILL DROP THE DATA ON THE LEFT CLUSTER even though the tables are NOT purgeable.  This is the DEFAULT behavior of hive 'DROP DATABASE'.  So BE CAREFUL!!!!
 
@@ -1712,11 +1712,11 @@ AVRO table locations and SCHEMA location and definitions will be changed and cop
 
 We'll use SQL to migrate the data from one cluster to another.  The default behavior requires the clusters to be [linked](#linking-clusters-storage-layers).
 
-![sql](./images/sql_exp-imp.png)
+![sql](images/sql_exp-imp.png)
 
 If the `-is <intermediate-storage-path>` is used with this option, we will migrate data to this location and use it as a transfer point between the two clusters.  Each cluster will require access (some configuration adjustment may be required) to the location.  In this scenario, the clusters do NOT need to be linked.
 
-![intermediate](./images/intermediate.png)
+![intermediate](images/intermediate.png)
 
 ### Export Import
 
@@ -1726,11 +1726,11 @@ EXPORT to a location on the LEFT cluster where the RIGHT cluster can pick it up 
 
 When `-ma` (migrate acid) tables are specified, and the LEFT and RIGHT cluster DON'T share the same 'legacy' setting, we will NOT be able to use the EXPORT_IMPORT process due to incompatibilities between the Hive versions.  We will still attempt to migrate the table definition and data by copying the data to an EXTERNAL table on the lower cluster and expose this as the source for an INSERT INTO the ACID table on the RIGHT cluster.
 
-![export_import](./images/sql_exp-imp.png)
+![export_import](images/sql_exp-imp.png)
 
 If the `-is <intermediate-storage-path>` is used with this option, we will migrate data to this location and use it as a transfer point between the two clusters.  Each cluster will require access (some configuration adjustment may be required) to the location.  In this scenario, the clusters do NOT need to be linked.
 
-![intermediate](./images/intermediate.png)
+![intermediate](images/intermediate.png)
 
 ### Hybrid
 
@@ -1741,9 +1741,9 @@ The `-ma|-mao` option is valid here and will use an internal `ACID` strategy for
 
 Note: There are limits to the number of partitions `hms-mirror` will attempt.  See: [Partition Handling for Data Transfers](#partition-handling-for-data-transfers)
 
-[Sample Reports - HYBRID](./sample_reports/hybrid)
+[Sample Reports - HYBRID](sample_reports/hybrid)
 
-![hybrid](./images/sql_exp-imp.png)
+![hybrid](images/sql_exp-imp.png)
 
 ### Common
 
@@ -1751,17 +1751,17 @@ The data storage is shared between the two clusters, and no data migration is re
 
 Schemas are transferred using the same location.
 
-[Sample Reports - COMMON](./sample_reports/common)
+[Sample Reports - COMMON](sample_reports/common)
 
-![common](./images/common.png)
+![common](images/common.png)
 
 ### Storage Migration
 
-See [Storage Migration](./strategy_docs/storage_migration.md)
+See [Storage Migration](strategy_docs/storage_migration.md)
 
 ### ICEBERG Migration
 
-See [Iceberg Migration](./strategy_docs/iceberg_migration.md)
+See [Iceberg Migration](strategy_docs/iceberg_migration.md)
 
 ## Troubleshooting / Issues
 
@@ -1868,7 +1868,7 @@ In CDP Base/PVC versions < 7.1.6 have not set the housekeeping thread that runs 
 
 In the Hive metastore configuration in Cloudera Manager, set `metastore.housekeeping.threads.on=true` in the _Hive Service Advanced Configuration Snippet (Safety Valve) for hive-site.xml_
 
-![pic](./images/hms_housekeeping_thread.png)
+![pic](images/hms_housekeeping_thread.png)
 
 ### Hive SQL Exception / HDFS Permissions Issues
 
