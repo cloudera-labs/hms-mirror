@@ -15,7 +15,11 @@
     </toc-element>
     <toc-element topic="hms-mirror-setup.md"/>
     <toc-element topic="hms-mirror-cfg.md">
+        <toc-element topic="JDBC-Drivers-and-Configuration.md">
+            <toc-element topic="Example-URL-s.md"/>
+        </toc-element>
         <toc-element topic="hms-mirror-Default-Configuration-Template.md"/>
+        <toc-element topic="Password-Security.md"/>
     </toc-element>
     <toc-element topic="hms-mirror-running.md">
         <toc-element topic="cli-options.md"/>
@@ -23,6 +27,7 @@
         <toc-element topic="hms-mirror-optimizations.md"/>
         <toc-element topic="hms-mirror-tips.md"/>
     </toc-element>
+    <toc-element topic="Hive-Conversions.md"/>
     <toc-element topic="hms-mirror-features.md"/>
     <toc-element topic="Strategies.md">
         <toc-element topic="hms-mirror-schema-only.md"/>

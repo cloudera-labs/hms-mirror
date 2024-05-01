@@ -99,25 +99,48 @@ public class CliReporter {
             report.append(ReportingConf.substituteAllVariables(reportTemplateOutput, varMap));
             log.info(report.toString());
 
-            Progression progression = hmsMirrorCfgService.getHmsMirrorConfig().getProgression();
+            report.append(getMessages());
 
-            if (progression.getErrors().getMessages().length > 0) {
-                report.append("\n=== Errors ===\n");
-                for (String message : progression.getErrors().getMessages()) {
-                    report.append("\t").append(message).append("\n");
-                }
-            }
-
-            if (progression.getWarnings().getMessages().length > 0) {
-                report.append("\n=== Warnings ===\n");
-                for (String message : progression.getWarnings().getMessages()) {
-                    report.append("\t").append(message).append("\n");
-                }
-            }
+//            Progression progression = hmsMirrorCfgService.getHmsMirrorConfig().getProgression();
+//
+//            if (progression.getErrors().getMessages().length > 0) {
+//                report.append("\n=== Errors ===\n");
+//                for (String message : progression.getErrors().getMessages()) {
+//                    report.append("\t").append(message).append("\n");
+//                }
+//            }
+//
+//            if (progression.getWarnings().getMessages().length > 0) {
+//                report.append("\n=== Warnings ===\n");
+//                for (String message : progression.getWarnings().getMessages()) {
+//                    report.append("\t").append(message).append("\n");
+//                }
+//            }
         }
 
         System.out.print(report);
 
+    }
+
+    public String getMessages() {
+        StringBuilder report = new StringBuilder();
+        Progression progression = hmsMirrorCfgService.getHmsMirrorConfig().getProgression();
+
+        if (progression.getErrors().getMessages().length > 0) {
+            report.append("\n=== Errors ===\n");
+            for (String message : progression.getErrors().getMessages()) {
+                report.append("\t").append(message).append("\n");
+            }
+        }
+
+        if (progression.getWarnings().getMessages().length > 0) {
+            report.append("\n=== Warnings ===\n");
+            for (String message : progression.getWarnings().getMessages()) {
+                report.append("\t").append(message).append("\n");
+            }
+        }
+
+        return report.toString();
     }
 
     private void fetchReportTemplates() throws IOException {
@@ -236,7 +259,15 @@ public class CliReporter {
         try {
             fetchReportTemplates();
             log.info("Starting Reporting Thread");
-            getHmsMirrorCfgService().getRunning().set(true);
+            // Wait for the main thread to start.
+            while (!getHmsMirrorCfgService().getRunning().get()) {
+                try {
+                    Thread.sleep(sleepInterval);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+//            getHmsMirrorCfgService().getRunning().set(true);
             while (getHmsMirrorCfgService().getRunning().get()) {
                 refresh(Boolean.FALSE);
                 try {
@@ -244,7 +275,7 @@ public class CliReporter {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
 //                    e.printStackTrace();
-                    System.out.println("Reporting thread interrupted");
+//                    System.out.println("Reporting thread interrupted");
                 }
             }
             // Final Screen Report.  Write the location out to the console.

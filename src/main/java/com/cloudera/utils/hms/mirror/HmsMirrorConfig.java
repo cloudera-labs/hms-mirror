@@ -84,7 +84,7 @@ public class HmsMirrorConfig {
     private boolean evaluatePartitionLocation = Boolean.FALSE;
     private Filter filter = new Filter();
     private boolean skipLinkCheck = Boolean.FALSE;
-    private String[] databases = null;
+    private String[] databases = new String[0];
     @JsonIgnore
     private String decryptPassword;
     private LegacyTranslations legacyTranslations = new LegacyTranslations();

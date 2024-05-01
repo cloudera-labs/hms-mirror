@@ -108,7 +108,7 @@ public class HmsMirrorAppCfg {
 
             if (!config.isValidated()) {
                 log.error("Configuration is not valid.  Exiting.");
-                wrapup();
+                getCliReporter().getMessages();
                 return;
             }
             log.info("Setting 'running' to TRUE");
