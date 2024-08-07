@@ -1,5 +1,7 @@
 # Web Interface
 
+## Starting
+
 The `hms-mirror` web application is started by running:
 
 ```bash
@@ -19,6 +21,10 @@ The web application will use the user home directory to store configuration file
 The web application works on the premise of a 'session'.  Although the application is stateless, the session is used to store the user's configuration and state while they are using the application.  This allows the user to navigate the application and make changes without losing their work.  Currently, the session is global throughout the application and is not tied to a specific user browser session.  An 'hms-mirror' session is NOT synonymous with a browser session.
 
 An instance of the web application can only run ONE session at a time.
+
+## Stopping
+
+`hms-mirror --stop`
 
 ## Security
 
