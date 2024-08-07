@@ -1,0 +1,41 @@
+### GET List of Configs
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/config/list
+Accept: application/json
+
+### GET request to example server
+
+POST http://{{host}}:{{port}}/hms-mirror/api/v1/config/reload/default.yaml.HDP-CDP
+Accept: application/json
+
+###
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/config/
+Accept: application/json
+
+###
+
+PUT http://{{host}}:{{port}}/hms-mirror/api/v1/config/properties?databases=tpcds_bin_partitioned_orc_10
+Accept: application/json
+
+###
+
+POST http://{{host}}:{{port}}/hms-mirror/api/v1/runtime/start?dryrun=true
+Accept: application/json
+
+###
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/runStatus/
+Accept: application/json
+
+###
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/runtime/reports/download/2024-05-24_11-04-54
+Accept: application/zip
+
+###
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/runtime/reports/list
+Accept: application/json
+
+###

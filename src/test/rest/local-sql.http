@@ -1,0 +1,30 @@
+### GET request to example server
+
+POST http://{{host}}:{{port}}/hms-mirror/api/v1/config/load/default.yaml.HDP-CDP
+Accept: application/json
+
+###
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/config/
+Accept: application/json
+
+###
+
+PUT http://{{host}}:{{port}}/hms-mirror/api/v1/config/properties?databases=tpcds_bin_partitioned_orc_10
+Accept: application/json
+
+###
+
+PUT http://{{host}}:{{port}}/hms-mirror/api/v1/config/properties?dataStrategy=SQL
+Accept: application/json
+
+###
+POST http://{{host}}:{{port}}/hms-mirror/api/v1/runtime/start?dryrun=false
+Accept: application/json
+
+###
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/runStatus/
+Accept: application/json
+
+###

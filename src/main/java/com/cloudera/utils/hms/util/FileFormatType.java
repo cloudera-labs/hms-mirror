@@ -20,6 +20,8 @@ package com.cloudera.utils.hms.util;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.commons.lang3.StringUtils.isBlank;
+
 public enum FileFormatType {
     ORC("org.apache.hadoop.hive.ql.io.orc.OrcSerde", "org.apache.hadoop.hive.ql.io.orc.OrcInputFormat", "org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat"),
     TEXTFILE("org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe", "org.apache.hadoop.mapred.TextInputFormat", "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat"),
@@ -53,7 +55,7 @@ public enum FileFormatType {
         if (rowFormatSerdeLcl.startsWith("'")) {
             rowFormatSerdeLcl = rowFormatSerde.substring(1, rowFormatSerde.length() - 1);
         }
-        if (rowFormatSerdeLcl != null) {
+        if (!isBlank(rowFormatSerdeLcl)) {
             for (FileFormatType storageType : FileFormatType.values()) {
                 if (storageType.rowFormatSerde.equals(rowFormatSerdeLcl)) {
                     fileFormatTypeList.add(storageType);

@@ -17,8 +17,9 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
-import com.cloudera.utils.hms.mirror.Environment;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.PhaseState;
+import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -29,14 +30,14 @@ import org.springframework.test.context.junit4.SpringRunner;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
+@SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.data-strategy=STORAGE_MIGRATION",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_ma_parts_epl",
                 "--hms-mirror.conversion.test-filename=/test_data/acid_w_parts_01.yaml",
-                "--hms-mirror.config-filename=/config/default.yaml.hdp2-cdp",
-                "--hms-mirror.config.evaluate-partition-location=true",
-                "--hms-mirror.config.reset-to-default-location=true",
+                "--hms-mirror.config.filename=/config/default.yaml.cdp",
+                "--hms-mirror.config.align-locations=true",
+                "--hms-mirror.config.target-namespace=ofs://OHOME90",
                 "--hms-mirror.config.migrate-acid=true",
                 "--hms-mirror.config.warehouse-directory=/new/warehouse/managed",
                 "--hms-mirror.config.external-warehouse-directory=/new/warehouse/external"
@@ -58,7 +59,7 @@ public class Test_sm_ma_parts_epl extends E2EBaseTest {
     @Test
     public void issueTest() {
         validateTableIssueCount("assort_test_db", "acid_03",
-                Environment.RIGHT, 2);
+                Environment.RIGHT, 1);
     }
 
     @Test

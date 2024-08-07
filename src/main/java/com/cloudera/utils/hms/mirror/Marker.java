@@ -20,6 +20,8 @@ package com.cloudera.utils.hms.mirror;
 import lombok.Getter;
 import lombok.Setter;
 
+import static java.util.Objects.isNull;
+
 @Getter
 @Setter
 public class Marker {
@@ -30,7 +32,7 @@ public class Marker {
     public Marker(String mark, String description, Object action) {
         this.mark = mark;
         this.description = description;
-        if (action == null)
+        if (isNull(action))
             this.action = "";
         else
             this.action = action.toString();

@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-globalLocationMap:
-  /tpcds_base_dir: "/alt/ext/location"
-  /tpcds_base_dir2/web: "/alt/ext/location"
-
+userGlobalLocationMap:
+  /tpcds_base_dir:
+    EXTERNAL_TABLE: "/alt/ext/location"
+  /tpcds_base_dir2/web:
+    EXTERNAL_TABLE: "/alt/ext/location"

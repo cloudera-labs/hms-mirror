@@ -17,8 +17,9 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
-import com.cloudera.utils.hms.mirror.Environment;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.PhaseState;
+import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -30,17 +31,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
+@SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.data-strategy=STORAGE_MIGRATION",
                 "--hms-mirror.config.warehouse-directory=/finance/managed-fso",
                 "--hms-mirror.config.external-warehouse-directory=/finance/external-fso",
-                "--hms-mirror.config.evaluate-partition-location=true",
+                "--hms-mirror.config.align-locations=true",
                 "--hms-mirror.config.distcp=PULL",
-                "--hms-mirror.config-filename=/config/default.yaml.cdp-cdp",
-                "--hms-mirror.config.reset-to-default-location=true",
-                "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts.yaml",
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_wd_epl_rdl_dc"
+                "--hms-mirror.config.filename=/config/default.yaml.cdp",
+                "--hms-mirror.config.target-namespace=ofs://OHOME90",
+                "--hms-mirror.conversion.test-filename=/test_data/ext_purge_parts_01.yaml",
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_wd_epl_rdl_dc",
+                "--hms-mirror.config.global-location-map=/user/dstreev/datasets/alt-locations=/finance/external-fso/ext_purge_odd_parts.db"
         }
 )
 @Slf4j
@@ -104,6 +106,9 @@ public class Test_sm_wd_epl_rdl_dc extends E2EBaseTest {
     public void returnCodeTest() {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
+
+        // Testing the implementation of GLM's to account for odd partition locations.
+
         // Verify the return code.
         assertEquals("Return Code Failure: " + rtn, 0L, rtn);
     }
@@ -111,17 +116,17 @@ public class Test_sm_wd_epl_rdl_dc extends E2EBaseTest {
     @Test
     public void sqlTest() {
         if (!validateSqlPair("ext_purge_odd_parts", Environment.LEFT, "web_sales", "Alter Table Location",
-                "ALTER TABLE web_sales SET LOCATION \"hdfs://HDP50/finance/external-fso/ext_purge_odd_parts.db/web_sales\"")) {
+                "ALTER TABLE web_sales SET LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales\"")) {
             fail("Alter Table Location not found");
         }
         if (!validateSqlPair("ext_purge_odd_parts", Environment.LEFT, "web_sales",
                 "Alter Table Partition Spec `ws_sold_date_sk`='2451180' Location",
-                "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451180') SET LOCATION \"hdfs://HDP50/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451180\"")) {
+                "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451180') SET LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451180\"")) {
             fail("Alter Table Partition Location not found");
         }
         if (!validateSqlPair("ext_purge_odd_parts", Environment.LEFT, "web_sales",
                 "Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location",
-                "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451188') SET LOCATION \"hdfs://HDP50/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451188\"")) {
+                "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451188') SET LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451188\"")) {
             fail("Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location");
         }
     }

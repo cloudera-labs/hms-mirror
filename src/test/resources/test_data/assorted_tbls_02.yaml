@@ -947,7 +947,7 @@ databases:
             cleanUpSql: []
     phaseSummary:
       INIT: 6
-    dbdefinitions:
+    properties:
       LEFT:
         DB_NAME: "assort_test_db"
         LOCATION: "hdfs://HOME90/warehouse/tablespace/external/hive/assort_test_db.db"

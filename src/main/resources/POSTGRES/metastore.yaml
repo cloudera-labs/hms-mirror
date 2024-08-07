@@ -4,11 +4,41 @@ query_definitions:
 SELECT
     \"P\".\"PART_NAME\"
   , \"S\".\"LOCATION\" PART_LOCATION
-FROM \"DBS\" \"D\"
-  INNER JOIN \"TBLS\" \"T\" ON \"D\".\"DB_ID\" = \"T\".\"DB_ID\"
-  INNER JOIN \"PARTITIONS\" \"P\" ON \"T\".\"TBL_ID\" = \"P\".\"TBL_ID\"
-  INNER JOIN \"SDS\" \"S\" ON \"P\".\"SD_ID\" = \"S\".\"SD_ID\"
+FROM
+    \"DBS\" \"D\"
+        INNER JOIN \"TBLS\" \"T\" ON \"D\".\"DB_ID\" = \"T\".\"DB_ID\"
+        INNER JOIN \"PARTITIONS\" \"P\" ON \"T\".\"TBL_ID\" = \"P\".\"TBL_ID\"
+        INNER JOIN \"SDS\" \"S\" ON \"P\".\"SD_ID\" = \"S\".\"SD_ID\"
 WHERE
-  \"D\".\"NAME\" = ?
+      \"D\".\"NAME\" = ?
   AND \"T\".\"TBL_NAME\" = ?
       "
+
+  database_partition_locations:
+    statement: "
+SELECT
+    \"T\".\"TBL_NAME\"
+  , \"T\".\"TBL_TYPE\"
+  , \"P\".\"PART_NAME\"
+  , \"ST\".\"LOCATION\" TBL_LOCATION
+  , \"S\".\"LOCATION\"  PART_LOCATION
+FROM
+    \"DBS\" \"D\"
+        INNER JOIN \"TBLS\" \"T\" ON \"D\".\"DB_ID\" = \"T\".\"DB_ID\"
+        INNER JOIN \"PARTITIONS\" \"P\" ON \"T\".\"TBL_ID\" = \"P\".\"TBL_ID\"
+        INNER JOIN \"SDS\" \"S\" ON \"P\".\"SD_ID\" = \"S\".\"SD_ID\"
+        INNER JOIN \"SDS\" \"ST\" ON \"T\".\"SD_ID\" = \"ST\".\"SD_ID\"
+WHERE
+    \"D\".\"NAME\" = ?"
+  database_table_locations:
+    statement: "
+SELECT
+    \"T\".\"TBL_NAME\"
+  , \"T\".\"TBL_TYPE\"
+  , \"ST\".\"LOCATION\" TBL_LOCATION
+FROM
+    \"DBS\" \"D\"
+        INNER JOIN \"TBLS\" \"T\" ON \"D\".\"DB_ID\" = \"T\".\"DB_ID\"
+        INNER JOIN \"SDS\" \"ST\" ON \"T\".\"SD_ID\" = \"ST\".\"SD_ID\"
+WHERE
+    \"D\".\"NAME\" = ?"

@@ -17,7 +17,9 @@
 
 package com.cloudera.utils.hms.mirror.utils;
 
-import com.cloudera.utils.hms.mirror.Translator;
+import com.cloudera.utils.hms.mirror.domain.Translator;
+import com.cloudera.utils.hms.mirror.service.DatabaseService;
+import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.TranslatorService;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +35,8 @@ import java.nio.charset.StandardCharsets;
 
 @Slf4j
 public class TranslatorTestBase {
+//    protected ExecuteSessionService executeSessionService;
+    protected DatabaseService databaseService;
     protected TranslatorService translatorService;
     protected Translator translator;
 

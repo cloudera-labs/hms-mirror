@@ -4,7 +4,7 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 
 ## Assumptions
 
-1. This process will only 'migrate' EXTERNAL and MANAGED (non-ACID/Transactional) table METADATA (not data, except with [SQL](hms-mirror-sql.md) and [EXPORT_IMPORT](hms-mirror-export-import.md) ).
+1. This process will only 'migrate' EXTERNAL and MANAGED (non-ACID/Transactional) table METADATA (not data, except with [SQL](SQL.md) and [EXPORT_IMPORT](EXPORT_IMPORT.md) ).
 2. MANAGED tables replicated to the **RIGHT
    ** cluster will be converted to "EXTERNAL" tables for the 'metadata' stage. They will be tagged as 'legacy managed' in the
    **RIGHT
@@ -28,7 +28,7 @@ After running the `setup.sh` script, `hms-mirror` will be available in the `$PAT
 
 ### Transfer DATA, beyond the METADATA
 
-HMS-Mirror does NOT migrate data between clusters unless you're using the [SQL](hms-mirror-sql.md) or [EXPORT_IMPORT](hms-mirror-export-import.md) data strategies. In some cases where data is co-located, you don't need to move it. IE: Cloud to Cloud. As long as the new cluster environment has access to the original location. This is the intended target for strategies [COMMON](hms-mirror-common.md) and to some extend [LINKED](hms-mirror-linked.md).
+HMS-Mirror does NOT migrate data between clusters unless you're using the [SQL](SQL.md) or [EXPORT_IMPORT](EXPORT_IMPORT.md) data strategies. In some cases where data is co-located, you don't need to move it. IE: Cloud to Cloud. As long as the new cluster environment has access to the original location. This is the intended target for strategies [COMMON](COMMON.md) and to some extend [LINKED](LINKED.md).
 
 When you do need to move data, `hms-mirror` creates a workbook of 'source' and 'target' locations in an output file called `distcp_workbook.md`. Use this to help build a transfer job in `distcp` using the `-f` option to specify multiple sources.
 

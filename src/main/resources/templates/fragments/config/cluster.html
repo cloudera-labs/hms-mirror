@@ -1,0 +1,119 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Session</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+</head>
+<body>
+
+<div th:fragment="main (env)" >
+    <fieldset th:unless="${CONFIG.clusters[__${env}__] == null}"
+              th:disabled="${READ_ONLY}"
+              style="border: 0;">
+        <div class="pure-g">
+            <div class="pure-u-1-4">
+                    <div class="pure-form pure-form-aligned">
+
+                        <input type="hidden" th:field="*{clusters[__${env}__].environment}"
+                               th:value="${CONFIG.clusters[__${env}__]?.environment}"/>
+
+                        <div class="pure-control-group">
+                            <label for="hcfsNamespace" class="pure-input-1" th:text="#{hcfs.namespace}"/>
+                            <input type="text" id="hcfsNamespace"
+                                   th:field="*{clusters[__${env}__].hcfsNamespace}"
+                                   style="width: 90%;"
+                                   placeholder="Set Namespace"/>
+                            <b class="pure-input-1" th:text="#{hcfs.namespace.use}"/>
+                        </div>
+                        <hr/>
+                        <br/>
+                        <div class="pure-control-group"
+                             th:if="${('STORAGE_MIGRATION SCHEMA_ONLY HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">
+                            <input type="checkbox"
+                                   th:field="*{clusters[__${env}__].legacyHive}"
+                                   th:checked="${CONFIG.clusters[__${env}__]?.legacyHive}"/>
+                            <label th:text="#{hive.server2.legacy}"/>
+                        </div>
+
+                        <div class="pure-control-group"
+                             th:if="${('STORAGE_MIGRATION HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">
+                            <input type="checkbox"
+                                   th:field="*{clusters[__${env}__].createIfNotExists}"
+                                   th:checked="${CONFIG.clusters[__${env}__]?.createIfNotExists}"/>
+                            <label th:text="#{cluster.cine}"/>
+                        </div>
+                        <div class="pure-control-group"
+                             th:if="${('STORAGE_MIGRATION HYBRID SQL EXPORT_IMPORT SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
+                            <input type="checkbox"
+                                   th:field="*{clusters[__${env}__].hdpHive3}"
+                                   th:checked="${CONFIG.clusters[__${env}__]?.hdpHive3}"/>
+                            <label th:text="#{cluster.hdp.hive3}"/>
+                        </div>
+
+                        <div class="pure-control-group"
+                             th:if="${('STORAGE_MIGRATION SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
+                            <input type="checkbox"
+                                   th:field="*{clusters[__${env}__].partitionDiscovery.auto}"
+                                   th:checked="${CONFIG.clusters[__${env}__]?.partitionDiscovery.auto}"/>
+                            <label th:text="#{cluster.partition.auto}"/>
+                        </div>
+                        <div class="pure-control-group"
+                             th:if="${('STORAGE_MIGRATION SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
+                            <input type="checkbox"
+                                   th:field="*{clusters[__${env}__].partitionDiscovery.initMSCK}"
+                                   th:checked="${CONFIG.clusters[__${env}__]?.partitionDiscovery.initMSCK}"/>
+                            <label th:text="#{cluster.partition.msck}"/>
+                        </div>
+                        <div class="pure-control-group"
+                             th:if="${('STORAGE_MIGRATION HYBRID SQL STORAGE_MIGRATION').contains(CONFIG.dataStrategy.toString())}">
+                            <input type="checkbox"
+                                   th:field="*{clusters[__${env}__].enableAutoTableStats}"
+                                   th:checked="${CONFIG.clusters[__${env}__]?.enableAutoTableStats}"/>
+                            <label th:text="#{cluster.enable.table.stats}"/>
+                        </div>
+                        <div class="pure-control-group"
+                             th:if="${('STORAGE_MIGRATION HYBRID SQL STORAGE_MIGRATION').contains(CONFIG.dataStrategy.toString())}">
+                            <input type="checkbox"
+                                   th:field="*{clusters[__${env}__].enableAutoColumnStats}"
+                                   th:checked="${CONFIG.clusters[__${env}__]?.enableAutoColumnStats}"/>
+                            <label th:text="#{cluster.enable.colums.stats}"/>
+                        </div>
+                    </div>
+            </div>
+            <div class="pure-u-3-4">
+                <div th:insert="fragments/config/hiveserver2::view(${env})"
+                     th:if="${CONFIG.getCluster(env).getHiveServer2() != null}">
+                </div>
+                <div th:insert="fragments/config/metastoredirect::view(${env})"
+                     th:if="${CONFIG.getCluster(env).getMetastoreDirect() != null}">
+                </div>
+            </div>
+        </div>
+    </fieldset>
+</div>
+
+</body>
+</html>

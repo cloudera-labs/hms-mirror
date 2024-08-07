@@ -1,0 +1,185 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Load Create</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+</head>
+<body>
+<div th:fragment="view(dryrun)">
+    <div class="pure-g">
+        <div class="pure-u-1">
+            <th:block
+                    th:if="${CONFIG.translator.userGlobalLocationMap != null && CONFIG.translator.userGlobalLocationMap.size() > 0}">
+                <h4 th:text="#{global.location.maps.user}"/>
+                <hr>
+                <table class="pure-table" style="width: 100%;">
+                    <thead>
+                    <tr>
+                        <th th:if="${!dryrun}"></th>
+                        <th th:text="#{glm.source}"/>
+                        <th th:text="#{glm.target}"/>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <th:block
+                            th:each="glm: ${CONFIG.translator.userGlobalLocationMap}">
+                        <tr>
+                            <form>
+                                <td th:if="${!dryrun}">
+                                    <button class="pure-button"
+                                            th:formaction="@{/translator/globalLocationMap/delete}"
+                                            th:formmethod="post"
+                                            th:text="#{delete}"/>
+                                </td>
+                                <td>
+                                    <input type="text" name="source" th:value="${glm.key}" style="width: 100%;"
+                                           readonly/>
+                                </td>
+                                <td>
+                                    <th:block th:each="target: ${glm.value}">
+                                        <div class="pure-control-group">
+                                            <input type="hidden" name="tableType" th:value="${target.key}"/>
+                                            <label th:text="${target.key}"/>
+                                            <input type="text" name="target" th:value="${target.value}"
+                                                   style="width: 100%;"
+                                                   readonly/>
+                                        </div>
+                                    </th:block>
+                                </td>
+                            </form>
+                        </tr>
+                    </th:block>
+                    </tbody>
+                </table>
+            </th:block>
+            <th:block
+                    th:unless="${CONFIG.translator.userGlobalLocationMap != null && CONFIG.translator.userGlobalLocationMap.size() > 0}">
+                <h4 th:text="#{global.location.maps.user.empty}"/>
+            </th:block>
+            <!--    Add GLM Manually -->
+            <th:block th:if="${!dryrun}">
+                <h4 th:text="#{glm.add}"/>
+                <form class="pure-form" method="post"
+                      th:action="@{/translator/globalLocationMap/add}">
+                    <fieldset>
+                        <select id="tableType" name="TABLE_TYPE">
+                            <option th:each="type: ${tabletypes}"
+                                    th:value="${type}"
+                                    th:text="${type}"/>
+                        </select>
+                        <input type="text" name="SOURCE" placeholder="Source"/>
+                        <input type="text" name="TARGET" placeholder="Target"/>
+                        <button type="submit" class="pure-button pure-button-primary" th:text="#{button.add}"/>
+                    </fieldset>
+                </form>
+            </th:block>
+        </div>
+        <div class="pure-u-1">
+            <!--Auto GLM's-->
+            <th:block
+                    th:if="${CONFIG.translator.autoGlobalLocationMap != null && CONFIG.translator.autoGlobalLocationMap.size() > 0}">
+                <h4 th:text="#{global.location.maps.auto}"/>
+                <hr>
+                <table class="pure-table" style="width: 100%;">
+                    <thead>
+                    <tr>
+                        <th th:text="#{glm.source}"/>
+                        <th th:text="#{glm.target}"/>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <th:block
+                            th:each="glm: ${CONFIG.translator.autoGlobalLocationMap}">
+                        <tr>
+                            <form class="pure-form pure-form-aligned">
+                                <td>
+                                    <input type="text" name="source" th:value="${glm.key}" style="width: 100%;" readonly/>
+                                </td>
+                                <td>
+                                    <th:block th:each="target: ${glm.value}">
+                                        <div class="pure-control-group">
+                                            <label th:text="${target.key}"/>
+                                            <input type="text" name="target" th:value="${target.value}"
+                                                   style="width: 100%;" readonly/>
+                                        </div>
+                                    </th:block>
+                                </td>
+                            </form>
+                        </tr>
+                    </th:block>
+                    </tbody>
+                </table>
+            </th:block>
+            <th:block
+                    th:unless="${CONFIG.translator.autoGlobalLocationMap != null && CONFIG.translator.autoGlobalLocationMap.size() > 0}">
+                <h4 th:text="#{global.location.maps.auto.empty}"/>
+            </th:block>
+        </div>
+        <div class="pure-u-1">
+            <!--Ordered GLM's-->
+            <th:block
+                    th:if="${CONFIG.translator.orderedGlobalLocationMap != null && CONFIG.translator.orderedGlobalLocationMap.size() > 0}">
+                <h4 th:text="#{global.location.maps.ordered}"/>
+                <hr>
+                <table class="pure-table" style="width: 100%;">
+                    <thead>
+                    <tr>
+                        <th th:text="#{glm.source}"/>
+                        <th th:text="#{glm.target}"/>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <th:block
+                            th:each="glm: ${CONFIG.translator.orderedGlobalLocationMap}">
+                        <tr>
+                            <form>
+                                <td><input type="text" name="source" th:value="${glm.key}" style="width: 100%;"
+                                           readonly/></td>
+                                <td>
+                                    <th:block th:each="target: ${glm.value}">
+                                        <div class="pure-control-group">
+                                            <label th:text="${target.key}"/>
+                                            <input type="text" name="target" th:value="${target.value}"
+                                                   style="width: 100%;"
+                                                   readonly/>
+                                        </div>
+                                    </th:block>
+                                </td>
+
+                            </form>
+                        </tr>
+                    </th:block>
+                    </tbody>
+                </table>
+            </th:block>
+            <th:block
+                    th:unless="${CONFIG.translator.orderedGlobalLocationMap != null && CONFIG.translator.orderedGlobalLocationMap.size() > 0}">
+                <h4 th:text="#{global.location.maps.ordered.empty}"/>
+            </th:block>
+        </div>
+    </div>
+</div>
+</body>
+</html>

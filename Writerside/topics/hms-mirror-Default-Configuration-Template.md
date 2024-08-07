@@ -1,7 +1,10 @@
 # Default Configuration Template
 
+Use this as a template for the `default.yaml` configuration file used by the `cli` interface.
+
+
 ```yaml
-# Copyright 2021 Cloudera, Inc. All Rights Reserved.
+# Copyright 2024 Cloudera, Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,10 +53,10 @@ clusters:
       #    The order of the jar files is important. The first jar file in the list MUST have the JDBC driver class file.
       jarFile: "<environment-specific-jdbc-standalone-driver>"
     # Optional.  Required only for (-epl) with DUMP or SCHEMA_ONLY
-    # This will require the user to install the jdbc driver for the metastore in $HOME/.hms-mirror/aux_libs
+    # This will require the user to install the jdbc driver for the metastoreDirect in $HOME/.hms-mirror/aux_libs
     metastore_direct:
       uri: "<jdbc_url_to_metastore_db_including_db>"
-      type: MYSQL|POSTRES|ORACLE
+      type: MYSQL|POSTGRES|ORACLE
       connectionProperties:
         user: "<db_user>"
         password: "<db_password>"

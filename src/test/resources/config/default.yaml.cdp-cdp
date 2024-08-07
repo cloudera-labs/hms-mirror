@@ -5,6 +5,9 @@ hybrid:
   sqlSizeLimit: 1073741824
 transfer:
   concurrency: 2
+  warehouse:
+    managedDirectory: "/warehouse/ts/managed/hive"
+    externalDirectory: "/warehouse/ts/external/hive"
 clusters:
   LEFT:
     legacyHive: "false"

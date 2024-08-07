@@ -74,10 +74,10 @@ log4j.logger.org.apache.hive.org.apache=WARN
     <logger name="com.cloudera.utils.hadoop.hms.MirrorLegacy" level="error" additivity="false">
         <appender-ref ref="Console" />
     </logger>
-    <logger name="com.cloudera.utils.hms.mirror.DBMirror" level="info" additivity="false">
+    <logger name="com.cloudera.utils.hms.mirror.domain.DBMirror" level="info" additivity="false">
         <appender-ref ref="Console" />
     </logger>
-    <logger name="com.cloudera.utils.hms.mirror.Cluster" level="info" additivity="false">
+    <logger name="com.cloudera.utils.hms.mirror.domain.Cluster" level="info" additivity="false">
         <appender-ref ref="Console" />
     </logger>
     <logger name="com.cloudera.utils.hadoop.hms.mirror.service.GetTableMetadataService" level="debug" additivity="false">

@@ -1,0 +1,81 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Config</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+    <script th:src="@{/js/mirror.js}"></script>
+</head>
+<body>
+
+<div th:fragment="view">
+
+    <table class="pure-table pure-table-bordered pure-table-striped" style="width: 80%">
+        <tr>
+            <th style="width: 20%" th:text="#{connection}"/>
+            <th style="width: 20%" th:text="#{connection.status}"/>
+            <th style="width: 60%" th:text="#{connection.message}"/>
+        </tr>
+        <tr>
+            <td colspan="3"><hr></td>
+        </tr>
+        <th:block th:each="key: ${CONNECTIONS_STATUS.namespaces.keySet()}">
+            <tr>
+                <td th:text="#{__${key}__.namespace}"/>
+                <td th:text="${CONNECTIONS_STATUS.getNamespaces().get(key).status}"/>
+                <td th:text="${CONNECTIONS_STATUS.getNamespaces().get(key).message}"/>
+            </tr>
+        </th:block>
+        <tr>
+            <td colspan="3"><hr></td>
+        </tr>
+        <th:block th:each="key: ${CONNECTIONS_STATUS.getHiveServer2Connections().keySet()}">
+            <tr>
+                <td th:text="#{__${key}__.hs2}"/>
+                <td th:text="${CONNECTIONS_STATUS.getHiveServer2Connections().get(key).status}"/>
+                <td th:text="${CONNECTIONS_STATUS.getHiveServer2Connections().get(key).message}"/>
+            </tr>
+        </th:block>
+        <tr>
+            <td colspan="3"><hr></td>
+        </tr>
+        <th:block th:each="key: ${CONNECTIONS_STATUS.getMetastoreDirectConnections().keySet()}">
+            <tr>
+                <td th:text="#{__${key}__.metastore}"/>
+                <td th:text="${CONNECTIONS_STATUS.getMetastoreDirectConnections().get(key).status}"/>
+                <td th:text="${CONNECTIONS_STATUS.getMetastoreDirectConnections().get(key).message}"/>
+            </tr>
+        </th:block>
+    </table>
+    <form method="post" th:action="@{/connections/doValidate}">
+        <button id="connModalBtn" class="pure-button pure-button-primary" type="submit" th:text="#{validate.connections}" />
+    </form>
+
+    <div th:replace="fragments/modal::modal1('connModal', 'connModalBtn', 'Please wait.  Checking Connections.')">
+
+    </div>
+
+</div>
+</body>
+</html>

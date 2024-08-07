@@ -1,0 +1,77 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Config Messages</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+</head>
+<body>
+
+<div th:fragment="saveas">
+    <fieldset th:if="${CONFIG != null}">
+        <legend th:text="#{saveAs}"/>
+        <form class="pure-form pure-form-aligned" th:object="${PERSIST}">
+            <div class="pure-g">
+                <div class="pure-u-1-2">
+                    <div class="pure-control-group tooltip">
+                        <span class="tooltiptext" th:text="#{saveAs.tooltip}"></span>
+                        <label for="saveas" th:text="#{saveAs.filename}"/>
+                        <input class="pure-input-2-3" type="text" th:field="*{saveAs}"/>
+                    </div>
+                </div>
+                <div class="pure-u-1-4">
+                    <div class="pure-control-group tooltip">
+                        <span class="tooltiptext" th:text="#{saveAs.default.tooltip}"></span>
+                        <label for="saveasdefault" th:text="#{saveAsDefault}"/>
+                        <input id="saveasdefault" type="checkbox" th:field="*{saveAsDefault}"/>
+                    </div>
+                    <div class="pure-control-group tooltip"
+                         th:if="${CONFIG.translator != null}">
+                        <span class="tooltiptext" th:text="#{stripMappings.tooltip}"></span>
+                        <label for="stripmappings" th:text="#{stripMappings}"/>
+                        <input id="stripmappings" type="checkbox" th:field="*{stripMappings}"/>
+                    </div>
+                    <div class="pure-control-group">
+                        <div class="pure-control-group tooltip"
+                             th:unless="${CONFIG.clusters[RIGHT] == null}">
+                            <span class="tooltiptext" th:text="#{flip.configs.tooltip}"></span>
+                            <label for="flipconfig" th:text="#{flip.configs}"/>
+                            <input id="flipconfig" type="checkbox" th:field="*{flipConfigs}"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="pure-u-1-4">
+                    <div class="pure-button-group">
+                        <button class="pure-button pure-button-primary"
+                                th:formaction="@{/config/doPersist}"
+                                th:formmethod="post" type="submit" th:text="#{button.persist}"/>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </fieldset>
+</div>
+
+</body>
+</html>

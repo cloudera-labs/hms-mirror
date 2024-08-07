@@ -1,0 +1,230 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title th:text="#{report.for.database(${REPORT_ID},${DATABASE})}"></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/report.css}">
+</head>
+<body>
+<div class="pure-g">
+    <div class="pure-u-1">
+        <h2 th:text="#{detailed.database.report(${DB_MIRROR.name})}"/>
+        <hr>
+        <b th:if="${RUN_STATUS != null && RUN_STATUS.appVersion != null}"
+           th:text="#{version(${RUN_STATUS.appVersion})}"/>
+    </div>
+
+    <fieldset>
+        <legend th:text="#{messages.basic}"/>
+        <div class="pure-u-1" th:insert="fragments/messages::view">
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend th:text="#{config}"/>
+        <div class="pure-u-1" th:insert="reports/fileview::view">
+        </div>
+    </fieldset>
+
+    <div class="pure-u-1">
+        <fieldset>
+            <legend th:text="#{database.details}"/>
+            <!--        <h3 th:text="#{database.details}"/>-->
+            <div class="pure-u-1">
+
+                <th:block th:each="env: ${DB_MIRROR.issues}">
+                    <div th:if="${DB_MIRROR.issues[env.key].size() > 0}">
+                        <h4 th:text="#{database.issues(${env.key})}"/>
+                        <ul>
+                            <th:block th:each="issue: ${DB_MIRROR.issues[env.key]}">
+                                <li th:text="${issue}"/>
+                            </th:block>
+                        </ul>
+                    </div>
+                </th:block>
+            </div>
+            <div class="pure-u-1">
+
+                <th:block th:each="env: ${DB_MIRROR.sql}">
+                    <div th:if="${DB_MIRROR.sql[env.key].size() > 0}">
+                        <fieldset>
+                            <legend th:text="#{database.sql(${env.key})}"/>
+                            <table class="pure-table pure-table-bordered pure-table-striped">
+                                <thead>
+                                <tr>
+                                    <th th:text="#{description}"/>
+                                    <th th:text="#{action}"/>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <th:block
+                                        th:each="pair: ${DB_MIRROR.sql[env.key]}">
+                                    <tr>
+                                        <td th:text="${pair.description}"/>
+                                        <td>
+                                            <pre th:text="${pair.action}"/>
+                                        </td>
+                                    </tr>
+                                </th:block>
+                                </tbody>
+                            </table>
+                        </fieldset>
+                    </div>
+                </th:block>
+            </div>
+        </fieldset>
+    </div>
+
+    <div class="pure-u-1">
+        <fieldset>
+            <legend th:text="#{table.work.status}"/>
+            <div class="pure-u-1">
+                <!--        <h3 th:text="#{table.work.status}"/>-->
+
+                <div th:unless="${DB_MIRROR.filteredOut.isEmpty()}">
+                    <h4 th:text="#{tables.skipped}"/>
+                    <table class="pure-table pure-table-striped pure-table-bordered">
+                        <tr>
+                            <th th:text="#{table.name}"/>
+                            <th th:text="#{table.reason.skipped}"/>
+                        </tr>
+                        <th:block th:each="table: ${DB_MIRROR.filteredOut}">
+                            <tr>
+                                <td th:text="${table.key}"/>
+                                <td th:text="${table.value}"/>
+                            </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="pure-u-1">
+                <h4 th:text="#{table.status.summary(${DB_MIRROR.getPhaseSummaryString()})}"/>
+                <hr>
+                <th:block th:each="phaseState: ${DB_MIRROR.getPhasesFromAvailableTables()}">
+                    <fieldset>
+                        <legend th:text="#{table.phaseState(${phaseState})}"/>
+
+                        <table class="pure-table pure-table-bordered pure-table-striped">
+                            <thead>
+                            <tr>
+                                <th th:text="#{table.name}"/>
+                                <th th:text="#{table.details}"/>
+                                <!--                    <th th:text="#{datastrategy}"/>-->
+                                <!--                    <th th:text="#{table.source.managed}"/>-->
+                                <!--                    <th th:text="#{table.source.acid}"/>-->
+                                <!--                    <th th:text="#{table.stage.duration}"/>-->
+                                <!--                    <th th:text="#{table.added.properties}"/>-->
+                                <th th:text="#{table.issues}"/>
+                                <th th:text="#{table.sql}"/>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <th:block th:each="table: ${DB_MIRROR.getTablesByPhase(phaseState)}">
+                                <tr>
+                                    <td th:text="${table.key}"/>
+                                    <td>
+                                        <div class="pure-form pure-form-aligned">
+                                            <div class="pure-control-group">
+                                                <label th:text="#{datastrategy}"/>
+                                                <input type="text" th:value="${table.value.strategy}" readonly/>
+                                            </div>
+                                            <div class="pure-control-group" th:if="${table.value.isSourceManaged()}">
+                                                <label th:text="#{table.type}"/>
+                                                <input type="text" th:unless="${table.value.isSourceACID()}"
+                                                       th:value="#{table.source.managed}" readonly/>
+                                                <input type="text" th:if="${table.value.isSourceACID()}"
+                                                       th:value="#{table.source.acid}" readonly/>
+                                            </div>
+                                            <div class="pure-control-group"
+                                                 th:unless="${table.value.isSourceManaged()}">
+                                                <label th:text="#{table.type}"/>
+                                                <input type="text" th:value="#{table.source.external}" readonly/>
+                                            </div>
+                                            <!--                                <p th:if="${table.value.isSourceManaged()}" th:text="#{table.source.managed}"/>-->
+                                            <!--                                <p th:unless="${table.value.isSourceManaged()}" th:text="#{table.source.external}"/>-->
+                                            <!--                                <p th:if="${table.value.isSourceACID()}" th:text="#{table.source.acid}"/>-->
+                                            <div class="pure-control-group">
+                                                <label th:text="#{table.stage.duration}"/>
+                                                <input type="text" th:value="${table.value.stageDuration/1000}"
+                                                       readonly/>
+                                            </div>
+                                            <!--                                <p th:text="#{table.stage.duration(${table.value.stageDuration/1000})}"/>-->
+                                        </div>
+                                        <!--                        <td>-->
+                                        <th:block th:each="env: ${table.value.environments.keySet()}">
+                                            <fieldset
+                                                    th:if="${('LEFT RIGHT').contains(env.toString()) && !table.value.environments.get(env).addProperties.isEmpty()}">
+                                                <legend th:text="#{table.added.properties(${env})}"/>
+                                                <th:block
+                                                        th:each="prop: ${table.value.environments.get(env).addProperties}">
+                                                    <pre th:text="${prop.key + '=' + prop.value}"/>
+                                                </th:block>
+                                            </fieldset>
+                                        </th:block>
+                                        <!--                        </td>-->
+                                    </td>
+                                    <td>
+                                        <th:block th:each="env: ${table.value.environments.keySet()}">
+                                            <fieldset
+                                                    th:if="${('LEFT RIGHT').contains(env.toString()) && !table.value.environments.get(env).issues.isEmpty()}">
+                                                <legend th:text="${env}"/>
+                                                <th:block th:each="issue: ${table.value.environments.get(env).issues}">
+                                                    <p th:text="${'# ' + issue}">
+                                                </th:block>
+                                            </fieldset>
+                                        </th:block>
+                                    </td>
+                                    <td>
+                                        <th:block th:each="env: ${table.value.environments.keySet()}">
+                                            <fieldset
+                                                    th:if="${('LEFT RIGHT').contains(env.toString()) && !table.value.environments.get(env).sql.isEmpty()}">
+                                                <legend th:text="${env}"/>
+                                                <table class="pure-table pure-table-bordered pure-table-striped">
+                                                    <tr>
+                                                        <th th:text="#{description}"/>
+                                                        <th th:text="#{action}"/>
+                                                    </tr>
+                                                    <th:block
+                                                            th:each="sqlPair: ${table.value.environments.get(env).sql}">
+                                                        <tr>
+                                                            <td th:text="${sqlPair.description}"/>
+                                                            <td>
+                                                                <pre th:text="${sqlPair.action}"/>
+                                                            </td>
+                                                        </tr>
+                                                    </th:block>
+                                                </table>
+                                            </fieldset>
+                                        </th:block>
+                                    </td>
+                                </tr>
+                            </th:block>
+                            </tbody>
+                        </table>
+                    </fieldset>
+                </th:block>
+            </div>
+        </fieldset>
+    </div>
+</div>
+</body>
+</html>

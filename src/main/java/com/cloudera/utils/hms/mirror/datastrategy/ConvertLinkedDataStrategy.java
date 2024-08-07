@@ -17,8 +17,16 @@
 
 package com.cloudera.utils.hms.mirror.datastrategy;
 
-import com.cloudera.utils.hms.mirror.*;
-import com.cloudera.utils.hms.mirror.service.HmsMirrorCfgService;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
+import com.cloudera.utils.hms.mirror.MirrorConf;
+import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
+import com.cloudera.utils.hms.mirror.domain.TableMirror;
+import com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.domain.support.HmsMirrorConfigUtil;
+import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
+import com.cloudera.utils.hms.mirror.service.ConfigService;
+import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.TableService;
 import com.cloudera.utils.hms.mirror.service.TranslatorService;
 import com.cloudera.utils.hms.util.TableUtils;
@@ -30,18 +38,25 @@ import org.springframework.stereotype.Component;
 import java.text.MessageFormat;
 
 import static com.cloudera.utils.hms.mirror.TablePropertyVars.EXTERNAL_TABLE_PURGE;
+import static java.util.Objects.isNull;
 
 @Component
 @Slf4j
 @Getter
 public class ConvertLinkedDataStrategy extends DataStrategyBase implements DataStrategy {
 
+    private ConfigService configService;
     private SchemaOnlyDataStrategy schemaOnlyDataStrategy;
     private TableService tableService;
     private TranslatorService translatorService;
 
-    public ConvertLinkedDataStrategy(HmsMirrorCfgService hmsMirrorCfgService) {
-        this.hmsMirrorCfgService = hmsMirrorCfgService;
+    @Autowired
+    public void setConfigService(ConfigService configService) {
+        this.configService = configService;
+    }
+
+    public ConvertLinkedDataStrategy(ExecuteSessionService executeSessionService) {
+        this.executeSessionService = executeSessionService;
     }
 
     @Override
@@ -50,20 +65,20 @@ public class ConvertLinkedDataStrategy extends DataStrategyBase implements DataS
     }
 
     @Override
-    public Boolean buildOutSql(TableMirror tableMirror) {
+    public Boolean buildOutSql(TableMirror tableMirror) throws MissingDataPointException {
         return null;
     }
 
     @Override
     public Boolean execute(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
         EnvironmentTable ret = tableMirror.getEnvironmentTable(Environment.RIGHT);
         try {
             // If RIGHT doesn't exist, run SCHEMA_ONLY.
-            if (ret == null) {
+            if (isNull(ret)) {
                 tableMirror.addIssue(Environment.RIGHT, "Table doesn't exist.  To transfer, run 'SCHEMA_ONLY'");
             } else {
                 // Make sure table isn't an ACID table.
@@ -72,7 +87,7 @@ public class ConvertLinkedDataStrategy extends DataStrategyBase implements DataS
                 } else if (tableMirror.isPartitioned(Environment.LEFT)) {
                     // We need to drop the RIGHT and RECREATE.
                     ret.addIssue("Table is partitioned.  Need to change data strategy to drop and recreate.");
-                    String useDb = MessageFormat.format(MirrorConf.USE, getHmsMirrorCfgService().getResolvedDB(tableMirror.getParent().getName()));
+                    String useDb = MessageFormat.format(MirrorConf.USE, HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config));
                     ret.addSql(MirrorConf.USE_DESC, useDb);
 
                     // Make sure the table is NOT set to purge.
@@ -90,13 +105,13 @@ public class ConvertLinkedDataStrategy extends DataStrategyBase implements DataS
                 } else {
                     // - AVRO LOCATION
                     if (AVROCheck(tableMirror)) {
-                        String useDb = MessageFormat.format(MirrorConf.USE, getHmsMirrorCfgService().getResolvedDB(tableMirror.getParent().getName()));
+                        String useDb = MessageFormat.format(MirrorConf.USE, HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config));
                         ret.addSql(MirrorConf.USE_DESC, useDb);
                         // Look at the table definition and get.
                         // - LOCATION
                         String sourceLocation = TableUtils.getLocation(ret.getName(), ret.getDefinition());
                         String targetLocation = getTranslatorService().
-                                translateTableLocation(tableMirror, sourceLocation, 1, null);
+                                translateLocation(tableMirror, sourceLocation, 1, null);
                         String alterLocSql = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, ret.getName(), targetLocation);
                         ret.addSql(MirrorConf.ALTER_TABLE_LOCATION_DESC, alterLocSql);
                         // TableUtils.updateTableLocation(ret, targetLocation)

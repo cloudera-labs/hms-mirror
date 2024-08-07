@@ -17,9 +17,10 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
-import com.cloudera.utils.hms.mirror.Environment;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.Pair;
 import com.cloudera.utils.hms.mirror.PhaseState;
+import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -30,14 +31,14 @@ import org.springframework.test.context.junit4.SpringRunner;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
+@SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.data-strategy=STORAGE_MIGRATION",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_ma_parts_epl_dc",
-                "--hms-mirror.conversion.test-filename=/test_data/acid_w_parts_01.yaml",
-                "--hms-mirror.config-filename=/config/default.yaml.hdp2-cdp",
-                "--hms-mirror.config.reset-to-default-location=true",
-                "--hms-mirror.config.evaluate-partition-location=true",
+                "--hms-mirror.conversion.test-filename=/test_data/acid_w_parts_02.yaml",
+                "--hms-mirror.config.filename=/config/default.yaml.cdp",
+                "--hms-mirror.config.align-locations=true",
+                "--hms-mirror.config.target-namespace=ofs://OHOME90",
                 "--hms-mirror.config.migrate-acid=true",
                 "--hms-mirror.config.distcp=true",
                 "--hms-mirror.config.warehouse-directory=/new/warehouse/managed",
@@ -87,11 +88,11 @@ public class Test_sm_ma_parts_epl_dc extends E2EBaseTest {
                 .getTableMirrors().get("acid_03")
                 .getEnvironmentTable(Environment.LEFT).getSql()) {
             if (pair.getDescription().trim().equals("Alter Table Location")) {
-                assertEquals("Location doesn't match", "ALTER TABLE acid_03 SET LOCATION \"hdfs://HDP50/new/warehouse/managed/assort_test_db.db/acid_03\"", pair.getAction());
+                assertEquals("Location doesn't match", "ALTER TABLE acid_03 SET LOCATION \"ofs://OHOME90/new/warehouse/managed/assort_test_db.db/acid_03\"", pair.getAction());
                 foundAT = Boolean.TRUE;
             }
             if (pair.getDescription().trim().equals("Alter Table Partition Spec `num`='R0L8KsIYFnLbrye' Location")) {
-                assertEquals("Location doesn't match", "ALTER TABLE acid_03 PARTITION (`num`='R0L8KsIYFnLbrye') SET LOCATION \"hdfs://HDP50/new/warehouse/managed/assort_test_db.db/acid_03/num=R0L8KsIYFnLbrye\"", pair.getAction());
+                assertEquals("Location doesn't match", "ALTER TABLE acid_03 PARTITION (`num`='R0L8KsIYFnLbrye') SET LOCATION \"ofs://OHOME90/new/warehouse/managed/assort_test_db.db/acid_03/num=R0L8KsIYFnLbrye\"", pair.getAction());
                 foundOddPart = Boolean.TRUE;
             }
 //            if (pair.getDescription().trim().equals("Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location")) {

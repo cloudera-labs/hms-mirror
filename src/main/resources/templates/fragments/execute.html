@@ -1,0 +1,65 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>View Config</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+</head>
+<body>
+
+<div th:fragment="execute">
+    <div th:if="${RUN_STATUS != null}">
+        <th:block th:unless="${RUN_STATUS.getErrorMessages().size() == 0}">
+            <p th:text="#{session.errors}"/>
+            <div th:insert="fragments/messages::view"></div>
+        </th:block>
+        <h4 th:text="#{execute}"/>
+        <form class="pure-form pure-form-aligned" th:object="${RUN_CONTAINER}">
+            <div class="pure-control-group">
+                <!-- Dry Run -->
+                <input id="dryrun" type="checkbox" th:field="*{dryrun}"/>
+                <label for="dryrun" th:text="#{dry.run}"/>
+            </div>
+<!--            <div class="pure-control-group">-->
+<!--                &lt;!&ndash; Auto GLM &ndash;&gt;-->
+<!--                <input id="autoglm" type="checkbox" th:field="*{autoGLM}"/>-->
+<!--                <label for="autoglm" th:text="#{auto.glm}"/>-->
+<!--            </div>-->
+            <div class="pure-button-group">
+                <button id="execModalBtn" class="pure-button pure-button-primary"
+                        th:formaction="@{/runtime/doStart}"
+                        th:formmethod="post" type="submit" th:text="#{button.run}"/>
+            </div>
+
+            <div th:replace="fragments/modal::modal1('execModal', 'execModalBtn', 'Please wait.  Connecting and gathering data points to run.')">
+            </div>
+        </form>
+    </div>
+    <div th:unless="${RUN_STATUS != null}">
+        <p th:text="#{session.not.available}"/>
+    </div>
+</div>
+
+</body>
+</html>

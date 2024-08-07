@@ -17,11 +17,13 @@
 
 package com.cloudera.utils.hms.mirror.feature;
 
-import com.cloudera.utils.hms.mirror.EnvironmentTable;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.regex.Pattern;
+
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Slf4j
 public class BadFieldsFFDefFeature extends BaseFeature implements Feature {
@@ -42,7 +44,7 @@ public class BadFieldsFFDefFeature extends BaseFeature implements Feature {
 
         String v = getGroupFor(FIELDS_TERMINATED_BY, schema);
         try {
-            if (v != null && 'f' == v.charAt(1)) {
+            if (!isBlank(v) && 'f' == v.charAt(1)) {
                 rtn = Boolean.TRUE;
             }
         } catch (Throwable t) {
@@ -78,7 +80,7 @@ public class BadFieldsFFDefFeature extends BaseFeature implements Feature {
 
             Boolean badDef = Boolean.FALSE;
             try {
-                if (v != null && 'f' == v.charAt(1)) {
+                if (!isBlank(v) && 'f' == v.charAt(1)) {
                     badDef = Boolean.TRUE;
                 }
             } catch (Throwable t) {

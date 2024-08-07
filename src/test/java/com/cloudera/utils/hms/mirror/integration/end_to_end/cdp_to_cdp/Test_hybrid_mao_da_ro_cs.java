@@ -18,6 +18,7 @@
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp_to_cdp;
 
 import com.cloudera.utils.hms.mirror.MessageCode;
+import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -30,21 +31,21 @@ import java.util.BitSet;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
+@SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.data-strategy=HYBRID",
                 "--hms-mirror.config.migrate-acid-only=true",
                 "--hms-mirror.config.downgrade-acid=true",
                 "--hms-mirror.config.read-only=true",
-                "--hms-mirror.config.common-storage=s3a://my_cs_bucket",
+                "--hms-mirror.config.target-namespace=s3a://my_cs_bucket",
                 "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_01.yaml",
-                "--hms-mirror.config-filename=/config/default.yaml.cdp-cdp",
+                "--hms-mirror.config.filename=/config/default.yaml.cdp-cdp",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp_cdp/hybrid_mao_da_ro_cs"
         })
 @Slf4j
 public class Test_hybrid_mao_da_ro_cs extends E2EBaseTest {
     //        String[] args = new String[]{"-d", "HYBRID",
-//                "-mao", "-da", "-ro", "-cs", COMMON_STORAGE,
+//                "-mao", "-da", "-ro", "-cs", TARGET_NAMESPACE,
 //                "-ltd", ASSORTED_TBLS_04,
 //                "-cfg", CDP_CDP,
 //                "-o", outputDir

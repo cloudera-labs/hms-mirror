@@ -17,9 +17,11 @@
 
 package com.cloudera.utils.hms.mirror.encryption;
 
-import com.cloudera.utils.hms.mirror.Environment;
-import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
+import com.cloudera.utils.hms.mirror.password.PasswordApp;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,11 +30,11 @@ import org.springframework.test.context.junit4.SpringRunner;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
+@SpringBootTest(classes = PasswordApp.class,
         args = {
 //                "--hms-mirror.config.data-strategy=EXPORT_IMPORT",
                 "--hms-mirror.config.password-key=test",
-//                "--hms-mirror.config.decrypt-password=FNLmFEI0F/n8acz45c3jVExMounSBklX",
+                "--hms-mirror.config.decrypt-password=FNLmFEI0F/n8acz45c3jVExMounSBklX",
 //                "--hms-mirror.config.migrate-acid=true",
 //                "--hms-mirror.config.migrate-acid-only=true",
 //                "--hms-mirror.config.warehouse-directory=/warehouse/managed",
@@ -43,45 +45,27 @@ import static org.junit.Assert.assertEquals;
 //                "--hms-mirror.config.sync=true",
 //                "--hms-mirror.config.evaluate-partition-location=true",
 //                "--hms-mirror.config.intermediate-storage=s3a://my_is_bucket",
-//                "--hms-mirror.config.common-storage=s3a://my_cs_bucket",
+//                "--hms-mirror.config.target-namespace=s3a://my_cs_bucket",
 //                "--hms-mirror.config.reset-to-default-location=true",
 //                "--hms-mirror.config.distcp=true",
                 "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_01.yaml",
-                "--hms-mirror.config-filename=/config/default.yaml.encrypted",
+                "--hms-mirror.config.filename=/config/default.yaml.encrypted",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/encryption/decrypt_cfg_test"
         })
 @Slf4j
-public class Test_decrypt_cfg extends E2EBaseTest {
+public class Test_decrypt_cfg extends PasswordTestBase {
+
+//    @Before
+//    public void setup() {
+//        passwordService.decryptConfigPasswords(getExecuteSession().getConfig());
+//    }
+
 
     @Test
-    public void returnCodeTest() {
+    public void validateDecryptPassword() throws EncryptionException {
         // Get Runtime Return Code.
-        long actual = getReturnCode();
-        // Verify the return code.
-        long expected = getCheckCode();
-
-        assertEquals("Return Code Failure: ", expected, actual);
-    }
-
-    @Test
-    public void validateLeftPassword() {
-        // Get Runtime Return Code.
-        assertEquals("Decrypt Password Failure: ", "myspecialpassword",
-                getConfigService().getHmsMirrorConfig().getCluster(Environment.LEFT).getHiveServer2().getConnectionProperties().getProperty("password"));
-    }
-
-    @Test
-    public void validateLeftMSPassword() {
-        // Get Runtime Return Code.
-        assertEquals("Decrypt Password Failure: ", "cdpprivaatebase",
-                getConfigService().getHmsMirrorConfig().getCluster(Environment.LEFT).getMetastoreDirect().getConnectionProperties().getProperty("password"));
-    }
-
-    @Test
-    public void validateRightPassword() {
-        // Get Runtime Return Code.
-        assertEquals("Decrypt Password Failure: ", "myspecialpassword",
-                getConfigService().getHmsMirrorConfig().getCluster(Environment.RIGHT).getHiveServer2().getConnectionProperties().getProperty("password"));
+        String value = doIt();
+        assertEquals("Decrypt PasswordApp Failure: ", "myspecialpassword", value);
     }
 
 }

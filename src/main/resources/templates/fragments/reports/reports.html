@@ -1,0 +1,115 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Reports</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+</head>
+<body>
+<div th:fragment="select">
+    <h4 th:text="#{reports}"/>
+    <form class="pure-form pure-form-aligned">
+        <div class="pure-g">
+            <div class="pure-u-1">
+                <div class="pure-control-group tooltip">
+                    <span class="tooltiptext" th:text="#{reports.tooltip}"></span>
+                    <label for="report_id" th:text="#{reports.available}"/>
+                    <select name="REPORT_ID">
+                        <option th:each="id: ${REPORT_LIST}"
+                                th:value="${id}"
+                                th:text="${id}"/>
+                    </select>
+                    <button class="pure-button"
+                            type="submit" th:text="#{button.download}"
+                            th:formaction="@{/reports/doDownload}" th:formmethod="POST"/>
+                    <button class="pure-button pure-button-primary"
+                            type="submit" th:text="#{button.details}"
+                            th:formaction="@{/reports/detail}" th:formmethod="GET"/>
+
+                    <!--                        <button class="pure-button"-->
+                    <!--                                type="submit" th:text="#{button.view}"-->
+                    <!--                                th:formaction="@{/report/view}" th:method="get"/>-->
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<div th:fragment="details">
+    <!--
+    Get a list of the databases in the report.
+    - List of Reports for the Session. (REPORT_MAP)
+    - Sql Files for each of the databases.
+
+    Link to view the Other Report Artifacts.
+    - Session Config applied when report ran.
+    - Distcp Files for the report.
+        - Distcp Workbook for the report.
+        - Distcp Shell Scripts for the report.
+
+    -->
+    <h4 th:text="#{reports.for(${SESSION_ID})}"/>
+    <b th:if="${RUN_STATUS != null && RUN_STATUS.appVersion != null}" th:text="#{version(${RUN_STATUS.appVersion})}"/>
+    <form class="pure-form pure-form-aligned">
+        <div class="pure-g">
+            <div class="pure-u-1">
+                <div class="pure-control-group">
+
+                    <th:block th:each="section: ${ARTIFACTS}">
+                        <fieldset th:if="${section.key == 'DISTCP_PLANS'}">
+                            <legend th:text="#{distcp.workbook}"/>
+                            <th:block th:each="file: ${section.value}">
+                                <a class="pure-button"
+                                   th:href="@{/reports/distcpWorkbook?REPORT_ID=__${SESSION_ID}__&FILE=__${file}__}"
+                                   target="_blank" th:text="${file}"/>
+                            </th:block>
+<!--                            <a class="pure-button"-->
+<!--                               th:href="@{/reports/distcpWorkbook?REPORT_ID=__${SESSION_ID}__}"-->
+<!--                               target="_blank" th:text="#{button.view}"/>-->
+                        </fieldset>
+                        <fieldset th:if="${section.key != 'DISTCP_PLANS'}">
+                            <legend th:text="${section.key}"/>
+                            <table class="pure-table pure-table-bordered pure-table-striped">
+                                <tr th:each="file: ${section.value}">
+                                    <td th:text="${file}"/>
+                                    <td>
+                                        <a class="pure-button"
+                                           th:if="${section.key == 'DATABASES'}"
+                                           th:href="@{/reports/dbdetail?REPORT_ID=__${SESSION_ID}__&DATABASE=__${file}__}"
+                                           target="_blank" th:text="#{button.view}"/>
+                                        <a class="pure-button"
+                                           th:unless="${section.key == 'DATABASES'}"
+                                           th:href="@{/reports/viewReportFile?REPORT_ID=__${SESSION_ID}__&FILE=__${file}__}"
+                                           target="_blank" th:text="#{button.view}"/>
+                                    </td>
+                                </tr>
+                            </table>
+                        </fieldset>
+                    </th:block>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+</html>

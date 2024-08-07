@@ -1,0 +1,132 @@
+acceptance:
+  silentOverride: false
+  backedUpHDFS: true
+  backedUpMetastore: false
+  trashConfigured: true
+  potentialDataLoss: false
+clusters:
+  LEFT:
+    environment: "LEFT"
+    legacyHive: true
+    createIfNotExists: true
+    hdpHive3: true
+    hcfsNamespace: "hdfs://HDP50"
+    hiveServer2:
+      uri: "jdbc:hive2://k02.streever.local:10000/perf_test"
+      disconnected: true
+      connectionProperties:
+        user: "*****"
+        password: "*****"
+      driverClassName: "org.apache.hive.jdbc.HiveDriver"
+      jarFile: "/Users/dstreev/.hms-mirror/aux_libs/ext/hive-jdbc-1.2.1000.2.6.5.1175-1-standalone.jar"
+    partitionDiscovery:
+      auto: false
+      initMSCK: true
+    enableAutoTableStats: false
+    enableAutoColumnStats: true
+    metastore_direct: null
+  RIGHT:
+    environment: "RIGHT"
+    legacyHive: false
+    createIfNotExists: false
+    hdpHive3: false
+    hcfsNamespace: "hdfs://HOME90"
+    hiveServer2:
+      uri: "jdbc:hive2://s03.streever.local:8443/perf_test;ssl=true;transportMode=http;httpPath=gateway/cdp-proxy-api/hive;sslTrustStore=/Users/dstreev/bin/certs/gateway-client-trust.jks;trustStorePassword=changeit"
+      disconnected: false
+      connectionProperties:
+        maxWaitMillis: "5000"
+        user: "*****"
+        password: "*****"
+        maxTotal: "-1"
+      driverClassName: "org.apache.hive.jdbc.HiveDriver"
+      jarFile: "/Users/dstreev/.hms-mirror/aux_libs/ext/hive-jdbc-3.1.3000.7.1.7.0-551-standalone.jar"
+    partitionDiscovery:
+      auto: true
+      initMSCK: true
+    enableAutoTableStats: false
+    enableAutoColumnStats: false
+    metastore_direct: null
+commandLineOptions: "test,me"
+copyAvroSchemaUrls: true
+connectionPoolLib: "HYBRID"
+dataStrategy: "STORAGE_MIGRATION"
+databaseOnly: true
+dumpTestData: true
+loadTestDataFile: "/test_data/assorted_tbls_01.yaml"
+evaluatePartitionLocation: false
+filter:
+  tblExcludeRegEx: "temp_.*"
+  tblRegEx: ".*"
+  tblSizeLimit: 300000
+  tblPartitionLimit: 20
+skipLinkCheck: true
+databases:
+  - "assorted_test_db"
+legacyTranslations:
+  rowSerde:
+    '''org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe''': "'org.apache.hadoop.hive.serde2.MultiDelimitSerDe'"
+    '''org.apache.hadoop.hive.contrib.serde2.RegexSerDe''': "'org.apache.hadoop.hive.serde2.RegexSerDe'"
+    '''org.apache.hadoop.hive.contrib.serde2.TypedBytesSerDe''': "'org.apache.hadoop.hive.serde2.TypedBytesSerDe'"
+dbPrefix: "test_"
+dbRename: null
+dumpSource: "LEFT"
+execute: true
+flip: true
+hybrid:
+  exportImportPartitionLimit: 1000
+  sqlPartitionLimit: 30000
+  sqlSizeLimit: 1073741824000
+icebergConfig:
+  version: 1
+  tableProperties: {}
+migrateACID:
+  "on": true
+  only: false
+  artificialBucketThreshold: 5
+  partitionLimit: 5000
+  downgrade: true
+  inplace: true
+migrateVIEW:
+  "on": true
+migratedNonNative: true
+optimization:
+  sortDynamicPartitionInserts: true
+  skip: false
+  autoTune: true
+  compressTextOutput: true
+  skipStatsCollection: true
+  overrides:
+    left: {}
+    right: {}
+  buildShadowStatistics: true
+outputDirectory: "/Users/dstreev/.hms-mirror/test-output/config/sm_ma_dc"
+quiet: false
+readOnly: true
+noPurge: false
+replace: true
+resetRight: false
+resetToDefaultLocation: false
+skipFeatures: true
+skipLegacyTranslation: false
+sqlOutput: true
+sync: true
+transfer:
+  transferPrefix: "weird_"
+  shadowPrefix: "my_shadow_"
+  exportBaseDirPrefix: "/warehouse/tablespace/export_"
+  remoteWorkingDirectory: "remote_working"
+  intermediateStorage: "s3a://my_special_bucket"
+  commonStorage: "hdfs://HDP50"
+  storageMigration:
+    dataMovementStrategy: "EXPORT_IMPORT"
+    dataFlow: "PUSH"
+  warehouse:
+    managedDirectory: "/my/managed/warehouse"
+    externalDirectory: "/my/external/warehouse"
+transferOwnership: true
+translator:
+  forceExternalLocation: true
+  globalLocationMap:
+    /user/dstreev/datasets/alt-locations/load_web_sales: "/finance/external-fso/load_web_sales"
+    /warehouse/tablespace/external/hive: "/finance/external-fso"

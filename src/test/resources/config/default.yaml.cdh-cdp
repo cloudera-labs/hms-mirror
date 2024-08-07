@@ -1,6 +1,9 @@
 # Config
 transfer:
   concurrency: 10
+  warehouse:
+    managedDirectory: "/warehouse/tablespace/managed/hive"
+    externalDirectory: "/warehouse/tablespace/external/hive"
 clusters:
   LEFT:
     legacyHive: "true"

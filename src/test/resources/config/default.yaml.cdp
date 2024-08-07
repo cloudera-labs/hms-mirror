@@ -9,6 +9,16 @@ clusters:
   LEFT:
     legacyHive: "false"
     hcfsNamespace: "hdfs://HOME90"
+    metastore_direct:
+      uri: "jdbc:mysql://local:3306/hive"
+      type: MYSQL
+      connectionProperties:
+        user: "cloudera"
+        password: "cloudera"
+      connectionPool:
+        min: 3
+        max: 5
     partitionDiscovery:
       auto: true
       initMSCK: true
+

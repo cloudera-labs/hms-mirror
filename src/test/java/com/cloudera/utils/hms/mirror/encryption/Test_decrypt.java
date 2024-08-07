@@ -17,8 +17,8 @@
 
 package com.cloudera.utils.hms.mirror.encryption;
 
-import com.cloudera.utils.hms.mirror.MessageCode;
-import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
+import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
+import com.cloudera.utils.hms.mirror.password.PasswordApp;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,7 +28,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
+@SpringBootTest(classes = PasswordApp.class,
         args = {
 //                "--hms-mirror.config.data-strategy=EXPORT_IMPORT",
                 "--hms-mirror.config.password-key=test",
@@ -43,39 +43,23 @@ import static org.junit.Assert.assertEquals;
 //                "--hms-mirror.config.sync=true",
 //                "--hms-mirror.config.evaluate-partition-location=true",
 //                "--hms-mirror.config.intermediate-storage=s3a://my_is_bucket",
-//                "--hms-mirror.config.common-storage=s3a://my_cs_bucket",
+//                "--hms-mirror.config.target-namespace=s3a://my_cs_bucket",
 //                "--hms-mirror.config.reset-to-default-location=true",
 //                "--hms-mirror.config.distcp=true",
 //                "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_01.yaml",
-                "--hms-mirror.config-filename=/config/default.yaml.encrypted",
+//                "--hms-mirror.config.filename=/config/default.yaml.encrypted",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/encryption/decrypt_test"
         })
 @Slf4j
-public class Test_decrypt extends E2EBaseTest {
-    //        String[] args = new String[]{"-pkey", PKEY,
-//                "-dp", "FNLmFEI0F/n8acz45c3jVExMounSBklX",
-//                "-cfg", ENCRYPTED
-//        };
-//
-//        long rtn = 0;
-//        CommandLineOptions commandLineOptions = new CommandLineOptions();
-//        CommandLine cmd = commandLineOptions.getCommandLine(args);
+public class Test_decrypt extends PasswordTestBase {
 
     @Test
-    public void returnCodeTest() {
-        // Get Runtime Return Code.
-        long actual = getReturnCode();
-        // Verify the return code.
-        long expected = getCheckCode(MessageCode.PASSWORD_CFG);
+    public void validateDecryptPassword() throws EncryptionException {
 
-        assertEquals("Return Code Failure: ", expected, actual);
-    }
+        String decryptedPassword = doIt();
 
-    @Test
-    public void validatePassword() {
-        // Get Runtime Return Code.
-        assertEquals("Decrypt Password Failure: ", "myspecialpassword",
-                getConfigService().getHmsMirrorConfig().getPassword());
+        assertEquals("Decrypt PasswordApp Failure: ", "myspecialpassword",
+                decryptedPassword);
     }
 
 }

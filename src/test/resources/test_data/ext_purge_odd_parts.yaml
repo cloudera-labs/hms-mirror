@@ -91,7 +91,7 @@ databases:
             cleanUpSql: []
     phaseSummary:
       INIT: 1
-    dbdefinitions:
+    properties:
       LEFT:
         DB_NAME: "ext_purge_odd_parts"
         LOCATION: "hdfs://HDP50/warehouse/tablespace/external/hive/ext_purge_odd_parts.db"

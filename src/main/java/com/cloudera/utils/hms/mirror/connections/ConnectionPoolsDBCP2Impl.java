@@ -18,156 +18,58 @@
 package com.cloudera.utils.hms.mirror.connections;
 
 import com.cloudera.utils.hive.config.DBStore;
-import com.cloudera.utils.hms.mirror.Environment;
-import com.cloudera.utils.hms.mirror.HiveServer2Config;
-import com.cloudera.utils.hms.mirror.service.HmsMirrorCfgService;
+import com.cloudera.utils.hms.mirror.domain.HiveServer2Config;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
+import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
+import com.cloudera.utils.hms.mirror.exceptions.SessionException;
+import com.cloudera.utils.hms.mirror.service.PasswordService;
 import com.cloudera.utils.hms.util.DriverUtils;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.*;
 import org.apache.commons.pool2.ObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 
 import javax.sql.DataSource;
+import java.net.URISyntaxException;
 import java.sql.Connection;
-import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
-import java.util.TreeMap;
+
+import static java.util.Objects.nonNull;
 
 @Slf4j
-public class ConnectionPoolsDBCP2Impl implements ConnectionPools {
+public class ConnectionPoolsDBCP2Impl extends ConnectionPoolsBase implements ConnectionPools {
 
-    private final Map<Environment, PoolingDataSource<PoolableConnection>> hs2DataSources = new TreeMap<>();
-    private final Map<Environment, Driver> hs2Drivers = new TreeMap<>();
-    private final Map<Environment, HiveServer2Config> hiveServerConfigs = new TreeMap<>();
-    private final Map<Environment, DBStore> metastoreDirectConfigs = new TreeMap<>();
-    private final Map<Environment, PoolingDataSource<PoolableConnection>> metastoreDirectDataSources = new TreeMap<>();
-    @Getter
-    private final HmsMirrorCfgService hmsMirrorCfgService;
-
-    public ConnectionPoolsDBCP2Impl(HmsMirrorCfgService hmsMirrorCfgService) {
-        this.hmsMirrorCfgService = hmsMirrorCfgService;
+    public ConnectionPoolsDBCP2Impl(ExecuteSession executeSession, PasswordService passwordService) {
+        this.executeSession = executeSession;
+        this.passwordService = passwordService;
     }
 
-    public void addHiveServer2(Environment environment, HiveServer2Config hiveServer2) {
-        hiveServerConfigs.put(environment, hiveServer2);
-    }
-
-    public void addMetastoreDirect(Environment environment, DBStore dbStore) {
-        metastoreDirectConfigs.put(environment, dbStore);
-    }
-
-    public void close() {
-        try {
-            if (hs2DataSources.get(Environment.LEFT) != null)
-                hs2DataSources.get(Environment.LEFT).close();
-        } catch (SQLException throwables) {
-            //
-        }
-        try {
-            if (hs2DataSources.get(Environment.RIGHT) != null)
-                hs2DataSources.get(Environment.RIGHT).close();
-        } catch (SQLException throwables) {
-            //
-        }
-        try {
-            if (metastoreDirectDataSources.get(Environment.LEFT) != null)
-                metastoreDirectDataSources.get(Environment.LEFT).close();
-        } catch (SQLException throwables) {
-            //
-        }
-        try {
-            if (metastoreDirectDataSources.get(Environment.RIGHT) != null)
-                metastoreDirectDataSources.get(Environment.RIGHT).close();
-        } catch (SQLException throwables) {
-            //
-        }
-    }
-
-    public synchronized Connection getHS2EnvironmentConnection(Environment environment) throws SQLException {
-        Driver lclDriver = getHS2EnvironmentDriver(environment);
-        Connection conn = null;
-        if (lclDriver != null) {
-            DriverManager.registerDriver(lclDriver);
-            try {
-                DataSource ds = getHS2EnvironmentDataSource(environment);
-                if (ds != null)
-                    conn = ds.getConnection();
-            } catch (Throwable se) {
-                log.error(se.getMessage(), se);
-                throw new RuntimeException(se);
-            } finally {
-                DriverManager.deregisterDriver(lclDriver);
-            }
-        }
-        return conn;
-    }
-
-    protected DataSource getHS2EnvironmentDataSource(Environment environment) {
-        return hs2DataSources.get(environment);
-    }
-
-    protected synchronized Driver getHS2EnvironmentDriver(Environment environment) {
-        return hs2Drivers.get(environment);
-    }
-
-    public synchronized Connection getMetastoreDirectEnvironmentConnection(Environment environment) throws SQLException {
-        Connection conn = null;
-        DataSource ds = getMetastoreDirectEnvironmentDataSource(environment);
-        if (ds != null)
-            conn = ds.getConnection();
-        return conn;
-    }
-
-    protected DataSource getMetastoreDirectEnvironmentDataSource(Environment environment) {
-        return metastoreDirectDataSources.get(environment);
-    }
-
-    public void init() throws SQLException {
-        if (!getHmsMirrorCfgService().getHmsMirrorConfig().isLoadingTestData()) {
-            initHS2Drivers();
-            initHS2PooledDataSources();
-            // Only init if we are going to use it. (`-epl`).
-            if (getHmsMirrorCfgService().loadPartitionMetadata()) {
-                initMetastoreDataSources();
-            }
-        }
-
-    }
-
-    protected void initHS2Drivers() throws SQLException {
-        Set<Environment> environments = new HashSet<>();
-        environments.add(Environment.LEFT);
-        environments.add(Environment.RIGHT);
-
-        for (Environment environment : environments) {
-            HiveServer2Config hs2Config = hiveServerConfigs.get(environment);
-            if (hs2Config != null) {
-                Driver driver = DriverUtils.getDriver(hs2Config.getDriverClassName(), hs2Config.getJarFile(), environment);
-                // Need to deregister, because it was registered in the getDriver.
-                try {
-                    DriverManager.deregisterDriver(driver);
-                } catch (SQLException throwables) {
-                    log.error(throwables.getMessage(), throwables);
-                    throw throwables;
-                }
-                hs2Drivers.put(environment, driver);
-            }
-        }
-    }
-
-    protected void initHS2PooledDataSources() {
+    protected void initHS2PooledDataSources() throws SessionException, EncryptionException {
         Set<Environment> environments = hiveServerConfigs.keySet();
 
         for (Environment environment : environments) {
             HiveServer2Config hs2Config = hiveServerConfigs.get(environment);
             if (!hs2Config.isDisconnected()) {
+                // Make a copy.
+                Properties connProperties = new Properties();
+                connProperties.putAll(hs2Config.getConnectionProperties());
+                // If the ExecuteSession has the 'passwordKey' set, resolve Encrypted PasswordApp first.
+                if (executeSession.getConfig().isEncryptedPasswords()) {
+                    if (nonNull(executeSession.getConfig().getPasswordKey()) && !executeSession.getConfig().getPasswordKey().isEmpty()) {
+                        String encryptedPassword = connProperties.getProperty("password");
+                        String decryptedPassword = passwordService.decryptPassword(executeSession.getConfig().getPasswordKey(), encryptedPassword);
+                        connProperties.setProperty("password", decryptedPassword);
+                    } else {
+                        throw new SessionException("Passwords encrypted, but no password key present.");
+                    }
+                }
+
                 ConnectionFactory connectionFactory =
-                        new DriverManagerConnectionFactory(hs2Config.getUri(), hs2Config.getConnectionProperties());
+                        new DriverManagerConnectionFactory(hs2Config.getUri(), connProperties);
 
                 PoolableConnectionFactory poolableConnectionFactory =
                         new PoolableConnectionFactory(connectionFactory, null);
@@ -199,15 +101,32 @@ public class ConnectionPoolsDBCP2Impl implements ConnectionPools {
         }
     }
 
-    protected void initMetastoreDataSources() {
+    @Override
+    protected void initMetastoreDataSources() throws SessionException, EncryptionException {
         // Metastore Direct
         Set<Environment> environments = metastoreDirectConfigs.keySet();
         for (Environment environment : environments) {
             DBStore metastoreDirectConfig = metastoreDirectConfigs.get(environment);
 
             if (metastoreDirectConfig != null) {
+
+                // Make a copy.
+                Properties connProperties = new Properties();
+                connProperties.putAll(metastoreDirectConfig.getConnectionProperties());
+                // If the ExecuteSession has the 'passwordKey' set, resolve Encrypted PasswordApp first.
+                if (executeSession.getConfig().isEncryptedPasswords()) {
+
+                    if (nonNull(executeSession.getConfig().getPasswordKey()) && !executeSession.getConfig().getPasswordKey().isEmpty()) {
+                        String encryptedPassword = connProperties.getProperty("password");
+                        String decryptedPassword = passwordService.decryptPassword(executeSession.getConfig().getPasswordKey(), encryptedPassword);
+                        connProperties.setProperty("password", decryptedPassword);
+                    } else {
+                        throw new SessionException("Passwords encrypted, but no password key present.");
+                    }
+                }
+
                 ConnectionFactory msconnectionFactory =
-                        new DriverManagerConnectionFactory(metastoreDirectConfig.getUri(), metastoreDirectConfig.getConnectionProperties());
+                        new DriverManagerConnectionFactory(metastoreDirectConfig.getUri(), connProperties);
 
                 PoolableConnectionFactory mspoolableConnectionFactory =
                         new PoolableConnectionFactory(msconnectionFactory, null);
@@ -216,6 +135,18 @@ public class ConnectionPoolsDBCP2Impl implements ConnectionPools {
                         new GenericObjectPool<>(mspoolableConnectionFactory);
 
                 mspoolableConnectionFactory.setPool(msconnectionPool);
+
+                // Attempt to get the Driver Version for the Metastore Direct Connection.
+                try {
+                    DataSource ds = getMetastoreDirectEnvironmentDataSource(environment);
+                    Class driverClass = DriverManager.getDriver(ds.getConnection().getMetaData().getURL()).getClass();
+                    String jarFile = DriverUtils.byGetProtectionDomain(driverClass);
+                    log.info("{} - Metastore Direct JDBC JarFile: {}", environment, jarFile);
+                } catch (SQLException | URISyntaxException e) {
+                    log.error("Issue getting Metastore Direct JDBC JarFile details", e);
+//                    throw new RuntimeException(e);
+                }
+
                 metastoreDirectDataSources.put(environment, new PoolingDataSource<>(msconnectionPool));
                 // Test Connection.
                 Connection conn = null;

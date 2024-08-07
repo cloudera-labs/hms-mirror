@@ -17,8 +17,15 @@
 
 package com.cloudera.utils.hms.mirror.datastrategy;
 
-import com.cloudera.utils.hms.mirror.*;
-import com.cloudera.utils.hms.mirror.service.HmsMirrorCfgService;
+import com.cloudera.utils.hms.mirror.CopySpec;
+import com.cloudera.utils.hms.mirror.CreateStrategy;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
+import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
+import com.cloudera.utils.hms.mirror.domain.TableMirror;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
+import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
+import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.TableService;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
@@ -36,13 +43,15 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
     private SchemaOnlyDataStrategy schemaOnlyDataStrategy;
     private TableService tableService;
 
-    public LinkedDataStrategy(HmsMirrorCfgService hmsMirrorCfgService) {
-        this.hmsMirrorCfgService = hmsMirrorCfgService;
+    public LinkedDataStrategy(ExecuteSessionService executeSessionService) {
+        this.executeSessionService = executeSessionService;
     }
 
     @Override
-    public Boolean buildOutDefinition(TableMirror tableMirror) {
+    public Boolean buildOutDefinition(TableMirror tableMirror) throws RequiredConfigurationException {
         Boolean rtn = Boolean.FALSE;
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+
         log.debug("Table: {} buildout LINKED Definition", tableMirror.getName());
         EnvironmentTable let = null;
         EnvironmentTable ret = null;
@@ -56,12 +65,12 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
         if (TableUtils.isHiveNative(let) && !TableUtils.isACID(let)) {
             // Swap out the namespace of the LEFT with the RIGHT.
             copySpec.setReplaceLocation(Boolean.FALSE);
-            if (getHmsMirrorCfgService().getHmsMirrorConfig().convertManaged())
+            if (hmsMirrorConfig.convertManaged())
                 copySpec.setUpgrade(Boolean.TRUE);
             // LINKED doesn't own the data.
             copySpec.setTakeOwnership(Boolean.FALSE);
 
-            if (getHmsMirrorCfgService().getHmsMirrorConfig().isSync()) {
+            if (hmsMirrorConfig.isSync()) {
                 // We assume that the 'definitions' are only there is the
                 //     table exists.
                 if (!let.isExists() && ret.isExists()) {
@@ -113,13 +122,14 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
     }
 
     @Override
-    public Boolean buildOutSql(TableMirror tableMirror) {
+    public Boolean buildOutSql(TableMirror tableMirror) throws MissingDataPointException {
         return schemaOnlyDataStrategy.execute(tableMirror);
     }
 
     @Override
     public Boolean execute(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
         EnvironmentTable tet = getEnvironmentTable(Environment.TRANSFER, tableMirror);
@@ -130,11 +140,21 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
             tableMirror.addIssue(Environment.LEFT, "You can't 'LINK' ACID tables.");
             rtn = Boolean.FALSE;
         } else {
-            rtn = buildOutDefinition(tableMirror);//tblMirror.buildoutLINKEDDefinition(config, dbMirror);
+            try {
+                rtn = buildOutDefinition(tableMirror);//tblMirror.buildoutLINKEDDefinition(config, dbMirror);
+            } catch (RequiredConfigurationException e) {
+                let.addIssue("Failed to build out definition: " + e.getMessage());
+                rtn = Boolean.FALSE;
+            }
         }
 
         if (rtn) {
-            rtn = buildOutSql(tableMirror);//tblMirror.buildoutLINKEDSql(config, dbMirror);
+            try {
+                rtn = buildOutSql(tableMirror);//tblMirror.buildoutLINKEDSql(config, dbMirror);
+            } catch (MissingDataPointException e) {
+                let.addIssue("Failed to build out SQL: " + e.getMessage());
+                rtn = Boolean.FALSE;
+            }
         }
 
         // Execute the RIGHT sql if config.execute.

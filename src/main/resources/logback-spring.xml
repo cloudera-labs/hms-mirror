@@ -44,7 +44,7 @@
             </fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy
                     class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>10MB</maxFileSize>
+                <maxFileSize>100MB</maxFileSize>
             </timeBasedFileNamingAndTriggeringPolicy>
         </rollingPolicy>
     </appender>
@@ -54,24 +54,28 @@
 <!--        <appender-ref ref="RollingFile"/>-->
 <!--        <appender-ref ref="Console"/>-->
 <!--    </root>-->
-    <root level="OFF">
-<!--        <appender-ref ref="RollingFile"/>-->
+    <root level="debug">
+        <appender-ref ref="RollingFile"/>
         <appender-ref ref="Console"/>
     </root>
 
+    <logger name="org.springframework" level="warn" additivity="false">
+        <appender-ref ref="RollingFile"/>
+        <appender-ref ref="Console"/>
+    </logger>
     <logger name="com.cloudera.utils" level="debug" additivity="false">
         <appender-ref ref="RollingFile"/>
     </logger>
 <!--    <logger name="com.cloudera.utils.hadoop.cli" level="warn" additivity="false">-->
 <!--        <appender-ref ref="RollingFile"/>-->
 <!--    </logger>-->
-<!--    <logger name="com.cloudera.utils.hms.HmsMirrorCommandLineOptions" level="debug" additivity="false">-->
+<!--    <logger name="com.cloudera.utils.hms.mirror.cli.HmsMirrorCommandLineOptions" level="debug" additivity="false">-->
 <!--        <appender-ref ref="RollingFile"/>-->
 <!--    </logger>-->
-<!--    <logger name="com.cloudera.utils.hms.mirror.DBMirror" level="debug" additivity="false">-->
+<!--    <logger name="com.cloudera.utils.hms.mirror.domain.DBMirror" level="debug" additivity="false">-->
 <!--        <appender-ref ref="RollingFile"/>-->
 <!--    </logger>-->
-<!--    <logger name="com.cloudera.utils.hms.mirror.Cluster" level="debug" additivity="false">-->
+<!--    <logger name="com.cloudera.utils.hms.mirror.domain.Cluster" level="debug" additivity="false">-->
 <!--        <appender-ref ref="RollingFile"/>-->
 <!--    </logger>-->
 <!--    <logger name="com.cloudera.utils.hms.mirror.service.TableService" level="debug" additivity="false">-->
@@ -81,16 +85,32 @@
 <!--        <appender-ref ref="RollingFile"/>-->
 <!--    </logger>-->
 
-    <logger name="com.cloudera.utils.hms.HmsMirrorCommandLineOptions" level="info" additivity="false">
+<!--    <logger name="com.cloudera.utils.hms.mirror.connections" level="info" additivity="false">-->
+<!--        <appender-ref ref="RollingFile"/>-->
+<!--        <appender-ref ref="Console"/>-->
+<!--    </logger>-->
+    <logger name="com.cloudera.utils.hms.mirror.cli.HmsMirrorCommandLineOptions" level="info" additivity="false">
         <appender-ref ref="Console"/>
     </logger>
-    <logger name="com.cloudera.utils.hms.mirror.DBMirror" level="info" additivity="false">
+    <logger name="com.cloudera.utils.hms.mirror.service.ReportWriterService" level="info" additivity="false">
         <appender-ref ref="Console"/>
     </logger>
-    <logger name="com.cloudera.utils.hms.mirror.Cluster" level="info" additivity="false">
+    <logger name="com.cloudera.utils.hms.mirror.domain.DBMirror" level="info" additivity="false">
+        <appender-ref ref="Console"/>
+    </logger>
+    <logger name="com.cloudera.utils.hms.mirror.domain" level="warn" additivity="false">
+        <appender-ref ref="Console"/>
+    </logger>
+    <logger name="com.cloudera.utils.hms.mirror.domain.Cluster" level="info" additivity="false">
+        <appender-ref ref="Console"/>
+    </logger>
+    <logger name="com.cloudera.utils.hms.mirror.password" level="info" additivity="false">
         <appender-ref ref="Console"/>
     </logger>
     <logger name="com.cloudera.utils.hms.mirror.service.TableService" level="info" additivity="false">
+        <appender-ref ref="Console"/>
+    </logger>
+    <logger name="com.cloudera.utils.hms.mirror.web" level="debug" additivity="false">
         <appender-ref ref="Console"/>
     </logger>
     <logger name="com.cloudera.utils.hms.mirror.service.TransferService" level="warn" additivity="false">
@@ -117,12 +137,12 @@
         <appender-ref ref="Console"/>
     </logger>
 
-<!--    <logger name="org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener" level="debug"-->
-<!--            additivity="false">-->
-<!--        <appender-ref ref="RollingFile"/>-->
-<!--    </logger>-->
-<!--    <logger name="org.springframework.beans.factory" level="trace" additivity="false">-->
-<!--        <appender-ref ref="RollingFile"/>-->
-<!--    </logger>-->
+    <logger name="org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener" level="debug"
+            additivity="false">
+        <appender-ref ref="RollingFile"/>
+    </logger>
+    <logger name="org.springframework.beans.factory" level="trace" additivity="false">
+        <appender-ref ref="RollingFile"/>
+    </logger>
 
 </configuration>

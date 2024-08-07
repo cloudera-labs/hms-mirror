@@ -18,6 +18,7 @@
 package com.cloudera.utils.hms.mirror.integration.end_to_end.legacy_to_cdp;
 
 import com.cloudera.utils.hms.mirror.MessageCode;
+import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -28,24 +29,24 @@ import org.springframework.test.context.junit4.SpringRunner;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
+@SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.data-strategy=SQL",
 //                "--hms-mirror.config.migrate-acid=true",
 //                "--hms-mirror.config.migrate-acid-only=true",
-//                "--hms-mirror.config.warehouse-directory=/warehouse/managed",
-//                "--hms-mirror.config.external-warehouse-directory=/warehouse/external",
+                "--hms-mirror.config.warehouse-directory=/warehouse/managed",
+                "--hms-mirror.config.external-warehouse-directory=/warehouse/external",
 //                "--hms-mirror.config.sort-dynamic-partition-inserts=true",
 //                "--hms-mirror.config.downgrade-acid=true",
                 "--hms-mirror.config.read-only=true",
 //                "--hms-mirror.config.sync=true",
 //                "--hms-mirror.config.evaluate-partition-location=true",
 //                "--hms-mirror.config.intermediate-storage=s3a://my_is_bucket",
-//                "--hms-mirror.config.common-storage=s3a://my_cs_bucket",
+//                "--hms-mirror.config.target-namespace=s3a://my_cs_bucket",
 //                "--hms-mirror.config.reset-to-default-location=true",
 //                "--hms-mirror.config.distcp=true",
                 "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_01.yaml",
-                "--hms-mirror.config-filename=/config/default.yaml.hdp2-cdp",
+                "--hms-mirror.config.filename=/config/default.yaml.hdp2-cdp",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/legacy_cdp/sql_ro"
         })
 @Slf4j
@@ -71,8 +72,12 @@ public class Test_sql_ro extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        long check = MessageCode.RO_DB_DOESNT_EXIST.getLong();
-        assertEquals("Return Code Failure: " + rtn, check * -1, rtn);
+        // Under normal conditions, this should fail because the DB doesn't exist yet and
+        // this state would compromise the integrity of the data.  Under test conditions,
+        // this doesn't get triggered because of the "loadTestData" method.
+        // This test is currently a false positive.
+        long check = getCheckCode(MessageCode.RO_DB_DOESNT_EXIST);
+        assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 
 

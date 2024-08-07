@@ -1,0 +1,73 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title th:text="#{report.for.database(${REPORT_ID},${DATABASE})}"></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/report.css}">
+</head>
+<body>
+
+<div class="pure-g">
+    <div class="pure-u-1">
+<!--        <h2 th:text="#{detailed.distcp.report(${DB_MIRROR.name})}"/>-->
+<!--        <hr>-->
+        <b th:if="${RUN_STATUS != null && RUN_STATUS.appVersion != null}"
+           th:text="#{version(${RUN_STATUS.appVersion})}"/>
+    </div>
+    <div class="pure-u-1">
+        <table class="pure-table pure-table-bordered pure-table-striped">
+            <thead>
+            <tr>
+                <th th:text="#{database}"/>
+                <th th:text="#{target}"/>
+                <th th:text="#{sources}"/>
+            </tr>
+            </thead>
+            <tbody>
+            <!--
+            Map<String, Map<String, Set<String>>>
+            -->
+            <th:block th:each="databasePlanEntry, planStats : ${DISTCP_PLANS}">
+                <tr>
+                    <td th:text="${databasePlanEntry.key}" colspan="3"/>
+                </tr>
+                <th:block th:each="target, targetStats: ${databasePlanEntry.value}">
+                    <tr>
+                        <td/>
+                        <td th:text="${target.key}"/>
+                        <td>
+                            <th:block th:each="source: ${target.value}">
+                                <span th:text="${source}"/>
+                                <br/>
+                            </th:block>
+                        </td>
+                    </tr>
+                </th:block>
+            </th:block>
+            </tbody>
+        </table>
+<!--        <h3 th:text="#{report.for.database(${REPORT_ID},${DATABASE})}"/>-->
+
+    </div>
+</body>
+</html>

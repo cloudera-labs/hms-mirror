@@ -17,11 +17,17 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end;
 
-import com.cloudera.utils.hms.mirror.*;
+import com.cloudera.utils.hms.mirror.domain.DBMirror;
+import com.cloudera.utils.hms.mirror.MessageCode;
+import com.cloudera.utils.hms.mirror.Pair;
+import com.cloudera.utils.hms.mirror.PhaseState;
+import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
+import com.cloudera.utils.hms.mirror.domain.support.Conversion;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.service.DomainService;
+import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.HMSMirrorAppService;
-import com.cloudera.utils.hms.mirror.service.HmsMirrorCfgService;
 import com.cloudera.utils.hms.util.TableUtils;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
@@ -34,7 +40,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -42,6 +47,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
+import static com.cloudera.utils.hms.mirror.MirrorConf.*;
 import static org.junit.Assert.*;
 
 @Slf4j
@@ -49,52 +55,30 @@ import static org.junit.Assert.*;
 @ActiveProfiles("no-cli")
 public class E2EBaseTest {
 
-    protected HMSMirrorAppService HMSMirrorAppService;
+    protected DomainService domainService;
+    protected HMSMirrorAppService hmsMirrorAppService;
+    protected ExecuteSessionService executeSessionService;
+    //HMSMirrorAppService;
 
     protected HmsMirrorConfig getConfig() {
-        return getConfigService().getHmsMirrorConfig();
+        return executeSessionService.getSession().getConfig();
     }
 
-    protected HmsMirrorCfgService getConfigService() {
-        return HMSMirrorAppService.getHmsMirrorCfgService();
+    protected ExecuteSessionService getExecuteSessionService() {
+        return executeSessionService;
     }
 
     protected Conversion getConversion() {
-        return HMSMirrorAppService.getConversion();
+        return executeSessionService.getSession().getConversion();
     }
 
     protected String[] getDatabasesFromTestDataFile(String testDataSet) {
         System.out.println("Test data file: " + testDataSet);
+        Conversion conversion = domainService.deserializeConversion(testDataSet);
+        String[] databases = null;
 
-        URL configURL = this.getClass().getResource(testDataSet);
-        if (configURL == null) {
+        databases = conversion.getDatabases().keySet().toArray(new String[0]);
 
-            File conversionFile = new File(testDataSet);
-            if (!conversionFile.exists())
-                throw new RuntimeException("Couldn't locate test data file: " + testDataSet);
-            try {
-                configURL = conversionFile.toURI().toURL();
-            } catch (MalformedURLException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
-        String yamlCfgFile = null;
-        try {
-            yamlCfgFile = IOUtils.toString(configURL, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        Conversion conversion = null;
-        try {
-            conversion = mapper.readerFor(Conversion.class).readValue(yamlCfgFile);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-        // Set Config Databases;
-        String[] databases = getConversion().getDatabases().keySet().toArray(new String[0]);
         return databases;
     }
 
@@ -135,9 +119,9 @@ public class E2EBaseTest {
         return expected * -1;
     }
 
-    protected Progression getProgression() {
-        return HMSMirrorAppService.getProgression();
-    }
+//    protected RunStatus getProgression() {
+//        return HMSMirrorAppService.getRunStatus();
+//    }
 
     protected DBMirror[] getResults(String outputDirBase, String sourceTestDataSet) {
         List<DBMirror> dbMirrorList = new ArrayList<>();
@@ -176,24 +160,39 @@ public class E2EBaseTest {
     }
 
     protected Long getReturnCode() {
-        return getHMSMirrorAppService().getReturnCode();
+        return hmsMirrorAppService.getReturnCode();
+//        return executeSessionService.getCurrentSession().getRunStatus().getErrors().getReturnCode();
+    }
+
+    protected Long getWarningCode() {
+        return hmsMirrorAppService.getWarningCode();
     }
 
     @Autowired
-    public void setHMSMirrorAppService(HMSMirrorAppService HMSMirrorAppService) {
-        this.HMSMirrorAppService = HMSMirrorAppService;
+    public void setDomainService(DomainService domainService) {
+        this.domainService = domainService;
+    }
+
+    @Autowired
+    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
+        this.executeSessionService = executeSessionService;
+    }
+
+    @Autowired
+    public void setHmsMirrorAppService(HMSMirrorAppService hmsMirrorAppService) {
+        this.hmsMirrorAppService = hmsMirrorAppService;
     }
 
     protected void validateDBLocation(String database, Environment environment, String expectedLocation) {
         assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("DB Environment doesn't exist", getConversion().getDatabase(database).getDBDefinitions().containsKey(environment));
-        assertEquals("Location doesn't match", expectedLocation, getConversion().getDatabase(database).getDBDefinitions().get(environment).get("LOCATION"));
+        assertTrue("DB Environment doesn't exist", getConversion().getDatabase(database).getProperties().containsKey(environment));
+        assertEquals("Location doesn't match", expectedLocation, getConversion().getDatabase(database).getProperties().get(environment).get(DB_LOCATION));
     }
 
     protected void validateDBManagedLocation(String database, Environment environment, String expectedLocation) {
         assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("DB Environment doesn't exist", getConversion().getDatabase(database).getDBDefinitions().containsKey(environment));
-        assertEquals("Managed Location doesn't match", expectedLocation, getConversion().getDatabase(database).getDBDefinitions().get(environment).get("MANAGEDLOCATION"));
+        assertTrue("DB Environment doesn't exist", getConversion().getDatabase(database).getProperties().containsKey(environment));
+        assertEquals("Managed Location doesn't match", expectedLocation, getConversion().getDatabase(database).getProperties().get(environment).get(DB_MANAGED_LOCATION));
     }
 
     protected void validatePartitionCount(String database, String tableName, Environment environment, int expectedIssueCount) {

@@ -1,0 +1,84 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Session</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+</head>
+<body>
+
+<div th:fragment="view">
+    <h4 th:text="#{migrate.options}"/>
+    <fieldset>
+        <legend th:text="#{acid.options}"/>
+        <div class="pure-control-group">
+            <input type="checkbox" name="migrateacidon"
+                   th:field="*{migrateACID.on}"
+                   th:checked="${CONFIG.migrateACID.on}"/>
+            <label for="migrateacidon" th:text="#{config.migrateACID.on}"></label>
+        </div>
+        <div class="pure-control-group">
+            <input type="checkbox" name="migrateacidonly"
+                   th:field="*{migrateACID.only}"
+                   th:checked="${CONFIG.migrateACID.only}"/>
+            <label for="migrateacidonly" th:text="#{config.migrateACID.only}"></label>
+        </div>
+        <div class="pure-control-group">
+            <label for="artificialBucketThreshold"
+                   th:text="#{config.migrateACID.artificialBucketThreshold}"></label>
+            <input type="number" name="artificialBucketThreshold"
+                   th:field="*{migrateACID.artificialBucketThreshold}"/>
+        </div>
+        <div class="pure-control-group">
+            <input type="checkbox" name="aciddowngrade"
+                   th:field="*{migrateACID.downgrade}"
+                   th:checked="${CONFIG.migrateACID.downgrade}"/>
+            <label for="aciddowngrade" th:text="#{config.migrateACID.downgrade}"></label>
+        </div>
+        <div class="pure-control-group">
+            <input type="checkbox" name="acidinplace"
+                   th:field="*{migrateACID.inplace}"
+                   th:checked="${CONFIG.migrateACID.inplace}"/>
+            <label for="acidinplace" th:text="#{config.migrateACID.inplace}"></label>
+        </div>
+    </fieldset>
+
+    <div class="pure-control-group">
+        <label for="migrateviewon" th:text="#{config.migrateVIEW.on}"></label>
+        <input type="checkbox" name="migrateviewon"
+               th:field="*{migrateVIEW.on}"
+               th:checked="${CONFIG.migrateVIEW.on}"/>
+    </div>
+    <div class="pure-control-group">
+        <label for="migratenonnative" th:text="#{config.migratedNonNative}"></label>
+        <input type="checkbox" name="migratenonnative"
+               th:field="*{migratedNonNative}"
+               th:checked="${CONFIG.migratedNonNative}"/>
+    </div>
+
+</div>
+
+</body>
+</html>

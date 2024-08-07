@@ -17,10 +17,12 @@
 
 package com.cloudera.utils.hms.mirror.datastrategy;
 
-import com.cloudera.utils.hms.mirror.Environment;
-import com.cloudera.utils.hms.mirror.EnvironmentTable;
-import com.cloudera.utils.hms.mirror.TableMirror;
-import com.cloudera.utils.hms.mirror.service.HmsMirrorCfgService;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
+import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
+import com.cloudera.utils.hms.mirror.domain.TableMirror;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
+import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,8 +37,8 @@ public class HybridAcidDowngradeInPlaceDataStrategy extends DataStrategyBase imp
 
     private ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy;
 
-    public HybridAcidDowngradeInPlaceDataStrategy(HmsMirrorCfgService hmsMirrorCfgService) {
-        this.hmsMirrorCfgService = hmsMirrorCfgService;
+    public HybridAcidDowngradeInPlaceDataStrategy(ExecuteSessionService executeSessionService) {
+        this.executeSessionService = executeSessionService;
     }
 
     @Override
@@ -45,13 +47,14 @@ public class HybridAcidDowngradeInPlaceDataStrategy extends DataStrategyBase imp
     }
 
     @Override
-    public Boolean buildOutSql(TableMirror tableMirror) {
+    public Boolean buildOutSql(TableMirror tableMirror) throws MissingDataPointException {
         return null;
     }
 
     @Override
     public Boolean execute(TableMirror tableMirror) {
         Boolean rtn = Boolean.TRUE;
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
         /*
         Check environment is Hive 3.
             if not, need to do SQLACIDInplaceDowngrade.
@@ -64,14 +67,14 @@ public class HybridAcidDowngradeInPlaceDataStrategy extends DataStrategyBase imp
         else
             too many partitions.
          */
-        if (getHmsMirrorCfgService().getHmsMirrorConfig().getCluster(Environment.LEFT).isLegacyHive()) {
+        if (hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
             rtn = sqlAcidDowngradeInPlaceDataStrategy.execute(tableMirror);
         } else {
             EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
             if (let.getPartitioned()) {
                 // Partitions less than export limit or export limit set to 0 (or less), which means ignore.
-                if (let.getPartitions().size() < getHmsMirrorCfgService().getHmsMirrorConfig().getHybrid().getExportImportPartitionLimit() ||
-                        getHmsMirrorCfgService().getHmsMirrorConfig().getHybrid().getExportImportPartitionLimit() <= 0) {
+                if (let.getPartitions().size() < hmsMirrorConfig.getHybrid().getExportImportPartitionLimit() ||
+                        hmsMirrorConfig.getHybrid().getExportImportPartitionLimit() <= 0) {
                     rtn = exportImportAcidDowngradeInPlaceDataStrategy.execute(tableMirror);
                 } else {
                     rtn = sqlAcidDowngradeInPlaceDataStrategy.execute(tableMirror);

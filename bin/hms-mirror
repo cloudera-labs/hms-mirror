@@ -67,11 +67,18 @@ VERBOSE=
 #  we'll use the classpath from the host to include the current hadoop libraries.
 HADOOP_CLASSPATH=false
 
-APP_JAVA_OPTS=${JAVA_OPTS:-"-Xms2048m -Xmx4096m -XX:+UseG1GC"}
+APP_JAVA_OPTS=${JAVA_OPTS:-"-Xms4096m -Xmx8192m -XX:+UseG1GC"}
 LOGGING_THRESHOLD=${LOGGING_THRESHOLD:-"INFO"}
 LOGGING_FILE_PREFIX=${LOGGING_FILE_PREFIX:-"hms-mirror"}
 
+SERVICE_MODE=false
+APP_MAIN_CLASS="com.cloudera.utils.hms.mirror.cli.Mirror"
+
 APP_OUTPUT_DIR=${HOME}/.hms-mirror/reports
+APP_PID_FILE=${HOME}/.hms-mirror/hms-mirror.pid
+
+ACTION=START
+
 DIR_OVERRIDE=
 
 while [[ $# -gt 0 ]]; do
@@ -83,6 +90,10 @@ while [[ $# -gt 0 ]]; do
   -CP)
     shift
     CMD_CP=${CMD_CP}:$1
+    shift
+    ;;
+  --stop)
+    ACTION=STOP
     shift
     ;;
   --hadoop-classpath)
@@ -98,11 +109,28 @@ while [[ $# -gt 0 ]]; do
     shift
     SHOW_CP="true"
     ;;
+  --service)
+    shift
+    SERVICE_MODE="true"
+    APP_MAIN_CLASS="com.cloudera.utils.hms.mirror.web.Mirror"
+    ;;
   -o|--output-dir)
     shift
     PRG_ARGS="${PRG_ARGS} -o $1"
     APP_OUTPUT_DIR=$1
     DIR_OVERRIDE="x"
+    shift
+    ;;
+  -dp|--decrypt-password)
+    shift
+    APP_MAIN_CLASS="com.cloudera.utils.hms.mirror.password.Password"
+    PRG_ARGS="${PRG_ARGS} -dp $1"
+    shift
+    ;;
+  -p|--password)
+    shift
+    APP_MAIN_CLASS="com.cloudera.utils.hms.mirror.password.Password"
+    PRG_ARGS="${PRG_ARGS} -p $1"
     shift
     ;;
   *)
@@ -111,6 +139,25 @@ while [[ $# -gt 0 ]]; do
     ;;
   esac
 done
+
+## If the ACTION is STOP, then we need to kill the process and exit.
+if [[ "${ACTION}" == "STOP" ]]; then
+  if [ -f ${APP_PID_FILE} ]; then
+    PID=$(cat ${APP_PID_FILE})
+    if ps -p ${PID} > /dev/null; then
+      echo "Stopping Process with PID: ${PID}"
+      kill ${PID}
+      rm -f ${APP_PID_FILE}
+      exit 0
+    else
+      echo "Process is not running with PID: ${PID}"
+      exit 1
+    fi
+  else
+    echo "No PID file found.  Process may not be running."
+    exit 1
+  fi
+fi
 
 if [[ "${DIR_OVERRIDE}x" == "x" ]]; then
   # Add Date to output dir path
@@ -122,28 +169,50 @@ else
 fi
 
 export APP_OUTPUT_PATH
-APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dlogging.dir='${APP_OUTPUT_PATH}' -Dlogging.threshold=${LOGGING_THRESHOLD} -Dlogging.filename-prefix=\"$LOGGING_FILE_PREFIX\""
+
+if [[ "${SERVICE_MODE}x" == "truex" ]]; then
+  # Removing the logging dir setting for service mode.
+  APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dlogging.threshold=${LOGGING_THRESHOLD} -Dlogging.filename-prefix=${LOGGING_FILE_PREFIX}"
+else
+  APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dlogging.dir='${APP_OUTPUT_PATH}' -Dlogging.threshold=${LOGGING_THRESHOLD} -Dlogging.filename-prefix=${LOGGING_FILE_PREFIX}"
+fi
 
 if [[ ! -d ${AUX_LIBS_DIR} ]]; then
   mkdir -p ${AUX_LIBS_DIR}
 fi
 
-# Add aux_libs to classpath
-#EXEC_JAR=$(ls ${APP_DIR}/../lib/*-exec.jar)
-CMD_CP="\${AUX_LIBS_DIR}/*"
+# Add jars in aux_libs to "Spring" Load Path
+#for i in ${AUX_LIBS_DIR}/*.jar; do
+#  if [[ -f $i ]]; then
+#    CMD_CP="file:${i},${CMP_CP}"
+#  fi
+#done
+
+CMD_CP="${AUX_LIBS_DIR}"
 
 if [[ "${HADOOP_CLASSPATH}x" == "truex" ]]; then
   echo "Picking up local Hadoop Classpath Libs."
-  CMD_CP=${CMD_CP}:$(hadoop classpath)
+#  HADOOP_CLASSPATH_LIBS=$(hadoop classpath)
+  # Remove '*' from hadoop classpath
+  # TODO: User needs to have Hadoop installed on the host and in the following path.
+  HADOOP_CLASSPATH_LIBS=${HOME}/.hms-mirror/aux_libs/hadoop-classpath
+
+  CMP_CP="${CMD_CP},${HADOOP_CLASSPATH_LIBS}"
+#  for i in ${HADOOP_CLASSPATH_LIBS}/*.jar; do
+#    if [[ -f $i ]]; then
+#      CMD_CP="file:${i},${CMP_CP}"
+#    fi
+#  done
+
 fi
 
 # Replace colon with comma in $CMD_CP
-CMD_CP=$(echo $CMD_CP | sed 's/:/,/g')
+#CMD_CP=$(echo $CMD_CP | sed 's/:/,/g')
 
 CLI_CMD=""
 
 if [[ "${SHOW_CP}x" != "x" ]]; then
-  echo "Classpath: ${CMD_CP}"
+  echo "Spring Classpath(loader.path): ${CMD_CP}"
 fi
 
 if [[ "${APP_JAVA_OPTS}x" != "x" ]]; then
@@ -158,12 +227,33 @@ echo "Using Java Version: "
 $(${JAVA} -version)
 echo ""
 
+# Used to get external libs into SpringBoot Classpath
+export LOADER_PATH=${CMD_CP}
+export LOADER_MAIN=${APP_MAIN_CLASS}
+export LOADER_ARGS=${PRG_ARGS}
+
 if [[ "${HADOOP_CLASSPATH}x" == "truex" ]]; then
-  CLI_CMD="${JAVA} -Dloader.path=${CMD_CP} ${APP_JAVA_OPTS} -Dloader.main=com.cloudera.utils.hms.Mirror -Dloader.args=\"${PRG_ARGS}\" -jar ${APP_DIR}/../lib/*-thin.jar"
+  CLI_CMD="${JAVA} ${APP_JAVA_OPTS} -jar ${APP_DIR}/../lib/*-thin.jar"
 else
-  CLI_CMD="${JAVA} -Dloader.path=${CMD_CP} ${APP_JAVA_OPTS} -Dloader.main=com.cloudera.utils.hms.Mirror -Dloader.args=\"${PRG_ARGS}\" -jar ${APP_DIR}/../lib/*-standalone.jar"
+  CLI_CMD="${JAVA} ${APP_JAVA_OPTS} -jar ${APP_DIR}/../lib/*-standalone.jar"
 fi
 
 echo "CLI_CMD: ${CLI_CMD}"
 
-eval "${CLI_CMD}"
+if [[ "${SERVICE_MODE}x" == "truex" ]]; then
+  # Run CLI_CMD in the background
+  # Check the PID file to see if process is running.
+  if [ -f ${APP_PID_FILE} ]; then
+    PID=$(cat ${APP_PID_FILE})
+    if ps -p ${PID} > /dev/null; then
+      echo "Process is already running with PID: ${PID}"
+      exit 1
+    fi
+  fi
+  echo "Running in Service Mode from: `pwd`"
+  nohup `${CLI_CMD}` > hms-mirror-nohup.out 2>&1 &
+
+else
+  eval "${CLI_CMD}"
+fi
+

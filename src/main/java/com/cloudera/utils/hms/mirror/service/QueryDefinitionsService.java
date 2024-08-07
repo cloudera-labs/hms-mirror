@@ -19,14 +19,15 @@ package com.cloudera.utils.hms.mirror.service;
 
 import com.cloudera.utils.hive.config.DBStore;
 import com.cloudera.utils.hive.config.QueryDefinitions;
-import com.cloudera.utils.hms.mirror.Cluster;
-import com.cloudera.utils.hms.mirror.HmsMirrorConfig;
-import com.cloudera.utils.hms.mirror.Environment;
+import com.cloudera.utils.hms.mirror.domain.Cluster;
+import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.net.URL;
@@ -34,21 +35,26 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Objects.isNull;
+
 @Service
 @Slf4j
 public class QueryDefinitionsService {
 
-    private final HmsMirrorConfig hmsMirrorConfig;
+    private ExecuteSessionService executeSessionService;
 
     private final Map<Environment, QueryDefinitions> queryDefinitionsMap = new HashMap<>();
 
-    public QueryDefinitionsService(HmsMirrorConfig hmsMirrorConfig) {
-        this.hmsMirrorConfig = hmsMirrorConfig;
+    @Autowired
+    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
+        this.executeSessionService = executeSessionService;
     }
 
     public QueryDefinitions getQueryDefinitions(Environment environment) {
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+
         QueryDefinitions queryDefinitions = queryDefinitionsMap.get(environment);
-        if (queryDefinitions == null) {
+        if (isNull(queryDefinitions)) {
             Cluster cluster = hmsMirrorConfig.getCluster(environment);
             DBStore metastoreDirect = cluster.getMetastoreDirect();
             if (metastoreDirect != null) {
@@ -58,10 +64,10 @@ public class QueryDefinitionsService {
                 mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
                 try {
-                    String dbQueryDefReference = "/" + dbType.toString() + "/metastore.yaml";
+                    String dbQueryDefReference = "/" + dbType.toString() + "/metastoreDirect.yaml";
                     try {
                         URL configURL = this.getClass().getResource(dbQueryDefReference);
-                        if (configURL == null) {
+                        if (isNull(configURL)) {
                             throw new RuntimeException("Can't build URL for Resource: " +
                                     dbQueryDefReference);
                         }

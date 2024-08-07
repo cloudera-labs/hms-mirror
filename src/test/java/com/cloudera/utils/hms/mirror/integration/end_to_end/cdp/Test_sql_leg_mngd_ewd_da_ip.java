@@ -17,6 +17,7 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
+import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -28,14 +29,14 @@ import org.springframework.test.context.junit4.SpringRunner;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
+@SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sql_leg_mngd_ewd_da_ip",
                 "--hms-mirror.config.downgrade-acid=true",
                 "--hms-mirror.config.in-place=true",
                 "--hms-mirror.config.migrate-acid-only=true",
                 "--hms-mirror.conversion.test-filename=/test_data/legacy_mngd_no_parts.yaml",
-                "--hms-mirror.config-filename=/config/default.yaml.cdp-cdp",
+                "--hms-mirror.config.filename=/config/default.yaml.cdp-cdp",
                 "--hms-mirror.config.external-warehouse-directory=/my_base_loc/external"
 
         })

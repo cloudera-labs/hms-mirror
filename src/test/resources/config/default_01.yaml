@@ -20,6 +20,9 @@ transfer:
   # This directory is appended to the 'clusters:...:hcfsNamespace' value to store the transfer package for hive export/import.
   # Optional (default: '/apps/hive/warehouse/export_')
   exportBaseDirPrefix: "/apps/hive/warehouse/export_"
+  warehouse:
+    managedDirectory: "/warehouse/tablespace/managed/hive"
+    externalDirectory: "/warehouse/tablespace/external/hive"
 clusters:
   LEFT:
     # Set for Hive 1/2 environments

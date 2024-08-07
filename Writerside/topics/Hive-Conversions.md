@@ -10,12 +10,28 @@ aren't very clear to even the most seasoned Hive user.
 `hms-mirror` uses settings in the 'cluster' configuration to influence **how** tables are translated
 during the migration.
 
-```
+<tabs>
+<tab id="webui" title="Web Interface">
+Set the properties in the appropriate cluster configuration(s) for your strategy.
+
+![cluster_tabs.png](cluster_tabs.png)
+
+Set the flags that match you cluster's Hive version.
+
+![hive_version_flags.png](hive_version_flags.png)
+
+</tab>
+<tab id="cli" title="CLI">
+Modify the `hms-mirror` configuration to include the following settings:
+
+``` yaml
 clusters:
   LEFT|RIGHT:
     legacyHive: true|false
     hdpHive3:   true|false
 ```
+</tab>
+</tabs>
 
 If you were upgrading in-place a Hive 1/2 cluster to Hive 3, the Hive upgrade process would convert 'legacy' managed 
 tables to 'EXTERNAL' tables and add a 'PURGE' flag in the table properties so that tables behavior remains 

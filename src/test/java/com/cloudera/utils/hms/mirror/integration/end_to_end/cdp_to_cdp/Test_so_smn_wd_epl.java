@@ -17,6 +17,7 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp_to_cdp;
 
+import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -27,15 +28,16 @@ import org.springframework.test.context.junit4.SpringRunner;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
+@SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.data-strategy=SCHEMA_ONLY",
                 "--hms-mirror.config.warehouse-directory=/finance/managed-fso",
                 "--hms-mirror.config.external-warehouse-directory=/finance/external-fso",
                 "--hms-mirror.config.storage-migration-namespace=ofs://OHOME90",
-                "--hms-mirror.config.evaluate-partition-location=true",
+//                "--hms-mirror.config.evaluate-partition-location=true",
+//                "--hms-mirror.config.align-locations=true",
                 "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts.yaml",
-                "--hms-mirror.config-filename=/config/default.yaml.cdp-cdp",
+                "--hms-mirror.config.filename=/config/default.yaml.cdp-cdp",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp_cdp/so_smn_wd_epl"
         })
 @Slf4j

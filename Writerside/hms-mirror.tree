@@ -7,13 +7,25 @@
                   start-page="hms-mirror-Introduction.md">
 
     <toc-element topic="hms-mirror-Introduction.md"/>
+    <toc-element topic="Release-Notes.md"/>
+    <toc-element topic="Getting-Started.md">
+        <toc-element topic="hms-mirror-setup.md"/>
+        <toc-element topic="Runtime-Interfaces.md">
+            <toc-element topic="Concurrency.md"/>
+            <toc-element topic="Web-Interface.md"/>
+            <toc-element topic="CLI-Interface.md">
+                <toc-element topic="cli-options.md"/>
+                <toc-element topic="hms-mirror-output.md"/>
+            </toc-element>
+            <toc-element topic="REST-Interface.md"/>
+        </toc-element>
+    </toc-element>
     <toc-element topic="hms-mirror-quickStart.md"/>
     <toc-element topic="Pre-Requisites.md">
         <toc-element topic="warning.md"/>
         <toc-element topic="hms-mirror-permissions.md"/>
         <toc-element topic="Linking-Cluster-Storage-Layers.md"/>
     </toc-element>
-    <toc-element topic="hms-mirror-setup.md"/>
     <toc-element topic="hms-mirror-cfg.md">
         <toc-element topic="JDBC-Drivers-and-Configuration.md">
             <toc-element topic="Example-URL-s.md"/>
@@ -22,29 +34,31 @@
         <toc-element topic="Password-Security.md"/>
     </toc-element>
     <toc-element topic="hms-mirror-running.md">
-        <toc-element topic="cli-options.md"/>
-        <toc-element topic="hms-mirror-output.md"/>
         <toc-element topic="hms-mirror-optimizations.md"/>
         <toc-element topic="hms-mirror-tips.md"/>
+    </toc-element>
+    <toc-element topic="Location-Alignment.md"/>
+    <toc-element topic="Databases.md">
+        <toc-element topic="Warehouse-Plans.md"/>
     </toc-element>
     <toc-element topic="Hive-Conversions.md"/>
     <toc-element topic="hms-mirror-features.md"/>
     <toc-element topic="Strategies.md">
-        <toc-element topic="hms-mirror-schema-only.md"/>
-        <toc-element topic="dump.md">
+        <toc-element topic="SCHEMA_ONLY.md"/>
+        <toc-element topic="DUMP.md">
             <toc-element topic="dump-options.md"/>
         </toc-element>
-        <toc-element topic="hms-mirror-linked.md"/>
-        <toc-element topic="convert-linked.md"/>
-        <toc-element topic="hms-mirror-sql.md">
+        <toc-element topic="LINKED.md"/>
+        <toc-element topic="CONVERT_LINKED.md"/>
+        <toc-element topic="SQL.md">
             <toc-element topic="hms-mirror-sql-options.md"/>
         </toc-element>
-        <toc-element topic="hms-mirror-export-import.md">
+        <toc-element topic="EXPORT_IMPORT.md">
             <toc-element topic="hms-mirror-EI_Options.md"/>
         </toc-element>
-        <toc-element topic="hms-mirror-HYBRID.md"/>
-        <toc-element topic="hms-mirror-common.md"/>
-        <toc-element topic="storage_migration.md"/>
+        <toc-element topic="HYBRID.md"/>
+        <toc-element topic="COMMON.md"/>
+        <toc-element topic="STORAGE_MIGRATION.md"/>
         <toc-element topic="hms-mirror-iceberg_migration.md"/>
     </toc-element>
     <toc-element topic="troubleshooting.md"/>

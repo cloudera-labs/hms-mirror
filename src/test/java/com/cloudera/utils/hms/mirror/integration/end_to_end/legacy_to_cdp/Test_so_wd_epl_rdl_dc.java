@@ -17,8 +17,9 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end.legacy_to_cdp;
 
-import com.cloudera.utils.hms.mirror.Environment;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.PhaseState;
+import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -29,7 +30,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
+@SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.data-strategy=SCHEMA_ONLY",
 //                "--hms-mirror.config.migrate-acid=true",
@@ -39,13 +40,13 @@ import static org.junit.Assert.assertEquals;
 //                "--hms-mirror.config.downgrade-acid=true",
 //                "--hms-mirror.config.read-only=true",
 //                "--hms-mirror.config.sync=true",
-                "--hms-mirror.config.evaluate-partition-location=true",
+                "--hms-mirror.config.align-locations=true",
 //                "--hms-mirror.config.intermediate-storage=s3a://my_is_bucket",
-//                "--hms-mirror.config.common-storage=s3a://my_cs_bucket",
-                "--hms-mirror.config.reset-to-default-location=true",
+//                "--hms-mirror.config.target-namespace=s3a://my_cs_bucket",
+//                "--hms-mirror.config.reset-to-default-location=true",
                 "--hms-mirror.config.distcp=true",
                 "--hms-mirror.conversion.test-filename=/test_data/legacy_mngd_parts_01.yaml",
-                "--hms-mirror.config-filename=/config/default.yaml.cdh-cdp",
+                "--hms-mirror.config.filename=/config/default.yaml.cdh-cdp",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/legacy_cdp/so_wd_epl_rdl_dc"
         })
 @Slf4j
@@ -76,7 +77,7 @@ public class Test_so_wd_epl_rdl_dc extends E2EBaseTest {
     @Test
     public void issueTest_01() {
         validateTableIssueCount("tpcds_bin_partitioned_orc_10", "web_sales",
-                Environment.RIGHT, 3652);
+                Environment.RIGHT, 3);
     }
 
     @Test
@@ -87,7 +88,7 @@ public class Test_so_wd_epl_rdl_dc extends E2EBaseTest {
 
     @Test
     public void phaseTest_01() {
-        validatePhase("tpcds_bin_partitioned_orc_10", "web_sales", PhaseState.ERROR);
+        validatePhase("tpcds_bin_partitioned_orc_10", "web_sales", PhaseState.SUCCESS);
     }
 
     @Test
@@ -95,7 +96,7 @@ public class Test_so_wd_epl_rdl_dc extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        long check = 1L;
+        long check = 0L;
         assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 

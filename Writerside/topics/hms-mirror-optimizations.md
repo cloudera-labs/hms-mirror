@@ -2,8 +2,8 @@
 
 Moving metadata and data between two clusters is a pretty straightforward process but depends entirely on the proper configurations in each cluster.  Listed here are a few tips on some crucial configurations.
 
-HMS-Mirror only moves data with the [SQL](hms-mirror-sql.md) and [EXPORT_IMPORT](hms-mirror-export-import.md) data 
-strategies.  All other strategies either use the data as-is ([LINKED](hms-mirror-linked.md) or [COMMON](hms-mirror-common.md)) or depend on the data being moved by something like `distcp`.
+HMS-Mirror only moves data with the [SQL](SQL.md) and [EXPORT_IMPORT](EXPORT_IMPORT.md) data 
+strategies.  All other strategies either use the data as-is ([LINKED](LINKED.md) or [COMMON](COMMON.md)) or depend on the data being moved by something like `distcp`.
 
 ## Controlling the YARN Queue that runs the SQL queries from `hms-mirror`
 

@@ -1,0 +1,88 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Config Messages</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+</head>
+<body>
+
+<div th:fragment="load_create">
+    <h4 th:text="#{config}"/>
+    <form class="pure-form pure-form-aligned">
+        <!--            <div class="pure-g">-->
+        <!--                <div class="pure-u-3-4">-->
+        <div class="pure-control-group tooltip">
+            <span class="tooltiptext" th:text="#{reload.config.tooltip}"></span>
+            <label for="SESSION_ID" th:text="#{config.reload}"/>
+            <select name="SESSION_ID" required>
+                <option th:each="id: ${CONFIG_LIST}"
+                        th:value="${id}"
+                        th:text="${id}"
+                        th:selected="${id.equals(RUN_CONTAINER.sessionId)}"/>
+            </select>
+            <button class="pure-button" type="submit" th:text="#{button.load}"
+                    th:formaction="@{/config/doReload}" th:formmethod="post"/>
+        </div>
+        <hr>
+        <div class="pure-control-group tooltip">
+            <!--                <div class="pure-g">-->
+            <!--                    <div class="pure-u-3-4 tooltip">-->
+            <span class="tooltiptext" th:text="#{create.tooltip}"></span>
+            <label for="new_config" th:text="#{config.create}"/>
+            <select id="new_config" name="DATA_STRATEGY">
+                <option th:each="cet: ${SUPPORTED_DATA_STRATEGIES}"
+                        th:value="${cet}"
+                        th:text="${cet}"/>
+            </select>
+            <button class="pure-button" th:formaction="@{/config/doCreate}" th:formmethod="post"
+                    th:text="#{button.create}"/>
+        </div>
+        <hr>
+        <div class="pure-control-group tooltip">
+            <span class="tooltiptext" th:text="#{reload.config.tooltip}"></span>
+            <label for="new_config" th:text="#{config.create}"/>
+            <select id="new_config" name="DATA_STRATEGY_CLONE">
+                <option th:each="cet: ${SUPPORTED_DATA_STRATEGIES}"
+                        th:value="${cet}"
+                        th:text="${cet}"/>
+            </select>
+            <label for="SESSION_ID" th:text="#{config.clone}"/>
+            <select name="SESSION_ID_CLONE" required>
+                <option th:each="id: ${CONFIG_LIST}"
+                        th:value="${id}"
+                        th:text="${id}"
+                        th:selected="${id.equals(RUN_CONTAINER.sessionId)}"/>
+            </select>
+            <button class="pure-button" type="submit" th:text="#{button.clone}"
+                    th:formaction="@{/config/doClone}" th:formmethod="post"/>
+        </div>
+
+    </form>
+
+</div>
+
+
+</body>
+</html>

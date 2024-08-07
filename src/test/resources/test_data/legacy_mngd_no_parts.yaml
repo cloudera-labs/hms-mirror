@@ -13522,7 +13522,7 @@ databases:
             issues: []
             sql: []
             cleanUpSql: []
-    dbdefinitions:
+    properties:
       LEFT:
         DB_NAME: "tpcds_bin_partitioned_orc_10"
         LOCATION: "hdfs://HDP50/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db"

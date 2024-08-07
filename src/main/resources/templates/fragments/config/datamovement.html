@@ -1,0 +1,92 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Session</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+</head>
+<body>
+
+<div th:fragment="view">
+    <h4 th:text="#{config.data.movement}"/>
+    <!-- Data Movement Strategy -->
+    <div class="pure-control-group">
+        <label class="pure-u-1" for="targetNamespace" th:text="#{config.transfer.targetNamespace}"/>
+        <input style="width: 90%;" id="targetNamespace" type="text"
+               th:field="*{transfer.targetNamespace}"
+               placeholder="Set Target Namespace"/>
+        <b class="pure-u-1" th:text="#{config.transfer.targetNamespace.use}"/>
+    </div>
+    <hr/>
+    <br/>
+    <div class="pure-control-group">
+        <label for="dataMovementStrategy"
+               th:text="#{config.transfer.storageMigration.translationType}"></label>
+        <select id="dataAlignmentStrategy" class="pure-input-1"
+                th:field="*{transfer.storageMigration.translationType}">
+            <option th:each="tte: ${translationtypeenums}"
+                    th:value="${tte}"
+                    th:text="${tte}"
+                    th:selected="${tte.equals(CONFIG.transfer.storageMigration.translationType)}"/>
+        </select>
+    </div>
+
+
+    <div class="pure-control-group">
+        <label for="dataMovementStrategy"
+               th:text="#{config.transfer.storageMigration.dataMovementStrategy}"></label>
+        <select id="dataMovementStrategy" class="pure-input-1"
+                th:field="*{transfer.storageMigration.dataMovementStrategy}">
+            <option th:each="cet: ${datamovementstrategyenums}"
+                    th:value="${cet}"
+                    th:text="${cet}"
+                    th:selected="${cet.equals(CONFIG.transfer.storageMigration.dataMovementStrategy)}"/>
+        </select>
+    </div>
+
+    <!-- Data Flow -->
+    <div class="pure-control-group">
+        <label for="dataFlow"
+               th:text="#{config.transfer.storageMigration.dataFlow}"></label>
+        <select id="dataFlow" class="pure-input-1"
+                th:field="*{transfer.storageMigration.dataFlow}">
+            <option th:each="cet: ${distcpflowenums}"
+                    th:value="${cet}"
+                    th:text="${cet}"
+                    th:selected="${cet.equals(CONFIG.transfer.storageMigration.dataFlow)}"/>
+        </select>
+    </div>
+
+    <!-- Strict -->
+    <div class="pure-control-group">
+        <input type="checkbox" id="strict"
+               th:field="*{transfer.storageMigration.strict}"
+               th:checked="${CONFIG.transfer.storageMigration.strict}"/>
+        <label for="strict"
+               th:text="#{config.transfer.storageMigration.strict}"></label>
+    </div>
+</div>
+
+</body>
+</html>

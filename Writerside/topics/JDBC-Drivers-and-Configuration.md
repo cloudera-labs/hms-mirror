@@ -4,7 +4,23 @@
 
 `hms-mirror` supports the Apache and packaged hive **standalone** drivers that are found with your distribution.  For CDP, we also support to Cloudera JDBC driver found and maintained at on the [Cloudera Hive JDBC Downloads Page](https://www.cloudera.com/downloads/connectors/hive/jdbc).  Note that the URL configurations between the Apache and Cloudera JDBC drivers are different.
 
-When using the Cloudera JDBC driver, you'll need to add the property `driverClassName: "com.cloudera.hive.jdbc.HS2Driver"` to the `hiveServer2` configuration. If you're NOT using the Cloudera JDBC driver, just remove the property.
+Hive JDBC Drivers need to be inline with the version of HS2 you're connecting to.  If the cluster is an HDP cluster, get the appropriate **standalone** driver from that cluster.  These drivers(jar files) should be stored locally on the machine running `hms-mirror` and referenced in the configuration file. 
+
+> Do NOT put these drivers in ${HOME}/.hms-mirror/aux_libs or any sub-directory of that location.  `hms-mirror` connects to different versions of Hive and the drivers need to be specific to the version of Hive you're connecting to.  To do this, we need to manage the classpath and the drivers in a more controlled manner.  They should NOT be in the applications main classpath, this will cause connectivity issues.
+
+
+<tabs>
+<tab title="Web UI">
+<b> Hive Server 2 Configuration</b>
+
+![hs2_cfg.png](hs2_cfg.png)
+
+<b>Metastore Direct Configuration</b>
+
+![metastore_direct_cfg.png](metastore_direct_cfg.png)
+
+</tab>
+<tab id="cli-hs2" title="CLI">
 
 ```yaml
 hiveServer2:
@@ -14,6 +30,8 @@ hiveServer2:
     user: "xxx"
     password: "xxx"
 ```
+</tab>
+</tabs>
 
 Starting with the Apache Standalone driver shipped with CDP 7.1.8 cummulative hot fix parcels, you will need to include additional jars in the configuration `jarFile` configuration, due to some packaging adjustments.
 

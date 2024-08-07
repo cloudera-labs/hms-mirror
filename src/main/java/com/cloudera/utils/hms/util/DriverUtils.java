@@ -17,17 +17,22 @@
 
 package com.cloudera.utils.hms.util;
 
-import com.cloudera.utils.hms.mirror.Environment;
+import com.cloudera.utils.hms.mirror.domain.HiveServer2Config;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Paths;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Slf4j
 public class DriverUtils {
@@ -36,10 +41,11 @@ public class DriverUtils {
     // This is a shim process that allows us to load a Hive Driver from
     // a jar File, via a new ClassLoader.
     @SuppressWarnings("unchecked")
-    public static Driver getDriver(String driverClassName, String jarFile, Environment environment) {
+    public static Driver getDriver(HiveServer2Config hs2Config, Environment environment) {
         Driver hiveShim = null;
         try {
-            if (jarFile != null) {
+            String jarFile = hs2Config.getJarFile();
+            if (!isBlank(jarFile)) {
                 String[] files = jarFile.split(":");
                 URL[] urls = new URL[files.length];
                 File[] jarFiles = new File[files.length];
@@ -54,19 +60,21 @@ public class DriverUtils {
                 log.trace("Building Classloader to isolate JDBC Library for: {}", jarFile);
                 URLClassLoader hive3ClassLoader = URLClassLoader.newInstance(urls, environment.getClass().getClassLoader());
                 log.trace("Loading Hive JDBC Driver");
-                Class<?> classToLoad = hive3ClassLoader.loadClass(driverClassName);
+                Class<?> classToLoad = hive3ClassLoader.loadClass(hs2Config.getDriverClassName());
                 Package aPackage = classToLoad.getPackage();
                 String implementationVersion = aPackage.getImplementationVersion();
+                hs2Config.setVersion(implementationVersion);
                 log.info("{} - Hive JDBC Implementation Version: {}", environment, implementationVersion);
                 Driver hiveDriver = (Driver) classToLoad.getDeclaredConstructor().newInstance();
                 log.trace("Building Hive Driver Shim");
                 hiveShim = new DriverShim(hiveDriver);
                 log.trace("Registering Hive Shim Driver with JDBC 'DriverManager'");
             } else {
-                Class<?> hiveDriverClass = Class.forName(driverClassName);
+                Class<?> hiveDriverClass = Class.forName(hs2Config.getDriverClassName());
                 hiveShim = (Driver) hiveDriverClass.getDeclaredConstructor().newInstance();
                 Package aPackage = hiveDriverClass.getPackage();
                 String implementationVersion = aPackage.getImplementationVersion();
+                hs2Config.setVersion(implementationVersion);
                 log.info("{} - Hive JDBC Implementation Version: {}", environment, implementationVersion);
             }
             DriverManager.registerDriver(hiveShim);
@@ -88,4 +96,12 @@ public class DriverUtils {
             log.error(throwables.getMessage(), throwables);
         }
     }
+
+    //    public class JarFilePathResolver {
+    public static String byGetProtectionDomain(Class clazz) throws URISyntaxException {
+        URL url = clazz.getProtectionDomain().getCodeSource().getLocation();
+        return Paths.get(url.toURI()).toString();
+    }
+//    }
+
 }

@@ -17,6 +17,7 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
+import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -28,15 +29,16 @@ import org.springframework.test.context.junit4.SpringRunner;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
+@SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sql_da_ip_rdl_ewd_left_only",
                 "--hms-mirror.config.downgrade-acid=true",
                 "--hms-mirror.config.in-place=true",
                 "--hms-mirror.config.migrate-acid-only=true",
                 "--hms-mirror.conversion.test-filename=/test_data/acid_w_parts_01.yaml",
-                "--hms-mirror.config-filename=/config/default.yaml.cdp",
-                "--hms-mirror.config.reset-to-default-location=true",
+                "--hms-mirror.config.filename=/config/default.yaml.cdp",
+//                "--hms-mirror.config.reset-to-default-location=true",
+                "--hms-mirror.config.align-locations=true",
                 "--hms-mirror.config.warehouse-directory=/finance/managed-fso",
                 "--hms-mirror.config.external-warehouse-directory=/finance/external-fso"
         })

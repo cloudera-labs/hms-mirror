@@ -945,7 +945,7 @@ databases:
             cleanUpSql: []
     phaseSummary:
       INIT: 6
-    dbdefinitions:
+    properties:
       LEFT:
         DB_NAME: "assorted_test_db"
         LOCATION: "hdfs://HDP50/warehouse/tablespace/external/hive/assorted_test_db.db"

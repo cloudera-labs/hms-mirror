@@ -27,13 +27,13 @@ import org.springframework.stereotype.Service;
 @Getter
 public class ClusterService {
 
-    private HmsMirrorCfgService hmsMirrorCfgService;
+    private ExecuteSessionService executeSessionService;
 
     private DatabaseService databaseService;
 
     @Autowired
-    public void setHmsMirrorCfgService(HmsMirrorCfgService hmsMirrorCfgService) {
-        this.hmsMirrorCfgService = hmsMirrorCfgService;
+    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
+        this.executeSessionService = executeSessionService;
     }
 
     @Autowired

@@ -19,6 +19,7 @@ package com.cloudera.utils.hms.mirror;
 
 public interface MirrorConf {
     String DESCRIBE_DB = "DESCRIBE DATABASE EXTENDED {0}";
+    String SHOW_CREATE_DATABASE = "SHOW CREATE DATABASE {0}";
     String SHOW_DATABASES = "SHOW DATABASES";
     String GET_ENV_VARS = "SET -v";
     String SHOW_TABLES = "SHOW TABLES";
@@ -41,12 +42,11 @@ public interface MirrorConf {
             "ALTER DATABASE {0} SET LOCATION \"{1}\"";
     String ALTER_DB_LOCATION_DESC =
             "Alter Database Location";
+    String ALTER_DB_PROPERTIES =
+            "ALTER DATABASE {0} SET DBPROPERTIES ({1}={2})";
+    String ALTER_DB_PROPERTIES_DESC = "Set database property";
     String DEFAULT_MANAGED_BASE_DIR = "/warehouse/tablespace/managed/hive";
     String DEFAULT_FS = "fs.defaultFS";
-
-    String METASTOREWAREHOUSE = "hive.metastore.warehouse.dir";
-
-    String HIVE_METASTORE_WAREHOUSE_EXTERNAL = "hive.metastore.warehouse.external.dir";
 
     String ALTER_DB_MNGD_LOCATION =
             "ALTER DATABASE {0} SET MANAGEDLOCATION \"{1}\"";
@@ -102,6 +102,9 @@ public interface MirrorConf {
     String DB_LOCATION = "LOCATION";
     String DB_MANAGED_LOCATION = "MANAGEDLOCATION";
     String COMMENT = "COMMENT";
+    String OWNER_NAME= "OWNER_NAME";
+    String DB_NAME = "DB_NAME";
+    String OWNER_TYPE = "OWNER_TYPE";
     String FILE_FORMAT = "file.format";
     String FILE_COUNT = "file.count";
     String DIR_COUNT = "dir.count";

@@ -22,23 +22,26 @@
     <parent>
         <groupId>com.cloudera.utils</groupId>
         <artifactId>hadoop.parent</artifactId>
-        <version>1.0.0.0</version>
+        <version>1.0.0.2</version>
         <relativePath>../cloudera-utils</relativePath>
     </parent>
 
     <groupId>com.cloudera.utils.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>2.0.0.2</version>
+    <version>2.2.0.0</version>
     <packaging>jar</packaging>
 
     <name>hms-mirror</name>
     <url>https://github.com/cloudera-labs/hms_mirror</url>
 
     <properties>
+
+        <springdoc.version>1.8.0</springdoc.version>
+
         <!-- DB Support -->
         <mariadb.client.version>2.5.3</mariadb.client.version>
         <postgresql.client.version>42.7.2</postgresql.client.version>
-        <oracle.client.version>12.1.0.2</oracle.client.version>
+        <oracle.client.version>23.4.0.24.05</oracle.client.version>
 
         <jaxb-api.version>2.3.1</jaxb-api.version>
 
@@ -53,7 +56,7 @@
         <cdp.scope>compile</cdp.scope>
 
         <hadoop-cli.version>3.1.0.0</hadoop-cli.version>
-        <hive-sre.version>3.0.1.4</hive-sre.version>
+        <hive-sre.version>3.0.1.8</hive-sre.version>
 
     </properties>
 
@@ -70,6 +73,17 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+
 
         <!-- https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api -->
         <dependency>
@@ -124,13 +138,19 @@
             <version>${mariadb.client.version}</version>
             <scope>provided</scope>
         </dependency>
-
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.client.version}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc8</artifactId>
+            <version>${oracle.client.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>javax.validation</groupId>
             <artifactId>validation-api</artifactId>

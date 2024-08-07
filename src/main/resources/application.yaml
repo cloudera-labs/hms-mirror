@@ -2,16 +2,32 @@ server:
   port: 8090
   servlet:
     context-path: /hms-mirror
+springdoc:
+  swagger-ui:
+    path: "/swagger-ui.html"
 spring:
   main:
     banner-mode: "off"
+  thymeleaf:
+    prefix: classpath:/templates/
 hadoop:
   cli:
     api: "true"
 hms-mirror:
-  config-filename: ${HOME}/.hms-mirror/cfg/default.yaml
   config:
+    testing: "false"
     output-dir: "false"
+    path: ${HOME}/.hms-mirror/cfg
+    filename: "default.yaml"
     setup: "false"
+    yaml:
+      # This controls the maximum number of bytes that can be read from a YAML file.
+      # The default value in SnakeYaml is 3MB.  We've reset this to 100MB.
+      # It can be overridden by setting the app property on startup.
+      codePointLimit: 104857600
   conversion:
     test-filename: "false"
+  concurrency:
+    max-threads: 10
+  api:
+    version: "2.2.0.0"

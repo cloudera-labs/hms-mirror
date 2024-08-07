@@ -1,0 +1,78 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>View Config</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+</head>
+<body>
+<nav th:fragment="left_nav">
+    <div class="pure-menu">
+        <span class="pure-menu-heading" th:text="#{config}"/>
+        <ul class="pure-menu-list">
+            <li class="pure-menu-item">
+                <a class="pure-menu-link" th:text="#{init}"
+                   th:href="@{/config/init}"/>
+            </li>
+            <li class="pure-menu-item" th:if="${CONFIG != null}">
+                <a class="pure-menu-link" th:text="#{view}"
+                   th:href="@{/config/view}"/>
+            </li>
+            <li class="pure-menu-item" th:if="${CONFIG != null}">
+                <a class="pure-menu-link" th:text="#{edit}"
+                   th:href="@{/config/edit}"/>
+            </li>
+            <li class="pure-menu-item" th:if="${CONFIG != null}">
+                <a class="pure-menu-link" th:text="#{persist}"
+                   th:href="@{/config/persist}"/>
+            </li>
+        </ul>
+        <span class="pure-menu-heading" th:text="#{connections}"/>
+        <ul class="pure-menu-list" th:if="${CONFIG != null}">
+            <li class="pure-menu-item">
+                <a class="pure-menu-link" th:text="#{validate}"
+                   th:href="@{/connections/validate}"/>
+            </li>
+        </ul>
+        <span class="pure-menu-heading" th:text="#{runtime}"/>
+        <ul class="pure-menu-list">
+            <li class="pure-menu-item">
+                <a class="pure-menu-link" th:text="#{execute}"
+                   th:if="${CONFIG != null}"
+                   th:href="@{/runtime/start}"/>
+            </li>
+            <li class="pure-menu-item">
+                <a class="pure-menu-link" th:text="#{status}"
+                   th:if="${CONFIG != null}"
+                   th:href="@{/runtime/status}"/>
+            </li>
+            <li class="pure-menu-item">
+                <a class="pure-menu-link" th:text="#{reports}"
+                   th:href="@{/reports/select}"/>
+            </li>
+        </ul>
+    </div>
+</nav>
+</body>
+</html>

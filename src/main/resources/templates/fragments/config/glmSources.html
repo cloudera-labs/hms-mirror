@@ -1,0 +1,91 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Load Create</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+</head>
+<body>
+<div th:fragment="view">
+<!--    <fieldset>-->
+<!--        <legend th:text="#{builder.sources}"/>-->
+    <h4 th:text="#{builder.sources}"/>
+        <ul id="tree">
+            <th:block
+                    th:each="source: ${CONFIG.translator.warehouseMapBuilder.sources}">
+                <li>
+                    <details open>
+                        <summary th:text="${source.key}"></summary>
+                        <ul>
+                            <li>
+                                <details>
+                                    <summary th:text="#{managed.tables}"></summary>
+                                    <ul>
+                                        <th:block
+                                                th:each="mngdTbl: ${source.value.locations[MANAGED_TABLE]}">
+                                            <li>
+                                                <details>
+                                                    <summary th:text="${mngdTbl.key}"></summary>
+                                                    <ul>
+                                                        <th:block th:each="tbl: ${mngdTbl.value}">
+                                                            <li th:text="${tbl}">
+                                                                <!--                                                                    <summary th:text="${tbl}"></summary>-->
+                                                            </li>
+                                                        </th:block>
+                                                    </ul>
+                                                </details>
+                                            </li>
+                                        </th:block>
+                                    </ul>
+                                </details>
+                            </li>
+                            <li>
+                                <details>
+                                    <summary th:text="#{external.tables}"></summary>
+                                    <ul>
+                                        <th:block
+                                                th:each="extTbl: ${source.value.locations[EXTERNAL_TABLE]}">
+                                            <li>
+                                                <details>
+                                                    <summary th:text="${extTbl.key}"></summary>
+                                                    <ul>
+                                                        <th:block th:each="tbl: ${extTbl.value}">
+                                                            <li th:text="${tbl}"></li>
+                                                        </th:block>
+                                                    </ul>
+                                                </details>
+                                            </li>
+                                        </th:block>
+                                    </ul>
+                                </details>
+                            </li>
+                        </ul>
+                    </details>
+                </li>
+            </th:block>
+        </ul>
+<!--    </fieldset>-->
+</div>
+</body>
+</html>

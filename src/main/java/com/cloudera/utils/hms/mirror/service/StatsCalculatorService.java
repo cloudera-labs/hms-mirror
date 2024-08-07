@@ -17,7 +17,11 @@
 
 package com.cloudera.utils.hms.mirror.service;
 
-import com.cloudera.utils.hms.mirror.*;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
+import com.cloudera.utils.hms.mirror.MirrorConf;
+import com.cloudera.utils.hms.mirror.domain.Cluster;
+import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
+import com.cloudera.utils.hms.mirror.domain.support.SerdeType;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +31,9 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 import static com.cloudera.utils.hms.mirror.SessionVars.*;
+import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /*
 Provide a class where rules can be generated based on the hms-mirror stats collected.
@@ -35,7 +42,7 @@ Provide a class where rules can be generated based on the hms-mirror stats colle
 @Slf4j
 @Getter
 public class StatsCalculatorService {
-    private HmsMirrorCfgService hmsMirrorCfgService;
+    private ExecuteSessionService executeSessionService;
 
     protected static Long getTezMaxGrouping(EnvironmentTable envTable) {
         SerdeType serdeType = serdeFromStats(envTable.getStatistics());
@@ -43,7 +50,7 @@ public class StatsCalculatorService {
         Long maxGrouping = serdeType.getTargetSize() * 2L;
 
         if (envTable.getPartitioned()) {
-            if (envTable.getStatistics().get(MirrorConf.AVG_FILE_SIZE) != null) {
+            if (nonNull(envTable.getStatistics().get(MirrorConf.AVG_FILE_SIZE))) {
                 Double avgFileSize = (Double) envTable.getStatistics().get(MirrorConf.AVG_FILE_SIZE);
                 // If not 90% of target size.
                 if (avgFileSize < serdeType.getTargetSize() * .5) {
@@ -58,7 +65,7 @@ public class StatsCalculatorService {
     private static SerdeType serdeFromStats(Map<String, Object> stats) {
         String sStype = stats.getOrDefault(MirrorConf.FILE_FORMAT, "UNKNOWN").toString();
         SerdeType serdeType = null;
-        if (sStype == null) {
+        if (isNull(sStype)) {
             serdeType = SerdeType.UNKNOWN;
         } else {
             try {
@@ -73,14 +80,14 @@ public class StatsCalculatorService {
 
     public String getDistributedPartitionElements(EnvironmentTable envTable) {
         StringBuilder sb = new StringBuilder();
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         if (envTable.getPartitioned()) {
 
             if (hmsMirrorConfig.getOptimization().isAutoTune() &&
                     !hmsMirrorConfig.getOptimization().isSkipStatsCollection()) {
                 SerdeType stype = serdeFromStats(envTable.getStatistics());
-                if (envTable.getStatistics().get(MirrorConf.DATA_SIZE) != null) {
+                if (nonNull(envTable.getStatistics().get(MirrorConf.DATA_SIZE))) {
                     Long ratio = getPartitionDistributionRatio(envTable);
                     if (ratio >= 1) {
                         sb.append("ROUND((rand() * 1000) % ").append(ratio).append(")");
@@ -90,7 +97,7 @@ public class StatsCalculatorService {
 
             // Place the partition element AFTER the sub grouping to ensure we get it applied in the plan.
             String partElement = TableUtils.getPartitionElements(envTable);
-            if (partElement != null) {
+            if (!isBlank(partElement)) {
                 // Ensure we added element before placing comma.
                 if (!sb.toString().isEmpty()) {
                     sb.append(", ");
@@ -109,7 +116,7 @@ public class StatsCalculatorService {
      */
     protected Long getPartitionDistributionRatio(EnvironmentTable envTable) {
         Long ratio = 0L;
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         if (!hmsMirrorConfig.getOptimization().isSkipStatsCollection()) {
             try {
@@ -125,12 +132,12 @@ public class StatsCalculatorService {
     }
 
     @Autowired
-    public void setHmsMirrorCfgService(HmsMirrorCfgService hmsMirrorCfgService) {
-        this.hmsMirrorCfgService = hmsMirrorCfgService;
+    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
+        this.executeSessionService = executeSessionService;
     }
 
     public void setSessionOptions(Cluster cluster, EnvironmentTable controlEnv, EnvironmentTable applyEnv) {
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         // Skip if no stats collection.
         if (hmsMirrorConfig.getOptimization().isSkipStatsCollection())
@@ -138,8 +145,8 @@ public class StatsCalculatorService {
 
         // Small File Checks
         SerdeType serdeType = serdeFromStats(controlEnv.getStatistics());
-        // TODO: Trying to figure out if making this setting will bleed over to other sessions while reusing a connection.
-        if (controlEnv.getStatistics().get(MirrorConf.AVG_FILE_SIZE) != null) {
+        // TODO: Trying to figure out if making this setting will bleed over to other sessions while reusing a connections.
+        if (nonNull(controlEnv.getStatistics().get(MirrorConf.AVG_FILE_SIZE))) {
             Double avgFileSize = (Double) controlEnv.getStatistics().get(MirrorConf.AVG_FILE_SIZE);
             // If not 50% of target size.
             if (avgFileSize < serdeType.getTargetSize() * .5) {

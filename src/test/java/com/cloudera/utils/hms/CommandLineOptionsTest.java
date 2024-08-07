@@ -17,9 +17,10 @@
 
 package com.cloudera.utils.hms;
 
+import com.cloudera.utils.hms.mirror.cli.HmsMirrorCommandLineOptionsEnum;
 import org.junit.Test;
 
-import static com.cloudera.utils.hms.HmsMirrorCommandLineOptions.SPRING_CONFIG_PREFIX;
+import static com.cloudera.utils.hms.mirror.cli.HmsMirrorCommandLineOptions.SPRING_CONFIG_PREFIX;
 
 public class CommandLineOptionsTest {
 
@@ -30,7 +31,7 @@ public class CommandLineOptionsTest {
         for (HmsMirrorCommandLineOptionsEnum hmsMirrorCommandLineOptionsEnum : HmsMirrorCommandLineOptionsEnum.values()) {
             if (hmsMirrorCommandLineOptionsEnum.getShortName().equals("cfg")) {
                 // Handle the config file differently
-                sb.append("\"--hms-mirror.config-filename=\",\n");
+                sb.append("\"--hms-mirror.config.filename=\",\n");
             } else if (hmsMirrorCommandLineOptionsEnum.getShortName().equals("ltd")) {
                 // Handle the ltd file differently
                 sb.append("\"--hms-mirror.conversion.test-filename=\",\n");

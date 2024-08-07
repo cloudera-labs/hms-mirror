@@ -1,0 +1,167 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Config</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/modal.css}">
+    <script th:src="@{/js/mirror.js}"></script>
+</head>
+<body>
+
+<div th:fragment="modal1(modalId, btnId, message)">
+
+    <!-- The Modal -->
+    <div th:id="${modalId}" class="modal">
+
+        <!-- Modal content -->
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <p th:text="${message}"/>
+        </div>
+
+    </div>
+
+    <script th:inline="javascript">
+        /*<!{CDATA[*/
+        // Get the modal
+        var modal1 = document.getElementById([[${modalId}]]);
+
+        // Get the button that opens the modal
+        var btn1 = document.getElementById([[${btnId}]]);
+
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
+
+        // When the user clicks the button, open the modal
+        btn1.onclick = function() {
+            modal1.style.display = "block";
+        }
+
+        // When the user clicks on <span> (x), close the modal
+        span.onclick = function() {
+            modal1.style.display = "none";
+        }
+
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function(event) {
+            if (event.target == modal1) {
+                modal1.style.display = "none";
+            }
+        }
+
+        /*]]>*/
+    </script>
+</div>
+<div th:fragment="modal2(modalId, btnId, message)">
+
+    <!-- The Modal -->
+    <div th:id="${modalId}" class="modal">
+
+        <!-- Modal content -->
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <p th:text="${message}"/>
+        </div>
+
+    </div>
+
+    <script th:inline="javascript">
+        /*<!{CDATA[*/
+        // Get the modal
+        var modal2 = document.getElementById([[${modalId}]]);
+
+        // Get the button that opens the modal
+        var btn2 = document.getElementById([[${btnId}]]);
+
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
+
+        // When the user clicks the button, open the modal
+        btn2.onclick = function() {
+            modal2.style.display = "block";
+        }
+
+        // When the user clicks on <span> (x), close the modal
+        span.onclick = function() {
+            modal2.style.display = "none";
+        }
+
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function(event) {
+            if (event.target == modal2) {
+                modal2.style.display = "none";
+            }
+        }
+
+        /*]]>*/
+    </script>
+</div>
+<div th:fragment="modal3(modalId, btnId, message)">
+
+    <!-- The Modal -->
+    <div th:id="${modalId}" class="modal">
+
+        <!-- Modal content -->
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <p th:text="${message}"/>
+        </div>
+
+    </div>
+
+    <script th:inline="javascript">
+        /*<!{CDATA[*/
+        // Get the modal
+        var modal3 = document.getElementById([[${modalId}]]);
+
+        // Get the button that opens the modal
+        var btn3 = document.getElementById([[${btnId}]]);
+
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
+
+        // When the user clicks the button, open the modal
+        btn3.onclick = function() {
+            modal3.style.display = "block";
+        }
+
+        // When the user clicks on <span> (x), close the modal
+        span.onclick = function() {
+            modal3.style.display = "none";
+        }
+
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function(event) {
+            if (event.target == modal3) {
+                modal3.style.display = "none";
+            }
+        }
+
+        /*]]>*/
+    </script>
+</div>
+
+</body>
+</html>

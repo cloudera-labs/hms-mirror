@@ -1,0 +1,86 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Load Create</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+</head>
+<body>
+<div th:fragment="optimizations">
+    <!--    <fieldset>-->
+    <!--        <legend th:text="#{config.optimizations}"/>-->
+    <h4 th:text="#{config.optimizations}"/>
+    <!-- Optimizations (When SQL Data Movement) -->
+    <!-- Skip -->
+    <div class="pure-control-group">
+        <input type="checkbox" name="skip"
+               th:field="*{optimization.skip}"
+               th:checked="${CONFIG.optimization.skip}"/>
+        <label for="skip" th:text="#{config.optimization.skip}"></label>
+    </div>
+
+    <!-- Skip Stats Collection -->
+    <div class="pure-control-group">
+        <input type="checkbox" name="skipstatscollection"
+               th:field="*{optimization.skipStatsCollection}"
+               th:checked="${CONFIG.optimization.skipStatsCollection}"/>
+        <label for="skipstatscollection"
+               th:text="#{config.optimization.skipStatsCollection}"></label>
+    </div>
+    <div class="pure-control-group">
+        <input type="checkbox" name="buildShadowStatistics"
+               th:field="*{optimization.buildShadowStatistics}"
+               th:checked="${CONFIG.optimization.buildShadowStatistics}"/>
+        <label for="buildShadowStatistics" th:text="#{config.optimization.buildShadowStatistics}"></label>
+    </div>
+
+    <!-- Sort Dynamic Partition Inserts -->
+    <div class="pure-control-group">
+        <input type="checkbox" name="sortDynamicPartitionInserts"
+               th:field="*{optimization.sortDynamicPartitionInserts}"
+               th:checked="${CONFIG.optimization.sortDynamicPartitionInserts}"/>
+        <label for="sortDynamicPartitionInserts"
+               th:text="#{config.optimization.sortDynamicPartitionInserts}"></label>
+    </div>
+
+    <!-- Auto Tune -->
+    <div class="pure-control-group">
+        <input type="checkbox" name="autoTune"
+               th:field="*{optimization.autoTune}"
+               th:checked="${CONFIG.optimization.autoTune}"/>
+        <label for="autoTune" th:text="#{config.optimization.autoTune}"></label>
+    </div>
+
+    <!-- Compress Text Output -->
+    <div class="pure-control-group">
+        <input type="checkbox" name="compressTextOutput"
+               th:field="*{optimization.compressTextOutput}"
+               th:checked="${CONFIG.optimization.compressTextOutput}"/>
+        <label for="compressTextOutput" th:text="#{config.optimization.compressTextOutput}"></label>
+    </div>
+
+    <!--    </fieldset>-->
+</div>
+</body>
+</html>

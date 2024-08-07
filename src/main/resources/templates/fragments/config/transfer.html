@@ -1,0 +1,92 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Load Create</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+</head>
+<body>
+
+<div th:fragment="view">
+    <div class="pure-form pure-form-aligned">
+        <h4 th:text="#{transfer.details}"/>
+        <div class="pure-control-group"
+             th:if="${('STORAGE_MIGRATION').contains(CONFIG.dataStrategy.toString())}">
+            <label for="storageMigrationPostfix" th:text="#{config.transfer.storageMigration.postfix}"></label>
+            <input id="storageMigrationPostfix" type="text"
+                   style="width: 90%;"
+                   th:field="*{transfer.storageMigrationPostfix}"
+                   placeholder="Set Transfer Prefix"/>
+        </div>
+        <div class="pure-control-group"
+             th:if="${('COMMON HYBRID SQL EXPORT_IMPORT SCHEMA_ONLY DUMP STORAGE_MIGRATION').contains(CONFIG.dataStrategy.toString())}">
+            <label for="transferPrefix" th:text="#{config.transfer.transferPrefix}"></label>
+            <input id="transferPrefix" type="text"
+                   style="width: 90%;"
+                   th:field="*{transfer.transferPrefix}"
+                   placeholder="Set Transfer Prefix"/>
+        </div>
+        <!--                        shadowPrefix: "hms_mirror_shadow_"-->
+        <div class="pure-control-group"
+             th:if="${('HYBRID SQL EXPORT_IMPORT SCHEMA_ONLY DUMP').contains(CONFIG.dataStrategy.toString())}">
+<!--            <span class="tooltiptext" th:text="#{config.transfer.shadowPrefix.tooltip}"></span>-->
+            <label for="shadowPrefix" th:text="#{config.transfer.shadowPrefix}"></label>
+            <input id="shadowPrefix" type="text"
+                   style="width: 90%;"
+                   th:field="*{transfer.shadowPrefix}"
+                   placeholder="Set Shadow Prefix"/>
+        </div>
+        <!--                        exportBaseDirPrefix: "/apps/hive/warehouse/export_"-->
+        <div class="pure-control-group"
+             th:if="${('HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">
+            <label for="exportBaseDirPrefix" th:text="#{config.transfer.exportBaseDirPrefix}"></label>
+            <input id="exportBaseDirPrefix" type="text"
+                   style="width: 90%;"
+                   th:field="*{transfer.exportBaseDirPrefix}"
+                   placeholder="Set Export Base Dir Prefix"/>
+        </div>
+        <!--                        remoteWorkingDirectory: "hms_mirror_working"-->
+        <div class="pure-control-group"
+             th:if="${('HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">
+            <label for="remoteWorkingDirectory"
+                   th:text="#{config.transfer.remoteWorkingDirectory}"></label>
+            <input id="remoteWorkingDirectory" type="text"
+                   style="width: 90%;"
+                   th:field="*{transfer.remoteWorkingDirectory}"
+                   placeholder="Set Remote Working Directory"/>
+        </div>
+        <!--                        intermediateStorage: null-->
+        <div class="pure-control-group"
+             th:if="${('HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">
+            <label for="intermediateStorage" th:text="#{config.transfer.intermediateStorage}"></label>
+            <input id="intermediateStorage" type="text"
+                   style="width: 90%;"
+                   th:field="*{transfer.intermediateStorage}"
+                   placeholder="Set Intermediate Storage"/>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

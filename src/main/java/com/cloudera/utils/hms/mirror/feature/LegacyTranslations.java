@@ -17,7 +17,7 @@
 
 package com.cloudera.utils.hms.mirror.feature;
 
-import com.cloudera.utils.hms.mirror.EnvironmentTable;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,9 +27,10 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 import static com.cloudera.utils.hms.util.TableUtils.*;
+import static java.util.Objects.isNull;
 
 @Slf4j
-public class LegacyTranslations extends BaseFeature implements Feature {
+public class LegacyTranslations extends BaseFeature implements Feature, Cloneable {
     private final Pattern RFS = Pattern.compile(ROW_FORMAT_SERDE + " '(.*)'");
     private final Pattern SAIF = Pattern.compile(STORED_AS_INPUTFORMAT + " '(.*)'");
     private final Pattern SAOF = Pattern.compile(OUTPUTFORMAT + " '(.*)'");
@@ -55,6 +56,17 @@ public class LegacyTranslations extends BaseFeature implements Feature {
         }
 
         return rtn;
+    }
+
+    @Override
+    public LegacyTranslations clone() {
+        try {
+            LegacyTranslations clone = (LegacyTranslations) super.clone();
+            // TODO: copy mutable state here, so the clone can't change the internals of the original
+            return clone;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
     }
 
     @Override
@@ -85,7 +97,7 @@ public class LegacyTranslations extends BaseFeature implements Feature {
     }
 
     public Map<String, String> getRowSerde() {
-        if (rowSerde == null) {
+        if (isNull(rowSerde)) {
             rowSerde = new TreeMap<>();
             rowSerde.put("'org.apache.hadoop.hive.contrib.serde2.RegexSerDe'", "'org.apache.hadoop.hive.serde2.RegexSerDe'");
             rowSerde.put("'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe'", "'org.apache.hadoop.hive.serde2.MultiDelimitSerDe'");

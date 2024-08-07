@@ -1,0 +1,185 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Global Location Maps</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+    <script th:src="@{/js/mirror.js}"></script>
+</head>
+<body>
+<div class="pure-g">
+    <div class="pure-u-1" th:insert="fragments/header::header">
+    </div>
+    <div class="pure-u-1-6" th:insert="fragments/nav::left_nav">
+    </div>
+    <div class="pure-u-5-6">
+        <div class="pure-u-11-12" th:insert="fragments/config/glm::view(true)">
+        </div>
+        <div class="pure-u-11-12" th:insert="fragments/config/glmSources::view">
+        </div>
+    </div>
+    <div class="pure-u-1" th:insert="fragments/footer::footer">
+    </div>
+</div>
+</body>
+</html>
+
+<!--&lt;!&ndash;<!DOCTYPE HTML>&ndash;&gt;-->
+<!--<html xmlns:th="http://www.thymeleaf.org">-->
+<!--<header>-->
+<!--    <title>Create Config</title>-->
+<!--    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>-->
+<!--    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">-->
+<!--    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">-->
+<!--    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">-->
+<!--    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">-->
+<!--    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">-->
+<!--</header>-->
+<!--<body>-->
+<!--&lt;!&ndash;<div class="pure-g">&ndash;&gt;-->
+<!--&lt;!&ndash;    <div class="pure-u-1">&ndash;&gt;-->
+<!--<h1 th:text="#{${ACTION}}"/>-->
+<!--&lt;!&ndash;    </div>&ndash;&gt;-->
+<!--&lt;!&ndash;    <div class="pure-u-1-1">&ndash;&gt;-->
+<!--    <fieldset>-->
+<!--        <legend th:text="#{global.location.maps}"/>-->
+<!--&lt;!&ndash;        <form class="pure-form pure-form-aligned" th:action="@{/translator/globalLocationMap/build}" method="post">&ndash;&gt;-->
+
+<!--&lt;!&ndash;&lt;!&ndash;          dryrun, buildSources, consolidationLevel, partitionLevelMisMatch &ndash;&gt;&ndash;&gt;-->
+<!--&lt;!&ndash;            <div class="pure-control-group">&ndash;&gt;-->
+<!--&lt;!&ndash;                <label for="dryrun" th:text="#{dryrun}"/>&ndash;&gt;-->
+<!--&lt;!&ndash;                <input id="dryrun" type="checkbox" name="dryrun"&ndash;&gt;-->
+<!--&lt;!&ndash;                       th:checked="true"&ndash;&gt;-->
+<!--&lt;!&ndash;            </div>&ndash;&gt;-->
+<!--&lt;!&ndash;            <div class="pure-control-group">&ndash;&gt;-->
+<!--&lt;!&ndash;                <label for="buildSources" th:text="#{build.sources}"/>&ndash;&gt;-->
+<!--&lt;!&ndash;                <input id="buildSources" type="checkbox" name="buildSources"&ndash;&gt;-->
+<!--&lt;!&ndash;                       th:checked="true"/>&ndash;&gt;-->
+<!--&lt;!&ndash;            </div>&ndash;&gt;-->
+<!--&lt;!&ndash;            <div class="pure-control-group">&ndash;&gt;-->
+<!--&lt;!&ndash;                <label for="consolidationLevel" th:text="#{consolidation.level}"/>&ndash;&gt;-->
+<!--&lt;!&ndash;                <select id="consolidationLevel" name="consolidationLevel">&ndash;&gt;-->
+<!--&lt;!&ndash;                    <option value="1" selected>1</option>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <option value="2">2</option>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <option value="3">3</option>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <option value="4">4</option>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <option value="5">5</option>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <option value="6">6</option>&ndash;&gt;-->
+<!--&lt;!&ndash;                </select>&ndash;&gt;-->
+<!--&lt;!&ndash;            </div>&ndash;&gt;-->
+<!--&lt;!&ndash;            <div class="pure-control-group">&ndash;&gt;-->
+<!--&lt;!&ndash;                <label for="partitionLevelMisMatch" th:text="#{partition.level.mismatch}"/>&ndash;&gt;-->
+<!--&lt;!&ndash;                <input id="partitionLevelMisMatch" type="checkbox" name="partitionLevelMisMatch"&ndash;&gt;-->
+<!--&lt;!&ndash;                       th:checked="true"/>&ndash;&gt;-->
+<!--&lt;!&ndash;            </div>&ndash;&gt;-->
+<!--&lt;!&ndash;            <div class="pure-control-group">&ndash;&gt;-->
+<!--&lt;!&ndash;                <button class="pure-button pure-button-primary" type="submit" th:text="#{button.build}"/>&ndash;&gt;-->
+<!--&lt;!&ndash;            </div>&ndash;&gt;-->
+<!--&lt;!&ndash;        </form>&ndash;&gt;-->
+<!--        <table class="pure-table">-->
+<!--            <thead>-->
+<!--            <tr>-->
+<!--                <th></th>-->
+<!--                <th>Source</th>-->
+<!--                <th>Target</th>-->
+<!--            </tr>-->
+<!--            </thead>-->
+<!--            <tbody>-->
+<!--            <th:block-->
+<!--                    th:each="item: ${GLOBAL_LOCATION_MAP}">-->
+<!--                <tr>-->
+<!--                    <td>-->
+<!--&lt;!&ndash;                        <a class="pure-button"&ndash;&gt;-->
+<!--&lt;!&ndash;                           th:href="@{/translator/globalLocationMap/delete?source=__${glm.key}__}"&ndash;&gt;-->
+<!--&lt;!&ndash;                           th:text="#{delete}"/>&ndash;&gt;-->
+<!--                    </td>-->
+<!--                    <td><label th:text="${item.key}"/></td>-->
+<!--                    <td><label th:text="${item.value}"/></td>-->
+<!--                </tr>-->
+<!--            </th:block>-->
+<!--            </tbody>-->
+<!--        </table>-->
+<!--    </fieldset>-->
+<!--    <fieldset>-->
+<!--        <legend th:text="#{builder.sources}"/>-->
+<!--        <ul id="tree">-->
+<!--            <th:block-->
+<!--                    th:each="source: ${SOURCES}">-->
+<!--                <li>-->
+<!--                    <details open>-->
+<!--                        <summary th:text="${source.key}"></summary>-->
+<!--                        <ul>-->
+<!--                            <li>-->
+<!--                                <details>-->
+<!--                                    <summary th:text="#{managed.tables}"></summary>-->
+<!--                                    <ul>-->
+<!--                                        <th:block-->
+<!--                                                th:each="mngdTbl: ${source.value.locations[MANAGED_TABLE]}">-->
+<!--                                            <li>-->
+<!--                                                <details>-->
+<!--                                                    <summary th:text="${mngdTbl.key}"></summary>-->
+<!--                                                    <ul>-->
+<!--                                                        <th:block th:each="tbl: ${mngdTbl.value}">-->
+<!--                                                            <li th:text="${tbl}">-->
+<!--                                                                &lt;!&ndash;                                                                    <summary th:text="${tbl}"></summary>&ndash;&gt;-->
+<!--                                                            </li>-->
+<!--                                                        </th:block>-->
+<!--                                                    </ul>-->
+<!--                                                </details>-->
+<!--                                            </li>-->
+<!--                                        </th:block>-->
+<!--                                    </ul>-->
+<!--                                </details>-->
+<!--                            </li>-->
+<!--                            <li>-->
+<!--                                <details>-->
+<!--                                    <summary th:text="#{external.tables}"></summary>-->
+<!--                                    <ul>-->
+<!--                                        <th:block-->
+<!--                                                th:each="extTbl: ${source.value.locations[EXTERNAL_TABLE]}">-->
+<!--                                            <li>-->
+<!--                                                <details>-->
+<!--                                                    <summary th:text="${extTbl.key}"></summary>-->
+<!--                                                    <ul>-->
+<!--                                                        <th:block th:each="tbl: ${extTbl.value}">-->
+<!--                                                            <li th:text="${tbl}"></li>-->
+<!--                                                        </th:block>-->
+<!--                                                    </ul>-->
+<!--                                                </details>-->
+<!--                                            </li>-->
+<!--                                        </th:block>-->
+<!--                                    </ul>-->
+<!--                                </details>-->
+<!--                            </li>-->
+<!--                        </ul>-->
+<!--                    </details>-->
+<!--                </li>-->
+<!--            </th:block>-->
+<!--        </ul>-->
+<!--    </fieldset>-->
+<!--&lt;!&ndash;</fieldset>&ndash;&gt;-->
+<!--&lt;!&ndash;    </div>&ndash;&gt;-->
+<!--&lt;!&ndash;</div>&ndash;&gt;-->
+<!--</body>-->
+<!--</html>-->

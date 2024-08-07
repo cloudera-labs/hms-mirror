@@ -17,8 +17,18 @@
 
 package com.cloudera.utils.hms.mirror.datastrategy;
 
-import com.cloudera.utils.hms.mirror.*;
-import com.cloudera.utils.hms.mirror.service.HmsMirrorCfgService;
+import com.cloudera.utils.hms.mirror.CopySpec;
+import com.cloudera.utils.hms.mirror.CreateStrategy;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
+import com.cloudera.utils.hms.mirror.MirrorConf;
+import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
+import com.cloudera.utils.hms.mirror.domain.TableMirror;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.domain.support.HmsMirrorConfigUtil;
+import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
+import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
+import com.cloudera.utils.hms.mirror.service.ConfigService;
+import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.TableService;
 import com.cloudera.utils.hms.mirror.service.TranslatorService;
 import com.cloudera.utils.hms.util.TableUtils;
@@ -31,24 +41,31 @@ import java.text.MessageFormat;
 
 import static com.cloudera.utils.hms.mirror.MessageCode.SCHEMA_EXISTS_NO_ACTION;
 import static com.cloudera.utils.hms.mirror.MessageCode.SCHEMA_EXISTS_SYNC_PARTS;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Component
 @Slf4j
 @Getter
 public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStrategy {
 
+    private ConfigService configService;
     TranslatorService translatorService;
     private TableService tableService;
 
-    public SchemaOnlyDataStrategy(HmsMirrorCfgService hmsMirrorCfgService) {
-        this.hmsMirrorCfgService = hmsMirrorCfgService;
+    @Autowired
+    public void setConfigService(ConfigService configService) {
+        this.configService = configService;
+    }
+
+    public SchemaOnlyDataStrategy(ExecuteSessionService executeSessionService) {
+        this.executeSessionService = executeSessionService;
     }
 
     @Override
-    public Boolean buildOutDefinition(TableMirror tableMirror) {
+    public Boolean buildOutDefinition(TableMirror tableMirror) throws RequiredConfigurationException {
         Boolean rtn = Boolean.FALSE;
         log.debug("Table: {} buildout SCHEMA_ONLY Definition", tableMirror.getName());
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         EnvironmentTable let = null;
         EnvironmentTable ret = null;
@@ -74,15 +91,15 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
         } else if (copySpec.isUpgrade()) {
             ret.addIssue("Ownership (PURGE Option) not set because of either: `sync` or `ro|read-only` was specified in the config.");
         }
-        if (getHmsMirrorCfgService().getHmsMirrorConfig().isReadOnly()) {
+        if (hmsMirrorConfig.isReadOnly()) {
             copySpec.setTakeOwnership(Boolean.FALSE);
         }
-        if (getHmsMirrorCfgService().getHmsMirrorConfig().isNoPurge()) {
+        if (hmsMirrorConfig.isNoPurge()) {
             copySpec.setTakeOwnership(Boolean.FALSE);
         }
 
         if (hmsMirrorConfig.isSync()) {
-            // We assume that the 'definitions' are only there is the
+            // We assume that the 'definitions' are only there if the
             //     table exists.
             if (!let.isExists() && ret.isExists()) {
                 // If left is empty and right is not, DROP RIGHT.
@@ -96,7 +113,7 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
                 // If left and right, check schema change and replace if necessary.
                 // Compare Schemas.
                 if (tableMirror.schemasEqual(Environment.LEFT, Environment.RIGHT)) {
-                    if (let.getPartitioned() && hmsMirrorConfig.isEvaluatePartitionLocation()) {
+                    if (let.getPartitioned() && hmsMirrorConfig.loadMetadataDetails()) {
                         ret.setCreateStrategy(CreateStrategy.AMEND_PARTS);
                         ret.addIssue(SCHEMA_EXISTS_SYNC_PARTS.getDesc());
                     } else {
@@ -122,7 +139,7 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
                     ret.addIssue("View exists already.  Will REPLACE.");
                     ret.setCreateStrategy(CreateStrategy.REPLACE);
                 } else {
-                    if (getHmsMirrorCfgService().getHmsMirrorConfig().getCluster(Environment.RIGHT).isCreateIfNotExists()) {
+                    if (hmsMirrorConfig.getCluster(Environment.RIGHT).isCreateIfNotExists()) {
                         ret.addIssue("Schema exists already.  But you've specified 'createIfNotExist', which will attempt to create " +
                                 "(possibly fail, softly) and continue with the remainder sql statements for the table/partitions.");
                         ret.setCreateStrategy(CreateStrategy.CREATE);
@@ -149,7 +166,7 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
         // Rebuild Target from Source.
         if (!TableUtils.isACID(let)
                 || (TableUtils.isACID(let)
-                && getHmsMirrorCfgService().getHmsMirrorConfig().getMigrateACID().isOn())) {
+                && hmsMirrorConfig.getMigrateACID().isOn())) {
             rtn = getTableService().buildTableSchema(copySpec);
         } else {
             let.addIssue(TableUtils.ACID_NOT_ON);
@@ -158,7 +175,7 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
         }
 
         // If not legacy, remove location from ACID tables.
-        if (rtn && !getHmsMirrorCfgService().getHmsMirrorConfig().getCluster(Environment.LEFT).isLegacyHive() &&
+        if (rtn && !hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive() &&
                 TableUtils.isACID(let)) {
             TableUtils.stripLocation(let.getName(), let.getDefinition());
         }
@@ -166,10 +183,10 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
     }
 
     @Override
-    public Boolean buildOutSql(TableMirror tableMirror) {
+    public Boolean buildOutSql(TableMirror tableMirror) throws MissingDataPointException {
         Boolean rtn = Boolean.FALSE;
         log.debug("Table: {} buildout SCHEMA_ONLY SQL", tableMirror.getName());
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         String useDb = null;
         String database = null;
@@ -180,7 +197,7 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
 
         //ret.getSql().clear();
 
-        database = getHmsMirrorCfgService().getResolvedDB(tableMirror.getParent().getName());
+        database = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
         useDb = MessageFormat.format(MirrorConf.USE, database);
 
         switch (ret.getCreateStrategy()) {
@@ -209,8 +226,8 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
                 ret.addSql(TableUtils.USE_DESC, useDb);
                 String createStmt2 = getTableService().getCreateStatement(tableMirror, Environment.RIGHT);//tableMirror.getCreateStatement(Environment.RIGHT);
                 ret.addSql(TableUtils.CREATE_DESC, createStmt2);
-                if (!getHmsMirrorCfgService().getHmsMirrorConfig().getCluster(Environment.RIGHT).isLegacyHive()
-                        && getHmsMirrorCfgService().getHmsMirrorConfig().isTransferOwnership() && let.getOwner() != null) {
+                if (!config.getCluster(Environment.RIGHT).isLegacyHive()
+                        && config.isTransferOwnership() && let.getOwner() != null) {
                     String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, ret.getName(), let.getOwner());
                     ret.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
                 }
@@ -224,17 +241,20 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
         if (let.getPartitioned() && !TableUtils.isACID(let) &&
                 (ret.getCreateStrategy() == CreateStrategy.REPLACE || ret.getCreateStrategy() == CreateStrategy.CREATE
                         || ret.getCreateStrategy() == CreateStrategy.AMEND_PARTS)) {
-            if (hmsMirrorConfig.isEvaluatePartitionLocation()) {
+            if (config.loadMetadataDetails()) {
                 // TODO: Write out the SQL to build the partitions.  NOTE: We need to get the partition locations and modify them
                 //       to the new namespace.
                 String tableParts = getTranslatorService().buildPartitionAddStatement(ret);
-                String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION, ret.getName(), tableParts);
-                ret.addSql(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION_DESC, addPartSql);
-            } else if (hmsMirrorConfig.getCluster(Environment.RIGHT).getPartitionDiscovery().isInitMSCK()) {
+                // This will be empty when there's no data and we need to handle that.
+                if (!isBlank(tableParts)) {
+                    String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION, ret.getName(), tableParts);
+                    ret.addSql(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION_DESC, addPartSql);
+                }
+            } else if (config.getCluster(Environment.RIGHT).getPartitionDiscovery().isInitMSCK()) {
                 String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, ret.getName());
                 // Add the MSCK repair to both initial and cleanup.
                 ret.addSql(TableUtils.REPAIR_DESC, msckStmt);
-                if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
+                if (config.getTransfer().getStorageMigration().isDistcp()) {
                     ret.addCleanUpSql(TableUtils.REPAIR_DESC, msckStmt);
                 }
             }
@@ -248,13 +268,25 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
     public Boolean execute(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
 
-        rtn = this.buildOutDefinition(tableMirror);
+        EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
+
+        try {
+            rtn = this.buildOutDefinition(tableMirror);
+        } catch (RequiredConfigurationException e) {
+            let.addIssue("Failed to build out definition: " + e.getMessage());
+            rtn = Boolean.FALSE;
+        }
 
         if (rtn) {
             rtn = AVROCheck(tableMirror);
         }
         if (rtn) {
-            rtn = this.buildOutSql(tableMirror);
+            try {
+                rtn = this.buildOutSql(tableMirror);
+            } catch (MissingDataPointException e) {
+                let.addIssue("Failed to build out SQL: " + e.getMessage());
+                rtn = Boolean.FALSE;
+            }
         }
         if (rtn) {
             rtn = getTableService().runTableSql(tableMirror, Environment.RIGHT);

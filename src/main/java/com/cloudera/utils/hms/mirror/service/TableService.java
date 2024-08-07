@@ -23,8 +23,15 @@ import com.cloudera.utils.hadoop.cli.CliEnvironment;
 import com.cloudera.utils.hadoop.cli.DisabledException;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import com.cloudera.utils.hive.config.QueryDefinitions;
-import com.cloudera.utils.hms.mirror.*;
-import com.cloudera.utils.hms.mirror.datastrategy.DataStrategyEnum;
+import com.cloudera.utils.hms.mirror.CopySpec;
+import com.cloudera.utils.hms.mirror.MessageCode;
+import com.cloudera.utils.hms.mirror.MirrorConf;
+import com.cloudera.utils.hms.mirror.Pair;
+import com.cloudera.utils.hms.mirror.domain.*;
+import com.cloudera.utils.hms.mirror.domain.support.*;
+import com.cloudera.utils.hms.mirror.exceptions.MismatchException;
+import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
+import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.feature.Feature;
 import com.cloudera.utils.hms.mirror.feature.FeaturesEnum;
 import com.cloudera.utils.hms.stage.ReturnStatus;
@@ -37,6 +44,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
+import java.sql.Connection;
 import java.sql.*;
 import java.text.DateFormat;
 import java.text.MessageFormat;
@@ -46,13 +54,14 @@ import java.util.*;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 
-import static com.cloudera.utils.hms.mirror.MessageCode.LOCATION_NOT_MATCH_WAREHOUSE;
 import static com.cloudera.utils.hms.mirror.MirrorConf.*;
 import static com.cloudera.utils.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION;
 import static com.cloudera.utils.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION_THRESHOLD;
 import static com.cloudera.utils.hms.mirror.TablePropertyVars.*;
-import static com.cloudera.utils.hms.mirror.datastrategy.DataStrategyEnum.DUMP;
-import static com.cloudera.utils.hms.mirror.datastrategy.DataStrategyEnum.STORAGE_MIGRATION;
+import static com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.DUMP;
+import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Service
 @Getter
@@ -62,26 +71,32 @@ public class TableService {
     private final DateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
     private final DateFormat tdf = new SimpleDateFormat("HH:mm:ss.SSS");
 
-    private HmsMirrorCfgService hmsMirrorCfgService;
+    private ConfigService configService;
+    private ExecuteSessionService executeSessionService;
     private ConnectionPoolService connectionPoolService;
     private QueryDefinitionsService queryDefinitionsService;
     private TranslatorService translatorService;
     private StatsCalculatorService statsCalculatorService;
 
-    protected HmsMirrorConfig getConfig() {
-        return getHmsMirrorCfgService().getHmsMirrorConfig();
+//    protected HmsMirrorConfig getConfig() {
+//        return getExecuteSessionService().getHmsMirrorConfig();
+//    }
+
+    @Autowired
+    public void setConfigService(ConfigService configService) {
+        this.configService = configService;
     }
 
     protected Boolean buildShadowToFinalSql(TableMirror tableMirror) {
         Boolean rtn = Boolean.TRUE;
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         // if common storage, skip
         // if inplace, skip
         EnvironmentTable source = tableMirror.getEnvironmentTable(Environment.LEFT);
         EnvironmentTable shadow = tableMirror.getEnvironmentTable(Environment.SHADOW);
         EnvironmentTable target = tableMirror.getEnvironmentTable(Environment.RIGHT);
-        if ((!TableUtils.isACID(source) && hmsMirrorConfig.getTransfer().getCommonStorage() != null) ||
+        if ((!TableUtils.isACID(source) && !isBlank(hmsMirrorConfig.getTransfer().getTargetNamespace())) ||
                 isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
             // Nothing to build.
             return rtn;
@@ -156,7 +171,7 @@ public class TableService {
 
     protected Boolean buildSourceToTransferSql(TableMirror tableMirror) {
         Boolean rtn = Boolean.TRUE;
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         EnvironmentTable source, transfer, target;
         source = tableMirror.getEnvironmentTable(Environment.LEFT);
@@ -252,14 +267,30 @@ public class TableService {
         return rtn;
     }
 
-    public Boolean buildTableSchema(CopySpec copySpec) {
+    public Boolean buildTableSchema(CopySpec copySpec) throws RequiredConfigurationException {
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
         TableMirror tableMirror = copySpec.getTableMirror();
         Boolean rtn = Boolean.TRUE;
 
         EnvironmentTable source = tableMirror.getEnvironmentTable(copySpec.getSource());
         EnvironmentTable target = tableMirror.getEnvironmentTable(copySpec.getTarget());
+
+        // Since we are building the cluster on request, we need to build the transfer cluster if they don't exist.
+        if (isNull(config.getCluster(copySpec.getTarget()))) {
+            Cluster intermediateCluster = null;
+            if (copySpec.getTarget() == Environment.SHADOW) {
+                intermediateCluster = config.getCluster(Environment.LEFT).clone();
+            } else if (copySpec.getTarget() == Environment.TRANSFER) {
+                intermediateCluster = config.getCluster(Environment.RIGHT).clone();
+            } else if (copySpec.getTarget() == Environment.RIGHT) {
+                // This can happen when the strategy is a single cluster effort BUT we're using the RIGHT
+                // Cluster as an intermediate holder.
+                intermediateCluster = config.getCluster(Environment.LEFT).clone();
+            }
+            config.getClusters().put(copySpec.getTarget(), intermediateCluster);
+        }
+
         try {
             // Set Table Name
             if (source.isExists()) {
@@ -269,17 +300,6 @@ public class TableService {
                 target.getDefinition().clear();
                 // Reset with Source
                 target.getDefinition().addAll(source.getDefinition());
-                if (hmsMirrorConfig.isEvaluatePartitionLocation() &&
-                        source.getPartitioned()) {
-                    if (!TableUtils.isACID(source)) {
-                        // New Map.  So we can modify it..
-                        Map<String, String> targetPartitions = new HashMap<>(source.getPartitions());
-                        target.setPartitions(targetPartitions);
-                        if (!getTranslatorService().translatePartitionLocations(tableMirror)) {
-                            rtn = Boolean.FALSE;
-                        }
-                    }
-                }
                 if (TableUtils.isHiveNative(source)) {
                     // Rules
                     // 1. Strip db from create state.  It's broken anyway with the way
@@ -292,11 +312,11 @@ public class TableService {
                     }
 
                     if (!TableUtils.doesTableNameMatchDirectoryName(target.getDefinition())) {
-                        if (hmsMirrorConfig.isResetToDefaultLocation()) {
+                        if (config.loadMetadataDetails()) {
                             target.addIssue("Tablename does NOT match last directory name. Using `rdl` will change " +
                                     "the implied path from the original.  This may affect other applications that aren't " +
                                     "relying on the metastore.");
-                            if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
+                            if (config.getTransfer().getStorageMigration().isDistcp()) {
                                 // We need to FAIL the table to ensure we point out that there is a disconnect.
                                 rtn = Boolean.FALSE;
                                 target.addIssue("Tablename does NOT match last directory name.  Using `dc|distcp` will copy " +
@@ -317,7 +337,7 @@ public class TableService {
                                 target.addProperty(HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
                                 target.addProperty(HMS_MIRROR_CONVERTED_FLAG, converted.toString());
                                 if (copySpec.isTakeOwnership()) {
-                                    if (!hmsMirrorConfig.isNoPurge()) {
+                                    if (!config.isNoPurge()) {
                                         target.addProperty(EXTERNAL_TABLE_PURGE, "true");
                                     }
                                 } else {
@@ -330,7 +350,7 @@ public class TableService {
                             }
                             if (copySpec.isTakeOwnership()) {
                                 if (TableUtils.isACID(source)) {
-                                    if (hmsMirrorConfig.getMigrateACID().isDowngrade() && !hmsMirrorConfig.isNoPurge()) {
+                                    if (config.getMigrateACID().isDowngrade() && !config.isNoPurge()) {
                                         target.addProperty(EXTERNAL_TABLE_PURGE, "true");
                                     }
                                 } else {
@@ -353,7 +373,7 @@ public class TableService {
                             if (TableUtils.isACID(source)) {
                                 if (copySpec.getTarget() == Environment.TRANSFER) {
                                     target.addProperty(EXTERNAL_TABLE_PURGE, "true");
-                                } else if (hmsMirrorConfig.getMigrateACID().isDowngrade() && !hmsMirrorConfig.isNoPurge()) {
+                                } else if (config.getMigrateACID().isDowngrade() && !config.isNoPurge()) {
                                     target.addProperty(EXTERNAL_TABLE_PURGE, "true");
                                 }
                             } else {
@@ -362,7 +382,7 @@ public class TableService {
                         }
 
                         if (copySpec.isStripLocation()) {
-                            if (hmsMirrorConfig.getMigrateACID().isDowngrade()) {
+                            if (config.getMigrateACID().isDowngrade()) {
                                 target.addIssue("Location Stripped from 'Downgraded' ACID definition.  Location will be the default " +
                                         "external location as configured by the database/environment.");
                             } else {
@@ -372,18 +392,18 @@ public class TableService {
                             TableUtils.stripLocation(target);
                         }
 
-                        if (hmsMirrorConfig.getMigrateACID().isDowngrade() && copySpec.isMakeExternal()) {
+                        if (config.getMigrateACID().isDowngrade() && copySpec.isMakeExternal()) {
                             converted = TableUtils.makeExternal(target);
-                            if (!hmsMirrorConfig.isNoPurge()) {
+                            if (!config.isNoPurge()) {
                                 target.addProperty(EXTERNAL_TABLE_PURGE, Boolean.TRUE.toString());
                             }
                             target.addProperty(DOWNGRADED_FROM_ACID, Boolean.TRUE.toString());
                         }
 
-                        if (TableUtils.removeBuckets(target, hmsMirrorConfig.getMigrateACID().getArtificialBucketThreshold())) {
+                        if (TableUtils.removeBuckets(target, config.getMigrateACID().getArtificialBucketThreshold())) {
                             target.addIssue("Bucket Definition removed (was " + TableUtils.numOfBuckets(source) + ") because it was EQUAL TO or BELOW " +
                                     "the configured 'artificialBucketThreshold' of " +
-                                    hmsMirrorConfig.getMigrateACID().getArtificialBucketThreshold());
+                                    config.getMigrateACID().getArtificialBucketThreshold());
                         }
                     }
 
@@ -415,7 +435,8 @@ public class TableService {
                     TableUtils.removeTblProperty("last_modified_time", target);
 
                     // 6. Set 'discover.partitions' if config and non-acid
-                    if (hmsMirrorConfig.getCluster(copySpec.getTarget()).getPartitionDiscovery().isAuto() && TableUtils.isPartitioned(target)) {
+                    if (config.getCluster(copySpec.getTarget()).getPartitionDiscovery().isAuto() && TableUtils.isPartitioned(target)) {
+
                         if (converted) {
                             target.addProperty(DISCOVER_PARTITIONS, Boolean.TRUE.toString());
                         } else if (TableUtils.isExternal(target)) {
@@ -429,83 +450,86 @@ public class TableService {
                     switch (copySpec.getTarget()) {
                         case LEFT:
                         case RIGHT:
-                            if (copySpec.isReplaceLocation() && (!TableUtils.isACID(source) || hmsMirrorConfig.getMigrateACID().isDowngrade())) {
+                            if (copySpec.isReplaceLocation() && (!TableUtils.isACID(source) || config.getMigrateACID().isDowngrade())) {
                                 String sourceLocation = TableUtils.getLocation(tableMirror.getName(), tableMirror.getTableDefinition(copySpec.getSource()));
                                 int level = 1;
-                                if (hmsMirrorConfig.getFilter().isTableFiltering()) {
+                                if (config.getFilter().isTableFiltering()) {
                                     level = 0;
                                 }
-                                String targetLocation = getTranslatorService().
-                                        translateTableLocation(tableMirror, sourceLocation, level, null);
+                                String targetLocation = null;
+                                targetLocation = getTranslatorService().
+                                        translateLocation(tableMirror, sourceLocation, level, null);
                                 if (!TableUtils.updateTableLocation(target, targetLocation)) {
                                     rtn = Boolean.FALSE;
                                 }
                                 // Check if the locations align.  If not, warn.
-                                if (hmsMirrorConfig.getTransfer().getWarehouse().getExternalDirectory() != null &&
-                                        hmsMirrorConfig.getTransfer().getWarehouse().getManagedDirectory() != null) {
-                                    if (TableUtils.isExternal(target)) {
-                                        // We store the DB LOCATION in the RIGHT dbDef so we can avoid changing the original LEFT
-                                        if (!targetLocation.startsWith(tableMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_LOCATION))) {
-                                            // Set warning that even though you've specified to warehouse directories, the current configuration
-                                            // will NOT place it in that directory.
-                                            String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
-                                                    tableMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_LOCATION),
-                                                    targetLocation);
-                                            tableMirror.addIssue(Environment.RIGHT, msg);
-                                        }
-                                    } else {
-                                        if (!targetLocation.startsWith(tableMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION))) {
-                                            // Set warning that even though you've specified to warehouse directories, the current configuration
-                                            // will NOT place it in that directory.
-                                            String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
-                                                    tableMirror.getParent().getDBDefinition(Environment.RIGHT).get(DB_MANAGED_LOCATION),
-                                                    targetLocation);
-                                            tableMirror.addIssue(Environment.RIGHT, msg);
-                                        }
+//                                if (config.getTransfer().getWarehouse().getExternalDirectory() != null &&
+//                                        config.getTransfer().getWarehouse().getManagedDirectory() != null) {
 
-                                    }
-                                }
+//     THESE CHECKS ARE DONE ALREADY in the TranslatorService.translateTableLocation method.
+//                                if (TableUtils.isExternal(target)) {
+//                                    // We store the DB LOCATION in the RIGHT dbDef so we can avoid changing the original LEFT
+//                                    String lclLoc = tableMirror.getParent().getProperty(Environment.RIGHT, DB_LOCATION);
+//                                    if (!isBlank(lclLoc) && !targetLocation.startsWith(lclLoc)) {
+//                                        // Set warning that even though you've specified to warehouse directories, the current configuration
+//                                        // will NOT place it in that directory.
+//                                        String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
+//                                                lclLoc, targetLocation);
+//                                        tableMirror.addIssue(Environment.RIGHT, msg);
+//                                    }
+//                                } else {
+//                                    String lclLoc = tableMirror.getParent().getProperty(Environment.RIGHT, DB_MANAGED_LOCATION);
+//                                    if (!isBlank(lclLoc) && !targetLocation.startsWith(lclLoc)) {
+//                                        // Set warning that even though you've specified to warehouse directories, the current configuration
+//                                        // will NOT place it in that directory.
+//                                        String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
+//                                                lclLoc, targetLocation);
+//                                        tableMirror.addIssue(Environment.RIGHT, msg);
+//                                    }
+//
+//                                }
+//                                }
 
                             }
 
                             if (tableMirror.isReMapped()) {
                                 target.addIssue(MessageCode.TABLE_LOCATION_REMAPPED.getDesc());
-                            } else if (hmsMirrorConfig.getTranslator().isForceExternalLocation()) {
+                            } else if (config.getTranslator().isForceExternalLocation()) {
                                 target.addIssue(MessageCode.TABLE_LOCATION_FORCED.getDesc());
-                            } else if (hmsMirrorConfig.isResetToDefaultLocation()) {
+                            } else if (config.loadMetadataDetails()) {
                                 TableUtils.stripLocation(target);
-                                target.addIssue(MessageCode.RESET_TO_DEFAULT_LOCATION_WARNING.getDesc());
+                                target.addIssue(MessageCode.ALIGN_LOCATIONS_WARNING.getDesc());
                             }
                             break;
                         case SHADOW:
                         case TRANSFER:
-                            if (copySpec.getLocation() != null) {
+                            if (nonNull(copySpec.getLocation())) {
                                 if (!TableUtils.updateTableLocation(target, copySpec.getLocation())) {
                                     rtn = Boolean.FALSE;
                                 }
                             } else if (copySpec.isReplaceLocation()) {
-                                if (hmsMirrorConfig.getTransfer().getIntermediateStorage() != null) {
-                                    String isLoc = hmsMirrorConfig.getTransfer().getIntermediateStorage();
+                                if (nonNull(config.getTransfer().getIntermediateStorage())) {
+                                    String isLoc = config.getTransfer().getIntermediateStorage();
                                     // Deal with extra '/'
                                     isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
-                                    isLoc = isLoc + "/" + hmsMirrorConfig.getTransfer().getRemoteWorkingDirectory() + "/" +
-                                            hmsMirrorConfig.getRunMarker() + "/" +
+                                    isLoc = isLoc + "/" + config.getTransfer().getRemoteWorkingDirectory() + "/" +
+                                            config.getRunMarker() + "/" +
 //                                        config.getTransfer().getTransferPrefix() + this.getUnique() + "_" +
                                             tableMirror.getParent().getName() + "/" +
                                             tableMirror.getName();
                                     if (!TableUtils.updateTableLocation(target, isLoc)) {
                                         rtn = Boolean.FALSE;
                                     }
-                                } else if (hmsMirrorConfig.getTransfer().getCommonStorage() != null) {
+                                } else if (nonNull(config.getTransfer().getTargetNamespace())) {
                                     String sourceLocation = TableUtils.getLocation(tableMirror.getName(), tableMirror.getTableDefinition(copySpec.getSource()));
                                     String targetLocation = getTranslatorService().
-                                            translateTableLocation(tableMirror, sourceLocation, 1, null);
+                                            translateLocation(tableMirror, sourceLocation, 1, null);
                                     if (!TableUtils.updateTableLocation(target, targetLocation)) {
                                         rtn = Boolean.FALSE;
                                     }
                                 } else if (copySpec.isStripLocation()) {
                                     TableUtils.stripLocation(target);
-                                } else if (hmsMirrorConfig.isReplace()) {
+                                } else if (config.isReplace()) {
                                     String sourceLocation = TableUtils.getLocation(tableMirror.getName(), tableMirror.getTableDefinition(copySpec.getSource()));
                                     String replacementLocation = sourceLocation + "_replacement";
                                     if (!TableUtils.updateTableLocation(target, replacementLocation)) {
@@ -513,10 +537,10 @@ public class TableService {
                                     }
                                 } else {
                                     // Need to use export location
-                                    String isLoc = hmsMirrorConfig.getTransfer().getExportBaseDirPrefix();
+                                    String isLoc = config.getTransfer().getExportBaseDirPrefix();
                                     // Deal with extra '/'
                                     isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
-                                    isLoc = hmsMirrorConfig.getCluster(Environment.LEFT).getHcfsNamespace() +
+                                    isLoc = config.getCluster(Environment.LEFT).getHcfsNamespace() +
                                             isLoc + tableMirror.getParent().getName() + "/" + tableMirror.getName();
                                     if (!TableUtils.updateTableLocation(target, isLoc)) {
                                         rtn = Boolean.FALSE;
@@ -524,6 +548,19 @@ public class TableService {
                                 }
                             }
                             break;
+                    }
+
+                    // Check and convert Partition Locations.
+                    if (config.loadMetadataDetails() &&
+                            source.getPartitioned()) {
+                        if (!TableUtils.isACID(source)) {
+                            // New Map.  So we can modify it..
+                            Map<String, String> targetPartitions = new HashMap<>(source.getPartitions());
+                            target.setPartitions(targetPartitions);
+                            if (!getTranslatorService().translatePartitionLocations(tableMirror)) {
+                                rtn = Boolean.FALSE;
+                            }
+                        }
                     }
 
                     switch (copySpec.getTarget()) {
@@ -535,7 +572,7 @@ public class TableService {
                             break;
                     }
                     // 6. Go through the features, if any.
-                    if (!hmsMirrorConfig.isSkipFeatures()) {
+                    if (!config.isSkipFeatures()) {
                         for (FeaturesEnum features : FeaturesEnum.values()) {
                             Feature feature = features.getFeature();
                             log.debug("Table: {} - Checking Feature: {}", tableMirror.getName(), features);
@@ -551,8 +588,8 @@ public class TableService {
                         log.debug("Table: {} - Skipping Features Check...", tableMirror.getName());
                     }
 
-                    if (hmsMirrorConfig.isTranslateLegacy()) {
-                        if (hmsMirrorConfig.getLegacyTranslations().fixSchema(target)) {
+                    if (config.isTranslateLegacy()) {
+                        if (config.getLegacyTranslations().fixSchema(target)) {
                             log.info("Legacy Translation applied to: {}:{}", tableMirror.getParent().getName(), target.getName());
                         }
                     }
@@ -565,11 +602,11 @@ public class TableService {
                         }
                     }
 
-                    if (!copySpec.isTakeOwnership() && hmsMirrorConfig.getDataStrategy() != DataStrategyEnum.STORAGE_MIGRATION) {
+                    if (!copySpec.isTakeOwnership() && config.getDataStrategy() != DataStrategyEnum.STORAGE_MIGRATION) {
                         TableUtils.removeTblProperty(EXTERNAL_TABLE_PURGE, target);
                     }
 
-                    if (hmsMirrorConfig.getCluster(copySpec.getTarget()).isLegacyHive() && hmsMirrorConfig.getDataStrategy() != DataStrategyEnum.STORAGE_MIGRATION) {
+                    if (config.getCluster(copySpec.getTarget()).isLegacyHive() && config.getDataStrategy() != DataStrategyEnum.STORAGE_MIGRATION) {
                         // remove newer flags;
                         TableUtils.removeTblProperty(EXTERNAL_TABLE_PURGE, target);
                         TableUtils.removeTblProperty(DISCOVER_PARTITIONS, target);
@@ -587,9 +624,13 @@ public class TableService {
 
                 TableUtils.fixTableDefinition(target);
             }
-        } catch (Exception e) {
+        } catch (MismatchException e) {
             log.error("Error building table schema: {}", e.getMessage(), e);
             source.addIssue("Error building table schema: " + e.getMessage());
+            rtn = Boolean.FALSE;
+        } catch (MissingDataPointException e) {
+            log.error(MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS.getDesc(), e);
+            source.addIssue(MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS.getDesc());
             rtn = Boolean.FALSE;
         }
         return rtn;
@@ -597,7 +638,7 @@ public class TableService {
 
     public Boolean buildTransferSql(TableMirror tableMirror, Environment source, Environment shadow, Environment target) {
         Boolean rtn = Boolean.TRUE;
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         EnvironmentTable sourceTable = tableMirror.getEnvironmentTable(source);
         EnvironmentTable shadowTable = tableMirror.getEnvironmentTable(shadow);
@@ -614,7 +655,7 @@ public class TableService {
                     String msckTable = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, targetTable.getName());
                     targetTable.addCleanUpSql(new Pair(MirrorConf.MSCK_REPAIR_TABLE_DESC, msckTable));
                 }
-            } else if (hmsMirrorConfig.getTransfer().getCommonStorage() == null) {
+            } else if (isBlank(hmsMirrorConfig.getTransfer().getTargetNamespace())) {
                 rtn = buildShadowToFinalSql(tableMirror);
             }
         }
@@ -623,7 +664,10 @@ public class TableService {
 
     protected void checkTableFilter(TableMirror tableMirror, Environment environment) {
         EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        ExecuteSession session = executeSessionService.getSession();
+        HmsMirrorConfig hmsMirrorConfig = session.getConfig();
+        RunStatus runStatus = session.getRunStatus();
+        OperationStatistics stats = runStatus.getOperationStatistics();
 
         if (environment == Environment.LEFT) {
             if (hmsMirrorConfig.getMigrateVIEW().isOn() && hmsMirrorConfig.getDataStrategy() != DUMP) {
@@ -696,7 +740,7 @@ public class TableService {
 
     public String getCreateStatement(TableMirror tableMirror, Environment environment) {
         StringBuilder createStatement = new StringBuilder();
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         Boolean cine = hmsMirrorConfig.getCluster(environment).isCreateIfNotExists();
 
@@ -723,10 +767,10 @@ public class TableService {
     }
 
     public void getTableDefinition(TableMirror tableMirror, Environment environment) throws SQLException {
-        // The connection should already be in the database;
+        // The connections should already be in the database;
         log.debug("Getting table definition for {}:{}.{}",
                 environment, tableMirror.getParent().getName(), tableMirror.getName());
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
         // Fetch Table Definition.
@@ -766,19 +810,16 @@ public class TableService {
         }
 
         Boolean partitioned = TableUtils.isPartitioned(et);
-        if (partitioned && !tableMirror.isRemove() && !hmsMirrorConfig.isLoadingTestData()) {
+        if (environment == Environment.LEFT && partitioned
+                && !tableMirror.isRemove() && !hmsMirrorConfig.isLoadingTestData()) {
             /*
             If we are -epl, we need to load the partition metadata for the table. And we need to use the
-            metastore_direct connection to do so. Trying to load this through the standard Hive SQL process
+            metastore_direct connections to do so. Trying to load this through the standard Hive SQL process
             is 'extremely' slow.
              */
-            if (hmsMirrorConfig.isEvaluatePartitionLocation() ||
-                    (hmsMirrorConfig.getDataStrategy() == STORAGE_MIGRATION && hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp())) {
+            if (hmsMirrorConfig.loadMetadataDetails()) {
                 loadTablePartitionMetadataDirect(tableMirror, environment);
-            } else {
-                loadTablePartitionMetadata(tableMirror, environment);
             }
-
         }
 
         // Check for table partition count filter
@@ -799,23 +840,38 @@ public class TableService {
     public Future<ReturnStatus> getTableMetadata(TableMirror tableMirror) {
         ReturnStatus rtn = new ReturnStatus();
         rtn.setTableMirror(tableMirror);
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+        RunStatus runStatus = executeSessionService.getSession().getRunStatus();
 
         try {
             getTableDefinition(tableMirror, Environment.LEFT);
-            switch (hmsMirrorConfig.getDataStrategy()) {
-                case DUMP:
-                case STORAGE_MIGRATION:
-                    rtn.setStatus(ReturnStatus.Status.SUCCESS);//successful = Boolean.TRUE;
-                    break;
-                default:
-                    getTableDefinition(tableMirror, Environment.RIGHT);
-                    rtn.setStatus(ReturnStatus.Status.SUCCESS);//successful = Boolean.TRUE;
+            if (tableMirror.isRemove()) {
+                rtn.setStatus(ReturnStatus.Status.SKIP);
+//                runStatus.getOperationStatistics().getSkipped().incrementTables();
+                return new AsyncResult<>(rtn);
+            } else {
+                switch (hmsMirrorConfig.getDataStrategy()) {
+                    case DUMP:
+                    case STORAGE_MIGRATION:
+                        // Make a clone of the left as a working copy.
+                        try {
+                            tableMirror.getEnvironments().put(Environment.RIGHT, tableMirror.getEnvironmentTable(Environment.LEFT).clone());
+                        } catch (CloneNotSupportedException e) {
+                            throw new RuntimeException(e);
+                        }
+                        rtn.setStatus(ReturnStatus.Status.SUCCESS);//successful = Boolean.TRUE;
+                        break;
+                    default:
+                        getTableDefinition(tableMirror, Environment.RIGHT);
+                        rtn.setStatus(ReturnStatus.Status.SUCCESS);//successful = Boolean.TRUE;
+                }
+//                runStatus.getOperationStatistics().getSuccesses().incrementTables();
             }
         } catch (SQLException throwables) {
             log.error(throwables.getMessage(), throwables);
             rtn.setStatus(ReturnStatus.Status.ERROR);
             rtn.setException(throwables);
+//            runStatus.getOperationStatistics().getFailures().incrementTables();
         }
         return new AsyncResult<>(rtn);
     }
@@ -823,7 +879,9 @@ public class TableService {
     @Async("metadataThreadPool")
     public Future<ReturnStatus> getTables(DBMirror dbMirror) {
         ReturnStatus rtn = new ReturnStatus();
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        ExecuteSession session = executeSessionService.getSession();
+        HmsMirrorConfig hmsMirrorConfig = session.getConfig();
+        RunStatus runStatus = session.getRunStatus();
         log.debug("Getting tables for Database {}", dbMirror.getName());
         try {
             getTables(dbMirror, Environment.LEFT);
@@ -846,13 +904,16 @@ public class TableService {
 
     public void getTables(DBMirror dbMirror, Environment environment) throws SQLException {
         Connection conn = null;
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        ExecuteSession session = executeSessionService.getSession();
+        HmsMirrorConfig config = session.getConfig();
+        RunStatus runStatus = session.getRunStatus();
+        OperationStatistics stats = runStatus.getOperationStatistics();
 
         try {
             conn = getConnectionPoolService().getHS2EnvironmentConnection(environment);
             if (conn != null) {
                 String database = (environment == Environment.LEFT ?
-                        dbMirror.getName() : getHmsMirrorCfgService().getResolvedDB(dbMirror.getName()));
+                        dbMirror.getName() : HmsMirrorConfigUtil.getResolvedDB(dbMirror.getName(), config));
 
                 log.info("Loading tables for {}:{}", environment, database);
 
@@ -864,10 +925,10 @@ public class TableService {
                     log.debug("Setting Hive DB Session Context {}:{}", environment, database);
                     stmt.execute(MessageFormat.format(MirrorConf.USE, database));
                     List<String> shows = new ArrayList<String>();
-                    if (!hmsMirrorConfig.getCluster(environment).isLegacyHive()) {
-                        if (hmsMirrorConfig.getMigrateVIEW().isOn()) {
+                    if (!config.getCluster(environment).isLegacyHive()) {
+                        if (config.getMigrateVIEW().isOn()) {
                             shows.add(MirrorConf.SHOW_VIEWS);
-                            if (hmsMirrorConfig.getDataStrategy() == DUMP) {
+                            if (config.getDataStrategy() == DUMP) {
                                 shows.add(MirrorConf.SHOW_TABLES);
                             }
                         } else {
@@ -880,39 +941,55 @@ public class TableService {
                         resultSet = stmt.executeQuery(show);
                         while (resultSet.next()) {
                             String tableName = resultSet.getString(1);
-                            if (tableName.startsWith(hmsMirrorConfig.getTransfer().getTransferPrefix())) {
+                            if (tableName.startsWith(config.getTransfer().getTransferPrefix())) {
+                                TableMirror tableMirror = dbMirror.addTable(tableName);
+                                tableMirror.setRemove(Boolean.TRUE);
+                                tableMirror.setRemoveReason("Table name matches the transfer prefix.  " +
+                                        "This is most likely a remnant of a previous event.  If this is a mistake, " +
+                                        "change the 'transferPrefix' to something more unique.");
                                 log.info("{}.{} was NOT added to list.  " +
                                         "The name matches the transfer prefix and is most likely a remnant of a previous " +
                                         "event. If this is a mistake, change the 'transferPrefix' to something more unique.", database, tableName);
                             } else if (tableName.endsWith("storage_migration")) {
+                                TableMirror tableMirror = dbMirror.addTable(tableName);
+                                tableMirror.setRemove(Boolean.TRUE);
+                                tableMirror.setRemoveReason("Table name matches the storage_migration suffix.  " +
+                                        "This is most likely a remnant of a previous event.  If this is a mistake, " +
+                                        "change the 'transferPrefix' to something more unique.");
                                 log.info("{}.{} was NOT added to list.  " +
                                         "The name is the result of a previous STORAGE_MIGRATION attempt that has not been " +
                                         "cleaned up.", database, tableName);
                             } else {
-                                if (hmsMirrorConfig.getFilter().getTblRegEx() == null && hmsMirrorConfig.getFilter().getTblExcludeRegEx() == null) {
+                                if (isBlank(config.getFilter().getTblRegEx()) && isBlank(config.getFilter().getTblExcludeRegEx())) {
                                     TableMirror tableMirror = dbMirror.addTable(tableName);
-                                    tableMirror.setUnique(df.format(hmsMirrorConfig.getInitDate()));
+//                                    stats.getCounts().incrementTables();
+                                    tableMirror.setUnique(df.format(config.getInitDate()));
                                     tableMirror.setMigrationStageMessage("Added to evaluation inventory");
-                                } else if (hmsMirrorConfig.getFilter().getTblRegEx() != null) {
+//                                    runStatus.getOperationStatistics().getCounts().incrementTables();
+                                } else if (!isBlank(config.getFilter().getTblRegEx())) {
                                     // Filter Tables
-                                    assert (hmsMirrorConfig.getFilter().getTblFilterPattern() != null);
-                                    Matcher matcher = hmsMirrorConfig.getFilter().getTblFilterPattern().matcher(tableName);
+                                    assert (config.getFilter().getTblFilterPattern() != null);
+                                    Matcher matcher = config.getFilter().getTblFilterPattern().matcher(tableName);
+//                                    stats.getCounts().incrementTables();
                                     if (matcher.matches()) {
                                         TableMirror tableMirror = dbMirror.addTable(tableName);
-                                        tableMirror.setUnique(df.format(hmsMirrorConfig.getInitDate()));
+                                        tableMirror.setUnique(df.format(config.getInitDate()));
                                         tableMirror.setMigrationStageMessage("Added to evaluation inventory");
                                     } else {
+//                                        stats.getSkipped().incrementTables();
                                         log.info("{}.{} didn't match table regex filter and " +
                                                 "will NOT be added to processing list.", database, tableName);
                                     }
-                                } else if (hmsMirrorConfig.getFilter().getTblExcludeRegEx() != null) {
-                                    assert (hmsMirrorConfig.getFilter().getTblExcludeFilterPattern() != null);
-                                    Matcher matcher = hmsMirrorConfig.getFilter().getTblExcludeFilterPattern().matcher(tableName);
+                                } else if (config.getFilter().getTblExcludeRegEx() != null) {
+                                    assert (config.getFilter().getTblExcludeFilterPattern() != null);
+                                    Matcher matcher = config.getFilter().getTblExcludeFilterPattern().matcher(tableName);
+//                                    stats.getCounts().incrementTables();
                                     if (!matcher.matches()) { // ANTI-MATCH
                                         TableMirror tableMirror = dbMirror.addTable(tableName);
-                                        tableMirror.setUnique(df.format(hmsMirrorConfig.getInitDate()));
+                                        tableMirror.setUnique(df.format(config.getInitDate()));
                                         tableMirror.setMigrationStageMessage("Added to evaluation inventory");
                                     } else {
+//                                        stats.getSkipped().incrementTables();
                                         log.info("{}.{} matched exclude table regex filter and " +
                                                 "will NOT be added to processing list.", database, tableName);
                                     }
@@ -954,8 +1031,10 @@ public class TableService {
     }
 
     public Boolean isACIDDowngradeInPlace(TableMirror tableMirror, Environment environment) {
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+
         EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
-        if (TableUtils.isACID(et) && getHmsMirrorCfgService().getHmsMirrorConfig().getMigrateACID().isDowngradeInPlace()) {
+        if (TableUtils.isACID(et) && hmsMirrorConfig.getMigrateACID().isDowngradeInPlace()) {
             return Boolean.TRUE;
         } else {
             return Boolean.FALSE;
@@ -967,13 +1046,13 @@ public class TableService {
         Statement stmt = null;
         ResultSet resultSet = null;
         String database = null;
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
         if (environment == Environment.LEFT) {
             database = tableMirror.getParent().getName();
         } else {
-            database = getHmsMirrorCfgService().getResolvedDB(tableMirror.getParent().getName());
+            database = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
         }
         EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
 
         try {
 
@@ -1009,7 +1088,7 @@ public class TableService {
                 tableMirror.addStep(environment.toString(), "Fetched Schema");
 
                 // TODO: Don't do this is table removed from list.
-                if (hmsMirrorConfig.isTransferOwnership()) {
+                if (config.isTransferOwnership()) {
                     try {
                         String ownerStatement = MessageFormat.format(MirrorConf.SHOW_TABLE_EXTENDED, tableMirror.getName());
                         resultSet = stmt.executeQuery(ownerStatement);
@@ -1023,7 +1102,7 @@ public class TableService {
                                 } catch (Throwable t) {
                                     // Parsing issue.
                                     log.error("Couldn't parse 'owner' value from: {} for table {}:{}.{}"
-                                            ,  resultSet.getString(1), environment, database, tableMirror.getName());
+                                            , resultSet.getString(1), environment, database, tableMirror.getName());
 //                                            " for table: " + tableMirror.getParent().getName() + "." + tableMirror.getName());
                                 }
                                 break;
@@ -1075,7 +1154,7 @@ public class TableService {
         Connection conn = null;
         Statement stmt = null;
         ResultSet resultSet = null;
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
         if (hmsMirrorConfig.isTransferOwnership()) {
@@ -1201,7 +1280,7 @@ public class TableService {
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet resultSet = null;
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
         String database = tableMirror.getParent().getName();
         EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
         try {
@@ -1239,7 +1318,7 @@ public class TableService {
         // Considered only gathering stats for partitioned tables, but decided to gather for all tables to support
         //  smallfiles across the board.
         EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         if (hmsMirrorConfig.getOptimization().isSkipStatsCollection()) {
             log.debug("{}:{}: Skipping Stats Collection.", environment, et.getName());
@@ -1271,7 +1350,7 @@ public class TableService {
         String[] locationParts = location.split(":");
         String protocol = locationParts[0];
         if (hmsMirrorConfig.getSupportFileSystems().contains(protocol)) {
-            CliEnvironment cli = getConfig().getCliEnvironment();
+            CliEnvironment cli = executeSessionService.getCliEnvironment();
 
             String countCmd = "count " + location;
             CommandReturn cr = cli.processInput(countCmd);
@@ -1323,27 +1402,27 @@ public class TableService {
     public Boolean runTableSql(List<Pair> sqlList, TableMirror tblMirror, Environment environment) {
         Connection conn = null;
         Boolean rtn = Boolean.TRUE;
-        HmsMirrorConfig hmsMirrorConfig = getHmsMirrorCfgService().getHmsMirrorConfig();
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         // Skip this if using test data.
-        if (!getHmsMirrorCfgService().getHmsMirrorConfig().isLoadingTestData()) {
+        if (!hmsMirrorConfig.isLoadingTestData()) {
 
             try {
                 // conn will be null if config.execute != true.
                 conn = getConnectionPoolService().getHS2EnvironmentConnection(environment);
 
-                if (conn == null && hmsMirrorConfig.isExecute() && !hmsMirrorConfig.getCluster(environment).getHiveServer2().isDisconnected()) {
+                if (isNull(conn) && hmsMirrorConfig.isExecute() && !hmsMirrorConfig.getCluster(environment).getHiveServer2().isDisconnected()) {
                     // this is a problem.
                     rtn = Boolean.FALSE;
                     tblMirror.addIssue(environment, "Connection missing. This is a bug.");
                 }
 
-                if (conn == null && hmsMirrorConfig.getCluster(environment).getHiveServer2().isDisconnected()) {
+                if (isNull(conn) && hmsMirrorConfig.getCluster(environment).getHiveServer2().isDisconnected()) {
                     tblMirror.addIssue(environment, "Running in 'disconnected' mode.  NO RIGHT operations will be done.  " +
                             "The scripts will need to be run 'manually'.");
                 }
 
-                if (conn != null) {
+                if (nonNull(conn)) {
                     Statement stmt = null;
                     try {
                         stmt = conn.createStatement();
@@ -1352,9 +1431,9 @@ public class TableService {
                             tblMirror.setMigrationStageMessage("Executing SQL: " + pair.getDescription());
                             if (hmsMirrorConfig.isExecute()) {
                                 stmt.execute(pair.getAction());
-                                tblMirror.addStep(hmsMirrorConfig.toString(), "Sql Run Complete for: " + pair.getDescription());
+                                tblMirror.addStep(environment.toString(), "Sql Run Complete for: " + pair.getDescription());
                             } else {
-                                tblMirror.addStep(hmsMirrorConfig.toString(), "Sql Run SKIPPED (DRY-RUN) for: " + pair.getDescription());
+                                tblMirror.addStep(environment.toString(), "Sql Run SKIPPED (DRY-RUN) for: " + pair.getDescription());
                             }
                         }
                     } catch (SQLException throwables) {
@@ -1396,8 +1475,8 @@ public class TableService {
     }
 
     @Autowired
-    public void setHmsMirrorCfgService(HmsMirrorCfgService hmsMirrorCfgService) {
-        this.hmsMirrorCfgService = hmsMirrorCfgService;
+    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
+        this.executeSessionService = executeSessionService;
     }
 
     @Autowired

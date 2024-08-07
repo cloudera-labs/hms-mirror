@@ -18,6 +18,7 @@
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
 import com.cloudera.utils.hms.mirror.MessageCode;
+import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -28,16 +29,18 @@ import org.springframework.test.context.junit4.SpringRunner;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
+@SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.data-strategy=STORAGE_MIGRATION",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_ma_parts_dc",
-                "--hms-mirror.conversion.test-filename=/test_data/acid_w_parts_01.yaml",
-                "--hms-mirror.config-filename=/config/default.yaml.hdp2-cdp",
-                "--hms-mirror.config.reset-to-default-location=true",
+                "--hms-mirror.conversion.test-filename=/test_data/acid_w_parts_02.yaml",
+                "--hms-mirror.config.filename=/config/default.yaml.cdp",
+                "--hms-mirror.config.align-locations=true",
+//                "--hms-mirror.config.evaluate-partition-location=true",
+                "--hms-mirror.config.target-namespace=ofs://OHOME90",
                 "--hms-mirror.config.migrate-acid=true",
                 "--hms-mirror.config.distcp=true",
-                "--hms-mirror.config.warehouse-directory=/new/warehouse/managed",
+                "--hms-mirror.config.warehouse-directory=/new/warehouse/managedDirectory",
                 "--hms-mirror.config.external-warehouse-directory=/new/warehouse/external"
         })
 @Slf4j
@@ -59,7 +62,7 @@ public class Test_sm_ma_parts_dc extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        long check = getCheckCode(MessageCode.DISTCP_REQUIRES_EPL);
+        long check = 0L;
         assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 

@@ -1,0 +1,130 @@
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/config/
+Accept: application/json
+
+<> 2024-05-10T113606.200.json
+<> 2024-05-10T112534.200.json
+<> 2024-05-10T112504.200.json
+<> 2024-05-10T112340.200.json
+<> 2024-05-10T111914.200.json
+<> 2024-05-10T102338.200.json
+<> 2024-05-10T100419.200.json
+<> 2024-05-10T095629.200.json
+
+###
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/config/list
+Accept: application/json
+
+<> 2024-05-10T112518.200.json
+<> 2024-05-10T112412.200.json
+
+###
+
+POST http://{{host}}:{{port}}/hms-mirror/api/v1/config/load/default-enc.yaml
+Accept: application/json
+
+<> f-4.txt
+<> f-3.txt
+<> f-2.txt
+
+###
+
+POST http://{{host}}:{{port}}/hms-mirror/api/v1/config/load/default.yaml
+Accept: application/json
+
+<> f-5.txt
+
+###
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/config/clusters
+Accept: application/json
+
+<> 2024-05-10T102514.200.json
+<> 2024-05-10T102358.500.json
+<> 2024-05-10T102309.500.json
+
+###
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/config/clusters/left
+Accept: application/json
+
+<> 2024-05-10T103704.200.json
+
+
+###
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/config/clusters/right
+Accept: application/json
+
+<> 2024-05-10T103741.200.json
+
+###
+
+PUT http://{{host}}:{{port}}/hms-mirror/api/v1/config/datastrategy?value=DUMP
+Accept: application/json
+
+<> 2024-05-10T112529.200.json
+<> 2024-05-10T111902.200.json
+<> 2024-05-10T111850.200.json
+<> 2024-05-10T111834.500.json
+<> 2024-05-10T111822.200.json
+
+###
+
+PUT http://{{host}}:{{port}}/hms-mirror/api/v1/config/databases?value=test,something,hello
+Accept: application/json
+
+<> 2024-05-10T113559.200.json
+
+###
+
+PUT http://{{host}}:{{port}}/hms-mirror/api/v1/config/filter?tblRegEx=data.*&tblPartitionLimit=100
+Accept: application/json
+
+<> 2024-05-10T114652.200.json
+<> 2024-05-10T114640.200.json
+<> 2024-05-10T114451.200.json
+
+###
+
+PUT http://{{host}}:{{port}}/hms-mirror/api/v1/config/evaluatePartitionLocation?value=true
+Accept: application/json
+
+<> 2024-05-10T121136.200.json
+<> 2024-05-10T121121.405.json
+<> 2024-05-10T121104.405.json
+
+###
+
+POST http://{{host}}:{{port}}/hms-mirror/api/v1/config/translator/globalLocationMap?hello=world&foo=bar
+Accept: application/json
+
+<> 2024-05-10T142253.200.json
+<> 2024-05-10T141908.200.json
+<> 2024-05-10T141652.200.json
+<> 2024-05-10T141611.200.json
+<> 2024-05-10T140733.200.json
+<> 2024-05-10T140543.200.json
+
+###
+
+DELETE http://{{host}}:{{port}}/hms-mirror/api/v1/config/translator/globalLocationMap?key=hello
+Accept: application/json
+
+<> 2024-05-10T142347.200.json
+<> 2024-05-10T141646.200.json
+<> 2024-05-10T141638.200.json
+<> 2024-05-10T141547.200.json
+<> 2024-05-10T141534.200.json
+<> 2024-05-10T140803.400.json
+<> 2024-05-10T140747.400.json
+<> 2024-05-10T140710.400.json
+<> 2024-05-10T140706.400.json
+<> 2024-05-10T140610.400.json
+
+###
+
+DELETE http://{{host}}:{{port}}/hms-mirror/api/v1/config/translator/globalLocationMap?keys=hello,foo
+Accept: application/json
+
+<> 2024-05-10T141737.200.json

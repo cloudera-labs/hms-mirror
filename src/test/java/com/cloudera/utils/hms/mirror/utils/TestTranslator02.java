@@ -17,11 +17,13 @@
 
 package com.cloudera.utils.hms.mirror.utils;
 
-import com.cloudera.utils.hms.mirror.DBMirror;
-import com.cloudera.utils.hms.mirror.HmsMirrorConfig;
-import com.cloudera.utils.hms.mirror.TableMirror;
-import com.cloudera.utils.hms.mirror.service.HmsMirrorCfgService;
-import com.cloudera.utils.hms.mirror.service.TranslatorService;
+import com.cloudera.utils.hms.mirror.domain.DBMirror;
+import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
+import com.cloudera.utils.hms.mirror.domain.TableMirror;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
+import com.cloudera.utils.hms.mirror.exceptions.SessionException;
+import com.cloudera.utils.hms.mirror.service.*;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
 import org.junit.Before;
@@ -42,10 +44,32 @@ public class TestTranslator02 extends TranslatorTestBase {
         translator = deserializeResource("/translator/testcase_02.yaml");
         HmsMirrorConfig config = ConfigTest.deserializeResource("/config/default_01.yaml");
         config.setTranslator(translator);
-        HmsMirrorCfgService hmsMirrorCfgService = new HmsMirrorCfgService(config);
-//        hmsMirrorCfgService.setHmsMirrorConfig(config);
+        // Used to prevent attempting to init connections.
+        config.setLoadTestDataFile("something.yaml");
+
+        ExecuteSessionService executeSessionService = new ExecuteSessionService();
+
+        ConnectionPoolService connectionPoolService = new ConnectionPoolService();
+        executeSessionService.setConnectionPoolService(connectionPoolService);
+
+        ExecuteSession session = executeSessionService.createSession(ExecuteSessionService.DEFAULT, config);
+        ConfigService configService = new ConfigService();
+        executeSessionService.setConfigService(configService);
+        executeSessionService.setLoadedSession(session);
+        try {
+            executeSessionService.transitionLoadedSessionToActive(1);
+        } catch (SessionException e) {
+            throw new RuntimeException(e);
+        }
+        databaseService = new DatabaseService();
+        databaseService.setExecuteSessionService(executeSessionService);
+//        configService.setExecuteSessionService(executeSessionService);
         translatorService = new TranslatorService();
-        translatorService.setHmsMirrorCfgService(hmsMirrorCfgService);
+        translatorService.setExecuteSessionService(executeSessionService);
+        translatorService.setDatabaseService(databaseService);
+//        translatorService.setConfigService(configService);
+
+
     }
 
     @Test
@@ -54,6 +78,8 @@ public class TestTranslator02 extends TranslatorTestBase {
         dbMirror.setName("tpcds_10");
         TableMirror tableMirror = new TableMirror();
         tableMirror.setName("web_sales");
+        // Used to trigger an external table check.
+        tableMirror.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
         tableMirror.setParent(dbMirror);
         Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
 
@@ -61,7 +87,7 @@ public class TestTranslator02 extends TranslatorTestBase {
         String expectedLoc = "hdfs://RIGHT/alt/ext/location/web_sales";
         try {
             String translatedLocation =
-                    translatorService.translateTableLocation(tableMirror, originalLoc, 1, null);
+                    translatorService.translateLocation(tableMirror, originalLoc, 1, null);
             assertEquals("Table Location Failed: ", expectedLoc, translatedLocation);
         } catch (Throwable t) {
             fail("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
@@ -75,11 +101,12 @@ public class TestTranslator02 extends TranslatorTestBase {
         TableMirror tableMirror1 = new TableMirror();
         tableMirror1.setName("call_center");
         tableMirror1.setParent(dbMirror);
+        tableMirror1.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
         String originalLoc = "hdfs://LEFT/tpcds_base_dir/call_center2";
         String expectedLoc = "hdfs://RIGHT/alt/ext/location/call_center2";
         try {
             String translatedLocation =
-                    translatorService.translateTableLocation(tableMirror1, originalLoc, 1, null);
+                    translatorService.translateLocation(tableMirror1, originalLoc, 1, null);
             assertEquals("Table Location Failed: ", expectedLoc, translatedLocation);
         } catch (Throwable t) {
             fail("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
@@ -93,11 +120,12 @@ public class TestTranslator02 extends TranslatorTestBase {
         TableMirror tableMirror2 = new TableMirror();
         tableMirror2.setName("web_returns");
         tableMirror2.setParent(dbMirror);
+        tableMirror2.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
         String originalLoc = "hdfs://LEFT/tpcds_base_dir2/web/web_returns";
         String expectedLoc = "hdfs://RIGHT/alt/ext/location/web_returns";
         try {
             String translatedLocation =
-                    translatorService.translateTableLocation(tableMirror2, originalLoc, 1, null);
+                    translatorService.translateLocation(tableMirror2, originalLoc, 1, null);
             assertEquals("Table Location Failed: ", expectedLoc, translatedLocation);
         } catch (Throwable t) {
             fail("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
@@ -111,11 +139,12 @@ public class TestTranslator02 extends TranslatorTestBase {
         TableMirror tableMirror3 = new TableMirror();
         tableMirror3.setName("web_returns");
         tableMirror3.setParent(dbMirror);
+        tableMirror3.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
         String originalLoc = "hdfs://LEFT/tpcds_base_dir2/web/web_returns";
         String expectedLoc = "hdfs://RIGHT/alt/ext/location/web_returns";
         try {
             String translatedLocation =
-                    translatorService.translateTableLocation(tableMirror3, originalLoc, 1, null);
+                    translatorService.translateLocation(tableMirror3, originalLoc, 1, null);
             assertEquals("Table Location Failed: ", expectedLoc, translatedLocation);
         } catch (Throwable t) {
             fail("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +

@@ -1,0 +1,111 @@
+### GET List of Configs
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/config/list
+Accept: application/json
+
+### GET request to example server
+
+POST http://{{host}}:{{port}}/hms-mirror/api/v1/config/reload/default.yaml.cdp
+Accept: application/json
+
+###
+
+PUT http://{{host}}:{{port}}/hms-mirror/api/v1/config/properties?dataStrategy=STORAGE_MIGRATION
+Accept:application/json
+
+###
+
+PUT http://{{host}}:{{port}}/hms-mirror/api/v1/config/properties?evaluatePartitionLocation=false
+Accept:application/json
+
+### Set the Common Storage Location for the STORAGE_MIGRATION
+
+PUT http://{{host}}:{{port}}/hms-mirror/api/v1/config/transfer?commonStorage=ofs%3A%2F%2FOHOME90
+Accept: application/json
+
+### Set distcp
+
+PUT http://{{host}}:{{port}}/hms-mirror/api/v1/config/transfer/storageMigration?dataMovementStrategy=DISTCP
+Accept: application/json
+
+### Set Warehouse Directories
+
+# PUT http://{{host}}:{{port}}/hms-mirror/api/v1/config/transfer/warehouse?managedDirectory=%2Ftest%2Fmngd&externalDirectory=%2Ftest%2Fext
+
+### Review the Config
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/config/
+Accept: application/json
+
+### Review the 'empty' warehouse plan
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/database/warehousePlan/list
+Accept: application/json
+
+### Add a new warehouse plan for m01
+
+PUT http://{{host}}:{{port}}/hms-mirror/api/v1/database/m01/warehousePlan?externalLocation=%2Ftest%2Fext&managedLocation=%2Ftest%2Fmngd
+Accept: application/json
+
+### Add a new warehouse plan for m02
+
+PUT http://{{host}}:{{port}}/hms-mirror/api/v1/database/m02/warehousePlan?externalLocation=%2Ffinance%2Fext&managedLocation=%2Ffinance%2Fmngd
+Accept: application/json
+
+### Add a new warehouse plan
+
+#PUT http://{{host}}:{{port}}/hms-mirror/api/v1/database/sm_orders/warehousePlan?externalDirectory=%2Fmarketing%2Fdata-ext&managedDirectory=%2Fmarketing%2Fdata-mngd
+#Accept: application/json
+
+### Build Sources
+
+#POST http://{{host}}:{{port}}/hms-mirror/api/v1/database/sources/build
+#Accept: application/json
+
+### List Sources
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/database/sources/list
+Accept: application/json
+
+### Manually Add GLM Entry
+
+#POST http://{{host}}:{{port}}/hms-mirror/api/v1/translator/globalLocationMap?source=%2Fwarehouse%2Ftablespace%2Fexternal%2Fhive&target=%2Ftest%2Fext
+#Accept: application/json
+
+### Manually Add GLM Entry
+
+#POST http://{{host}}:{{port}}/hms-mirror/api/v1/translator/globalLocationMap?source=%2Fwarehouse%2Ftablespace%2Fmanaged%2Fhive&target=%2Ftest%2Fmngd
+#Accept: application/json
+
+### List GLM
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/translator/globalLocationMap/list
+Accept: application/json
+
+### Build GLM From Warehouse Plan
+
+POST http://{{host}}:{{port}}/hms-mirror/api/v1/translator/globalLocationMap/build?dryrun=false&buildSources=true
+Accept: application/json
+
+### Dry Run
+
+POST http://{{host}}:{{port}}/hms-mirror/api/v1/runtime/start?dryrun=true&autoGLM=true
+Accept: application/json
+
+### Get Run Status
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/runStatus/
+Accept: application/json
+
+### List Reports
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/runtime/reports/list
+Accept: application/json
+
+### Get Latest Report
+
+GET http://{{host}}:{{port}}/hms-mirror/api/v1/runtime/reports/latest/download
+Accept: application/json
+
+
+

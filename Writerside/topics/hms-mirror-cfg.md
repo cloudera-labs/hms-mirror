@@ -1,5 +1,9 @@
 # Configuration
 
+## LEFT and RIGHT Clusters
+
+`hms-mirror` defines clusters as LEFT and RIGHT.  The LEFT cluster is the source of the metadata and the RIGHT cluster is the target.  The LEFT cluster is usually the older cluster version.  Regardless, under specific scenario's, `hms-mirror` will use an HDFS client to check directories and move small amounts of data (AVRO schema files).  `hms-mirror` will depend on the configuration of the node it's running on to locate the 'hcfs filesystem'.  This means that the `/etc/hadoop/conf` directory should contain all the environments settings to successfully connect to `hcfs (Hadoop Compatible File System`.
+
 The configuration is done via a 'yaml' file, details below.
 
 There are two ways to get started:

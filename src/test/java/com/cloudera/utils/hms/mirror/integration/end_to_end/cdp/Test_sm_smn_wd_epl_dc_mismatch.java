@@ -19,6 +19,7 @@ package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
 
 import com.cloudera.utils.hms.mirror.PhaseState;
+import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -30,10 +31,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
+@SpringBootTest(classes = Mirror.class,
         args = {
-                "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts.yaml",
-                "--hms-mirror.config-filename=/config/default.yaml.cdp",
+                "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts_01.yaml",
+                "--hms-mirror.config.filename=/config/default.yaml.cdp",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_smn_wd_epl_dc_mismatch",
         })
 @ActiveProfiles("e2e-cdp-sm_smn_wd_epl_dc")

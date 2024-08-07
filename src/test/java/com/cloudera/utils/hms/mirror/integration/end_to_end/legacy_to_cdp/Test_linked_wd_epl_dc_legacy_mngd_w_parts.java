@@ -18,6 +18,7 @@
 package com.cloudera.utils.hms.mirror.integration.end_to_end.legacy_to_cdp;
 
 import com.cloudera.utils.hms.mirror.MessageCode;
+import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -28,7 +29,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = com.cloudera.utils.hms.Mirror.class,
+@SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.data-strategy=LINKED",
 //                "--hms-mirror.config.migrate-acid-only=true",
@@ -36,13 +37,14 @@ import static org.junit.Assert.assertEquals;
                 "--hms-mirror.config.external-warehouse-directory=/finance/external-fso",
 //                "--hms-mirror.config.downgrade-acid=true",
 //                "--hms-mirror.config.read-only=true",
-                "--hms-mirror.config.evaluate-partition-location=true",
+//                "--hms-mirror.config.evaluate-partition-location=true",
 //                "--hms-mirror.config.intermediate-storage=s3a://my_is_bucket",
-//                "--hms-mirror.config.common-storage=s3a://my_cs_bucket",
+//                "--hms-mirror.config.target-namespace=s3a://my_cs_bucket",
 //                "--hms-mirror.config.reset-to-default-location=true",
+                "--hms-mirror.config.align-locations=true",
                 "--hms-mirror.config.distcp=true",
                 "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_01.yaml",
-                "--hms-mirror.config-filename=/config/default.yaml.hdp2-cdp",
+                "--hms-mirror.config.filename=/config/default.yaml.hdp2-cdp",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/legacy_cdp/linked_wd_epl_dc_legacy_mngd_w_parts"
         })
 @Slf4j
@@ -66,8 +68,8 @@ public class Test_linked_wd_epl_dc_legacy_mngd_w_parts extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        long check = MessageCode.DISTCP_VALID_STRATEGY.getLong();
-        assertEquals("Return Code Failure: " + rtn, check * -1, rtn);
+        long check = 0L;
+        assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 
 //    @Test
