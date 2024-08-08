@@ -1,10 +1,20 @@
 # Location Alignment
 
-In the Hive Metastore, Database definitions, Table Schemas, and Partition details include the location of their datasets. These locations contain a full URI to the dataset. Migrating from one cluster to another requires us to make adjustments to these locations.
+In the Hive Metastore, Database definitions, Table Schemas, and Partition details include the location of their
+datasets. These locations contain a full URI to the dataset. Migrating from one cluster to another requires us to make
+adjustments to these locations.
+
+![datamovement_strategy.png](datamovement_strategy.png)
 
 The most simple translation will change the namespace of the URI so everything is RELATIVE. This helps reduce the
-impact of
-other tools that might be using these datasets outside the Hive Metastore definitions.
+impact of other tools that might be using these datasets outside the Hive Metastore definitions.
+
+Using the `RELATIVE` 'Location Translation Strategy' is suggested for side-car cluster migrations where you
+want to keep everything the same as much as possible.
+
+When you are reorganizing, consolidating, or changing storage environments then the `ALIGNED` 'Location Translation 
+Strategy' will aid in that process.  We suggest building out [Warehouse Plans](Warehouse-Plans.md) for each database
+for maximum control of that movement.
 
 Attributes of location transformations:
 
@@ -15,15 +25,19 @@ Attributes of location transformations:
 
 * Target Namespace
 
-> This is defined in the configuration through the `transfer.targetNamespace` configuration attribute or the `target-namespace` configuration setting. This is used for migrations between two clusters and for STORAGE_MIGRATION's within the cluster.
+> This is defined in the configuration through the `transfer.targetNamespace` configuration attribute or
+> the `target-namespace` configuration setting. This is used for migrations between two clusters and for
+> STORAGE_MIGRATION's within the cluster.
 
 * Warehouse Plans
 
-> Defined for each 'database'. And when defined we should assume that we expect locations of the database, tables, and partitions will be ALIGNED with that location.
+> Defined for each 'database'. And when defined we should assume that we expect locations of the database, tables, and
+> partitions will be ALIGNED with that location.
 
 ## Order of Evaluation
 
-Order of Evaluation means that we will evaluate the attribute in the describe order and once a valid mapping is found, we will stop the evaluation. Evaluation order depends on the translation type as well.
+Order of Evaluation means that we will evaluate the attribute in the describe order and once a valid mapping is found,
+we will stop the evaluation. Evaluation order depends on the translation type as well.
 
 <tabs>
 <tab id="aligned-tab" title="ALIGNED">
@@ -43,7 +57,8 @@ Order of Evaluation means that we will evaluate the attribute in the describe or
 
 ## Translation Types
 
-Translation types are used to determine how the location should be transformed. The following are the translation types are `ALIGNED` and `RELATIVE`.
+Translation types are used to determine how the location should be transformed. The following are the translation types
+are `ALIGNED` and `RELATIVE`.
 
 **Legend**
 

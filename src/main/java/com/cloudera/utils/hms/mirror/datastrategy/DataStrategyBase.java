@@ -146,8 +146,7 @@ public abstract class DataStrategyBase implements DataStrategy {
                             } else {
                                 cr = cli.processInput("cp -f " + leftPath + " " + rightPath);
                                 if (cr.isError()) {
-                                    ret.addIssue("Problem copying AVRO schema file from " + leftPath + " to " +
-                                            parentDirectory + ".\n```" + cr.getError() + "```");
+                                    ret.addIssue("Problem copying AVRO schema file from " + leftPath + " to " + parentDirectory + ".\n```" + cr.getError() + "```");
                                     rtn = Boolean.FALSE;
                                 }
                             }

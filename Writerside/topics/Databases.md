@@ -1,13 +1,15 @@
 # Databases
 
-The whole goal of `hms-mirror` is to move metadata from one cluster to another.  Picking which databases to move is 
+The whole goal of `hms-mirror` is to move metadata from one cluster to another. Picking which databases to move is
 a primary function of the application.
 
-There are several ways to select databases for migration.  Each with its own benefits.  
+There are several ways to select databases for migration. Each with its own benefits.
+
+> Once a method is selected to add database(s), the other add options will be limited until the option is cleared.
 
 ### Add 'database' names to the runtime configuration.
 
-This is the simplest way to select databases.  Additional filtered can be applied to tables through the table 
+This is the simplest way to select databases. Additional filtered can be applied to tables through the table
 **RegEx** filters.
 
 <tabs>

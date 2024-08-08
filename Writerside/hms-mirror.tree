@@ -39,7 +39,11 @@
     </toc-element>
     <toc-element topic="Location-Alignment.md"/>
     <toc-element topic="Databases.md">
-        <toc-element topic="Warehouse-Plans.md"/>
+        <toc-element topic="Warehouse-Plans.md">
+            <toc-element topic="Global-Warehouse-Plans.md"/>
+            <toc-element topic="Database-Warehouse-Plans.md"/>
+            <toc-element topic="Environment-Warehouse.md"/>
+        </toc-element>
     </toc-element>
     <toc-element topic="Hive-Conversions.md"/>
     <toc-element topic="hms-mirror-features.md"/>

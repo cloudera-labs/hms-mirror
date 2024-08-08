@@ -1,6 +1,5 @@
 # Getting Started
 
-- Setup
-- Picking an interface
-- Starting the application
-- Building a Configuration
+Check out the sub-sections to get up and running quickly.
+
+Video series coming...

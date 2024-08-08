@@ -33,26 +33,34 @@
            th:value="${CONFIG.dataStrategy}" readonly/>
     <div class="pure-form-aligned">
         <table>
-<!--            <tr>-->
-<!--                <td class="pure-form-stacked">-->
-<!--                    <div class="pure-control-group">-->
-<!--                        <label for="targetNamespace" th:text="#{config.transfer.targetNamespace}"/>-->
-<!--                        <input style="width: 90%;" id="targetNamespace" type="text"-->
-<!--                               th:field="*{transfer.targetNamespace}"-->
-<!--                               placeholder="Set Target Namespace"/>-->
-<!--                    </div>-->
-<!--                </td>-->
-<!--                <td colspan="2" class="pure-form-stacked">-->
-<!--                    <div th:insert="fragments/config/warehouse::view"-->
-<!--                         th:if="${('HYBRID SQL EXPORT_IMPORT COMMON SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">-->
-<!--                    </div>-->
-<!--                </td>-->
-<!--            </tr>-->
+            <!--            <tr>-->
+            <!--                <td class="pure-form-stacked">-->
+            <!--                    <div class="pure-control-group">-->
+            <!--                        <label for="targetNamespace" th:text="#{config.transfer.targetNamespace}"/>-->
+            <!--                        <input style="width: 90%;" id="targetNamespace" type="text"-->
+            <!--                               th:field="*{transfer.targetNamespace}"-->
+            <!--                               placeholder="Set Target Namespace"/>-->
+            <!--                    </div>-->
+            <!--                </td>-->
+            <!--                <td colspan="2" class="pure-form-stacked">-->
+            <!--                    <div th:insert="fragments/config/warehouse::view"-->
+            <!--                         th:if="${('HYBRID SQL EXPORT_IMPORT COMMON SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">-->
+            <!--                    </div>-->
+            <!--                </td>-->
+            <!--            </tr>-->
             <tr>
                 <td>
                     <div th:insert="fragments/config/datamovement::view"
                          th:if="${('HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
                     </div>
+                </td>
+                <td colspan="2">
+                    <div th:insert="fragments/config/warehouse::view"
+                         th:if="${('HYBRID SQL EXPORT_IMPORT COMMON SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
+                </td>
+            </tr>
+            <tr>
+                <td>
                     <div th:insert="fragments/config/misc::view">
                     </div>
                 </td>
@@ -68,9 +76,9 @@
                     <div th:insert="fragments/config/optimizations::optimizations"
                          th:unless="${('LINKED').contains(CONFIG.dataStrategy.toString())}">
                     </div>
-<!--                    <div th:insert="fragments/config/standards::standards"-->
-<!--                         th:unless="${('LINKED').contains(CONFIG.dataStrategy.toString())}">-->
-<!--                    </div>-->
+                    <!--                    <div th:insert="fragments/config/standards::standards"-->
+                    <!--                         th:unless="${('LINKED').contains(CONFIG.dataStrategy.toString())}">-->
+                    <!--                    </div>-->
             </tr>
         </table>
     </div>

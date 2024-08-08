@@ -380,6 +380,10 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                 }
                 if (noIssues) {
                     rtn = Boolean.TRUE;
+
+                    if (rtn)
+                        rtn = AVROCheck(tableMirror);
+
                 } else if (hmsMirrorConfig.getTransfer().getStorageMigration().isStrict()) {
                     log.warn("Cleaning up SQL due to issues for table: {}", tableMirror.getName());
                     let.addIssue(MessageCode.STORAGE_MIGRATION_STRICT.getDesc());
@@ -389,6 +393,10 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
 
             } else {
                 rtn = buildOutDefinition(tableMirror);
+
+                if (rtn)
+                    rtn = AVROCheck(tableMirror);
+
                 if (rtn)
                     rtn = buildOutSql(tableMirror);
 
