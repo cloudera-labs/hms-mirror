@@ -32,12 +32,47 @@
 
     </div>
     <!--    <h5 th:text="#{progress}"/>-->
-    <div class="pure-g">
-        <div class="pure-u-1 pure-form pure-form-aligned">
+    <div class="pure-g pure-form pure-form-aligned">
+        <div class="pure-u-1-2">
             <div class="pure-control-group">
                 <label for="progressState" th:text="#{progress}"/>
                 <input id="progressState" type="text" th:value="${RUN_STATUS.progress}" readonly/>
             </div>
+            <form>
+                <div class="pure-control-group">
+                    <label th:text="#{report.name}"/>
+                    <input type="text" name="REPORT_ID" th:value="${RUN_STATUS.reportName}" readonly/>
+                </div>
+                <div class="pure-control-group" style="horiz-align: right;">
+                    <button class="pure-button pure-button-primary"
+                            type="submit" th:text="#{button.download}"
+                            th:if="${RUN_STATUS.progress.toString() == 'COMPLETED'}"
+                            th:formaction="@{/reports/doDownload}" th:formmethod="POST"/>
+                    <button class="pure-button pure-button-primary"
+                            type="submit" th:text="#{button.details}"
+                            th:if="${RUN_STATUS.progress.toString() == 'COMPLETED'}"
+                            th:formaction="@{/reports/detail}" th:formmethod="GET"/>
+                </div>
+
+            </form>
+        </div>
+        <div class="pure-u-1-2">
+            <div class="pure-control-group">
+                <label for="concurrency" th:text="#{concurrency}"/>
+                <input id="concurrency" type="text" th:value="${RUN_STATUS.concurrency}" readonly/>
+            </div>
+            <div class="pure-control-group">
+                <label for="startTime" th:text="#{start.time}"/>
+                <input id="startTime" type="text" th:value="${#dates.format(RUN_STATUS.start, 'MM-dd-yyyy HH:mm:ss')}"
+                       readonly/>
+            </div>
+            <div class="pure-control-group">
+                <label for="endTime" th:text="#{end.time}"/>
+                <input id="endTime" type="text" th:value="${#dates.format(RUN_STATUS.end, 'MM-dd-yyyy HH:mm:ss')}"
+                       readonly/>
+            </div>
+        </div>
+        <div class="pure-u-1">
             <div class="pure-control-group" th:if="${RUN_STATUS.inProgressTables.size() > 0}">
                 <label th:text="#{inprogress.tables}"></label>
                 <table class="pure-table pure-table-bordered pure-table-striped" style="width: 80%;">
@@ -70,20 +105,6 @@
                 <!--                    <li th:each="table: ${RUN_STATUS.inProgressTables}"-->
                 <!--                        th:text="${table}"/>-->
                 <!--                </ul>-->
-            </div>
-            <div class="pure-control-group">
-                <form>
-                    <label th:text="#{report.name}"/>
-                    <input type="text" name="REPORT_ID" th:value="${RUN_STATUS.reportName}" readonly/>
-                    <button class="pure-button pure-button-primary"
-                            type="submit" th:text="#{button.download}"
-                            th:if="${RUN_STATUS.progress.toString() == 'COMPLETED'}"
-                            th:formaction="@{/reports/doDownload}" th:formmethod="POST"/>
-                    <button class="pure-button pure-button-primary"
-                            type="submit" th:text="#{button.details}"
-                            th:formaction="@{/reports/detail}" th:formmethod="GET"/>
-
-                </form>
             </div>
 
         </div>

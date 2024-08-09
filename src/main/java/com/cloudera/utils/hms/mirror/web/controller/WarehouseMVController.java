@@ -107,6 +107,7 @@ public class WarehouseMVController {
 
         databaseService.addWarehousePlan(database, externalDirectory, managedDirectory);
 
+        configService.validate(executeSessionService.getSession(), null);
 //        model.addAttribute(ACTION, "view");
 //        model.addAttribute(READ_ONLY, Boolean.TRUE);
 //        sessionToModel(model, Boolean.FALSE);
@@ -127,6 +128,8 @@ public class WarehouseMVController {
 
         databaseService.addWarehousePlan(database, externalDirectory, managedDirectory);
 
+        configService.validate(executeSessionService.getSession(), null);
+
         List<String> availableDatabases = databaseService.listAvailableDatabases(Environment.LEFT);
         model.addAttribute(AVAILABLE_DATABASES, availableDatabases);
 
@@ -143,6 +146,8 @@ public class WarehouseMVController {
         executeSessionService.clearActiveSession();
 
         databaseService.removeWarehousePlan(database);
+
+        configService.validate(executeSessionService.getSession(), null);
 
         return "redirect:/config/view";
     }

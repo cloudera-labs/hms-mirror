@@ -20,6 +20,7 @@ package com.cloudera.utils.hms.mirror.web.controller;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
+import com.cloudera.utils.hms.mirror.service.ConfigService;
 import com.cloudera.utils.hms.mirror.service.DatabaseService;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import lombok.extern.slf4j.Slf4j;
@@ -38,9 +39,14 @@ import javax.validation.constraints.NotNull;
 @Slf4j
 public class DatabaseMVController implements ControllerReferences {
 
+    private ConfigService configService;
     private DatabaseService databaseService;
     private ExecuteSessionService executeSessionService;
 
+    @Autowired
+    public void setConfigService(ConfigService configService) {
+        this.configService = configService;
+    }
     @Autowired
     public void setDatabaseService(DatabaseService databaseService) {
         this.databaseService = databaseService;
@@ -63,6 +69,8 @@ public class DatabaseMVController implements ControllerReferences {
         for (String db: dbs) {
             config.getDatabases().add(db);
         }
+
+        configService.validate(session, null);
 
         return "redirect:/config/view";
     }
