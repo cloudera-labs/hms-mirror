@@ -18,7 +18,7 @@
 <!DOCTYPE HTML>
 <html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
 <head>
-    <title>Config Messages</title>
+    <title>Load Create</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
     <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
@@ -29,34 +29,26 @@
 <body>
 
 <div th:fragment="view">
-    <th:block th:if="${RUN_STATUS != null}">
+    <div class="pure-form pure-form-aligned">
+        <th:block
+                th:if="${('DUMP HYBRID SQL EXPORT_IMPORT SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
+            <h4 th:text="#{config.db.redirect}"/>
+            <div class="pure-control-group">
+                <label for="dbprefix" th:text="#{config.db.prefix}"></label>
+                <input class="pure-input-1-5" id="dbprefix" type="text"
+                       th:field="*{dbPrefix}"
+                       placeholder="Set Database Name Prefix"/>
+            </div>
+            <div class="pure-control-group">
+                <label for="dbrename" th:text="#{config.db.rename}"></label>
+                <input class="pure-input-1-5" id="dbrename" type="text"
+                       th:field="*{dbRename}"
+                       placeholder="Set Database Rename"/>
+            </div>
 
-        <h4 th:if="${DB_MIRROR != null}" th:text="#{table.status.summary(${DB_MIRROR.getPhaseSummaryString()})}"/>
+        </th:block>
 
-        <div th:if="${RUN_STATUS.getConfigMessages().size() > 0}">
-            <h4 th:text="#{run.status.config.messages}"/>
-            <ul>
-                <li th:each="msg: ${RUN_STATUS.getConfigMessages()}"
-                    th:text="${msg}"/>
-            </ul>
-<!--            TODO: Add option to clear config messages -->
-        </div>
-        <div th:if="${RUN_STATUS.getErrorMessages().size() > 0}">
-            <h4 th:text="#{run.status.errors}"/>
-            <ul>
-                <li th:each="error: ${RUN_STATUS.getErrorMessages()}"
-                    th:text="${error}"/>
-            </ul>
-        </div>
-        <div th:if="${RUN_STATUS.getWarningMessages().size() > 0}">
-            <h4 th:text="#{run.status.warnings}"/>
-            <ul>
-                <li th:each="warning: ${RUN_STATUS.getWarningMessages()}"
-                    th:text="${warning}"/>
-            </ul>
-        </div>
-    </th:block>
+    </div>
 </div>
-
 </body>
 </html>

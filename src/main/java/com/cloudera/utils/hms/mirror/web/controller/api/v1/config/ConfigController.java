@@ -161,7 +161,7 @@ public class ConfigController {
             session.setConfig(config);
         }
         // Set it as the current session.
-        executeSessionService.setLoadedSession(session);
+        executeSessionService.setCurrentSession(session);
         return config;
     }
 
@@ -186,7 +186,7 @@ public class ConfigController {
         ExecuteSession session = executeSessionService.createSession(id, config);
 
         // Set it as the current session.
-        executeSessionService.setLoadedSession(session);
+        executeSessionService.setCurrentSession(session);
 
         return config;
     }

@@ -830,11 +830,11 @@ public class ConfigService {
                     rtn = Boolean.FALSE;
                 }
                 if (config.getTransfer().getStorageMigration().getTranslationType() == TranslationTypeEnum.RELATIVE
-                && config.getTransfer().getStorageMigration().getDataMovementStrategy() == DataMovementStrategyEnum.DISTCP) {
+                        && config.getTransfer().getStorageMigration().getDataMovementStrategy() == DataMovementStrategyEnum.DISTCP) {
                     runStatus.addWarning(DISTCP_W_RELATIVE);
                 }
                 if (config.getTransfer().getStorageMigration().getTranslationType() == TranslationTypeEnum.RELATIVE
-                && config.getTransfer().getStorageMigration().getDataMovementStrategy() == DataMovementStrategyEnum.MANUAL) {
+                        && config.getTransfer().getStorageMigration().getDataMovementStrategy() == DataMovementStrategyEnum.MANUAL) {
                     runStatus.addWarning(RELATIVE_MANUAL);
                 }
             default:
@@ -863,6 +863,36 @@ public class ConfigService {
                 rtn = Boolean.FALSE;
             }
         }
+
+        // Messages about what controls the way the databases are filtered.
+        switch (config.getDataStrategy()) {
+            case STORAGE_MIGRATION:
+                runStatus.addWarning(DATASTRATEGY_FILTER_CONTROLLED_BY, config.getDataStrategy().toString(), "Warehouse Plans");
+                break;
+            case DUMP:
+            case SCHEMA_ONLY:
+            case SQL:
+            case EXPORT_IMPORT:
+            case HYBRID:
+            case COMMON:
+            case LINKED:
+            default:
+                switch (config.getDatabaseFilterType()) {
+                    case MANUAL:
+                        runStatus.addWarning(DATABASE_FILTER_CONTROLLED_BY, "Manual Database Input");
+                        break;
+                    case WAREHOUSE_PLANS:
+                        runStatus.addWarning(DATABASE_FILTER_CONTROLLED_BY, "Warehouse Plans");
+                        break;
+                    case REGEX:
+                        runStatus.addWarning(DATABASE_FILTER_CONTROLLED_BY, "RegEx Filter");
+                        break;
+                    case UNDETERMINED:
+                        break;
+                }
+                break;
+        }
+
 
         if (config.loadMetadataDetails()) {
             runStatus.addWarning(ALIGNED_DISTCP_EXECUTE);

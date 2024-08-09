@@ -226,6 +226,11 @@ public class ConnectionPoolService implements ConnectionPools {
         return conn;
     }
 
+    public void reset() throws SQLException, EncryptionException, SessionException {
+        close();
+        init();
+    }
+
     @Override
     public void init() throws SQLException, SessionException, EncryptionException {
 //        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getActiveSession().getResolvedConfig();

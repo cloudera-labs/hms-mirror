@@ -40,13 +40,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.cloudera.utils.hms.mirror.MessageCode.ENCRYPTED_PASSWORD_CHANGE_ATTEMPT;
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
 @Controller
@@ -110,7 +107,7 @@ public class ConfigMVController implements ControllerReferences {
                        @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) {
 //        model.addAttribute(ACTION, "home");
 
-//        ExecuteSession executeSession = executeSessionService.getLoadedSession();
+//        ExecuteSession executeSession = executeSessionService.getCurrentSession();
 
         // Get list of available configs
         Set<String> configs = webConfigService.getConfigList();
@@ -134,7 +131,7 @@ public class ConfigMVController implements ControllerReferences {
 //        HmsMirrorConfig config = configService.createForDataStrategy(DataStrategyEnum.valueOf(dataStrategy));
 //        ExecuteSession session = executeSessionService.createSession(NEW_CONFIG, config);
         // Set the Loaded Session
-//        executeSessionService.setLoadedSession(session);
+//        executeSessionService.setCurrentSession(session);
 //        // Setup Model for MVC
 //        model.addAttribute(CONFIG, session.getConfig());
 //        model.addAttribute(SESSION_ID, session.getSessionId());
@@ -154,12 +151,12 @@ public class ConfigMVController implements ControllerReferences {
                            @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
         model.addAttribute(READ_ONLY, Boolean.FALSE);
         // Clear the loaded and active session.
-        executeSessionService.clearLoadedSession();
+        executeSessionService.clearSession();
         // Create new Session (with blank config)
         HmsMirrorConfig config = configService.createForDataStrategy(DataStrategyEnum.valueOf(dataStrategy));
         ExecuteSession session = executeSessionService.createSession(NEW_CONFIG, config);
         // Set the Loaded Session
-        executeSessionService.setLoadedSession(session);
+        executeSessionService.setCurrentSession(session);
 //        // Setup Model for MVC
 //        model.addAttribute(CONFIG, session.getConfig());
 //        model.addAttribute(SESSION_ID, session.getSessionId());
@@ -190,6 +187,13 @@ public class ConfigMVController implements ControllerReferences {
         AtomicReference<Boolean> passwordCheck = new AtomicReference<>(Boolean.FALSE);
 
         ExecuteSession session = executeSessionService.getSession();
+
+        if (session.isRunning()) {
+            throw new SessionException("Can't save while running.");
+        } else {
+            session.getRunStatus().reset();
+        }
+
         HmsMirrorConfig currentConfig = session.getConfig();
 
         // Reload Databases
@@ -252,7 +256,7 @@ public class ConfigMVController implements ControllerReferences {
         model.addAttribute(READ_ONLY, Boolean.TRUE);
         configService.validate(session, null);
 
-        executeSessionService.transitionLoadedSessionToActive(maxThreads);
+//        executeSessionService.transitionLoadedSessionToActive(maxThreads);
         // After a 'save', the session connections statuses should be reset.
         session.resetConnectionStatuses();
 
@@ -330,7 +334,7 @@ public class ConfigMVController implements ControllerReferences {
                            @RequestParam(value = SESSION_ID, required = true) String sessionId,
                            @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
         // Don't reload if running.
-        executeSessionService.clearLoadedSession();
+        executeSessionService.clearSession();
 
         log.info("ReLoading Config: {}", sessionId);
         HmsMirrorConfig config = configService.loadConfig(sessionId);
@@ -338,12 +342,13 @@ public class ConfigMVController implements ControllerReferences {
         executeSessionService.getSessions().remove(sessionId);
         // Create a new session
         ExecuteSession session = executeSessionService.createSession(sessionId, config);
-        executeSessionService.setLoadedSession(session);
+        executeSessionService.setCurrentSession(session);
 
         // Set to null, so it will reset.
         session.setSessionId(null);
 
-        executeSessionService.transitionLoadedSessionToActive(maxThreads);
+        configService.validate(session, null);
+//        executeSessionService.transitionLoadedSessionToActive(maxThreads);
 
         // Set it as the current session.
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
@@ -361,7 +366,7 @@ public class ConfigMVController implements ControllerReferences {
                           @RequestParam(value = DATA_STRATEGY_CLONE, required = true) String dataStrategy,
                           @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
         // Don't reload if running.
-        executeSessionService.clearLoadedSession();
+        executeSessionService.clearSession();
 
         log.info("Clone Config: {} with Data Strategy: {}", sessionId, dataStrategy);
         HmsMirrorConfig config = configService.loadConfig(sessionId);
@@ -375,12 +380,12 @@ public class ConfigMVController implements ControllerReferences {
 
         // Create a new session
         ExecuteSession session = executeSessionService.createSession(sessionId, newConfig);
-        executeSessionService.setLoadedSession(session);
+        executeSessionService.setCurrentSession(session);
 
         // Set to null, so it will reset.
         session.setSessionId(null);
 
-        executeSessionService.transitionLoadedSessionToActive(maxThreads);
+//        executeSessionService.transitionLoadedSessionToActive(maxThreads);
 
         // Set it as the current session.
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);

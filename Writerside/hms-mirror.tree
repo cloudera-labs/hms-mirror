@@ -10,6 +10,7 @@
     <toc-element topic="Release-Notes.md"/>
     <toc-element topic="Getting-Started.md">
         <toc-element topic="hms-mirror-setup.md"/>
+        <toc-element topic="Limits.md"/>
         <toc-element topic="Runtime-Interfaces.md">
             <toc-element topic="Concurrency.md"/>
             <toc-element topic="Web-Interface.md"/>
@@ -32,6 +33,7 @@
         </toc-element>
         <toc-element topic="hms-mirror-Default-Configuration-Template.md"/>
         <toc-element topic="Password-Security.md"/>
+        <toc-element topic="Memory-Settings.md"/>
     </toc-element>
     <toc-element topic="hms-mirror-running.md">
         <toc-element topic="hms-mirror-optimizations.md"/>

@@ -1,0 +1,64 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Load Create</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+</head>
+<body>
+
+<div th:fragment="view">
+    <div class="pure-form pure-form-aligned"
+         th:if="${('DUMP COMMON HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY LINKED').contains(CONFIG.dataStrategy.toString())}">
+        <div class="pure-control-group"
+             th:unless="${('REGEX').contains(CONFIG.getDatabaseFilterType().toString())}"
+             th:if="${('DUMP COMMON HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY LINKED').contains(CONFIG.dataStrategy.toString())}">
+
+            <h4 th:text="#{config.databases}"/>
+            <!--                    <label th:text="#{config.databases.control}"/>-->
+            <th:block th:each="database, itemStat: *{databases}">
+                <div class="pure-control-group">
+                    <input disabled="disabled" class="pure-input-3-4"
+                           type="text"
+                           th:field="*{databases[__${itemStat.index}__]}"/>
+                    <a class="pure-button"
+                       th:if="${('MANUAL UNDETERMINED').contains(CONFIG.getDatabaseFilterType().toString())}"
+                       th:href="@{/database/__${database}__/delete}">
+                        <img th:src="@{/images/linea--arrows-minus.png}"></a>
+                </div>
+            </th:block>
+            <div class="pure-control-group tooltip"
+                 th:unless="${READ_ONLY}"
+                 th:if="${('MANUAL UNDETERMINED').contains(CONFIG.getDatabaseFilterType().toString())}">
+                <span class="tooltiptext" th:text="#{comma.separated.tooltip}"></span>
+                <input class="pure-input-3-4" type="text" id="databases" name="DATABASES"/>
+                <button type="submit" th:formmethod="post" th:formaction="@{/database/add}"
+                        th:text="#{button.add}"/>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

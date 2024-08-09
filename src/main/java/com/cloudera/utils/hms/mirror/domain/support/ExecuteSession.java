@@ -46,7 +46,7 @@ public class ExecuteSession implements Cloneable {
     private HmsMirrorConfig config;
     private CliEnvironment cliEnvironment;
     private Conversion conversion;
-
+    
     public void addError(MessageCode code) {
         getRunStatus().addError(code);
     }
@@ -120,6 +120,12 @@ public class ExecuteSession implements Cloneable {
             }
             if (nonNull(connections)) {
                 clone.connections = connections.clone();
+            }
+//            if (nonNull(conversion)) {
+//                clone.conversion = conversion.clone();
+//            }
+            if (nonNull(runStatus)) {
+                clone.runStatus = runStatus.clone();
             }
             clone.cliEnvironment = cliEnvironment; // This isn't a cloneable object. Just establish the reference.
             // Don't clone the other parts: runStatus, cliEnvironment, conversion, runResults

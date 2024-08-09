@@ -45,7 +45,7 @@ import static java.util.Objects.nonNull;
 @Slf4j
 @Getter
 @Setter
-public class RunStatus implements Comparable<RunStatus> {
+public class RunStatus implements Comparable<RunStatus>, Cloneable {
     private Date start = null;
     private Date end = null;
 
@@ -62,10 +62,19 @@ public class RunStatus implements Comparable<RunStatus> {
 
     List<String> errorMessages = new ArrayList<>();
     List<String> warningMessages = new ArrayList<>();
-    List<String> configMessages = new ArrayList<>();
+    Set<String> configMessages = new TreeSet<>();
 
     public void addConfigMessage(String message) {
         configMessages.add(message);
+    }
+
+    @JsonIgnore
+    public long getRuntimeMS() {
+        if (nonNull(start) && nonNull(end)) {
+            return end.getTime() - start.getTime();
+        } else {
+            return 0;
+        }
     }
 
     @JsonIgnore
@@ -336,4 +345,21 @@ public class RunStatus implements Comparable<RunStatus> {
 
     }
 
+    @Override
+    public RunStatus clone() throws CloneNotSupportedException {
+        RunStatus clone = (RunStatus) super.clone();
+        if (nonNull(errors)) {
+            clone.errors = errors.clone();
+        }
+        if (nonNull(warnings)) {
+            clone.warnings = warnings.clone();
+        }
+        clone.errorMessages = new ArrayList<>(errorMessages);
+        clone.warningMessages = new ArrayList<>(warningMessages);
+        clone.configMessages = new TreeSet<>(configMessages);
+        clone.stages = new LinkedHashMap<>(stages);
+        clone.inProgressTables = new ArrayList<>(inProgressTables);
+        clone.operationStatistics = operationStatistics.clone();
+        return clone;
+    }
 }

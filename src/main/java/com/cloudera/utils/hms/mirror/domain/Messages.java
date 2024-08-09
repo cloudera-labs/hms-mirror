@@ -27,7 +27,7 @@ import java.util.*;
 
 @Getter
 @Setter
-public class Messages {
+public class Messages implements Cloneable {
 
 //    @JsonIgnore
     private BitSet bitSet;
@@ -102,4 +102,11 @@ public class Messages {
         }
     }
 
+    @Override
+    public Messages clone() throws CloneNotSupportedException {
+        Messages clone = (Messages) super.clone();
+        clone.bitSet = (BitSet) bitSet.clone();
+        clone.argMap = new TreeMap<Integer, Object[]>(argMap);
+        return clone;
+    }
 }

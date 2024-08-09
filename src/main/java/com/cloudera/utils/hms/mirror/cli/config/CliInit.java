@@ -46,7 +46,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -227,7 +226,7 @@ public class CliInit {
         return args -> {
             // TODO: Need to review this process for redundancy.
             ExecuteSession session = executeSessionService.createSession(null, builtConfig);
-            executeSessionService.setLoadedSession(session);
+            executeSessionService.setCurrentSession(session);
 
             // Sync the concurrency for the connections.
             // We need to pass on a few scale parameters to the hs2 configs so the connections pools can handle the scale requested.

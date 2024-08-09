@@ -1,0 +1,61 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Load Create</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+</head>
+<body>
+
+<div th:fragment="view">
+    <div class="pure-form pure-form-aligned">
+        <div class="pure-u-1-2">
+            <th:block
+                    th:if="${('DUMP COMMON HYBRID SQL EXPORT_IMPORT SCHEMA_ONLY LINKED STORAGE_MIGRATION').contains(CONFIG.dataStrategy.toString())}">
+                <h4 th:text="#{config.filter.regexs}"/>
+                <div class="pure-control-group"
+                     th:if="${('REGEX UNDETERMINED').contains(CONFIG.getDatabaseFilterType().toString())}">
+                    <label for="dbRegEx" th:text="#{config.filter.dbRegEx}"></label>
+                    <input class="pure-input-1-3" id="dbRegEx" type="text"
+                           th:field="*{filter.dbRegEx}"
+                           placeholder="Set RegEx"/>
+                </div>
+                <div class="pure-control-group">
+                    <label for="tblRegEx" th:text="#{config.filter.tblRegEx}"></label>
+                    <input class="pure-input-1-3" id="tblRegEx" type="text"
+                           th:field="*{filter.tblRegEx}"
+                           placeholder="Set RegEx"/>
+                </div>
+                <div class="pure-control-group">
+                    <label for="tblExcludeRegEx" th:text="#{config.filter.tblExcludeRegEx}"></label>
+                    <input class="pure-input-1-3" id="tblExcludeRegEx" type="text"
+                           th:field="*{filter.tblExcludeRegEx}"
+                           placeholder="Set Exclude RegEx"/>
+                </div>
+            </th:block>
+        </div>
+    </div>
+</div>
+</body>
+</html>

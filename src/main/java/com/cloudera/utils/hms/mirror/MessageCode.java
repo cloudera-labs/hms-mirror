@@ -144,6 +144,9 @@ public enum MessageCode {
             "We will need to specifically set the location for tables.  This will be done automatically by applying the `-fel` flag " +
             "for the cluster."),
     LINKED_NO_ACID_SUPPORT(66, "Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy."),
+    DATABASE_FILTER_CONTROLLED_BY(67, "Database filter controlled by {0}.  If you''d like to use another method, you''ll " +
+            "need to remove the current filter to activate the new method."),
+    DATASTRATEGY_FILTER_CONTROLLED_BY(68, "{0} database filtering control is by {1}"),
 //    EVALUATE_PARTITION_LOCATION(66, "Evaluating Partition Details is a resource intensive operation. " +
 //            "This may have an impact on the Hive Metastore's RDBMS."),
 //    EVALUATE_PARTITION_LOCATION_USE(67, "The `-epl|--evaluate-partition-location` flag is only valid for DUMP, SCHEMA_ONLY and STORAGE_MIGRATION strategies.  Remove the " +

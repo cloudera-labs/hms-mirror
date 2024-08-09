@@ -124,7 +124,7 @@ public class HMSMirrorAppService {
             runStatus.setStage(StageEnum.VALIDATE_CONNECTION_CONFIG, CollectionEnum.COMPLETED);
 
             runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.IN_PROGRESS);
-            connectionPoolService.init();
+            connectionPoolService.reset();
             runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.COMPLETED);
         } catch (SQLException sqle) {
             log.error("Issue refreshing connections pool", sqle);

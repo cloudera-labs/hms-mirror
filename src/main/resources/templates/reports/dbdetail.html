@@ -32,6 +32,10 @@
         <hr>
         <b th:if="${RUN_STATUS != null && RUN_STATUS.appVersion != null}"
            th:text="#{version(${RUN_STATUS.appVersion})}"/>
+        <br/>
+        <b th:if="${RUN_STATUS != null}"
+              th:text="#{job.runtime(${RUN_STATUS.getRuntimeMS()})}"/>
+        <br/>
     </div>
 
     <fieldset>

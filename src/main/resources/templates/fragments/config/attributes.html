@@ -57,6 +57,7 @@
                 <td colspan="2">
                     <div th:insert="fragments/config/warehouse::view"
                          th:if="${('HYBRID SQL EXPORT_IMPORT COMMON SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
+                    </div>
                 </td>
             </tr>
             <tr>

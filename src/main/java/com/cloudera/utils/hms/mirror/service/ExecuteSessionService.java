@@ -69,9 +69,9 @@ public class ExecuteSessionService {
     to the 'executeSessionQueue'.
      */
     @Setter
-    private ExecuteSession loadedSession;
+    private ExecuteSession currentSession;
 
-    private ExecuteSession activeSession;
+//    private ExecuteSession activeSession;
 
     private String reportOutputDirectory;
 
@@ -120,50 +120,25 @@ public class ExecuteSessionService {
         return session;
     }
 
-    public void clearLoadedSession() throws SessionException {
+    public void clearSession() throws SessionException {
         clearActiveSession();
-        loadedSession = null;
+        currentSession = null;
     }
 
     public void clearActiveSession() throws SessionException {
-        if (nonNull(activeSession)) {
-            RunStatus runStatus = activeSession.getRunStatus();
-            switch (runStatus.getProgress()) {
-                case IN_PROGRESS:
-                    throw new SessionException("Session is still running.  You can't change the session while it is running.");
-                case CANCEL_FAILED:
-                    throw new SessionException("Session has failed to cancel.  You can't change the session after it has failed to cancel.");
-                case CANCELLED:
-                case COMPLETED:
-                case FAILED:
-                default:
-                    break;
+        if (nonNull(currentSession)) {
+            if (currentSession.isRunning()) {
+                throw new SessionException("Session is still running.  You can't change the session while it is running.");
             }
-            activeSession = null;
+
             // Close the connections pools, so they can be reset.
             connectionPoolService.close();
         }
     }
 
     public ExecuteSession getSession() {
-        if (activeSession != null)
-            return activeSession;
-        else
-            return loadedSession;
+        return currentSession;
     }
-
-//    public ExecuteSession getSession() {
-//        if (activeSession == null) {
-//            log.warn("No active session.  Transitioning loaded session to active.");
-////            try {
-////                transitionLoadedSessionToActive(null);
-////            } catch (SessionException e) {
-////                //throw new RuntimeException(e);
-////            }
-////            throw new RuntimeException("No active session. Try configuring a session first.");
-//        }
-//        return activeSession;
-//    }
 
     /*
     If sessionId is null, then pull the 'current' session.
@@ -172,10 +147,10 @@ public class ExecuteSessionService {
      */
     public ExecuteSession getSession(String sessionId) {
         if (isBlank(sessionId)) {
-            if (isNull(loadedSession)) {
+            if (isNull(currentSession)) {
                 throw new RuntimeException("No session loaded.");
             }
-            return loadedSession;
+            return currentSession;
         } else {
             if (sessions.containsKey(sessionId)) {
                 return sessions.get(sessionId);
@@ -197,20 +172,21 @@ public class ExecuteSessionService {
     public Boolean transitionLoadedSessionToActive(Integer concurrency) throws SessionException {
         Boolean rtn = Boolean.TRUE;
 
-        if (!isNull(activeSession) && activeSession.isRunning()) {
+        ExecuteSession session = getSession();
+
+        if (!isNull(session) && session.isRunning()) {
             throw new SessionException("Session is still running.  Cannot transition to active.");
         }
 
         // This should get the loaded session and clone it.
-        if (isNull(loadedSession)) {
+        if (isNull(session)) {
             throw new SessionException("No session loaded.");
         }
 
-        ExecuteSession session = getSession();
         // If it's connected (Active Session), don't go through all this again.
         if (isNull(session) || !session.isConnected()) {
             log.debug("Configure and setup Session");
-            HmsMirrorConfig config = loadedSession.getConfig();
+            HmsMirrorConfig config = session.getConfig();
 
             // Setup connections concurrency
             // We need to pass on a few scale parameters to the hs2 configs so the connections pools can handle the scale requested.
@@ -243,7 +219,7 @@ public class ExecuteSessionService {
 
             // TODO: Set Metastore Direct Concurrency.
 
-            session = loadedSession.clone();
+//            session = currentSession.clone();
 
             // Connection Service should be set to the resolved config.
             connectionPoolService.close();
@@ -272,7 +248,7 @@ public class ExecuteSessionService {
             session.getConfig().setOutputDirectory(sessionReportDir);
 
             // Create the RunStatus and Conversion objects.
-            RunStatus runStatus = new RunStatus();
+            RunStatus runStatus = session.getRunStatus();
             runStatus.setConcurrency(concurrency);
             try {
                 runStatus.setAppVersion(Manifests.read("HMS-Mirror-Version"));
@@ -289,7 +265,7 @@ public class ExecuteSessionService {
                 entry.getValue().setConversion(null);
                 entry.getValue().setRunStatus(null);
             }
-            activeSession = session;
+//            activeSession = session;
 
 //            configService.validate(activeSession, getCliEnvironment());
             executeSessionMap.put(session.getSessionId(), session);

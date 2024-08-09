@@ -34,22 +34,27 @@
               th:disabled="${READ_ONLY}"
               style="border: 0;">
         <div class="pure-g">
-            <div class="pure-u-1-4">
+            <div class="pure-u-1">
+                <div class="pure-control-group">
+                    <label for="hcfsNamespace" class="pure-input-1" th:text="#{hcfs.namespace}"/>
+                    <input type="text" id="hcfsNamespace"
+                           th:field="*{clusters[__${env}__].hcfsNamespace}"
+                           style="width: 90%;"
+                           placeholder="Set Namespace"/>
+                    <br/>
+                    <b class="pure-input-1" th:text="#{hcfs.namespace.use}"/>
+                </div>
+            </div>
+            <div class="pure-u-1">
+                <br/>
+                <br/>
+            </div>
+            <div class="pure-u-1-4" style="vertical-align: top;">
                     <div class="pure-form pure-form-aligned">
-
+                        <h4 th:text="#{attributes}"/>
                         <input type="hidden" th:field="*{clusters[__${env}__].environment}"
                                th:value="${CONFIG.clusters[__${env}__]?.environment}"/>
 
-                        <div class="pure-control-group">
-                            <label for="hcfsNamespace" class="pure-input-1" th:text="#{hcfs.namespace}"/>
-                            <input type="text" id="hcfsNamespace"
-                                   th:field="*{clusters[__${env}__].hcfsNamespace}"
-                                   style="width: 90%;"
-                                   placeholder="Set Namespace"/>
-                            <b class="pure-input-1" th:text="#{hcfs.namespace.use}"/>
-                        </div>
-                        <hr/>
-                        <br/>
                         <div class="pure-control-group"
                              th:if="${('STORAGE_MIGRATION SCHEMA_ONLY HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">
                             <input type="checkbox"
@@ -103,7 +108,7 @@
                         </div>
                     </div>
             </div>
-            <div class="pure-u-3-4">
+            <div class="pure-u-3-4" style="vertical-align: top;">
                 <div th:insert="fragments/config/hiveserver2::view(${env})"
                      th:if="${CONFIG.getCluster(env).getHiveServer2() != null}">
                 </div>

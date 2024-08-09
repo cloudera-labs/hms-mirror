@@ -32,85 +32,211 @@
 
 <div th:fragment="main">
     <form id="config_action" th:object="${CONFIG}">
-<!--        Use to control input tags use -->
+        <input type="hidden" id="datastrategy" th:field="*{dataStrategy}"
+               th:value="${CONFIG.dataStrategy}" readonly/>
+
+        <!--        Use to control input tags use -->
         <fieldset th:disabled="${READ_ONLY}" style="border: none">
 
-        <!--    <div class="pure-u-1">-->
-        <!--        Password Management-->
-        <!--        Attributes-->
-        <!--        Left Cluster-->
-        <!--        Right Cluster-->
-        <!--        Transfer-->
-        <!--        Translator-->
-        <a th:href="#{docs.url(${CONFIG.dataStrategy.name})}" target="_blank"><h4 th:text="#{config.dataStrategy(${CONFIG.dataStrategy})}"/></a>
+            <a th:href="#{docs.url(${CONFIG.dataStrategy.name.toLowerCase().replace('_','-')})}" target="_blank"
+               style="horiz-align: center">
+                <h4 th:text="#{config.dataStrategy(${CONFIG.dataStrategy})}"/></a>
 
-        <div class="pure-menu pure-menu-horizontal menubox">
-            <!--            <a href="#" class="pure-menu-heading pure-menu-link">BRAND</a>-->
-            <ul class="pure-menu-list">
-                <li class="pure-menu-item" th:unless="${READ_ONLY}">
-                    <button class="pure-button pure-button-primary" th:formaction="@{/config/doSave}"
-                            th:formmethod="post" type="submit" th:text="#{button.save}"/>
-                </li>
-
-                <li class="pure-menu-item">
-                    <a th:text="#{messages(${RUN_STATUS.getErrorMessages().size()})}" href="#"
-                       class="pure-menu-link" onclick="openSection(event, 'messages')"/>
-                </li>
-                <li class="pure-menu-item">
-                    <a th:text="#{password.management}" href="#" class="pure-menu-link"
-                       onclick="openSection(event, 'password_management')"/>
-                </li>
-                <li class="pure-menu-item">
-                    <a th:text="#{config.filter}" href="#" class="pure-menu-link"
-                       onclick="openSection(event, 'filter')"/>
-                </li>
-                <li class="pure-menu-item">
-                    <a th:text="#{attributes}" href="#" class="pure-menu-link"
-                       onclick="openSection(event, 'attributes')"/>
-                </li>
-                <li class="pure-menu-item" th:if="${CONFIG.getCluster('LEFT') != null}">
-                    <a th:text="#{LEFT.cluster}" href="#" class="pure-menu-link"
-                       onclick="openSection(event, 'left_cluster')"/>
-                </li>
-                <li class="pure-menu-item" th:if="${CONFIG.getCluster('RIGHT') != null}">
-                    <a th:text="#{RIGHT.cluster}" href="#" class="pure-menu-link"
-                       onclick="openSection(event, 'right_cluster')"/>
-                </li>
-                <li class="pure-menu-item">
-                    <a th:text="#{config.translator}" href="#" class="pure-menu-link"
-                       onclick="openSection(event, 'translator')"/>
-                </li>
-            </ul>
-        </div>
-
-        <div id="messages" class="tabcontent">
-            <div th:insert="fragments/messages::view">
+            <div id="messages" th:insert="fragments/messages::view">
             </div>
-        </div>
-        <div id="password_management" class="tabcontent">
-            <div th:insert="fragments/config/passwordManagement::main"></div>
-        </div>
 
-        <div id="filter" class="tabcontent">
-            <div th:insert="fragments/config/filter::view"></div>
-        </div>
+            <div class="pure-menu pure-menu-horizontal menubox">
+                <!--            <a href="#" class="pure-menu-heading pure-menu-link">BRAND</a>-->
+                <ul class="pure-menu-list">
+                    <li class="pure-menu-item" th:unless="${READ_ONLY}">
+                        <button class="pure-button pure-button-primary" th:formaction="@{/config/doSave}"
+                                th:formmethod="post" type="submit" th:text="#{button.save}"/>
+                    </li>
 
-        <div id="attributes" class="tabcontent">
-            <div th:insert="fragments/config/attributes::main"></div>
-        </div>
+                    <!--                    <li class="pure-menu-item">-->
+                    <!--                        <a th:text="#{messages(${RUN_STATUS.getErrorMessages().size()})}" href="#"-->
+                    <!--                           class="pure-menu-link" onclick="openSection(event, 'messages')"/>-->
+                    <!--                    </li>-->
+                    <li class="pure-menu-item">
+                        <a th:text="#{password.management}" href="#" class="pure-menu-link"
+                           onclick="openSection(event, 'password_management')"/>
+                    </li>
+                    <!--                    <li class="pure-menu-item">-->
+                    <!--                        <a th:text="#{config.filter}" href="#" class="pure-menu-link"-->
+                    <!--                           onclick="openSection(event, 'filter')"/>-->
+                    <!--                    </li>-->
 
-        <div id="left_cluster" class="tabcontent" th:if="${CONFIG.getCluster('LEFT') != null}">
-            <div th:insert="fragments/config/cluster::main('LEFT')"></div>
-        </div>
+                    <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                        <a th:text="#{config.filters}" href="#" class="pure-menu-link"/>
+                        <ul class="pure-menu-children">
+                            <li class="pure-menu-item"
+                                th:unless="${('REGEX').contains(CONFIG.getDatabaseFilterType().toString())}"
+                                th:if="${('DUMP COMMON HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY LINKED').contains(CONFIG.dataStrategy.toString())}">
+                                <a th:text="#{config.filter.databases}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'databases')"/>
+                            </li>
+                            <li class="pure-menu-item"
+                            >
+                                <a th:text="#{config.filter.warehousePlans}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'warehousePlans')"/>
+                            </li>
+                            <li class="pure-menu-item">
+                                <a th:text="#{config.filter.regex}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'regex')"/>
+                            </li>
+                            <li class="pure-menu-item"
+                                th:if="${('DUMP HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">
+                                <a th:text="#{config.filter.limits}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'limits')"/>
+                            </li>
+                            <li class="pure-menu-item"
+                                th:if="${('DUMP HYBRID SQL EXPORT_IMPORT SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
+                                <a th:text="#{config.filter.redirects}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'redirects')"/>
+                            </li>
+                        </ul>
 
-        <div id="right_cluster" class="tabcontent" th:if="${CONFIG.getCluster('RIGHT') != null}">
-            <div th:insert="fragments/config/cluster::main('RIGHT')"></div>
-        </div>
+                    </li>
+
+
+                    <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                        <a th:text="#{attributes}" href="#" class="pure-menu-link"/>
+                        <ul class="pure-menu-children">
+                            <li class="pure-menu-item"
+                                th:if="${('HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
+                                <a th:text="#{config.data.movement}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'datamovement')"/>
+                            </li>
+                            <li class="pure-menu-item"
+                                th:if="${('HYBRID SQL EXPORT_IMPORT COMMON SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
+                                <a th:text="#{config.warehouse}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'warehouse')"/>
+                            </li>
+                            <li class="pure-menu-item">
+                                <a th:text="#{config.misc}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'misc')"/>
+                            </li>
+                            <li class="pure-menu-item"
+                                th:if="${('HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY DUMP COMMON').contains(CONFIG.dataStrategy.toString())}">
+                                <a th:text="#{migrate.options}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'migrate')"/>
+                            </li>
+                            <li class="pure-menu-item"
+                                th:unless="${('LINKED').contains(CONFIG.dataStrategy.toString())}">
+                                <a th:text="#{transfer.details}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'transfer')"/>
+                            </li>
+                            <li class="pure-menu-item"
+                                th:unless="${('LINKED').contains(CONFIG.dataStrategy.toString())}">
+                                <a th:text="#{optimizations}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'optimizations')"/>
+                            </li>
+                        </ul>
+
+                    </li>
+                    <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                        <a href="#" id="clusterlink" class="pure-menu-link" th:text="#{clusters}"/>
+                        <ul class="pure-menu-children">
+                            <li class="pure-menu-item" th:if="${CONFIG.getCluster('LEFT') != null}">
+                                <a th:text="#{LEFT.cluster}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'left_cluster')"/>
+                            </li>
+                            <li class="pure-menu-item" th:if="${CONFIG.getCluster('RIGHT') != null}">
+                                <a th:text="#{RIGHT.cluster}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'right_cluster')"/>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                        <a href="#" class="pure-menu-link" th:text="#{transfer}"/>
+                        <ul class="pure-menu-children">
+                            <li class="pure-menu-item">
+                                <a th:text="#{build}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'glmBuild')"/>
+                            </li>
+                            <li class="pure-menu-item">
+                                <a th:text="#{glm}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'glm')"/>
+                            </li>
+                            <li class="pure-menu-item"
+                                th:if="${CONFIG.translator.warehouseMapBuilder != null && CONFIG.translator.warehouseMapBuilder.sources.size() >0 }">
+                                <a th:text="#{sources}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'sources')"/>
+                            </li>
+                        </ul>
+
+                    </li>
+                </ul>
+            </div>
+
+            <!--            <div id="messages" class="tabcontent">-->
+            <!--                <div th:insert="fragments/messages::view">-->
+            <!--                </div>-->
+            <!--            </div>-->
+            <div id="password_management" class="tabcontent">
+                <div th:insert="fragments/config/passwordManagement::main"></div>
+            </div>
+
+            <!--            <div id="filter" class="tabcontent">-->
+            <!--                <div th:insert="fragments/config/filter::view"></div>-->
+            <!--            </div>-->
+
+            <!--            FILTERS-->
+            <div id="databases" class="tabcontent" th:insert="fragments/config/databases::view">
+            </div>
+            <div id="warehousePlans" class="tabcontent" th:insert="fragments/config/warehousePlans::view">
+            </div>
+            <div id="regex" class="tabcontent" th:insert="fragments/config/regex::view">
+            </div>
+            <div id="limits" class="tabcontent" th:insert="fragments/config/limits::view">
+            </div>
+            <div id="redirects" class="tabcontent" th:insert="fragments/config/redirects::view">
+            </div>
+
+
+            <!--            =========================== -->
+            <div id="datamovement" class="tabcontent" th:insert="fragments/config/datamovement::view">
+            </div>
+            <div id="warehouse" class="tabcontent" th:insert="fragments/config/warehouse::view">
+            </div>
+            <div id="migrate" class="tabcontent" th:insert="fragments/config/migrate::view">
+            </div>
+            <div id="transfer" class="tabcontent" th:insert="fragments/config/transfer::view">
+            </div>
+            <div id="misc" class="tabcontent" th:insert="fragments/config/misc::view">
+            </div>
+            <div id="optimizations" class="tabcontent" th:insert="fragments/config/optimizations::optimizations">
+            </div>
+
+            <div id="left_cluster" class="tabcontent" th:if="${CONFIG.getCluster('LEFT') != null}"
+                 th:insert="fragments/config/cluster::main('LEFT')">
+            </div>
+
+            <div id="right_cluster" class="tabcontent" th:if="${CONFIG.getCluster('RIGHT') != null}"
+                 th:insert="fragments/config/cluster::main('RIGHT')">
+            </div>
         </fieldset>
     </form>
 
-    <div id="translator" class="tabcontent">
-        <div class="pure-u-1" th:insert="fragments/config/translator::translator">
+    <!--    <div id="translator" class="tabcontent">-->
+    <!--        <div class="pure-u-1" th:insert="fragments/config/translator::translator">-->
+    <!--        </div>-->
+    <!--    </div>-->
+
+    <div id="glmBuild" class="tabcontent">
+        <div th:insert="fragments/config/glmBuild::view">
+
+        </div>
+    </div>
+    <div id="glm" class="tabcontent">
+        <div th:insert="fragments/config/glm::view(false)">
+
+        </div>
+    </div>
+    <div id="sources" class="tabcontent">
+        <div th:insert="fragments/config/glmSources::view"
+             th:if="${CONFIG.translator.warehouseMapBuilder != null && CONFIG.translator.warehouseMapBuilder.sources.size() >0 }">
+
         </div>
     </div>
 
