@@ -29,49 +29,49 @@
 </head>
 <body>
 <div th:fragment="view">
-    <h4 th:text="#{warehouse.plans}"/>
-    <!--    <div class="pure-g">-->
-    <!--        <div class="pure-u-1-5">-->
-    <!--        </div>-->
-    <!--        <div class="pure-u-4-5">-->
-    <table class="pure-table" th:if="${CONFIG.translator.warehouseMapBuilder.warehousePlans.size() > 0}">
-        <thead>
-        <tr>
-            <th></th>
-            <th>Database</th>
-            <th>External Directory</th>
-            <th>Managed Directory</th>
-        </tr>
-        </thead>
-        <tbody>
-        <th:block
-                th:each="plan: ${CONFIG.translator.warehouseMapBuilder.warehousePlans}">
+    <fieldset>
+        <legend th:text="#{warehouse.plans}"/>
+        <!--    <div class="pure-g">-->
+        <!--        <div class="pure-u-1-5">-->
+        <!--        </div>-->
+        <!--        <div class="pure-u-4-5">-->
+        <table class="pure-table" th:if="${CONFIG.translator.warehouseMapBuilder.warehousePlans.size() > 0}">
+            <thead>
             <tr>
-                <td>
-                    <a class="pure-button"
-                       th:href="@{/warehouse/plan/__${plan.key}__/delete}"
-                       th:text="#{delete}"/>
-                    <!--                               th:formmethod="delete"-->
-                </td>
-                <td><label th:text="${plan.key}"/></td>
-                <td><label th:text="${plan.value.externalDirectory}"/></td>
-                <td><label th:text="${plan.value.managedDirectory}"/></td>
+                <th></th>
+                <th>Database</th>
+                <th>External Directory</th>
+                <th>Managed Directory</th>
             </tr>
-        </th:block>
-        </tbody>
-    </table>
-    <!--        </div>-->
-    <!--    </div>-->
-    <div class="pure-control-group">
-        <a id="whModalBtn" class="pure-button pure-button-primary"
-           th:href="@{/warehouse/plan/add}"
-           th:text="#{button.add}"/>
-        <!--                        th:formmethod="get"-->
-    </div>
-    <div th:replace="fragments/modal::modal1('whAddModal', 'whModalBtn', 'Please wait.  Gathering database list.')">
-    </div>
-
-
+            </thead>
+            <tbody>
+            <th:block
+                    th:each="plan: ${CONFIG.translator.warehouseMapBuilder.warehousePlans}">
+                <tr>
+                    <td>
+                        <a class="pure-button"
+                           th:href="@{/warehouse/plan/__${plan.key}__/delete}"
+                           th:text="#{delete}"/>
+                        <!--                               th:formmethod="delete"-->
+                    </td>
+                    <td><label th:text="${plan.key}"/></td>
+                    <td><label th:text="${plan.value.externalDirectory}"/></td>
+                    <td><label th:text="${plan.value.managedDirectory}"/></td>
+                </tr>
+            </th:block>
+            </tbody>
+        </table>
+        <!--        </div>-->
+        <!--    </div>-->
+        <div class="pure-control-group">
+            <a id="whModalBtn" class="pure-button pure-button-primary"
+               th:href="@{/warehouse/plan/add}"
+               th:text="#{button.add}"/>
+            <!--                        th:formmethod="get"-->
+        </div>
+        <div th:replace="fragments/modal::modal1('whAddModal', 'whModalBtn', 'Please wait.  Gathering database list.')">
+        </div>
+    </fieldset>
 </div>
 </body>
 </html>

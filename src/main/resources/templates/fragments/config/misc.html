@@ -29,91 +29,94 @@
 <body>
 
 <div th:fragment="view">
-    <h4 th:text="#{config.misc}"/>
+    <div class="pure-form pure-form-aligned">
+        <fieldset>
+            <legend th:text="#{config.misc}"/>
 
-    <div class="pure-control-group tooltip">
-        <span class="tooltiptext" th:text="#{config.skipLinkCheck.tooltip}"></span>
-        <input type="checkbox" name="skipLinkCheck"
-               th:field="*{skipLinkCheck}"
-               th:checked="${CONFIG.skipLinkCheck}"/>
-        <label for="skipLinkCheck" th:text="#{config.skipLinkCheck}"></label>
-    </div>
+            <div class="pure-control-group tooltip">
+                <span class="tooltiptext" th:text="#{config.skipLinkCheck.tooltip}"></span>
+                <input type="checkbox" name="skipLinkCheck"
+                       th:field="*{skipLinkCheck}"
+                       th:checked="${CONFIG.skipLinkCheck}"/>
+                <label for="skipLinkCheck" th:text="#{config.skipLinkCheck}"></label>
+            </div>
 
-    <!--                        overrides:-->
-    <!--                            left: {}-->
-    <!--                            right: {}-->
-    <!--                    outputDirectory: "/Users/dstreev/.hms-mirror/reports/2024-06-06_09-24-20"-->
-    <!--                    quiet: false-->
-    <div class="pure-control-group">
-        <input type="checkbox" name="copyAvroSchemaUrls"
-               th:field="*{copyAvroSchemaUrls}"
-               th:checked="${CONFIG.copyAvroSchemaUrls}"/>
-        <label for="copyAvroSchemaUrls" th:text="#{config.copyAvroSchemaUrls}"></label>
-    </div>
+            <!--                        overrides:-->
+            <!--                            left: {}-->
+            <!--                            right: {}-->
+            <!--                    outputDirectory: "/Users/dstreev/.hms-mirror/reports/2024-06-06_09-24-20"-->
+            <!--                    quiet: false-->
+            <div class="pure-control-group">
+                <input type="checkbox" name="copyAvroSchemaUrls"
+                       th:field="*{copyAvroSchemaUrls}"
+                       th:checked="${CONFIG.copyAvroSchemaUrls}"/>
+                <label for="copyAvroSchemaUrls" th:text="#{config.copyAvroSchemaUrls}"></label>
+            </div>
 
-    <div class="pure-control-group">
-        <input type="checkbox" name="databaseOnly"
-               th:field="*{databaseOnly}"
-               th:checked="${CONFIG.databaseOnly}"/>
-        <label for="databaseOnly" th:text="#{config.databaseOnly}"></label>
-    </div>
+            <div class="pure-control-group">
+                <input type="checkbox" name="databaseOnly"
+                       th:field="*{databaseOnly}"
+                       th:checked="${CONFIG.databaseOnly}"/>
+                <label for="databaseOnly" th:text="#{config.databaseOnly}"></label>
+            </div>
 
-    <div class="pure-control-group">
-        <input type="checkbox" name="readOnly"
-               th:field="*{readOnly}"
-               th:checked="${CONFIG.readOnly}"/>
-        <label for="readOnly" th:text="#{config.readOnly}"></label>
-    </div>
-    <div class="pure-control-group">
-        <input type="checkbox" name="noPurge"
-               th:field="*{noPurge}"
-               th:checked="${CONFIG.noPurge}"/>
-        <label for="noPurge" th:text="#{config.noPurge}"></label>
-    </div>
-    <div class="pure-control-group">
-        <input id="replace" type="checkbox"
-               th:field="*{replace}"
-               th:checked="${CONFIG.replace}"/>
-        <label for="replace" th:text="#{config.replace}"></label>
-    </div>
-<!--    <div class="pure-control-group">-->
-        <input type="hidden" name="resetRight"
-               th:field="*{resetRight}"
-               th:checked="${CONFIG.resetRight}"/>
-<!--        <label for="resetRight" th:text="#{config.resetRight}"></label>-->
-<!--    </div>-->
-    <div class="pure-control-group">
-        <input type="checkbox" name="skipFeatures"
-               th:field="*{skipFeatures}"
-               th:checked="${CONFIG.skipFeatures}"/>
-        <label for="skipFeatures" th:text="#{config.skipFeatures}"></label>
-    </div>
-    <div class="pure-control-group">
-        <input type="checkbox" name="skipLegacyTranslation"
-               th:field="*{skipLegacyTranslation}"
-               th:checked="${CONFIG.skipLegacyTranslation}"/>
-        <label for="skipLegacyTranslation" th:text="#{config.skipLegacyTranslation}"></label>
-    </div>
-<!--     Deprecated -->
-<!--    <div class="pure-control-group">-->
-<!--        <input type="checkbox" name="sqlOutput"-->
-<!--               th:field="*{sqlOutput}"-->
-<!--               th:checked="${CONFIG.sqlOutput}"/>-->
-<!--        <label for="sqlOutput" th:text="#{config.sqlOutput}"></label>-->
-<!--    </div>-->
-    <div class="pure-control-group">
-        <input type="checkbox" name="sync"
-               th:field="*{sync}"
-               th:checked="${CONFIG.sync}"/>
-        <label for="sync" th:text="#{config.sync}"></label>
-    </div>
-    <div class="pure-control-group">
-        <input type="checkbox" name="transferOwnership"
-               th:field="*{transferOwnership}"
-               th:checked="${CONFIG.transferOwnership}"/>
-        <label for="transferOwnership" th:text="#{config.transferOwnership}"></label>
+            <div class="pure-control-group">
+                <input type="checkbox" name="readOnly"
+                       th:field="*{readOnly}"
+                       th:checked="${CONFIG.readOnly}"/>
+                <label for="readOnly" th:text="#{config.readOnly}"></label>
+            </div>
+            <div class="pure-control-group">
+                <input type="checkbox" name="noPurge"
+                       th:field="*{noPurge}"
+                       th:checked="${CONFIG.noPurge}"/>
+                <label for="noPurge" th:text="#{config.noPurge}"></label>
+            </div>
+            <div class="pure-control-group">
+                <input id="replace" type="checkbox"
+                       th:field="*{replace}"
+                       th:checked="${CONFIG.replace}"/>
+                <label for="replace" th:text="#{config.replace}"></label>
+            </div>
+            <!--    <div class="pure-control-group">-->
+            <input type="hidden" name="resetRight"
+                   th:field="*{resetRight}"
+                   th:checked="${CONFIG.resetRight}"/>
+            <!--        <label for="resetRight" th:text="#{config.resetRight}"></label>-->
+            <!--    </div>-->
+            <div class="pure-control-group">
+                <input type="checkbox" name="skipFeatures"
+                       th:field="*{skipFeatures}"
+                       th:checked="${CONFIG.skipFeatures}"/>
+                <label for="skipFeatures" th:text="#{config.skipFeatures}"></label>
+            </div>
+            <div class="pure-control-group">
+                <input type="checkbox" name="skipLegacyTranslation"
+                       th:field="*{skipLegacyTranslation}"
+                       th:checked="${CONFIG.skipLegacyTranslation}"/>
+                <label for="skipLegacyTranslation" th:text="#{config.skipLegacyTranslation}"></label>
+            </div>
+            <!--     Deprecated -->
+            <!--    <div class="pure-control-group">-->
+            <!--        <input type="checkbox" name="sqlOutput"-->
+            <!--               th:field="*{sqlOutput}"-->
+            <!--               th:checked="${CONFIG.sqlOutput}"/>-->
+            <!--        <label for="sqlOutput" th:text="#{config.sqlOutput}"></label>-->
+            <!--    </div>-->
+            <div class="pure-control-group">
+                <input type="checkbox" name="sync"
+                       th:field="*{sync}"
+                       th:checked="${CONFIG.sync}"/>
+                <label for="sync" th:text="#{config.sync}"></label>
+            </div>
+            <div class="pure-control-group">
+                <input type="checkbox" name="transferOwnership"
+                       th:field="*{transferOwnership}"
+                       th:checked="${CONFIG.transferOwnership}"/>
+                <label for="transferOwnership" th:text="#{config.transferOwnership}"></label>
+            </div>
+        </fieldset>
     </div>
 </div>
-
 </body>
 </html>

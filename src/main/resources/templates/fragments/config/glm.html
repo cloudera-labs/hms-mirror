@@ -28,11 +28,12 @@
 </head>
 <body>
 <div th:fragment="view(dryrun)">
-    <div class="pure-g">
-        <div class="pure-u-1">
-            <th:block
-                    th:if="${CONFIG.translator.userGlobalLocationMap != null && CONFIG.translator.userGlobalLocationMap.size() > 0}">
-                <h4 th:text="#{global.location.maps.user}"/>
+    <div class="pure-form pure-form-aligned">
+        <!--        <div class="pure-u-1">-->
+        <th:block
+                th:if="${CONFIG.translator.userGlobalLocationMap != null && CONFIG.translator.userGlobalLocationMap.size() > 0}">
+            <fieldset>
+                <legend th:text="#{global.location.maps.user}"/>
                 <hr>
                 <table class="pure-table" style="width: 100%;">
                     <thead>
@@ -73,34 +74,38 @@
                     </th:block>
                     </tbody>
                 </table>
-            </th:block>
-            <th:block
-                    th:unless="${CONFIG.translator.userGlobalLocationMap != null && CONFIG.translator.userGlobalLocationMap.size() > 0}">
-                <h4 th:text="#{global.location.maps.user.empty}"/>
-            </th:block>
-            <!--    Add GLM Manually -->
-            <th:block th:if="${!dryrun}">
-                <h4 th:text="#{glm.add}"/>
+            </fieldset>
+        </th:block>
+        <th:block
+                th:unless="${CONFIG.translator.userGlobalLocationMap != null && CONFIG.translator.userGlobalLocationMap.size() > 0}">
+            <fieldset>
+                <legend th:text="#{global.location.maps.user.empty}"/>
+            </fieldset>
+        </th:block>
+        <!--    Add GLM Manually -->
+        <th:block th:if="${!dryrun}">
+            <fieldset>
+                <legend th:text="#{glm.add}"/>
                 <form class="pure-form" method="post"
                       th:action="@{/translator/globalLocationMap/add}">
-                    <fieldset>
-                        <select id="tableType" name="TABLE_TYPE">
-                            <option th:each="type: ${tabletypes}"
-                                    th:value="${type}"
-                                    th:text="${type}"/>
-                        </select>
-                        <input type="text" name="SOURCE" placeholder="Source"/>
-                        <input type="text" name="TARGET" placeholder="Target"/>
-                        <button type="submit" class="pure-button pure-button-primary" th:text="#{button.add}"/>
-                    </fieldset>
+                    <select id="tableType" name="TABLE_TYPE">
+                        <option th:each="type: ${tabletypes}"
+                                th:value="${type}"
+                                th:text="${type}"/>
+                    </select>
+                    <input type="text" name="SOURCE" placeholder="Source"/>
+                    <input type="text" name="TARGET" placeholder="Target"/>
+                    <button type="submit" class="pure-button pure-button-primary" th:text="#{button.add}"/>
                 </form>
-            </th:block>
-        </div>
-        <div class="pure-u-1">
-            <!--Auto GLM's-->
-            <th:block
-                    th:if="${CONFIG.translator.autoGlobalLocationMap != null && CONFIG.translator.autoGlobalLocationMap.size() > 0}">
-                <h4 th:text="#{global.location.maps.auto}"/>
+            </fieldset>
+        </th:block>
+        <!--        </div>-->
+        <!--        <div class="pure-u-1">-->
+        <!--Auto GLM's-->
+        <th:block
+                th:if="${CONFIG.translator.autoGlobalLocationMap != null && CONFIG.translator.autoGlobalLocationMap.size() > 0}">
+            <fieldset>
+                <legend th:text="#{global.location.maps.auto}"/>
                 <hr>
                 <table class="pure-table" style="width: 100%;">
                     <thead>
@@ -115,7 +120,8 @@
                         <tr>
                             <form class="pure-form pure-form-aligned">
                                 <td>
-                                    <input type="text" name="source" th:value="${glm.key}" style="width: 100%;" readonly/>
+                                    <input type="text" name="source" th:value="${glm.key}" style="width: 100%;"
+                                           readonly/>
                                 </td>
                                 <td>
                                     <th:block th:each="target: ${glm.value}">
@@ -131,17 +137,21 @@
                     </th:block>
                     </tbody>
                 </table>
-            </th:block>
-            <th:block
-                    th:unless="${CONFIG.translator.autoGlobalLocationMap != null && CONFIG.translator.autoGlobalLocationMap.size() > 0}">
-                <h4 th:text="#{global.location.maps.auto.empty}"/>
-            </th:block>
-        </div>
-        <div class="pure-u-1">
-            <!--Ordered GLM's-->
-            <th:block
-                    th:if="${CONFIG.translator.orderedGlobalLocationMap != null && CONFIG.translator.orderedGlobalLocationMap.size() > 0}">
-                <h4 th:text="#{global.location.maps.ordered}"/>
+            </fieldset>
+        </th:block>
+        <th:block
+                th:unless="${CONFIG.translator.autoGlobalLocationMap != null && CONFIG.translator.autoGlobalLocationMap.size() > 0}">
+            <fieldset>
+                <legend th:text="#{global.location.maps.auto.empty}"/>
+            </fieldset>
+        </th:block>
+        <!--        </div>-->
+        <!--        <div class="pure-u-1">-->
+        <!--Ordered GLM's-->
+        <th:block
+                th:if="${CONFIG.translator.orderedGlobalLocationMap != null && CONFIG.translator.orderedGlobalLocationMap.size() > 0}">
+            <fieldset>
+                <legend th:text="#{global.location.maps.ordered}"/>
                 <hr>
                 <table class="pure-table" style="width: 100%;">
                     <thead>
@@ -173,13 +183,16 @@
                     </th:block>
                     </tbody>
                 </table>
-            </th:block>
-            <th:block
-                    th:unless="${CONFIG.translator.orderedGlobalLocationMap != null && CONFIG.translator.orderedGlobalLocationMap.size() > 0}">
-                <h4 th:text="#{global.location.maps.ordered.empty}"/>
-            </th:block>
-        </div>
+            </fieldset>
+        </th:block>
+        <th:block
+                th:unless="${CONFIG.translator.orderedGlobalLocationMap != null && CONFIG.translator.orderedGlobalLocationMap.size() > 0}">
+            <fieldset>
+                <legend th:text="#{global.location.maps.ordered.empty}"/>
+            </fieldset>
+        </th:block>
     </div>
+</div>
 </div>
 </body>
 </html>

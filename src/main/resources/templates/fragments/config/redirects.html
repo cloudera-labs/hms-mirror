@@ -29,26 +29,26 @@
 <body>
 
 <div th:fragment="view">
-    <div class="pure-form pure-form-aligned">
-        <th:block
-                th:if="${('DUMP HYBRID SQL EXPORT_IMPORT SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
-            <h4 th:text="#{config.db.redirect}"/>
+    <!--    <div class="pure-form pure-form-aligned">-->
+    <th:block
+            th:if="${('DUMP HYBRID SQL EXPORT_IMPORT SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
+        <fieldset>
+            <legend th:text="#{config.db.redirect}"/>
             <div class="pure-control-group">
                 <label for="dbprefix" th:text="#{config.db.prefix}"></label>
-                <input class="pure-input-1-5" id="dbprefix" type="text"
+                <input id="dbprefix" type="text"
                        th:field="*{dbPrefix}"
                        placeholder="Set Database Name Prefix"/>
             </div>
             <div class="pure-control-group">
                 <label for="dbrename" th:text="#{config.db.rename}"></label>
-                <input class="pure-input-1-5" id="dbrename" type="text"
+                <input id="dbrename" type="text"
                        th:field="*{dbRename}"
                        placeholder="Set Database Rename"/>
             </div>
-
-        </th:block>
-
-    </div>
+        </fieldset>
+    </th:block>
+    <!--    </div>-->
 </div>
 </body>
 </html>

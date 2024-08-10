@@ -29,34 +29,35 @@
 <body>
 
 <div th:fragment="view">
-    <div class="pure-form pure-form-aligned"
-         th:if="${('DUMP COMMON HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY LINKED').contains(CONFIG.dataStrategy.toString())}">
-        <div class="pure-control-group"
-             th:unless="${('REGEX').contains(CONFIG.getDatabaseFilterType().toString())}"
-             th:if="${('DUMP COMMON HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY LINKED').contains(CONFIG.dataStrategy.toString())}">
+    <div th:if="${('DUMP COMMON HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY LINKED').contains(CONFIG.dataStrategy.toString())}">
+        <fieldset>
+            <legend th:text="#{config.databases}"/>
+            <div class="pure-control-group"
+                 th:unless="${('REGEX').contains(CONFIG.getDatabaseFilterType().toString())}"
+                 th:if="${('DUMP COMMON HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY LINKED').contains(CONFIG.dataStrategy.toString())}">
 
-            <h4 th:text="#{config.databases}"/>
-            <!--                    <label th:text="#{config.databases.control}"/>-->
-            <th:block th:each="database, itemStat: *{databases}">
-                <div class="pure-control-group">
-                    <input disabled="disabled" class="pure-input-3-4"
-                           type="text"
-                           th:field="*{databases[__${itemStat.index}__]}"/>
-                    <a class="pure-button"
-                       th:if="${('MANUAL UNDETERMINED').contains(CONFIG.getDatabaseFilterType().toString())}"
-                       th:href="@{/database/__${database}__/delete}">
-                        <img th:src="@{/images/linea--arrows-minus.png}"></a>
+                <!--                    <label th:text="#{config.databases.control}"/>-->
+                <th:block th:each="database, itemStat: *{databases}">
+                    <div class="pure-control-group">
+                        <input disabled="disabled"
+                               type="text"
+                               th:field="*{databases[__${itemStat.index}__]}"/>
+                        <a class="pure-button"
+                           th:if="${('MANUAL UNDETERMINED').contains(CONFIG.getDatabaseFilterType().toString())}"
+                           th:href="@{/database/__${database}__/delete}">
+                            <img th:src="@{/images/linea--arrows-minus.png}"></a>
+                    </div>
+                </th:block>
+                <div class="pure-control-group tooltip"
+                     th:unless="${READ_ONLY}"
+                     th:if="${('MANUAL UNDETERMINED').contains(CONFIG.getDatabaseFilterType().toString())}">
+                    <span class="tooltiptext" th:text="#{comma.separated.tooltip}"></span>
+                    <input type="text" id="databases" name="DATABASES"/>
+                    <button type="submit" th:formmethod="post" th:formaction="@{/database/add}"
+                            th:text="#{button.add}"/>
                 </div>
-            </th:block>
-            <div class="pure-control-group tooltip"
-                 th:unless="${READ_ONLY}"
-                 th:if="${('MANUAL UNDETERMINED').contains(CONFIG.getDatabaseFilterType().toString())}">
-                <span class="tooltiptext" th:text="#{comma.separated.tooltip}"></span>
-                <input class="pure-input-3-4" type="text" id="databases" name="DATABASES"/>
-                <button type="submit" th:formmethod="post" th:formaction="@{/database/add}"
-                        th:text="#{button.add}"/>
             </div>
-        </div>
+        </fieldset>
     </div>
 </div>
 

@@ -32,42 +32,43 @@
 <div th:fragment="view">
     <form class="pure-form pure-form-aligned" th:action="@{/translator/globalLocationMap/build}"
           method="post">
-        <!--          dryrun, buildSources, consolidationLevel, partitionLevelMisMatch -->
-        <h4 th:text="#{build.sources}"/>
-        <div class="pure-control-group">
-            <label for="glm_dryrun" th:text="#{dry.run}"/>
-            <input id="glm_dryrun" type="checkbox" name="GLM_DRYRUN"
-                   th:checked="true"/>
-        </div>
-<!--        <div class="pure-control-group">-->
-<!--            <label for="buildSources" th:text="#{build.sources}"/>-->
-<!--            <input id="buildSources" type="checkbox" name="BUILD_SOURCES"-->
-<!--                   th:checked="true"/>-->
-<!--        </div>-->
-        <div class="pure-control-group">
-            <label for="consolidationLevel" th:text="#{consolidation.level}"/>
-            <select id="consolidationLevel" name="CONSOLIDATION_LEVEL">
-                <option value="1" selected>1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-            </select>
-        </div>
-        <div class="pure-control-group">
-            <label for="partitionLevelMisMatch" th:text="#{partition.level.mismatch}"/>
-            <input id="partitionLevelMisMatch" type="checkbox" name="PARTITION_LEVEL_MISMATCH"
-                   th:checked="true"/>
-        </div>
-        <div class="pure-control-group">
-            <button id="buildModalBtn" class="pure-button pure-button-primary" type="submit"
-                    th:text="#{button.build}"/>
-        </div>
-        <div th:replace="fragments/modal::modal2('buildModal','buildModalBtn', 'Please wait.  Building Sources from Warehouse Plan Databases.')">
+        <fieldset>
+            <legend th:text="#{build.sources}"/>
+            <!--          dryrun, buildSources, consolidationLevel, partitionLevelMisMatch -->
+            <div class="pure-control-group">
+                <label for="glm_dryrun" th:text="#{dry.run}"/>
+                <input id="glm_dryrun" type="checkbox" name="GLM_DRYRUN"
+                       th:checked="true"/>
+            </div>
+            <!--        <div class="pure-control-group">-->
+            <!--            <label for="buildSources" th:text="#{build.sources}"/>-->
+            <!--            <input id="buildSources" type="checkbox" name="BUILD_SOURCES"-->
+            <!--                   th:checked="true"/>-->
+            <!--        </div>-->
+            <div class="pure-control-group">
+                <label for="consolidationLevel" th:text="#{consolidation.level}"/>
+                <select id="consolidationLevel" name="CONSOLIDATION_LEVEL">
+                    <option value="1" selected>1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                </select>
+            </div>
+            <div class="pure-control-group">
+                <label for="partitionLevelMisMatch" th:text="#{partition.level.mismatch}"/>
+                <input id="partitionLevelMisMatch" type="checkbox" name="PARTITION_LEVEL_MISMATCH"
+                       th:checked="true"/>
+            </div>
+            <div class="pure-control-group">
+                <button id="buildModalBtn" class="pure-button pure-button-primary" type="submit"
+                        th:text="#{button.build}"/>
+            </div>
+            <div th:replace="fragments/modal::modal2('buildModal','buildModalBtn', 'Please wait.  Building Sources from Warehouse Plan Databases.')">
 
-        </div>
-
+            </div>
+        </fieldset>
     </form>
 </div>
 

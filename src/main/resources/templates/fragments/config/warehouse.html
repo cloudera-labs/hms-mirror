@@ -30,20 +30,23 @@
 <body>
 
 <div th:fragment="view">
-    <h4 th:text="#{config.warehouse}"/>
-    <div class="pure-control-group">
-        <label for="managedDirectory" th:text="#{config.transfer.warehouse.managedDirectory}"></label>
-        <input id="managedDirectory" type="text"
-               style="width: 90%;"
-               th:field="*{transfer.warehouse.managedDirectory}"
-               placeholder="Set Managed Directory"/>
-    </div>
-    <div class="pure-control-group">
-        <label for="externalDirectory" th:text="#{config.transfer.warehouse.externalDirectory}"></label>
-        <input id="externalDirectory" type="text"
-               style="width: 90%;"
-               th:field="*{transfer.warehouse.externalDirectory}"
-               placeholder="Set External Directory"/>
+    <div class="pure-form pure-form-aligned">
+        <fieldset>
+
+            <legend th:text="#{config.warehouse}"/>
+            <div class="pure-control-group">
+                <label for="managedDirectory" th:text="#{config.transfer.warehouse.managedDirectory}"></label>
+                <input id="managedDirectory" type="text"
+                       th:field="*{transfer.warehouse.managedDirectory}"
+                       placeholder="Set Managed Directory"/>
+            </div>
+            <div class="pure-control-group">
+                <label for="externalDirectory" th:text="#{config.transfer.warehouse.externalDirectory}"></label>
+                <input id="externalDirectory" type="text"
+                       th:field="*{transfer.warehouse.externalDirectory}"
+                       placeholder="Set External Directory"/>
+            </div>
+        </fieldset>
     </div>
 </div>
 </body>

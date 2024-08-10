@@ -29,56 +29,57 @@
 <body>
 
 <div th:fragment="view (env)">
-<!--    <fieldset>-->
-<!--        <legend th:text="#{hive.server2}"/>-->
-    <h4 th:text="#{hive.server2}"/>
-<!--    <hr style="border-top: 1px solid #ccc;"/>-->
-        <div class="pure-form pure-form-aligned">
+    <div class="pure-form pure-form-aligned">
+        <fieldset>
+            <legend th:text="#{hive.server2}"/>
+
+            <!--        <div class="pure-form pure-form-aligned">-->
             <input type="hidden"
                    th:field="*{clusters[__${env}__].hiveServer2.disconnected}"
                    th:checked="${CONFIG.clusters[__${env}__]?.hiveServer2?.disconnected}"/>
+            <input type="hidden"
+                   th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[maxTotal]}"
+                   th:value="${CONFIG.clusters[__${env}__].hiveServer2?.connectionProperties[maxTotal]}"/>
 
             <div class="pure-control-group">
                 <label th:text="#{hive.server2.driver}"/>
-                <select class="pure-input-3-4"
-                        th:field="*{clusters[__${env}__].hiveServer2.driverClassName}">
+                <select th:field="*{clusters[__${env}__].hiveServer2.driverClassName}">
                     <option th:each="cet: ${SUPPORTED_HIVE_DRIVER_CLASSES}"
                             th:value="${cet}"
                             th:text="${cet}"
                             th:selected="${cet.equals(CONFIG.clusters[__${env}__].hiveServer2.driverClassName)}"/>
                 </select>
             </div>
-<!--            <input type="hidden"-->
-<!--                   th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[maxWaitMillis]}"-->
-<!--                   th:value="${CONFIG.clusters[__${env}__].hiveServer2?.connectionProperties[maxWaitMillis]}"/>-->
-            <input type="hidden"
-                   th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[maxTotal]}"
-                   th:value="${CONFIG.clusters[__${env}__].hiveServer2?.connectionProperties[maxTotal]}"/>
+            <!--            <input type="hidden"-->
+            <!--                   th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[maxWaitMillis]}"-->
+            <!--                   th:value="${CONFIG.clusters[__${env}__].hiveServer2?.connectionProperties[maxWaitMillis]}"/>-->
 
             <div class="pure-control-group">
                 <label th:text="#{hive.server2.uri}"/>
-                <input class="pure-input-3-4" type="text"
-                       th:field="*{clusters[__${env}__].hiveServer2.uri}"
-                       placeholder="Set HiveServer2 JDBC URI"/>
+                <textarea rows="2" cols="50"
+                          th:field="*{clusters[__${env}__].hiveServer2.uri}"
+                          placeholder="Set HiveServer2 JDBC URI"></textarea>
+                <!--                   th:field="*{clusters[__${env}__].hiveServer2.uri}"-->
+                <!--                   placeholder="Set HiveServer2 JDBC URI"/>-->
             </div>
             <div class="pure-control-group">
                 <label th:text="#{hive.server2.user}"/>
-                <input class="pure-input-3-4" type="text"
+                <input type="text"
                        th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[user]}"
                        placeholder="Set HiveServer2 User"/>
             </div>
             <div class="pure-control-group">
                 <label th:text="#{hive.server2.password}"/>
-                <input class="pure-input-3-4" type="password"
+                <input type="password"
                        autocomplete="off"
                        th:unless="${READ_ONLY}"
                        th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[password]}"
                        placeholder="Set Hive Server2 Password"/>
-                <input class="pure-input-3-4" type="text"
+                <input type="text"
                        autocomplete="off"
                        th:if="${READ_ONLY && !CONFIG.encryptedPasswords}"
                        value="-- not encrypted --" readonly/>
-                <input class="pure-input-3-4" type="text"
+                <input type="text"
                        autocomplete="off"
                        th:if="${READ_ONLY && CONFIG.encryptedPasswords}"
                        value="-- encrypted --"
@@ -86,28 +87,29 @@
             </div>
             <div class="pure-control-group">
                 <label
-                       th:text="#{hive.server2.max.wait.ms}"/>
-                <input class="pure-input-3-4" type="number"
+                        th:text="#{hive.server2.max.wait.ms}"/>
+                <input type="number"
                        autocomplete="off"
                        th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[maxWaitMillis]}"/>
                 <!--                                               th:value="${CONFIG.clusters[__${env}__].hiveServer2.connectionProperties[maxWaitMillis]}"/>-->
             </div>
             <!--                                    <div class="pure-control-group">-->
             <!--                                        <label for="hs2maxTotal" th:text="#{hive.server2.max.total}"/>-->
-<!--            <input class="pure-input-3-4" type="hidden"-->
-<!--                   autocomplete="off"-->
-<!--                   th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[maxTotal]}"/>-->
+            <!--            <input class="pure-input-3-4" type="hidden"-->
+            <!--                   autocomplete="off"-->
+            <!--                   th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[maxTotal]}"/>-->
             <!--                                               th:value="${CONFIG.clusters[__${env}__].hiveServer2.connectionProperties[maxTotal]}"/>-->
             <!--                                    </div>-->
             <div class="pure-control-group">
                 <label th:text="#{hive.server2.jars}"/>
-                <input class="pure-input-3-4" type="text"
-                       th:field="*{clusters[__${env}__].hiveServer2.jarFile}"
-                       placeholder="Set HiveServer2 JDBC Driver Jar File(s)"/>
+                <textarea rows="2" cols="50"
+                          th:field="*{clusters[__${env}__].hiveServer2.jarFile}"
+                          placeholder="Set HiveServer2 JDBC Driver Jar File(s)"></textarea>
                 <span class="pure-form-message-inline">Local file(s) on application server host.</span>
             </div>
-        </div>
-<!--    </fieldset>-->
+            <!--        </div>-->
+        </fieldset>
+    </div>
 </div>
 </body>
 </html>

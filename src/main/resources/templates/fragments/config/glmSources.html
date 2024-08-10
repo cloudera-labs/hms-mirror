@@ -28,9 +28,11 @@
 </head>
 <body>
 <div th:fragment="view">
-<!--    <fieldset>-->
-<!--        <legend th:text="#{builder.sources}"/>-->
-    <h4 th:text="#{builder.sources}"/>
+    <!--    <div class="pure-form pure-form-aligned">-->
+
+    <fieldset>
+        <legend th:text="#{builder.sources}"/>
+        <!--        <h4 th:text="#{builder.sources}"/>-->
         <ul id="tree">
             <th:block
                     th:each="source: ${CONFIG.translator.warehouseMapBuilder.sources}">
@@ -85,7 +87,8 @@
                 </li>
             </th:block>
         </ul>
-<!--    </fieldset>-->
+    </fieldset>
 </div>
+<!--</div>-->
 </body>
 </html>

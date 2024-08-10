@@ -29,9 +29,9 @@
 <body>
 <div th:fragment="standards">
     <!-- Reset To Default Locations -->
-<!--    <fieldset>-->
-<!--        <legend th:text="#{config.standards}"/>-->
-    <h4 th:text="#{config.standards}"/>
+    <fieldset>
+        <legend th:text="#{config.standards}"/>
+        <!--    <h4 th:text="#{config.standards}"/>-->
         <div class="pure-control-group">
             <input type="checkbox" name="resetToDefaultLocation"
                    th:field="*{resetToDefaultLocation}"
@@ -48,7 +48,7 @@
             <label class="pure-input-3-4" for="evaluatepartitionlocation"
                    th:text="#{config.evaluatePartitionLocation}"></label>
         </div>
-<!--    </fieldset>-->
+    </fieldset>
 
 </div>
 </body>

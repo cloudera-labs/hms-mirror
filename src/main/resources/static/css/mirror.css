@@ -138,3 +138,16 @@ td {
     height: 100%;
     border-radius: 9px;
 }
+
+
+fieldset {
+    background-color: #e1e1e1;
+}
+
+legend {
+    background-color: #ff8400;
+    color: white;
+    padding: 5px 10px;
+    font-size: 25px;
+    font-weight: bold;
+}

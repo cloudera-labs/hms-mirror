@@ -29,64 +29,63 @@
 <body>
 
 <div th:fragment="view">
-    <h4 th:text="#{config.data.movement}"/>
-    <!-- Data Movement Strategy -->
-    <div class="pure-control-group">
-        <label class="pure-u-1" for="targetNamespace" th:text="#{config.transfer.targetNamespace}"/>
-        <input style="width: 90%;" id="targetNamespace" type="text"
-               th:field="*{transfer.targetNamespace}"
-               placeholder="Set Target Namespace"/>
-        <b class="pure-u-1" th:text="#{config.transfer.targetNamespace.use}"/>
-    </div>
-    <hr/>
-    <br/>
-    <div class="pure-control-group">
-        <label for="dataMovementStrategy"
-               th:text="#{config.transfer.storageMigration.translationType}"></label>
-        <select id="dataAlignmentStrategy" class="pure-input-1"
-                th:field="*{transfer.storageMigration.translationType}">
-            <option th:each="tte: ${translationtypeenums}"
-                    th:value="${tte}"
-                    th:text="${tte}"
-                    th:selected="${tte.equals(CONFIG.transfer.storageMigration.translationType)}"/>
-        </select>
-    </div>
+    <fieldset>
+        <legend th:text="#{config.data.movement}"/>
+        <!-- Data Movement Strategy -->
+        <div class="pure-control-group">
+            <label for="targetNamespace" th:text="#{config.transfer.targetNamespace}"/>
+            <input id="targetNamespace" type="text"
+                   th:field="*{transfer.targetNamespace}"
+                   placeholder="Set Target Namespace"/>
+            <span class="pure-form-message-inline" th:text="#{config.transfer.targetNamespace.use}"/>
+        </div>
+        <div class="pure-control-group">
+            <label for="dataMovementStrategy"
+                   th:text="#{config.transfer.storageMigration.translationType}"></label>
+            <select id="dataAlignmentStrategy"
+                    th:field="*{transfer.storageMigration.translationType}">
+                <option th:each="tte: ${translationtypeenums}"
+                        th:value="${tte}"
+                        th:text="${tte}"
+                        th:selected="${tte.equals(CONFIG.transfer.storageMigration.translationType)}"/>
+            </select>
+        </div>
 
 
-    <div class="pure-control-group">
-        <label for="dataMovementStrategy"
-               th:text="#{config.transfer.storageMigration.dataMovementStrategy}"></label>
-        <select id="dataMovementStrategy" class="pure-input-1"
-                th:field="*{transfer.storageMigration.dataMovementStrategy}">
-            <option th:each="cet: ${datamovementstrategyenums}"
-                    th:value="${cet}"
-                    th:text="${cet}"
-                    th:selected="${cet.equals(CONFIG.transfer.storageMigration.dataMovementStrategy)}"/>
-        </select>
-    </div>
+        <div class="pure-control-group">
+            <label for="dataMovementStrategy"
+                   th:text="#{config.transfer.storageMigration.dataMovementStrategy}"></label>
+            <select id="dataMovementStrategy"
+                    th:field="*{transfer.storageMigration.dataMovementStrategy}">
+                <option th:each="cet: ${datamovementstrategyenums}"
+                        th:value="${cet}"
+                        th:text="${cet}"
+                        th:selected="${cet.equals(CONFIG.transfer.storageMigration.dataMovementStrategy)}"/>
+            </select>
+        </div>
 
-    <!-- Data Flow -->
-    <div class="pure-control-group">
-        <label for="dataFlow"
-               th:text="#{config.transfer.storageMigration.dataFlow}"></label>
-        <select id="dataFlow" class="pure-input-1"
-                th:field="*{transfer.storageMigration.dataFlow}">
-            <option th:each="cet: ${distcpflowenums}"
-                    th:value="${cet}"
-                    th:text="${cet}"
-                    th:selected="${cet.equals(CONFIG.transfer.storageMigration.dataFlow)}"/>
-        </select>
-    </div>
+        <!-- Data Flow -->
+        <div class="pure-control-group">
+            <label for="dataFlow"
+                   th:text="#{config.transfer.storageMigration.dataFlow}"></label>
+            <select id="dataFlow"
+                    th:field="*{transfer.storageMigration.dataFlow}">
+                <option th:each="cet: ${distcpflowenums}"
+                        th:value="${cet}"
+                        th:text="${cet}"
+                        th:selected="${cet.equals(CONFIG.transfer.storageMigration.dataFlow)}"/>
+            </select>
+        </div>
 
-    <!-- Strict -->
-    <div class="pure-control-group">
-        <input type="checkbox" id="strict"
-               th:field="*{transfer.storageMigration.strict}"
-               th:checked="${CONFIG.transfer.storageMigration.strict}"/>
-        <label for="strict"
-               th:text="#{config.transfer.storageMigration.strict}"></label>
-    </div>
+        <!-- Strict -->
+        <div class="pure-control-group">
+            <input type="checkbox" id="strict"
+                   th:field="*{transfer.storageMigration.strict}"
+                   th:checked="${CONFIG.transfer.storageMigration.strict}"/>
+            <label for="strict"
+                   th:text="#{config.transfer.storageMigration.strict}"></label>
+        </div>
+    </fieldset>
 </div>
-
 </body>
 </html>

@@ -23,4 +23,6 @@ legend {
     background-color: #ff8400;
     color: white;
     padding: 5px 10px;
+    font-size: 25px;
+    font-weight: bold;
 }

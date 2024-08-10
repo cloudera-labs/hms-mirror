@@ -29,72 +29,74 @@
 <body>
 
 <div th:fragment="view (env)">
-    <!--    <fieldset>-->
-    <!--        <legend th:text="#{metastore.direct}"/>-->
-    <h4 th:text="#{metastore.direct}"/>
-<!--    <hr style="border-top: 1px solid #ccc;"/>-->
     <div class="pure-form pure-form-aligned">
+        <fieldset>
+            <legend th:text="#{metastore.direct}"/>
+            <!--    <h4 th:text="#{metastore.direct}"/>-->
+            <!--    <hr style="border-top: 1px solid #ccc;"/>-->
+            <!--    <div class="pure-form pure-form-aligned">-->
 
-        <div class="pure-control-group">
-            <label th:text="#{metastore.direct.uri}"/>
-            <input class="pure-input-3-4" type="text"
-                   th:field="*{clusters[__${env}__].metastoreDirect.uri}"
-                   placeholder="Set Metastore JDBC URI"/>
-        </div>
-        <div class="pure-control-group">
-            <label th:text="#{metastore.direct.type}"></label>
-            <select th:field="*{clusters[__${env}__].metastoreDirect.type}">
-                <option th:each="cet: ${db_types}"
-                        th:value="${cet}"
-                        th:text="${cet}"
-                        th:selected="${cet.equals(CONFIG.clusters[__${env}__]?.metastoreDirect?.type)}"/>
-            </select>
-        </div>
-        <div class="pure-control-group">
-            <label th:text="#{metastore.direct.user}"/>
-            <input class="pure-input-1-4" type="text"
-                   th:field="*{clusters[__${env}__].metastoreDirect.connectionProperties[user]}"
-                   placeholder="Set Metastore User"/>
-        </div>
-        <div class="pure-control-group">
-            <label for="metastorepassword"
-                   th:text="#{metastore.direct.password}"/>
-            <input class="pure-input-1-2" type="password"
-                   autocomplete="off"
-                   th:unless="${READ_ONLY}"
-                   th:field="*{clusters[__${env}__].metastoreDirect.connectionProperties[password]}"
-                   placeholder="Set Metastore Password"/>
-            <input class="pure-input-1-2" type="text"
-                   autocomplete="off"
-                   th:if="${READ_ONLY && !CONFIG.encryptedPasswords}"
-                   value="-- not encrypted --" readonly/>
-            <input class="pure-input-1-2" type="text"
-                   autocomplete="off"
-                   th:if="${READ_ONLY && CONFIG.encryptedPasswords}"
-                   value="-- encrypted --"
-                   readonly/>
+            <div class="pure-control-group">
+                <label th:text="#{metastore.direct.uri}"/>
+                <textarea rows="2" cols="50"
+                          th:field="*{clusters[__${env}__].metastoreDirect.uri}"
+                          placeholder="Set Metastore JDBC URI"></textarea>
+                <span class="pure-form-message-inline" th:text="#{local.aux_libs}"/.
+            </div>
+            <div class="pure-control-group">
+                <label th:text="#{metastore.direct.type}"></label>
+                <select th:field="*{clusters[__${env}__].metastoreDirect.type}">
+                    <option th:each="cet: ${db_types}"
+                            th:value="${cet}"
+                            th:text="${cet}"
+                            th:selected="${cet.equals(CONFIG.clusters[__${env}__]?.metastoreDirect?.type)}"/>
+                </select>
+            </div>
+            <div class="pure-control-group">
+                <label th:text="#{metastore.direct.user}"/>
+                <input type="text"
+                       th:field="*{clusters[__${env}__].metastoreDirect.connectionProperties[user]}"
+                       placeholder="Set Metastore User"/>
+            </div>
+            <div class="pure-control-group">
+                <label for="metastorepassword"
+                       th:text="#{metastore.direct.password}"/>
+                <input type="password"
+                       autocomplete="off"
+                       th:unless="${READ_ONLY}"
+                       th:field="*{clusters[__${env}__].metastoreDirect.connectionProperties[password]}"
+                       placeholder="Set Metastore Password"/>
+                <input type="text"
+                       autocomplete="off"
+                       th:if="${READ_ONLY && !CONFIG.encryptedPasswords}"
+                       value="-- not encrypted --" readonly/>
+                <input type="text"
+                       autocomplete="off"
+                       th:if="${READ_ONLY && CONFIG.encryptedPasswords}"
+                       value="-- encrypted --"
+                       readonly/>
 
-        </div>
-        <div class="pure-control-group">
-            <label th:text="#{metastore.init.sql}"/>
-            <input type="text" class="pure-input-2-3"
-                   th:field="*{clusters[__${env}__].metastoreDirect.initSql}"
-                   th:value="${CONFIG.clusters[__${env}__]?.metastoreDirect?.initSql}"/>
-        </div>
-        <input type="hidden"
-               th:field="*{clusters[__${env}__].metastoreDirect.connectionPool.min}"
-               th:value="${CONFIG.clusters[__${env}__]?.metastoreDirect?.connectionPool.min}"/>
-        <input type="hidden"
-               th:field="*{clusters[__${env}__].metastoreDirect.connectionPool.max}"
-               th:value="${CONFIG.clusters[__${env}__]?.metastoreDirect?.connectionPool.max}"/>
-        <div class="pure-control-group">
-            <label th:text="#{metastore.timeout}"/>
-            <input type="number"
-                   th:field="*{clusters[__${env}__].metastoreDirect.connectionPool.timeout}"
-                   th:value="${CONFIG.clusters[__${env}__]?.metastoreDirect?.connectionPool.timeout}"/>
-        </div>
+            </div>
+            <div class="pure-control-group">
+                <label th:text="#{metastore.init.sql}"/>
+                <input type="text"
+                       th:field="*{clusters[__${env}__].metastoreDirect.initSql}"
+                       th:value="${CONFIG.clusters[__${env}__]?.metastoreDirect?.initSql}"/>
+            </div>
+            <input type="hidden"
+                   th:field="*{clusters[__${env}__].metastoreDirect.connectionPool.min}"
+                   th:value="${CONFIG.clusters[__${env}__]?.metastoreDirect?.connectionPool.min}"/>
+            <input type="hidden"
+                   th:field="*{clusters[__${env}__].metastoreDirect.connectionPool.max}"
+                   th:value="${CONFIG.clusters[__${env}__]?.metastoreDirect?.connectionPool.max}"/>
+            <div class="pure-control-group">
+                <label th:text="#{metastore.timeout}"/>
+                <input type="number"
+                       th:field="*{clusters[__${env}__].metastoreDirect.connectionPool.timeout}"
+                       th:value="${CONFIG.clusters[__${env}__]?.metastoreDirect?.connectionPool.timeout}"/>
+            </div>
+        </fieldset>
     </div>
-    <!--    </fieldset>-->
 </div>
 </body>
 </html>

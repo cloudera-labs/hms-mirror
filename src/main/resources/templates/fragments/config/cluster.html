@@ -29,29 +29,36 @@
 </head>
 <body>
 
-<div th:fragment="main (env)" >
-    <fieldset th:unless="${CONFIG.clusters[__${env}__] == null}"
-              th:disabled="${READ_ONLY}"
-              style="border: 0;">
-        <div class="pure-g">
-            <div class="pure-u-1">
-                <div class="pure-control-group">
-                    <label for="hcfsNamespace" class="pure-input-1" th:text="#{hcfs.namespace}"/>
-                    <input type="text" id="hcfsNamespace"
-                           th:field="*{clusters[__${env}__].hcfsNamespace}"
-                           style="width: 90%;"
-                           placeholder="Set Namespace"/>
-                    <br/>
-                    <b class="pure-input-1" th:text="#{hcfs.namespace.use}"/>
+<div th:fragment="main (env)">
+    <div class="pure-form pure-form-aligned">
+
+        <fieldset th:unless="${CONFIG.clusters[__${env}__] == null}"
+                  th:disabled="${READ_ONLY}"
+                  style="border: 0;">
+            <div class="pure-g">
+                <div class="pure-u-1">
+                    <fieldset>
+                        <legend th:text="#{hcfs.namespace}"/>
+                        <div class="pure-control-group">
+                            <input type="text" id="hcfsNamespace"
+                                   th:field="*{clusters[__${env}__].hcfsNamespace}"
+                                   style="width: 90%;"
+                                   placeholder="Set Namespace"/>
+                            <br/>
+                            <span class="pure-form-message-inline" th:text="#{hcfs.namespace.use}"/>
+
+                        </div>
+                    </fieldset>
                 </div>
-            </div>
-            <div class="pure-u-1">
-                <br/>
-                <br/>
-            </div>
-            <div class="pure-u-1-4" style="vertical-align: top;">
-                    <div class="pure-form pure-form-aligned">
-                        <h4 th:text="#{attributes}"/>
+                <div class="pure-u-1">
+                    <br/>
+                    <br/>
+                </div>
+                <div class="pure-u-1-4" style="vertical-align: top;">
+                    <!--                    <div class="pure-form pure-form-aligned">-->
+                    <fieldset>
+                        <legend th:text="#{attributes}"/>
+                        <!--                        <h4 th:text="#{attributes}"/>-->
                         <input type="hidden" th:field="*{clusters[__${env}__].environment}"
                                th:value="${CONFIG.clusters[__${env}__]?.environment}"/>
 
@@ -106,19 +113,20 @@
                                    th:checked="${CONFIG.clusters[__${env}__]?.enableAutoColumnStats}"/>
                             <label th:text="#{cluster.enable.colums.stats}"/>
                         </div>
+                    </fieldset>
+                    <!--                    </div>-->
+                </div>
+                <div class="pure-u-3-4" style="vertical-align: top;">
+                    <div th:insert="fragments/config/hiveserver2::view(${env})"
+                         th:if="${CONFIG.getCluster(env).getHiveServer2() != null}">
                     </div>
-            </div>
-            <div class="pure-u-3-4" style="vertical-align: top;">
-                <div th:insert="fragments/config/hiveserver2::view(${env})"
-                     th:if="${CONFIG.getCluster(env).getHiveServer2() != null}">
-                </div>
-                <div th:insert="fragments/config/metastoredirect::view(${env})"
-                     th:if="${CONFIG.getCluster(env).getMetastoreDirect() != null}">
+                    <div th:insert="fragments/config/metastoredirect::view(${env})"
+                         th:if="${CONFIG.getCluster(env).getMetastoreDirect() != null}">
+                    </div>
                 </div>
             </div>
-        </div>
-    </fieldset>
+        </fieldset>
+    </div>
 </div>
-
 </body>
 </html>
