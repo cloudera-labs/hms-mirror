@@ -33,27 +33,62 @@
 
         <h4 th:if="${DB_MIRROR != null}" th:text="#{table.status.summary(${DB_MIRROR.getPhaseSummaryString()})}"/>
 
-        <div th:if="${RUN_STATUS.getConfigMessages().size() > 0}">
-            <h4 th:text="#{run.status.config.messages}"/>
-            <ul>
-                <li th:each="msg: ${RUN_STATUS.getConfigMessages()}"
-                    th:text="${msg}"/>
-            </ul>
-<!--            TODO: Add option to clear config messages -->
+        <div th:if="${RUN_STATUS.getConfigMessages().size() > 0}" style="padding-bottom: 5px;">
+            <table class="pure-table pure-table-striped pure-table-bordered" style="width: 100%;">
+                <thead>
+                <tr>
+                    <th th:text="#{run.status.config.messages}"/>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="msg: ${RUN_STATUS.getConfigMessages()}">
+                    <td th:text="${msg}"/>
+                </tr>
+                </tbody>
+            </table>
+            <!--            <h4 th:text="#{run.status.config.messages}"/>-->
+            <!--            <ul>-->
+            <!--                <li th:each="msg: ${RUN_STATUS.getConfigMessages()}"-->
+            <!--                    th:text="${msg}"/>-->
+            <!--            </ul>-->
         </div>
-        <div th:if="${RUN_STATUS.getErrorMessages().size() > 0}">
-            <h4 th:text="#{run.status.errors}"/>
-            <ul>
-                <li th:each="error: ${RUN_STATUS.getErrorMessages()}"
-                    th:text="${error}"/>
-            </ul>
+        <div th:if="${RUN_STATUS.getErrorMessages().size() > 0}" style="padding-bottom: 5px;">
+            <table class="pure-table pure-table-striped pure-table-bordered" style="width: 100%;">
+                <thead>
+                <tr>
+                    <th th:text="#{run.status.errors}"/>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="error: ${RUN_STATUS.getErrorMessages()}">
+                    <td th:text="${error}"/>
+                </tr>
+                </tbody>
+            </table>
+            <!--            <h4 th:text="#{run.status.errors}"/>-->
+            <!--            <ul>-->
+            <!--                <li th:each="error: ${RUN_STATUS.getErrorMessages()}"-->
+            <!--                    th:text="${error}"/>-->
+            <!--            </ul>-->
         </div>
-        <div th:if="${RUN_STATUS.getWarningMessages().size() > 0}">
-            <h4 th:text="#{run.status.warnings}"/>
-            <ul>
-                <li th:each="warning: ${RUN_STATUS.getWarningMessages()}"
-                    th:text="${warning}"/>
-            </ul>
+        <div th:if="${RUN_STATUS.getWarningMessages().size() > 0}" style="padding-bottom: 5px;">
+            <table class="pure-table pure-table-striped pure-table-bordered" style="width: 100%;">
+                <thead
+                <tr>
+                    <th th:text="#{run.status.warnings}"/>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="warning: ${RUN_STATUS.getWarningMessages()}">
+                    <td th:text="${warning}"/>
+                </tr>
+                </tbody>
+            </table>
+            <!--            <h4 th:text="#{run.status.warnings}"/>-->
+            <!--            <ul>-->
+            <!--                <li th:each="warning: ${RUN_STATUS.getWarningMessages()}"-->
+            <!--                    th:text="${warning}"/>-->
+            <!--            </ul>-->
         </div>
     </th:block>
 </div>
