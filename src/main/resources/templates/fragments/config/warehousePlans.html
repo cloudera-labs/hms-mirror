@@ -65,6 +65,7 @@
         <!--    </div>-->
         <div class="pure-control-group">
             <a id="whModalBtn" class="pure-button pure-button-primary"
+               th:if="${('UNDETERMINED WAREHOUSE_PLANS').contains(CONFIG.getDatabaseFilterType().toString())}"
                th:href="@{/warehouse/plan/add}"
                th:text="#{button.add}"/>
             <!--                        th:formmethod="get"-->

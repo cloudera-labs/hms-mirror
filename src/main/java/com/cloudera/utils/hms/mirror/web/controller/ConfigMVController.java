@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.cloudera.utils.hms.mirror.MessageCode.ENCRYPTED_PASSWORD_CHANGE_ATTEMPT;
+import static com.cloudera.utils.hms.mirror.web.controller.ReportsMVController.countLines;
 import static java.util.Objects.nonNull;
 
 @Controller
@@ -172,10 +173,32 @@ public class ConfigMVController implements ControllerReferences {
                        @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
 //        executeSessionService.clearActiveSession();
 //        model.addAttribute(ACTION, "edit");
+        configService.validate(executeSessionService.getSession(), null);
         model.addAttribute(READ_ONLY, Boolean.FALSE);
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
         return "config/view";
     }
+
+    @RequestMapping(value = "/summary", method = RequestMethod.GET)
+    public String summary(Model model,
+                       @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
+//        executeSessionService.clearActiveSession();
+//        model.addAttribute(ACTION, "edit");
+
+        ExecuteSession session = executeSessionService.getSession();
+        HmsMirrorConfig config = session.getConfig();
+
+        String reportFileString = configService.configToString(config);
+
+        model.addAttribute(SESSION_ID, session.getSessionId());
+        model.addAttribute(CONTENT, reportFileString);
+        int lines = countLines(reportFileString);
+        model.addAttribute(LINES, lines + 3);
+        uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
+
+        return "config/summary";
+    }
+
 
     @RequestMapping(value = "/doSave", method = RequestMethod.POST)
     public String doSave(Model model,

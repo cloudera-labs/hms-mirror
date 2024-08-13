@@ -17,6 +17,7 @@
 
 package com.cloudera.utils.hms.mirror.domain.support;
 
+import com.cloudera.utils.hms.mirror.domain.Acceptance;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -26,6 +27,6 @@ public class RunContainer {
     private boolean dryrun = Boolean.TRUE;
     private boolean autoGLM = Boolean.FALSE;
     private String sessionId;
-//    private DataStrategyEnum dataStrategy;
+    private Acceptance acceptance;
 
 }

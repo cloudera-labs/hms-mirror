@@ -30,7 +30,7 @@
 
 <div th:fragment="view">
     <div th:if="${('DUMP COMMON HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY LINKED').contains(CONFIG.dataStrategy.toString())}">
-        <fieldset>
+        <fieldset th:disabled="${READ_ONLY}">
             <legend th:text="#{config.databases}"/>
             <div class="pure-control-group"
                  th:unless="${('REGEX').contains(CONFIG.getDatabaseFilterType().toString())}"
@@ -49,7 +49,6 @@
                     </div>
                 </th:block>
                 <div class="pure-control-group tooltip"
-                     th:unless="${READ_ONLY}"
                      th:if="${('MANUAL UNDETERMINED').contains(CONFIG.getDatabaseFilterType().toString())}">
                     <span class="tooltiptext" th:text="#{comma.separated.tooltip}"></span>
                     <input type="text" id="databases" name="DATABASES"/>

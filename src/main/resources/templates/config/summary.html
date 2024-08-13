@@ -12,46 +12,34 @@
   ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   ~  See the License for the specific language governing permissions and
   ~  limitations under the License.
-  ~  
+  ~
   -->
 
 <!DOCTYPE HTML>
 <html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
 <head>
-    <title>Config Validation</title>
+    <title>Config</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
     <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
     <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
-    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
     <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
     <link rel="stylesheet" type="text/css" th:href="@{/css/modal.css}">
     <script th:src="@{/js/mirror.js}"></script>
-    <!--    <script th:src="@{/js/modal.js}"></script>-->
 </head>
 <body>
-
-<!-- Validate:-->
-<!-- - Left HS2
-- Left Metastore
-- Right HS2
-- Right Metastore (optional)
-- Left Namespace
-- Right Namespace (if no Skip Link Test)
--->
 <div class="pure-g">
     <div class="pure-u-1" th:insert="fragments/header::header">
     </div>
     <div class="pure-u-1-6" th:insert="fragments/nav::left_nav">
     </div>
     <div class="pure-u-5-6">
-        <div th:insert="fragments/connections/validate::view" style="padding: 5px;"></div>
-        <div th:insert="fragments/messages::view" style="width: 80%;padding: 5px;"></div>
+        <div class="pure-u-11-12" th:insert="reports/fileview::view">
+        </div>
     </div>
     <div class="pure-u-1" th:insert="fragments/footer::footer">
     </div>
 </div>
-
-
 </body>
 </html>

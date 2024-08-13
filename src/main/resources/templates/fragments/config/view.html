@@ -48,10 +48,6 @@
             <div class="pure-menu pure-menu-horizontal menubox">
 
                 <ul class="pure-menu-list">
-                    <li class="pure-menu-item" th:unless="${READ_ONLY}">
-                        <button class="pure-button pure-button-primary" th:formaction="@{/config/doSave}"
-                                th:formmethod="post" type="submit" th:text="#{button.save}"/>
-                    </li>
 
                     <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
                         <a th:text="#{config.filters}" href="#" class="pure-menu-link"/>
@@ -153,7 +149,15 @@
                         <a th:text="#{password.management}" href="#" class="pure-menu-link"
                            onclick="openSection(event, 'password_management')"/>
                     </li>
+<!--                    <li class="pure-menu-item" th:unless="${READ_ONLY}" style="text-align: right;">-->
+<!--                        <button class="pure-button pure-button-primary" th:formaction="@{/config/doSave}"-->
+<!--                                th:formmethod="post" type="submit" th:text="#{button.save}"/>-->
+<!--                    </li>-->
                 </ul>
+                <button class="pure-button pure-button-primary" style="float: right;"
+                        th:unless="${READ_ONLY}"
+                        th:formaction="@{/config/doSave}"
+                        th:formmethod="post" type="submit" th:text="#{button.save}"/>
             </div>
             <div id="password_management" class="tabcontent">
                 <div th:insert="fragments/config/passwordManagement::main"></div>

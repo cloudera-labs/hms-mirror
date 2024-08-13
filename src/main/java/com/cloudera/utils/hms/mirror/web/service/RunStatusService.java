@@ -17,7 +17,6 @@
 
 package com.cloudera.utils.hms.mirror.web.service;
 
-import com.cloudera.utils.hms.mirror.domain.DBMirror;
 import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.support.Conversion;
@@ -34,6 +33,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Service
@@ -65,31 +65,25 @@ public class RunStatusService {
 
         Conversion conversion = executeSessionService.getSession().getConversion();
 
-        // Reset the inProgressTables with what's currently working.
-        runStatus.getInProgressTables().clear();
+        if (nonNull(conversion)) {
 
-        // In a safe concurrent stream fashion, go thru the conversion databases
-        // and tables to update the inProgressTables.
-        List<TableMirror> inProgressTables = new ArrayList<>();
-        try {
-            inProgressTables = conversion.getDatabases().values().stream()
-                    .flatMap(db -> db.getTableMirrors().values().stream())
-                    .filter(table -> Objects.requireNonNull(table.getPhaseState()) == PhaseState.STARTED)
-                    .collect(Collectors.toList());
-        } catch (ConcurrentModificationException cme) {
-            // If we get a concurrent modification exception, move ahead and get it next time..
-            log.warn("ConcurrentModificationException caught while updating inProgressTables. Will retry next time.");
+            // Reset the inProgressTables with what's currently working.
+            runStatus.getInProgressTables().clear();
+
+            // In a safe concurrent stream fashion, go thru the conversion databases
+            // and tables to update the inProgressTables.
+            List<TableMirror> inProgressTables = new ArrayList<>();
+            try {
+                inProgressTables = conversion.getDatabases().values().stream()
+                        .flatMap(db -> db.getTableMirrors().values().stream())
+                        .filter(table -> Objects.requireNonNull(table.getPhaseState()) == PhaseState.STARTED)
+                        .collect(Collectors.toList());
+            } catch (ConcurrentModificationException cme) {
+                // If we get a concurrent modification exception, move ahead and get it next time..
+                log.warn("ConcurrentModificationException caught while updating inProgressTables. Will retry next time.");
+            }
+
+            runStatus.setInProgressTables(inProgressTables);
         }
-
-        runStatus.setInProgressTables(inProgressTables);
-
-//        for (String database : conversion.getDatabases().keySet()) {
-//            DBMirror dbMirror = conversion.getDatabase(database);
-//            for (String tbl : dbMirror.getTableMirrors().keySet()) {
-//                if (Objects.requireNonNull(dbMirror.getTable(tbl).getPhaseState()) == PhaseState.STARTED) {
-//                    runStatus.getInProgressTables().add(dbMirror.getTable(tbl));
-//                }
-//            }
-//        }
     }
 }

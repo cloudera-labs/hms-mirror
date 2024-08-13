@@ -101,6 +101,7 @@ public class ConnectionMVController {
         boolean configErrors = !configService.validateForConnections(session);
         if (!configErrors) {
             try {
+                executeSessionService.transitionLoadedSessionToActive(1);
                 log.info("Initializing Connection Pools");
                 connectionPoolService.init();
                 log.info("Connection Pools Initialized");
@@ -109,7 +110,6 @@ public class ConnectionMVController {
                 configErrors = Boolean.TRUE;
             }
         }
-        ;
 
         boolean finalConfigErrors = configErrors;
         config.getClusters().forEach((k, v) -> {

@@ -64,6 +64,18 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
     List<String> warningMessages = new ArrayList<>();
     Set<String> configMessages = new TreeSet<>();
 
+    public void clearErrors() {
+        if (nonNull(errors)) {
+            errors.clear();
+        }
+    }
+
+    public void clearWarnings() {
+        if (nonNull(warnings)) {
+            warnings.clear();
+        }
+    }
+
     public void addConfigMessage(String message) {
         configMessages.add(message);
     }

@@ -41,6 +41,36 @@
                 <input id="dryrun" type="checkbox" th:field="*{dryrun}"/>
                 <label for="dryrun" th:text="#{dry.run}"/>
             </div>
+            <fieldset style="width: 40%;">
+                <legend th:text="#{acceptance.criteria}"/>
+<!--                silentOverride =-->
+<!--                backedUpHDFS= Boo-->
+<!--                backedUpMetastore-->
+<!--                trashConfigured =-->
+<!--                potentialDataLoss-->
+                <span class="pure-form-message-inline" th:text="#{acceptance.note}"/>
+                <hr/>
+                <div class="pure-control-group">
+                    <input id="buFS" type="checkbox" th:field="*{acceptance.backedUpHDFS}"/>
+                    <label for="buFS" th:text="#{backedUp.HDFS}"/>
+                    <span class="pure-form-message-inline" th:text="#{backedUp.HDFS.note}"/>
+                </div>
+                <div class="pure-control-group">
+                    <input id="buMS" type="checkbox" th:field="*{acceptance.backedUpMetastore}"/>
+                    <label for="buMS" th:text="#{backedUp.Metastore}"/>
+                    <span class="pure-form-message-inline" th:text="#{backedUp.Metastore.note}"/>
+                </div>
+                <div class="pure-control-group">
+                    <input id="trashConfigured" type="checkbox" th:field="*{acceptance.trashConfigured}"/>
+                    <label for="trashConfigured" th:text="#{trashConfigured}"/>
+                    <span class="pure-form-message-inline" th:text="#{trashConfigured.note}"/>
+                </div>
+                <div class="pure-control-group">
+                    <input id="dataLoss" type="checkbox" th:field="*{acceptance.potentialDataLoss}"/>
+                    <label for="dataLoss" th:text="#{potential.dataloss}"/>
+                    <span class="pure-form-message-inline" th:text="#{potential.dataloss.note}"/>
+                </div>
+            </fieldset>
 <!--            <div class="pure-control-group">-->
 <!--                &lt;!&ndash; Auto GLM &ndash;&gt;-->
 <!--                <input id="autoglm" type="checkbox" th:field="*{autoGLM}"/>-->

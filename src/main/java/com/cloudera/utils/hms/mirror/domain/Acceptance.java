@@ -26,11 +26,11 @@ import lombok.Setter;
 @Schema(description = "Acceptance criteria for the migration that ensures the user is aware of the potential risks")
 public class Acceptance implements Cloneable {
 
-    private boolean silentOverride;
-    private boolean backedUpHDFS;
-    private boolean backedUpMetastore;
-    private boolean trashConfigured;
-    private boolean potentialDataLoss;
+    private boolean silentOverride = Boolean.FALSE;
+    private boolean backedUpHDFS= Boolean.FALSE;
+    private boolean backedUpMetastore = Boolean.FALSE;
+    private boolean trashConfigured = Boolean.FALSE;
+    private boolean potentialDataLoss = Boolean.FALSE;
 
     @Override
     public Acceptance clone() {

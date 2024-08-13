@@ -24,6 +24,8 @@ import com.cloudera.utils.hive.config.DBStore;
 import com.cloudera.utils.hms.mirror.domain.*;
 import com.cloudera.utils.hms.mirror.domain.support.*;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,10 +45,17 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Getter
 public class ConfigService {
 
+    private ObjectMapper yamlMapper;
+
     private org.springframework.core.env.Environment springEnv;
 
     private DomainService domainService;
 //    private TranslatorService translatorService;
+
+    @Autowired
+    public void setYamlMapper(ObjectMapper yamlMapper) {
+        this.yamlMapper = yamlMapper;
+    }
 
     @Autowired
     public void setDomainService(DomainService domainService) {
@@ -108,6 +117,18 @@ public class ConfigService {
         return rtn;
     }
 
+    public String configToString(HmsMirrorConfig config) {
+        String rtn = null;
+        try {
+            rtn = yamlMapper.writeValueAsString(config);
+            // Blank out passwords
+            rtn = rtn.replaceAll("user:\\s\".*\"", "user: \"*****\"");
+            rtn = rtn.replaceAll("password:\\s\".*\"", "password: \"*****\"");
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        return rtn;
+    }
     /*
     Using our alignment table, make the necessary adjustment and record changes to the session for information.
 
@@ -777,6 +798,10 @@ public class ConfigService {
         HmsMirrorConfig config = session.getConfig();
 
         RunStatus runStatus = session.getRunStatus();
+
+        // Reset RunStatus
+        runStatus.clearErrors();
+        runStatus.clearWarnings();
 
         // Set distcp options.
         canDeriveDistcpPlan(session);

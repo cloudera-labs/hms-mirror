@@ -44,6 +44,10 @@
                    th:href="@{/config/edit}"/>
             </li>
             <li class="pure-menu-item" th:if="${CONFIG != null}">
+                <a class="pure-menu-link" th:text="#{summary.view}"
+                   th:href="@{/config/summary}"/>
+            </li>
+            <li class="pure-menu-item" th:if="${CONFIG != null}">
                 <a class="pure-menu-link" th:text="#{persist}"
                    th:href="@{/config/persist}"/>
             </li>

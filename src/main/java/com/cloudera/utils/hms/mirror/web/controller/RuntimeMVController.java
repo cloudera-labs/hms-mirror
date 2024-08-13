@@ -98,15 +98,25 @@ public class RuntimeMVController {
     public String doStart(Model model,
             @ModelAttribute(RUN_CONTAINER) RunContainer runContainer,
                         @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws MismatchException, RequiredConfigurationException, SessionException, EncryptionException {
-//        boolean lclAutoGLM = runContainer.isAutoGLM() != null && runContainer.getAutoGLM();
-//        boolean lclDryRun = runContainer.isDryrun() != null && runContainer.getDryrun();
 
+        if (!runContainer.isDryrun()) {
+            // Ensure the Acceptance Criteria is set.
+            if (runContainer.getAcceptance() == null) {
+                throw new RequiredConfigurationException("Acceptance Criteria is required for a non-dryrun execution");
+            }
+            if (!runContainer.getAcceptance().isBackedUpHDFS() ||
+                            !runContainer.getAcceptance().isBackedUpMetastore() ||
+                            !runContainer.getAcceptance().isTrashConfigured() ||
+                            !runContainer.getAcceptance().isPotentialDataLoss()) {
+                throw new RequiredConfigurationException("Acceptance Criteria is not met for a non-dryrun execution");
+            } else {
+                ExecuteSession session = executeSessionService.getSession();
+                session.getConfig().setAcceptance(runContainer.getAcceptance());
+            }
+        }
         RunStatus runStatus =  runtimeService.start(runContainer.isDryrun(),
-//                runContainer.isAutoGLM(),
                 maxThreads);
-//        runStatus.setConcurrency(maxThreads);
-        // Not necessary..  will be fetched in config/home
-//        model.addAttribute(RUN_STATUS, runStatus);
+
         return "redirect:/runtime/status";
     }
 
