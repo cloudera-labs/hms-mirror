@@ -51,10 +51,16 @@ import static java.util.Objects.nonNull;
 @Setter
 public class ReportWriterService {
 
+    private DistCpService distCpService;
     private ObjectMapper yamlMapper;
     private ConfigService configService;
     private ExecuteSessionService executeSessionService;
     private TranslatorService translatorService;
+
+    @Autowired
+    public void setDistCpService(DistCpService distCpService) {
+        this.distCpService = distCpService;
+    }
 
     @Autowired
     public void setYamlMapper(ObjectMapper yamlMapper) {
@@ -190,166 +196,167 @@ public class ReportWriterService {
                 boolean dcRight = Boolean.FALSE;
 
                 if (configService.canDeriveDistcpPlan(session)) {
-                    try {
-                        Environment[] environments = null;
-                        switch (config.getDataStrategy()) {
-
-                            case DUMP:
-                            case STORAGE_MIGRATION:
-                                environments = new Environment[]{Environment.LEFT};
-                                break;
-                            default:
-                                environments = new Environment[]{Environment.LEFT, Environment.RIGHT};
-                                break;
-                        }
-
-                        for (Environment distcpEnv : environments) {
-                            boolean dcFound = Boolean.FALSE;
-
-                            StringBuilder distcpWorkbookSb = new StringBuilder();
-                            StringBuilder distcpScriptSb = new StringBuilder();
-
-                            distcpScriptSb.append("#!/usr/bin/env sh").append("\n");
-                            distcpScriptSb.append("\n");
-                            distcpScriptSb.append("# 1. Copy the source '*_distcp_source.txt' files to the distributed filesystem.").append("\n");
-                            distcpScriptSb.append("# 2. Export an env var 'HCFS_BASE_DIR' that represents where these files where placed.").append("\n");
-                            distcpScriptSb.append("#      NOTE: ${HCFS_BASE_DIR} must be available to the user running 'distcp'").append("\n");
-                            distcpScriptSb.append("# 3. Export an env var 'DISTCP_OPTS' with any special settings needed to run the job.").append("\n");
-                            distcpScriptSb.append("#      For large jobs, you may need to adjust memory settings.").append("\n");
-                            distcpScriptSb.append("# 4. Run the following in an order or framework that is appropriate for your environment.").append("\n");
-                            distcpScriptSb.append("#       These aren't necessarily expected to run in this shell script as is in production.").append("\n");
-                            distcpScriptSb.append("\n");
-                            distcpScriptSb.append("\n");
-                            distcpScriptSb.append("if [ -z ${HCFS_BASE_DIR+x} ]; then").append("\n");
-                            distcpScriptSb.append("  echo \"HCFS_BASE_DIR is unset\"").append("\n");
-                            distcpScriptSb.append("  echo \"What is the 'HCFS_BASE_DIR':\"").append("\n");
-                            distcpScriptSb.append("  read HCFS_BASE_DIR").append("\n");
-                            distcpScriptSb.append("  echo \"HCFS_BASE_DIR is set to '$HCFS_BASE_DIR'\"").append("\n");
-                            distcpScriptSb.append("else").append("\n");
-                            distcpScriptSb.append("  echo \"HCFS_BASE_DIR is set to '$HCFS_BASE_DIR'\"").append("\n");
-                            distcpScriptSb.append("fi").append("\n");
-                            distcpScriptSb.append("\n");
-                            distcpScriptSb.append("echo \"Creating HCFS directory: $HCFS_BASE_DIR\"").append("\n");
-                            distcpScriptSb.append("hdfs dfs -mkdir -p $HCFS_BASE_DIR").append("\n");
-                            distcpScriptSb.append("\n");
-
-                            // WARNING ABOUT 'distcp' and 'table alignment'
-                            distcpWorkbookSb.append("## WARNING\n");
-//                            distcpWorkbookSb.append(MessageCode.RDL_DC_WARNING_TABLE_ALIGNMENT.getDesc()).append("\n\n");
-
-                            distcpWorkbookSb.append("| Database | Target | Sources |\n");
-                            distcpWorkbookSb.append("|:---|:---|:---|\n");
-
-                            FileWriter distcpSourceFW = null;
-
-                            Map<String, Map<String, Set<String>>> distcpPlans = getTranslatorService().buildDistcpList(database, distcpEnv, 1);
-                            if (!distcpPlans.isEmpty()) {
-                                String distcpPlansFile = config.getOutputDirectory() + FileSystems.getDefault().getSeparator() + originalDatabase + "_" + distcpEnv.toString() + "_distcp_plans.yaml";
-                                FileWriter distcpPlansFW = new FileWriter(distcpPlansFile);
-                                String planYaml = yamlMapper.writeValueAsString(distcpPlans);
-                                distcpPlansFW.write(planYaml);
-                                distcpPlansFW.close();
-                            }
-
-                            for (Map.Entry<String, Map<String, Set<String>>> entry : distcpPlans.entrySet()) {
-
-                                distcpWorkbookSb.append("| ").append(entry.getKey()).append(" | | |\n");
-                                Map<String, Set<String>> value = entry.getValue();
-                                int i = 1;
-                                // https://github.com/cloudera-labs/hms-mirror/issues/105
-                                // When there are multiple sources, we need to create a file for each source. BUT, when
-                                // there is only one source, we can skip uses a file and just use the source directly.
-                                // With 'distcp' and the '-f' option when there is only one source the last path element is
-                                //   NOT carried over to the target. When there are multiple sources, the last path element
-                                //   is carried over. Hence, the logic adjustment here to address the behavioral differences.
-                                for (Map.Entry<String, Set<String>> dbMap : value.entrySet()) {
-                                    if (dbMap.getValue().size() > 1) {
-                                        String distcpSourceFile = entry.getKey() + "_" + distcpEnv.toString() + "_" + i++ + "_distcp_source.txt";
-                                        String distcpSourceFileFull = config.getOutputDirectory() + FileSystems.getDefault().getSeparator() + distcpSourceFile;
-                                        distcpSourceFW = new FileWriter(distcpSourceFileFull);
-
-                                        StringBuilder line = new StringBuilder();
-                                        line.append("| | ").append(dbMap.getKey()).append(" | ");
-
-                                        for (String source : dbMap.getValue()) {
-                                            line.append(source).append("<br>");
-                                            distcpSourceFW.append(source).append("\n");
-                                        }
-                                        line.append(" | ").append("\n");
-                                        distcpWorkbookSb.append(line);
-
-                                        distcpScriptSb.append("\n");
-                                        distcpScriptSb.append("echo \"Copying 'distcp' source file to $HCFS_BASE_DIR\"").append("\n");
-                                        distcpScriptSb.append("\n");
-                                        distcpScriptSb.append("hdfs dfs -copyFromLocal -f ").append(distcpSourceFile).append(" ${HCFS_BASE_DIR}").append("\n");
-                                        distcpScriptSb.append("\n");
-                                        distcpScriptSb.append("echo \"Running 'distcp'\"").append("\n");
-                                        distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} -f ${HCFS_BASE_DIR}/").append(distcpSourceFile).append(" ").append(dbMap.getKey()).append("\n").append("\n");
-
-                                        distcpSourceFW.close();
-                                    } else {
-                                        // Only 1 entry, so we can skip the file and just use the source directly.
-                                        String source = dbMap.getValue().iterator().next();
-                                        // Get last path element
-                                        String lastPathElement = UrlUtils.getLastDirFromUrl(source);//).substring(source.lastIndexOf("/") + 1);
-
-                                        distcpScriptSb.append("echo \"Only one element in path.\"").append("\n");
-
-                                        String target = dbMap.getKey();
-
-                                        // Concatenate the last path element to the target
-                                        if (!target.endsWith("/") && !lastPathElement.startsWith("/")) {
-                                            target += "/" + lastPathElement;
-                                        } else if (target.endsWith("/") && lastPathElement.startsWith("/")) {
-                                            target += lastPathElement.substring(1);
-                                        } else {
-                                            target += lastPathElement;
-                                        }
-
-                                        StringBuilder line = new StringBuilder();
-                                        line.append("| | ").append(target).append(" | ");
-
-                                        line.append(source).append(" |\n");
-
-                                        distcpWorkbookSb.append(line);
-
-                                        distcpScriptSb.append("echo \"Running 'distcp'\"").append("\n");
-                                        distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} ").append(source).append(" ").append(target).append("\n").append("\n");
-                                    }
-
-                                    dcFound = Boolean.TRUE;
-                                }
-                            }
-
-                            if (dcFound) {
-                                // Set flags for report and workplan
-                                switch (distcpEnv) {
-                                    case LEFT:
-                                        dcLeft = Boolean.TRUE;
-                                        break;
-                                    case RIGHT:
-                                        dcRight = Boolean.TRUE;
-                                        break;
-                                }
-
-                                String distcpWorkbookFile = config.getOutputDirectory() + FileSystems.getDefault().getSeparator() + database +
-                                        "_" + distcpEnv + "_distcp_workbook.md";
-                                String distcpScriptFile = config.getOutputDirectory() + FileSystems.getDefault().getSeparator() + database +
-                                        "_" + distcpEnv + "_distcp_script.sh";
-
-                                FileWriter distcpWorkbookFW = new FileWriter(distcpWorkbookFile);
-                                FileWriter distcpScriptFW = new FileWriter(distcpScriptFile);
-
-                                distcpScriptFW.write(distcpScriptSb.toString());
-                                distcpWorkbookFW.write(distcpWorkbookSb.toString());
-
-                                distcpScriptFW.close();
-                                distcpWorkbookFW.close();
-                            }
-                        }
-                    } catch (IOException ioe) {
-                        log.error("Issue writing distcp workbook", ioe);
-                    }
+                    distCpService.buildAllDistCpReports(session);
+//                    try {
+//                        Environment[] environments = null;
+//                        switch (config.getDataStrategy()) {
+//
+//                            case DUMP:
+//                            case STORAGE_MIGRATION:
+//                                environments = new Environment[]{Environment.LEFT};
+//                                break;
+//                            default:
+//                                environments = new Environment[]{Environment.LEFT, Environment.RIGHT};
+//                                break;
+//                        }
+//
+//                        for (Environment distcpEnv : environments) {
+//                            boolean dcFound = Boolean.FALSE;
+//
+//                            StringBuilder distcpWorkbookSb = new StringBuilder();
+//                            StringBuilder distcpScriptSb = new StringBuilder();
+//
+//                            distcpScriptSb.append("#!/usr/bin/env sh").append("\n");
+//                            distcpScriptSb.append("\n");
+//                            distcpScriptSb.append("# 1. Copy the source '*_distcp_source.txt' files to the distributed filesystem.").append("\n");
+//                            distcpScriptSb.append("# 2. Export an env var 'HCFS_BASE_DIR' that represents where these files where placed.").append("\n");
+//                            distcpScriptSb.append("#      NOTE: ${HCFS_BASE_DIR} must be available to the user running 'distcp'").append("\n");
+//                            distcpScriptSb.append("# 3. Export an env var 'DISTCP_OPTS' with any special settings needed to run the job.").append("\n");
+//                            distcpScriptSb.append("#      For large jobs, you may need to adjust memory settings.").append("\n");
+//                            distcpScriptSb.append("# 4. Run the following in an order or framework that is appropriate for your environment.").append("\n");
+//                            distcpScriptSb.append("#       These aren't necessarily expected to run in this shell script as is in production.").append("\n");
+//                            distcpScriptSb.append("\n");
+//                            distcpScriptSb.append("\n");
+//                            distcpScriptSb.append("if [ -z ${HCFS_BASE_DIR+x} ]; then").append("\n");
+//                            distcpScriptSb.append("  echo \"HCFS_BASE_DIR is unset\"").append("\n");
+//                            distcpScriptSb.append("  echo \"What is the 'HCFS_BASE_DIR':\"").append("\n");
+//                            distcpScriptSb.append("  read HCFS_BASE_DIR").append("\n");
+//                            distcpScriptSb.append("  echo \"HCFS_BASE_DIR is set to '$HCFS_BASE_DIR'\"").append("\n");
+//                            distcpScriptSb.append("else").append("\n");
+//                            distcpScriptSb.append("  echo \"HCFS_BASE_DIR is set to '$HCFS_BASE_DIR'\"").append("\n");
+//                            distcpScriptSb.append("fi").append("\n");
+//                            distcpScriptSb.append("\n");
+//                            distcpScriptSb.append("echo \"Creating HCFS directory: $HCFS_BASE_DIR\"").append("\n");
+//                            distcpScriptSb.append("hdfs dfs -mkdir -p $HCFS_BASE_DIR").append("\n");
+//                            distcpScriptSb.append("\n");
+//
+//                            // WARNING ABOUT 'distcp' and 'table alignment'
+//                            distcpWorkbookSb.append("## WARNING\n");
+////                            distcpWorkbookSb.append(MessageCode.RDL_DC_WARNING_TABLE_ALIGNMENT.getDesc()).append("\n\n");
+//
+//                            distcpWorkbookSb.append("| Database | Target | Sources |\n");
+//                            distcpWorkbookSb.append("|:---|:---|:---|\n");
+//
+//                            FileWriter distcpSourceFW = null;
+//
+//                            Map<String, Map<String, Set<String>>> distcpPlans = getTranslatorService().buildDistcpList(database, distcpEnv, 1);
+//                            if (!distcpPlans.isEmpty()) {
+//                                String distcpPlansFile = config.getOutputDirectory() + FileSystems.getDefault().getSeparator() + originalDatabase + "_" + distcpEnv.toString() + "_distcp_plans.yaml";
+//                                FileWriter distcpPlansFW = new FileWriter(distcpPlansFile);
+//                                String planYaml = yamlMapper.writeValueAsString(distcpPlans);
+//                                distcpPlansFW.write(planYaml);
+//                                distcpPlansFW.close();
+//                            }
+//
+//                            for (Map.Entry<String, Map<String, Set<String>>> entry : distcpPlans.entrySet()) {
+//
+//                                distcpWorkbookSb.append("| ").append(entry.getKey()).append(" | | |\n");
+//                                Map<String, Set<String>> value = entry.getValue();
+//                                int i = 1;
+//                                // https://github.com/cloudera-labs/hms-mirror/issues/105
+//                                // When there are multiple sources, we need to create a file for each source. BUT, when
+//                                // there is only one source, we can skip uses a file and just use the source directly.
+//                                // With 'distcp' and the '-f' option when there is only one source the last path element is
+//                                //   NOT carried over to the target. When there are multiple sources, the last path element
+//                                //   is carried over. Hence, the logic adjustment here to address the behavioral differences.
+//                                for (Map.Entry<String, Set<String>> dbMap : value.entrySet()) {
+//                                    if (dbMap.getValue().size() > 1) {
+//                                        String distcpSourceFile = entry.getKey() + "_" + distcpEnv.toString() + "_" + i++ + "_distcp_source.txt";
+//                                        String distcpSourceFileFull = config.getOutputDirectory() + FileSystems.getDefault().getSeparator() + distcpSourceFile;
+//                                        distcpSourceFW = new FileWriter(distcpSourceFileFull);
+//
+//                                        StringBuilder line = new StringBuilder();
+//                                        line.append("| | ").append(dbMap.getKey()).append(" | ");
+//
+//                                        for (String source : dbMap.getValue()) {
+//                                            line.append(source).append("<br>");
+//                                            distcpSourceFW.append(source).append("\n");
+//                                        }
+//                                        line.append(" | ").append("\n");
+//                                        distcpWorkbookSb.append(line);
+//
+//                                        distcpScriptSb.append("\n");
+//                                        distcpScriptSb.append("echo \"Copying 'distcp' source file to $HCFS_BASE_DIR\"").append("\n");
+//                                        distcpScriptSb.append("\n");
+//                                        distcpScriptSb.append("hdfs dfs -copyFromLocal -f ").append(distcpSourceFile).append(" ${HCFS_BASE_DIR}").append("\n");
+//                                        distcpScriptSb.append("\n");
+//                                        distcpScriptSb.append("echo \"Running 'distcp'\"").append("\n");
+//                                        distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} -f ${HCFS_BASE_DIR}/").append(distcpSourceFile).append(" ").append(dbMap.getKey()).append("\n").append("\n");
+//
+//                                        distcpSourceFW.close();
+//                                    } else {
+//                                        // Only 1 entry, so we can skip the file and just use the source directly.
+//                                        String source = dbMap.getValue().iterator().next();
+//                                        // Get last path element
+//                                        String lastPathElement = UrlUtils.getLastDirFromUrl(source);//).substring(source.lastIndexOf("/") + 1);
+//
+//                                        distcpScriptSb.append("echo \"Only one element in path.\"").append("\n");
+//
+//                                        String target = dbMap.getKey();
+//
+//                                        // Concatenate the last path element to the target
+//                                        if (!target.endsWith("/") && !lastPathElement.startsWith("/")) {
+//                                            target += "/" + lastPathElement;
+//                                        } else if (target.endsWith("/") && lastPathElement.startsWith("/")) {
+//                                            target += lastPathElement.substring(1);
+//                                        } else {
+//                                            target += lastPathElement;
+//                                        }
+//
+//                                        StringBuilder line = new StringBuilder();
+//                                        line.append("| | ").append(target).append(" | ");
+//
+//                                        line.append(source).append(" |\n");
+//
+//                                        distcpWorkbookSb.append(line);
+//
+//                                        distcpScriptSb.append("echo \"Running 'distcp'\"").append("\n");
+//                                        distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} ").append(source).append(" ").append(target).append("\n").append("\n");
+//                                    }
+//
+//                                    dcFound = Boolean.TRUE;
+//                                }
+//                            }
+//
+//                            if (dcFound) {
+//                                // Set flags for report and workplan
+//                                switch (distcpEnv) {
+//                                    case LEFT:
+//                                        dcLeft = Boolean.TRUE;
+//                                        break;
+//                                    case RIGHT:
+//                                        dcRight = Boolean.TRUE;
+//                                        break;
+//                                }
+//
+//                                String distcpWorkbookFile = config.getOutputDirectory() + FileSystems.getDefault().getSeparator() + database +
+//                                        "_" + distcpEnv + "_distcp_workbook.md";
+//                                String distcpScriptFile = config.getOutputDirectory() + FileSystems.getDefault().getSeparator() + database +
+//                                        "_" + distcpEnv + "_distcp_script.sh";
+//
+//                                FileWriter distcpWorkbookFW = new FileWriter(distcpWorkbookFile);
+//                                FileWriter distcpScriptFW = new FileWriter(distcpScriptFile);
+//
+//                                distcpScriptFW.write(distcpScriptSb.toString());
+//                                distcpWorkbookFW.write(distcpWorkbookSb.toString());
+//
+//                                distcpScriptFW.close();
+//                                distcpWorkbookFW.close();
+//                            }
+//                        }
+//                    } catch (IOException ioe) {
+//                        log.error("Issue writing distcp workbook", ioe);
+//                    }
                 }
 
 

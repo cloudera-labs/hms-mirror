@@ -971,7 +971,7 @@ public class ConfigService {
         }
 
         // Only allow db rename with a single database.
-        if (config.getDbRename() != null &&
+        if (!isBlank(config.getDbRename()) &&
                 config.getDatabases().size() > 1) {
             runStatus.addError(DB_RENAME_ONLY_WITH_SINGLE_DB_OPTION);
             rtn = Boolean.FALSE;
@@ -1096,7 +1096,7 @@ public class ConfigService {
                     if (config.getCluster(Environment.RIGHT).getHiveServer2() != null
                             && !config.getCluster(Environment.RIGHT).getHiveServer2().isDisconnected()
                             && isBlank(config.getTransfer().getIntermediateStorage())
-                            && isBlank(config.getTransfer().getTargetNamespace())) {
+                    ) {
 
                         try {
                             if (!config.getMigrateACID().isDowngradeInPlace() && !linkTest(session, cli)) {

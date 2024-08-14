@@ -98,7 +98,7 @@ public enum MessageCode {
     // WARNINGS
     SYNC_TBL_FILTER(48, "'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"
             + "' ON BOTH SIDES!!!"),
-    LINK_TEST_SKIPPED_WITH_IS(49, "Link TEST skipped because you've specified either 'Intermediate Storage' or 'Common Storage' option"),
+    LINK_TEST_SKIPPED_WITH_IS(49, "Link TEST skipped because you've specified 'Intermediate Storage' option"),
     DUMP_ENV_FLIP(50, "You've requested DUMP on the RIGHT cluster.  The runtime configuration will " +
             "adjusted to complete this.  The RIGHT configuration will be MOVED to the LEFT to process " +
             "the DUMP strategy.  LEFT = RIGHT..."),

@@ -66,50 +66,50 @@ public class TranslatorService {
      * @return A map of databases.  Each database will have a map that has 1 or more 'targets' and 'x' sources for each
      * target.
      */
-    public synchronized Map<String, Map<String, Set<String>>> buildDistcpList(String database, Environment environment, int consolidationLevel) {
-        Map<String, Map<String, Set<String>>> rtn = new TreeMap<>();
-
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
-
-        // get the map for a db.
-        Set<String> databases = hmsMirrorConfig.getTranslator().getTranslationMap().keySet();
-
-        // get the map.entry
-        Map<String, Set<String>> reverseMap = new TreeMap<>();
-        // Get a static view of set to avoid concurrent modification.
-        Set<EnvironmentMap.TranslationLevel> dbTranslationLevel =
-                new HashSet<>(hmsMirrorConfig.getTranslator().getTranslationMap(database, environment));
-
-        Map<String, String> dbLocationMap = new TreeMap<>();
-
-        for (EnvironmentMap.TranslationLevel translationLevel : dbTranslationLevel) {
-            if (translationLevel.getOriginal() != null &&
-                    translationLevel.getTarget() != null) {
-                dbLocationMap.put(translationLevel.getAdjustedOriginal(), translationLevel.getAdjustedTarget());
-            }
-        }
-
-        for (Map.Entry<String, String> entry : dbLocationMap.entrySet()) {
-            // reduce folder level by 'consolidationLevel' for key and value.
-            // Source
-            String reducedSource = UrlUtils.reduceUrlBy(entry.getKey(), consolidationLevel);
-            // Target
-            String reducedTarget = UrlUtils.reduceUrlBy(entry.getValue(), consolidationLevel);
-
-            if (reverseMap.get(reducedTarget) != null) {
-                reverseMap.get(reducedTarget).add(entry.getKey());
-            } else {
-                Set<String> sourceSet = new TreeSet<String>();
-                sourceSet.add(entry.getKey());
-                reverseMap.put(reducedTarget, sourceSet);
-            }
-
-        }
-        if (!reverseMap.isEmpty()) {
-            rtn.put(database, reverseMap);
-        }
-        return rtn;
-    }
+//    public synchronized Map<String, Map<String, Set<String>>> buildDistcpList(String database, Environment environment, int consolidationLevel) {
+//        Map<String, Map<String, Set<String>>> rtn = new TreeMap<>();
+//
+//        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+//
+//        // get the map for a db.
+//        Set<String> databases = hmsMirrorConfig.getTranslator().getTranslationMap().keySet();
+//
+//        // get the map.entry
+//        Map<String, Set<String>> reverseMap = new TreeMap<>();
+//        // Get a static view of set to avoid concurrent modification.
+//        Set<EnvironmentMap.TranslationLevel> dbTranslationLevel =
+//                new HashSet<>(hmsMirrorConfig.getTranslator().getTranslationMap(database, environment));
+//
+//        Map<String, String> dbLocationMap = new TreeMap<>();
+//
+//        for (EnvironmentMap.TranslationLevel translationLevel : dbTranslationLevel) {
+//            if (translationLevel.getOriginal() != null &&
+//                    translationLevel.getTarget() != null) {
+//                dbLocationMap.put(translationLevel.getAdjustedOriginal(), translationLevel.getAdjustedTarget());
+//            }
+//        }
+//
+//        for (Map.Entry<String, String> entry : dbLocationMap.entrySet()) {
+//            // reduce folder level by 'consolidationLevel' for key and value.
+//            // Source
+//            String reducedSource = UrlUtils.reduceUrlBy(entry.getKey(), consolidationLevel);
+//            // Target
+//            String reducedTarget = UrlUtils.reduceUrlBy(entry.getValue(), consolidationLevel);
+//
+//            if (reverseMap.get(reducedTarget) != null) {
+//                reverseMap.get(reducedTarget).add(entry.getKey());
+//            } else {
+//                Set<String> sourceSet = new TreeSet<String>();
+//                sourceSet.add(entry.getKey());
+//                reverseMap.put(reducedTarget, sourceSet);
+//            }
+//
+//        }
+//        if (!reverseMap.isEmpty()) {
+//            rtn.put(database, reverseMap);
+//        }
+//        return rtn;
+//    }
 
     public String buildPartitionAddStatement(EnvironmentTable environmentTable) {
         StringBuilder sbPartitionDetails = new StringBuilder();

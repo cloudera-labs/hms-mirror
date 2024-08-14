@@ -40,6 +40,13 @@
             <span class="pure-form-message-inline" th:text="#{config.transfer.targetNamespace.use}"/>
         </div>
         <div class="pure-control-group">
+            <label for="intermediateStorage" th:text="#{config.transfer.intermediateStorage}"/>
+            <input id="intermediateStorage" type="text"
+                   th:field="*{transfer.intermediateStorage}"
+                   placeholder="Set Intermediate Storage"/>
+            <span class="pure-form-message-inline" th:text="#{config.transfer.intermediateStorage.use}"/>
+        </div>
+        <div class="pure-control-group">
             <label for="dataMovementStrategy"
                    th:text="#{config.transfer.storageMigration.translationType}"></label>
             <select id="dataAlignmentStrategy"
