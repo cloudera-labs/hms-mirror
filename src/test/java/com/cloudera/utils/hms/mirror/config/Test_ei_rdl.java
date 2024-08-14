@@ -87,6 +87,7 @@ public class Test_ei_rdl extends E2EBaseTest {
         long expected = getCheckCode(
                 MessageCode.LINK_TEST_SKIPPED_WITH_IS,
                 MessageCode.DISTCP_OUTPUT_NOT_REQUESTED,
+                MessageCode.DATABASE_FILTER_CONTROLLED_BY,
                 MessageCode.WAREHOUSE_DIRECTORIES_NOT_DEFINED
         );
 

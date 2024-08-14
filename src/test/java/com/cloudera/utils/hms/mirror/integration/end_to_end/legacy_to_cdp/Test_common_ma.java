@@ -17,6 +17,7 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end.legacy_to_cdp;
 
+import com.cloudera.utils.hms.mirror.MessageCode;
 import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
@@ -58,10 +59,10 @@ public class Test_common_ma extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-//        long check = MessageCode.VALID_ACID_STRATEGIES.getLong();
-        // long of the 92nd bit is 268435456
-        long check = 268435456l;
-        assertEquals("Return Code Failure: " + rtn, check * -1, rtn);
+        long check = getCheckCode(
+                MessageCode.VALID_ACID_STRATEGIES
+        );
+        assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 
 //    @Test

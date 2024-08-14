@@ -122,6 +122,7 @@ public class Test_sm_wd_epl_rdl_dc_odd extends E2EBaseTest {
         // Verify the return code.
         long expected = getCheckCode(
                 MessageCode.ALIGNED_DISTCP_EXECUTE,
+                MessageCode.DATASTRATEGY_FILTER_CONTROLLED_BY,
 //                MessageCode.RDL_DC_WARNING_TABLE_ALIGNMENT,
 //                MessageCode.STORAGE_MIGRATION_NAMESPACE_LEFT,
                 MessageCode.DISTCP_WO_TABLE_FILTERS

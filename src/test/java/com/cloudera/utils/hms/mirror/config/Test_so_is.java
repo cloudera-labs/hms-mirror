@@ -84,6 +84,7 @@ public class Test_so_is extends E2EBaseTest {
         long expected = getCheckCode(
                 MessageCode.DISTCP_OUTPUT_NOT_REQUESTED,
                 MessageCode.RELATIVE_MANUAL,
+                MessageCode.DATABASE_FILTER_CONTROLLED_BY,
                 MessageCode.WAREHOUSE_DIRECTORIES_NOT_DEFINED
         );
 

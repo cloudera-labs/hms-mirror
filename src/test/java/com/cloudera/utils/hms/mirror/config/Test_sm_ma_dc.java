@@ -87,6 +87,7 @@ public class Test_sm_ma_dc extends E2EBaseTest {
         // Verify the return code.
         long expected = getCheckCode(
                 MessageCode.ALIGNED_DISTCP_EXECUTE,
+                MessageCode.DATASTRATEGY_FILTER_CONTROLLED_BY,
                 MessageCode.DISTCP_WO_TABLE_FILTERS
         );
 
