@@ -125,7 +125,7 @@ public class ReportWriterService {
             int i = 1;
             String origOutputDir = config.getOutputDirectory();
             while (true) {
-                File newOutputDir = new File(origOutputDir + "_" + i++);
+                File newOutputDir = new File(origOutputDir + "_" + i);
                 if (!newOutputDir.exists()) {
                     runStatus.setReportName(session.getSessionId() + "_" + i);
                     config.setOutputDirectory(newOutputDir.getPath());
@@ -133,6 +133,7 @@ public class ReportWriterService {
                     newOutputDir.mkdirs();
                     break;
                 }
+                i++;
             }
         }
 

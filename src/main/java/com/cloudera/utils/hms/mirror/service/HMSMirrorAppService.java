@@ -35,10 +35,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
+import java.sql.*;
 import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -139,6 +137,11 @@ public class HMSMirrorAppService {
         } catch (EncryptionException ee) {
             log.error("Issue with Decryption", ee);
             runStatus.addError(ENCRYPTION_ISSUE, ee.getMessage());
+            runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
+            return new AsyncResult<>(Boolean.FALSE);
+        } catch (RuntimeException rte) {
+            log.error("Runtime Issue", rte);
+            runStatus.addError(SESSION_ISSUE, rte.getMessage());
             runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
             return new AsyncResult<>(Boolean.FALSE);
         }

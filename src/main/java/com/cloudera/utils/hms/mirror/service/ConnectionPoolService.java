@@ -34,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -49,7 +50,7 @@ import static java.util.Objects.nonNull;
 @Getter
 @Setter
 @Slf4j
-public class ConnectionPoolService implements ConnectionPools {
+public class ConnectionPoolService {
 
     private boolean connected = false;
 
@@ -126,17 +127,16 @@ public class ConnectionPoolService implements ConnectionPools {
         return rtn;
     }
 
-    @Override
-    public void addHiveServer2(Environment environment, HiveServer2Config hiveServer2) {
-        getConnectionPools().addHiveServer2(environment, hiveServer2);
-    }
+//    @Override
+//    public void addHiveServer2(Environment environment, HiveServer2Config hiveServer2) {
+//        getConnectionPools().addHiveServer2(environment, hiveServer2);
+//    }
+//
+//    @Override
+//    public void addMetastoreDirect(Environment environment, DBStore dbStore) {
+//        getConnectionPools().addMetastoreDirect(environment, dbStore);
+//    }
 
-    @Override
-    public void addMetastoreDirect(Environment environment, DBStore dbStore) {
-        getConnectionPools().addMetastoreDirect(environment, dbStore);
-    }
-
-    @Override
     public void close() {
         if (nonNull(connectionPools)) {
             // Set State of Connection.
@@ -214,13 +214,13 @@ public class ConnectionPoolService implements ConnectionPools {
         return rtn;
     }
 
-    @Override
+//    @Override
     public Connection getHS2EnvironmentConnection(Environment environment) throws SQLException {
         Connection conn = getConnectionPools().getHS2EnvironmentConnection(environment);
         return conn;
     }
 
-    @Override
+//    @Override
     public Connection getMetastoreDirectEnvironmentConnection(Environment environment) throws SQLException {
         Connection conn = getConnectionPools().getMetastoreDirectEnvironmentConnection(environment);
         return conn;
@@ -231,7 +231,7 @@ public class ConnectionPoolService implements ConnectionPools {
         init();
     }
 
-    @Override
+//    @Override
     public void init() throws SQLException, SessionException, EncryptionException {
 //        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getActiveSession().getResolvedConfig();
 //        ExecuteSession executeSession = executeSessionService.getActiveSession();
@@ -330,7 +330,8 @@ public class ConnectionPoolService implements ConnectionPools {
                     }
                 }
             }
-        } catch (SQLException cnfe) {
+        } catch (SQLException | URISyntaxException cnfe) {
+            getConnectionPools().close();
             log.error("Issue initializing connections.  Check driver locations", cnfe);
             throw new RuntimeException(cnfe);
         }

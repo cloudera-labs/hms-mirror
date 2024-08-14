@@ -33,6 +33,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.sql.SQLException;
+import java.sql.SQLInvalidAuthorizationSpecException;
 
 @ControllerAdvice
 public class MirrorExceptionHandler {
@@ -118,6 +119,12 @@ public class MirrorExceptionHandler {
         return "error";
     }
 
-
+    @ExceptionHandler(value = SQLInvalidAuthorizationSpecException.class)
+    public String SQLInvalidAuthorizationSpecExceptionHandler(Model model, SQLInvalidAuthorizationSpecException exception) {
+        model.addAttribute(ControllerReferences.TYPE, "SQL Invalid Auth Exception Issue");
+        model.addAttribute(ControllerReferences.MESSAGE, exception.getMessage());
+        uiModelService.sessionToModel(model, 0, false);
+        return "error";
+    }
 
 }

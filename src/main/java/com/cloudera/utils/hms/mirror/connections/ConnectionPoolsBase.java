@@ -176,7 +176,7 @@ public abstract class ConnectionPoolsBase implements ConnectionPools {
 
     protected abstract void initHS2PooledDataSources() throws SessionException, EncryptionException;
 
-    protected void initMetastoreDataSources() throws SessionException, EncryptionException {
+    protected void initMetastoreDataSources() throws SessionException, EncryptionException, SQLException, URISyntaxException {
         // Metastore Direct
         log.debug("Initializing Metastore Direct DataSources");
         Set<Environment> environments = metastoreDirectConfigs.keySet();
@@ -202,13 +202,11 @@ public abstract class ConnectionPoolsBase implements ConnectionPools {
                 HikariConfig config = new HikariConfig();
                 config.setJdbcUrl(metastoreDirectConfig.getUri());
                 config.setDataSourceProperties(connProperties);
-                HikariDataSource poolingDatasource = new HikariDataSource(config);
-
-
-                metastoreDirectDataSources.put(environment, poolingDatasource);
-
                 // Attempt to get the Driver Version for the Metastore Direct Connection.
                 try {
+                    HikariDataSource poolingDatasource = new HikariDataSource(config);
+                    metastoreDirectDataSources.put(environment, poolingDatasource);
+
                     DataSource ds = getMetastoreDirectEnvironmentDataSource(environment);
                     Class driverClass = DriverManager.getDriver(ds.getConnection().getMetaData().getURL()).getClass();
                     String jarFile = DriverUtils.byGetProtectionDomain(driverClass);
@@ -219,7 +217,7 @@ public abstract class ConnectionPoolsBase implements ConnectionPools {
                     log.info("{} - Metastore Direct JDBC Driver Version: {}", environment, version);
                 } catch (SQLException | URISyntaxException e) {
                     log.error("Issue getting Metastore Direct JDBC JarFile details", e);
-//                    throw new RuntimeException(e);
+                    throw e;
                 }
 
                 // Test Connection.
@@ -241,7 +239,7 @@ public abstract class ConnectionPoolsBase implements ConnectionPools {
         }
     }
 
-    public synchronized void init() throws SQLException, SessionException, EncryptionException {
+    public synchronized void init() throws SQLException, SessionException, EncryptionException, URISyntaxException {
         if (!executeSession.getConfig().isLoadingTestData()) {
             try {
                 switch (connectionState) {
@@ -260,7 +258,7 @@ public abstract class ConnectionPoolsBase implements ConnectionPools {
                         break;
                 }
                 connectionState = ConnectionState.CONNECTED;
-            } catch (SQLException | SessionException | EncryptionException e) {
+            } catch (SQLException | SessionException | EncryptionException | URISyntaxException e) {
                 connectionState = ConnectionState.ERROR;
                 throw e;
             }

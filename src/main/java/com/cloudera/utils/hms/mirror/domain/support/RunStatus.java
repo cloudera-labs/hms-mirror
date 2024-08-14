@@ -64,6 +64,22 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
     List<String> warningMessages = new ArrayList<>();
     Set<String> configMessages = new TreeSet<>();
 
+    /*
+    Track the current progress across the various stages of the operation.
+    */
+    private Map<StageEnum, CollectionEnum> stages = new LinkedHashMap<>();
+
+    private List<TableMirror> inProgressTables = new ArrayList<>();
+
+    /*
+    Maintain statistics on the operation.
+     */
+    private OperationStatistics operationStatistics = new OperationStatistics();
+
+    private String reportName;
+    private String appVersion;
+
+
     public void clearErrors() {
         if (nonNull(errors)) {
             errors.clear();
@@ -116,21 +132,6 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
     Keep track of the current running state.
      */
 //    private ProgressEnum progress = ProgressEnum.INITIALIZED;
-
-    /*
-    Track the current progress across the various stages of the operation.
-     */
-    private Map<StageEnum, CollectionEnum> stages = new LinkedHashMap<>();
-
-    private List<TableMirror> inProgressTables = new ArrayList<>();
-
-    /*
-    Maintain statistics on the operation.
-     */
-    private OperationStatistics operationStatistics = new OperationStatistics();
-
-    private String reportName;
-    private String appVersion;
 
     @JsonIgnore
     public long getDuration() {
@@ -194,8 +195,14 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
             }
             errorMessages.clear();
             warningMessages.clear();
-            stages.forEach((k, v) -> v = CollectionEnum.WAITING);
+            // Loop through the stages map and reset the values to WAITING.
+            stages.keySet().forEach(k -> stages.put(k, CollectionEnum.WAITING));
             operationStatistics.reset();
+            reportName = null;
+            start = null;
+            end = null;
+            if (nonNull(inProgressTables))
+                inProgressTables.clear();
         } else {
             rtn = Boolean.FALSE;
         }
