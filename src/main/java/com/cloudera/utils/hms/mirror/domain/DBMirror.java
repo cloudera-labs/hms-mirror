@@ -21,6 +21,7 @@ import com.cloudera.utils.hms.mirror.Pair;
 import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ import static java.util.Objects.nonNull;
 @Getter
 @Setter
 @Slf4j
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DBMirror {
 
     private final Map<Environment, List<String>> issues = new TreeMap<>();
