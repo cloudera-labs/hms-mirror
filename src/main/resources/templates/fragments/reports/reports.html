@@ -46,6 +46,8 @@
                     <button class="pure-button pure-button-primary"
                             type="submit" th:text="#{button.details}"
                             th:formaction="@{/reports/detail}" th:formmethod="GET"/>
+                    <button class="pure-button" type="submit" th:text="#{button.archive}"
+                            th:formaction="@{/reports/archive}" th:formmethod="POST"/>
 
                     <!--                        <button class="pure-button"-->
                     <!--                                type="submit" th:text="#{button.view}"-->
@@ -69,6 +71,16 @@
 
     -->
     <h4 th:text="#{reports.for(${SESSION_ID})}"/>
+    <!--    Create an Archive button that will take the SESSION_ID-->
+    <form>
+        <input type="hidden" name="REPORT_ID" th:value="${SESSION_ID}"/>
+        <button class="pure-button"
+                type="submit" th:text="#{button.download}"
+                th:formaction="@{/reports/doDownload}" th:formmethod="POST"/>
+        <button class="pure-button" type="submit" th:text="#{button.archive}"
+                th:formaction="@{/reports/archive}" th:formmethod="POST"/>
+    </form>
+
     <b th:if="${RUN_STATUS != null && RUN_STATUS.appVersion != null}" th:text="#{version(${RUN_STATUS.appVersion})}"/>
     <form class="pure-form pure-form-aligned">
         <div class="pure-g">

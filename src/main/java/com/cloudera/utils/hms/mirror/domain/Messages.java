@@ -51,9 +51,9 @@ public class Messages implements Cloneable {
     public String getMessage(int bit) {
         String rtn = null;
         for (MessageCode messageCode : MessageCode.values()) {
-            if (messageCode.getCode() == bit) {
+            if (messageCode.ordinal() == bit) {
                 if (argMap.containsKey(bit)) {
-                    Object[] args = argMap.get(messageCode.getCode());
+                    Object[] args = argMap.get(messageCode.ordinal());
                     rtn = MessageFormat.format(messageCode.getDesc(), args);
                 } else {
                     rtn = messageCode.getDesc();
@@ -68,12 +68,12 @@ public class Messages implements Cloneable {
     public List<String> getMessages() {
         List<String> messageList = new ArrayList<String>();
         for (MessageCode messageCode : MessageCode.getCodes(bitSet)) {
-            if (!argMap.containsKey(messageCode.getCode())) {
-                messageList.add(messageCode.getCode() + ":" + messageCode.getDesc());
+            if (!argMap.containsKey(messageCode.ordinal())) {
+                messageList.add(messageCode.ordinal() + ":" + messageCode.getDesc());
             } else {
-                Object[] vMap = argMap.get(messageCode.getCode());
+                Object[] vMap = argMap.get(messageCode.ordinal());
                 String m = MessageFormat.format(messageCode.getDesc(), vMap);
-                messageList.add(messageCode.getCode() + ":" + m);
+                messageList.add(messageCode.ordinal() + ":" + m);
             }
         }
 //        String[] rtn = messageList.toArray(new String[0]);
@@ -92,13 +92,13 @@ public class Messages implements Cloneable {
     }
 
     public void set(MessageCode messageCode) {
-        bitSet.set(messageCode.getCode());
+        bitSet.set(messageCode.ordinal());
     }
 
     public void set(MessageCode messageCode, Object... args) {
-        bitSet.set(messageCode.getCode());
+        bitSet.set(messageCode.ordinal());
         if (args != null) {
-            argMap.put(messageCode.getCode(), args);
+            argMap.put(messageCode.ordinal(), args);
         }
     }
 

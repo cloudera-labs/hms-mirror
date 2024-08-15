@@ -15,7 +15,7 @@
  *
  */
 
-package com.cloudera.utils.hms.mirror.integration.end_to_end.legacy_to_cdp;
+package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp_to_cdp;
 
 import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
@@ -44,8 +44,8 @@ import static org.junit.Assert.assertEquals;
 //                "--hms-mirror.config.reset-to-default-location=true",
 //                "--hms-mirror.config.distcp=true",
                 "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts.yaml",
-                "--hms-mirror.config.filename=/config/default.yaml.hdp2-cdp",
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/legacy_cdp/sql_ext_purge"
+                "--hms-mirror.config.filename=/config/default.yaml.cdp-cdp",
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp_cdp/sql_ext_purge"
         })
 @Slf4j
 public class Test_sql_ext_purge extends E2EBaseTest {

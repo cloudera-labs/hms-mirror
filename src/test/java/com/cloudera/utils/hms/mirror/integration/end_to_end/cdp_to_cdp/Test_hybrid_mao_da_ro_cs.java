@@ -63,7 +63,7 @@ public class Test_hybrid_mao_da_ro_cs extends E2EBaseTest {
         // Verify the return code.
         BitSet bitSet = new BitSet(150);
         long expected = 0;
-        bitSet.set(MessageCode.RO_VALID_STRATEGIES.getCode());
+        bitSet.set(MessageCode.RO_VALID_STRATEGIES.ordinal());
         long[] messageSet = bitSet.toLongArray();
         for (long messageBit : messageSet) {
             expected = expected | messageBit;

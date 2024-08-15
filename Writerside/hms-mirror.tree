@@ -20,6 +20,7 @@
             </toc-element>
             <toc-element topic="REST-Interface.md"/>
         </toc-element>
+        <toc-element topic="Reports.md"/>
     </toc-element>
     <toc-element topic="hms-mirror-quickStart.md"/>
     <toc-element topic="Pre-Requisites.md">

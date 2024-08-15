@@ -109,7 +109,7 @@ public class E2EBaseTest {
         BitSet bitSet = new BitSet(150);
         long expected = 0;
         for (MessageCode messageCode : messageCodes) {
-            bitSet.set(messageCode.getCode());
+            bitSet.set(messageCode.ordinal());
         }
         long[] messageSet = bitSet.toLongArray();
         for (long messageBit : messageSet) {

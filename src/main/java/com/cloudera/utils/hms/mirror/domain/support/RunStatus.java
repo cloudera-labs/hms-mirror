@@ -257,11 +257,11 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
     }
 
     public String getErrorMessage(MessageCode code) {
-        return errors.getMessage(code.getCode());
+        return errors.getMessage(code.ordinal());
     }
 
     public String getWarningMessage(MessageCode code) {
-        return warnings.getMessage(code.getCode());
+        return warnings.getMessage(code.ordinal());
     }
 
     public boolean hasConfigMessages() {

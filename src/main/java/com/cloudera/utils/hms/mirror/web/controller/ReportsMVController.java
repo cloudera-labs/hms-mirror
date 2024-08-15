@@ -95,6 +95,25 @@ public class ReportsMVController implements ControllerReferences {
         return  lines.length;
     }
 
+    /*
+    Create an 'Archive' process to move a session to the archive directory.
+
+     */
+    @RequestMapping(value = "/archive", method = RequestMethod.POST)
+    public String archiveReport(Model model,
+                                @RequestParam(value = REPORT_ID, required = true) String report_id) {
+        log.info("Archiving report: {}", report_id);
+        // Populate model
+        uiModelService.sessionToModel(model, 1, Boolean.FALSE);
+        // Get list of Reports
+        reportService.archiveReport(report_id);
+        // Get list of Reports
+        model.addAttribute(REPORT_LIST, reportService.getAvailableReports());
+        model.addAttribute(DISTCP_PLANS, Boolean.TRUE);
+        model.addAttribute(ACTION, "select"); // Supports which form fragment is loaded.
+        return "reports/view";
+    }
+
     @RequestMapping(value = "/dbdetail", method = RequestMethod.GET)
     public String viewReport(Model model,
                              @RequestParam(value = REPORT_ID, required = true) String report_id,

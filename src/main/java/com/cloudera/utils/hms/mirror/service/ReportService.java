@@ -23,6 +23,7 @@ import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.RunStatus;
 import com.cloudera.utils.hms.util.NamespaceUtils;
+import com.cloudera.utils.hms.util.UrlUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
@@ -103,6 +105,34 @@ public class ReportService {
         }
         zipOut.close();
         fos.close();
+    }
+
+    public void archiveReport(String report_id) {
+        // Using the 'id', get the reports for the session.
+        String outputDirectory = executeSessionService.getReportOutputDirectory();
+        String reportDirectoryName = outputDirectory + File.separator + report_id;
+        String baseDir = UrlUtils.removeLastDirFromUrl(outputDirectory);
+        String archiveDirectoryName = baseDir + File.separator + "archive";
+
+        File archiveDirectory = new File(archiveDirectoryName);
+        if (!archiveDirectory.exists()) {
+            archiveDirectory.mkdirs();
+        }
+
+        // Handle nested directories in REPORT_ID
+        String archiveReportDirectoryName = archiveDirectoryName + File.separator + report_id;
+//        String archiveReportDirectoryParentName = UrlUtils.removeLastDirFromUrl(archiveReportDirectoryName);
+        File archiveReportDirectoryParent = new File(archiveReportDirectoryName);
+        if (!archiveReportDirectoryParent.exists()) {
+            archiveReportDirectoryParent.mkdirs();
+        }
+
+        try {
+            Files.move(new File(reportDirectoryName).toPath(), new File(archiveReportDirectoryName).toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            log.error("Error moving report to archive: {}", e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
     }
 
     public Map<String, List<String>> reportArtifacts(String id) {

@@ -77,4 +77,8 @@
         </description>
         <accepts>Table-Migration-via-SQL-using-Intermediate-Storage.html</accepts>
     </rule>
+    <rule id="2ac8448b">
+        <description>Created after removal of "Known Issues" from hms-mirror</description>
+        <accepts>Known-Issues.html</accepts>
+    </rule>
 </rules>

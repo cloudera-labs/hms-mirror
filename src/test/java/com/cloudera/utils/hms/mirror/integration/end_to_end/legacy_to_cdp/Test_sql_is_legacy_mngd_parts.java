@@ -40,7 +40,7 @@ import static org.junit.Assert.assertEquals;
 //                "--hms-mirror.config.read-only=true",
 //                "--hms-mirror.config.sync=true",
 //                "--hms-mirror.config.evaluate-partition-location=true",
-//                "--hms-mirror.config.intermediate-storage=s3a://my_is_bucket",
+                "--hms-mirror.config.intermediate-storage=s3a://my_is_bucket",
 //                "--hms-mirror.config.target-namespace=s3a://my_cs_bucket",
 //                "--hms-mirror.config.reset-to-default-location=true",
 //                "--hms-mirror.config.distcp=true",
