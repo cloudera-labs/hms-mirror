@@ -17,12 +17,12 @@
 
 package com.cloudera.utils.hms.mirror.service;
 
-import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.connections.ConnectionException;
 import com.cloudera.utils.hms.mirror.datastrategy.DataStrategy;
 import com.cloudera.utils.hms.mirror.datastrategy.HybridAcidDowngradeInPlaceDataStrategy;
 import com.cloudera.utils.hms.mirror.datastrategy.HybridDataStrategy;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.Warehouse;
@@ -165,8 +165,8 @@ public class TransferService {
                 if (rtn.getStatus() == ReturnStatus.Status.SUCCESS && config.getTransfer().getStorageMigration().isDistcp()) {
                     warehouse = databaseService.getWarehousePlan(tableMirror.getParent().getName());
                     // Build distcp reports.
+                    // Build when intermediate and NOT ACID with isDowngrade.
                     if (!isBlank(config.getTransfer().getIntermediateStorage())) {
-                        // LEFT PUSH INTERMEDIATE
                         // The Transfer Table should be available.
                         String isLoc = config.getTransfer().getIntermediateStorage();
                         // Deal with extra '/'
@@ -176,10 +176,15 @@ public class TransferService {
                                 config.getRunMarker() + "/" +
                                 tableMirror.getParent().getName() + ".db/" +
                                 tableMirror.getName();
+                        if (TableUtils.isACID(let) && config.getMigrateACID().isDowngrade()) {
+                            // skip the LEFT because the TRANSFER table used to downgrade was placed in the intermediate location.
+                        } else {
+                            // LEFT PUSH INTERMEDIATE
+                            config.getTranslator().addTranslation(tableMirror.getParent().getName(), Environment.LEFT,
+                                    TableUtils.getLocation(tableMirror.getName(), let.getDefinition()),
+                                    isLoc, 1, consolidateSourceTables);
+                        }
 
-                        config.getTranslator().addTranslation(tableMirror.getParent().getName(), Environment.LEFT,
-                                TableUtils.getLocation(tableMirror.getName(), let.getDefinition()),
-                                isLoc, 1, consolidateSourceTables);
                         // RIGHT PULL from INTERMEDIATE
                         String fnlLoc = null;
                         if (!set.getDefinition().isEmpty()) {
