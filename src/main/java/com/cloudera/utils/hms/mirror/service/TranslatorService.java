@@ -440,14 +440,16 @@ public class TranslatorService {
         log.debug("Translate Location: {}: {}", originalLocation, newLocation);
         // Add Location Map for table to a list.
         // TODO: Need to handle RIGHT locations.
+
+        boolean consolidateSourceTables = config.getTransfer().getStorageMigration().isConsolidateTablesForDistcp();
         if (config.getTransfer().getStorageMigration().isDistcp()
                 && config.getDataStrategy() != DataStrategyEnum.SQL) {
             if (config.getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION) {
-                config.getTranslator().addTranslation(originalDatabase, Environment.LEFT, originalLocation, newLocation, level);
+                config.getTranslator().addTranslation(originalDatabase, Environment.LEFT, originalLocation, newLocation, level, consolidateSourceTables);
             } else if (config.getTransfer().getStorageMigration().getDataFlow() == DistcpFlowEnum.PULL && !config.isFlip()) {
-                config.getTranslator().addTranslation(originalDatabase, Environment.RIGHT, originalLocation, newLocation, level);
+                config.getTranslator().addTranslation(originalDatabase, Environment.RIGHT, originalLocation, newLocation, level, consolidateSourceTables);
             } else {
-                config.getTranslator().addTranslation(originalDatabase, Environment.LEFT, originalLocation, newLocation, level);
+                config.getTranslator().addTranslation(originalDatabase, Environment.LEFT, originalLocation, newLocation, level, consolidateSourceTables);
             }
         }
 

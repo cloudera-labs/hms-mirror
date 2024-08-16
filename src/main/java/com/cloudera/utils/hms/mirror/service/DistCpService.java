@@ -107,7 +107,7 @@ public class DistCpService {
 
                     FileWriter distcpSourceFW = null;
 
-                    Map<String, Map<String, Set<String>>> distcpPlans = buildDistcpListForDatabase(config, database, distcpEnv, 1);
+                    Map<String, Map<String, Set<String>>> distcpPlans = buildDistcpListForDatabase(config, database, distcpEnv, 1, config.getTransfer().getStorageMigration().isConsolidateTablesForDistcp());
                     if (!distcpPlans.isEmpty()) {
                         String distcpPlansFile = config.getOutputDirectory() + FileSystems.getDefault().getSeparator() + originalDatabase + "_" + distcpEnv.toString() + "_distcp_plans.yaml";
                         FileWriter distcpPlansFW = new FileWriter(distcpPlansFile);
@@ -221,7 +221,7 @@ public class DistCpService {
     }
 
     public synchronized Map<String, Map<String, Set<String>>> buildDistcpListForDatabase(HmsMirrorConfig config, String database,
-                                                                              Environment environment, int consolidationLevel) {
+                                                                              Environment environment, int consolidationLevel, boolean consolidateTablesForDistcp) {
         Map<String, Map<String, Set<String>>> rtn = new TreeMap<>();
 
 //        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
@@ -247,9 +247,11 @@ public class DistCpService {
         for (Map.Entry<String, String> entry : dbLocationMap.entrySet()) {
             // reduce folder level by 'consolidationLevel' for key and value.
             // Source
-            String reducedSource = UrlUtils.reduceUrlBy(entry.getKey(), consolidationLevel);
+//            String reducedSource = UrlUtils.reduceUrlBy(entry.getKey(), consolidationLevel);
+            String reducedSource = entry.getKey();
             // Target
-            String reducedTarget = UrlUtils.reduceUrlBy(entry.getValue(), consolidationLevel);
+//            String reducedTarget = UrlUtils.reduceUrlBy(entry.getValue(), consolidationLevel);
+            String reducedTarget = entry.getValue();
 
             if (reverseMap.get(reducedTarget) != null) {
                 reverseMap.get(reducedTarget).add(entry.getKey());

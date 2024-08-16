@@ -30,9 +30,9 @@ public class EnvironmentMap {
 
     private final Map<Environment, Set<TranslationLevel>> environmentMap = new TreeMap<>();
 
-    public void addTranslationLocation(Environment environment, String original, String target, int level) {
+    public void addTranslationLocation(Environment environment, String original, String target, int level, boolean consolidateTablesForDistcp) {
         Set<TranslationLevel> dbTranslationSet = environmentMap.computeIfAbsent(environment, k -> new HashSet<>());
-        dbTranslationSet.add(new TranslationLevel(original, target, level));
+        dbTranslationSet.add(new TranslationLevel(original, target, level, consolidateTablesForDistcp));
     }
 
     public Set<TranslationLevel> getTranslationSet(Environment environment) {
@@ -44,16 +44,24 @@ public class EnvironmentMap {
     @Getter
     public static class TranslationLevel {
         final int level;
+        final boolean consolidateTablesForDistcp;
         final String original, target;
 
-        public TranslationLevel(String original, String target, int level) {
+        public TranslationLevel(String original, String target, int level, boolean consolidateTablesForDistcp) {
             this.original = original;
             this.target = target;
             this.level = level;
+            this.consolidateTablesForDistcp = consolidateTablesForDistcp;
         }
 
         public String getAdjustedOriginal() {
-            String rtn = UrlUtils.reduceUrlBy(original, level);
+            String rtn;
+            if (consolidateTablesForDistcp) {
+                rtn = UrlUtils.reduceUrlBy(original, level);
+            } else {
+                // Reduce the level to ensure we are capturing only the table directory.
+                rtn = UrlUtils.reduceUrlBy(original, level - 1);
+            }
             return rtn;
         }
 

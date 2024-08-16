@@ -34,50 +34,50 @@
         <!-- Optimizations (When SQL Data Movement) -->
         <!-- Skip -->
         <div class="pure-control-group">
+            <label for="skip" th:text="#{config.optimization.skip}"></label>
             <input type="checkbox" name="skip"
                    th:field="*{optimization.skip}"
                    th:checked="${CONFIG.optimization.skip}"/>
-            <label for="skip" th:text="#{config.optimization.skip}"></label>
         </div>
 
         <!-- Skip Stats Collection -->
         <div class="pure-control-group">
+            <label for="skipstatscollection"
+                   th:text="#{config.optimization.skipStatsCollection}"></label>
             <input type="checkbox" name="skipstatscollection"
                    th:field="*{optimization.skipStatsCollection}"
                    th:checked="${CONFIG.optimization.skipStatsCollection}"/>
-            <label for="skipstatscollection"
-                   th:text="#{config.optimization.skipStatsCollection}"></label>
         </div>
         <div class="pure-control-group">
+            <label for="buildShadowStatistics" th:text="#{config.optimization.buildShadowStatistics}"></label>
             <input type="checkbox" name="buildShadowStatistics"
                    th:field="*{optimization.buildShadowStatistics}"
                    th:checked="${CONFIG.optimization.buildShadowStatistics}"/>
-            <label for="buildShadowStatistics" th:text="#{config.optimization.buildShadowStatistics}"></label>
         </div>
 
         <!-- Sort Dynamic Partition Inserts -->
         <div class="pure-control-group">
+            <label for="sortDynamicPartitionInserts"
+                   th:text="#{config.optimization.sortDynamicPartitionInserts}"></label>
             <input type="checkbox" name="sortDynamicPartitionInserts"
                    th:field="*{optimization.sortDynamicPartitionInserts}"
                    th:checked="${CONFIG.optimization.sortDynamicPartitionInserts}"/>
-            <label for="sortDynamicPartitionInserts"
-                   th:text="#{config.optimization.sortDynamicPartitionInserts}"></label>
         </div>
 
         <!-- Auto Tune -->
         <div class="pure-control-group">
+            <label for="autoTune" th:text="#{config.optimization.autoTune}"></label>
             <input type="checkbox" name="autoTune"
                    th:field="*{optimization.autoTune}"
                    th:checked="${CONFIG.optimization.autoTune}"/>
-            <label for="autoTune" th:text="#{config.optimization.autoTune}"></label>
         </div>
 
         <!-- Compress Text Output -->
         <div class="pure-control-group">
+            <label for="compressTextOutput" th:text="#{config.optimization.compressTextOutput}"></label>
             <input type="checkbox" name="compressTextOutput"
                    th:field="*{optimization.compressTextOutput}"
                    th:checked="${CONFIG.optimization.compressTextOutput}"/>
-            <label for="compressTextOutput" th:text="#{config.optimization.compressTextOutput}"></label>
         </div>
 
     </fieldset>

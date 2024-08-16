@@ -69,11 +69,11 @@ public class Messages implements Cloneable {
         List<String> messageList = new ArrayList<String>();
         for (MessageCode messageCode : MessageCode.getCodes(bitSet)) {
             if (!argMap.containsKey(messageCode.ordinal())) {
-                messageList.add(messageCode.ordinal() + ":" + messageCode.getDesc());
+                messageList.add(messageCode.toString() + "-->" + messageCode.getDesc());
             } else {
                 Object[] vMap = argMap.get(messageCode.ordinal());
                 String m = MessageFormat.format(messageCode.getDesc(), vMap);
-                messageList.add(messageCode.ordinal() + ":" + m);
+                messageList.add(messageCode.toString() + "-->" + m);
             }
         }
 //        String[] rtn = messageList.toArray(new String[0]);

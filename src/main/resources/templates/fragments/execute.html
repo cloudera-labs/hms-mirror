@@ -49,23 +49,23 @@
                             <span class="pure-form-message-inline" th:text="#{acceptance.note}"/>
                             <hr/>
                             <div class="pure-control-group">
-                                <input id="buFS" type="checkbox" th:field="*{acceptance.backedUpHDFS}"/>
                                 <label for="buFS" th:text="#{backedUp.HDFS}"/>
+                                <input id="buFS" type="checkbox" th:field="*{acceptance.backedUpHDFS}"/>
                                 <span class="pure-form-message-inline" th:text="#{backedUp.HDFS.note}"/>
                             </div>
                             <div class="pure-control-group">
-                                <input id="buMS" type="checkbox" th:field="*{acceptance.backedUpMetastore}"/>
                                 <label for="buMS" th:text="#{backedUp.Metastore}"/>
+                                <input id="buMS" type="checkbox" th:field="*{acceptance.backedUpMetastore}"/>
                                 <span class="pure-form-message-inline" th:text="#{backedUp.Metastore.note}"/>
                             </div>
                             <div class="pure-control-group">
-                                <input id="trashConfigured" type="checkbox" th:field="*{acceptance.trashConfigured}"/>
                                 <label for="trashConfigured" th:text="#{trashConfigured}"/>
+                                <input id="trashConfigured" type="checkbox" th:field="*{acceptance.trashConfigured}"/>
                                 <span class="pure-form-message-inline" th:text="#{trashConfigured.note}"/>
                             </div>
                             <div class="pure-control-group">
-                                <input id="dataLoss" type="checkbox" th:field="*{acceptance.potentialDataLoss}"/>
                                 <label for="dataLoss" th:text="#{potential.dataloss}"/>
+                                <input id="dataLoss" type="checkbox" th:field="*{acceptance.potentialDataLoss}"/>
                                 <span class="pure-form-message-inline" th:text="#{potential.dataloss.note}"/>
                             </div>
                         </fieldset>
@@ -76,8 +76,8 @@
                     <div class="pure-u-3-12">
                         <div class="pure-control-group">
                             <!-- Dry Run -->
-                            <input id="dryrun" type="checkbox" th:field="*{dryrun}"/>
                             <label for="dryrun" th:text="#{dry.run}"/>
+                            <input id="dryrun" type="checkbox" th:field="*{dryrun}"/>
                         </div>
                         <div class="pure-button-group">
                             <button id="execModalBtn" class="pure-button pure-button-primary"

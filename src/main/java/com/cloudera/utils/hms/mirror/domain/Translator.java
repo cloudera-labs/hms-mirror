@@ -176,9 +176,9 @@ public class Translator implements Cloneable {
         translationMap.remove(database);
     }
 
-    public synchronized void addTranslation(String database, Environment environment, String originalLocation, String newLocation, int level) {
+    public synchronized void addTranslation(String database, Environment environment, String originalLocation, String newLocation, int level, boolean consolidationTablesForDistcp) {
         EnvironmentMap environmentMap = translationMap.computeIfAbsent(database, k -> new EnvironmentMap());
-        environmentMap.addTranslationLocation(environment, originalLocation, newLocation, level);
+        environmentMap.addTranslationLocation(environment, originalLocation, newLocation, level, consolidationTablesForDistcp);
 //        getDbLocationMap(database, environment).put(originalLocation, newLocation);
     }
 

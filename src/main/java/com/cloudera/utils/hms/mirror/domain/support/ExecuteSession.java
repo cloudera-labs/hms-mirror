@@ -79,6 +79,7 @@ public class ExecuteSession implements Cloneable {
                 case STARTED:
                 case IN_PROGRESS:
                     running = Boolean.TRUE;
+                    break;
                 case INITIALIZED:
                 case COMPLETED:
                 case FAILED:
@@ -86,6 +87,7 @@ public class ExecuteSession implements Cloneable {
                 case CANCEL_FAILED:
                 default:
                     running = Boolean.FALSE;
+                    break;
             }
         } else {
             running = Boolean.FALSE;

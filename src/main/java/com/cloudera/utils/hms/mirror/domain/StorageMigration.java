@@ -36,6 +36,10 @@ public class StorageMigration implements Cloneable {
     private DataMovementStrategyEnum dataMovementStrategy = DataMovementStrategyEnum.SQL;
     @Schema(description = "Data flow direction for distcp. This control from where the 'distcp' jobs should be run.")
     private DistcpFlowEnum dataFlow = DistcpFlowEnum.PULL;
+
+    @Schema(description = "When true, the tables will be consolidated into a single directory for distcp. " +
+            "This is useful when the source tables are spread across multiple directories.")
+    private boolean consolidateTablesForDistcp = Boolean.FALSE;
     @Schema(description = "When strict is true, any issues during evaluation will cause the migration to fail. When false, " +
             "the migration will continue but the issues will be reported. This can lead to data movement issues.")
     private boolean strict = Boolean.TRUE;

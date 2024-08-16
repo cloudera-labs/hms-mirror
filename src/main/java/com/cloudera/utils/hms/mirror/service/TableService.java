@@ -203,66 +203,69 @@ public class TableService {
                     source.getName());
             source.addCleanUpSql(MirrorConf.DROP_TABLE_DESC, dropOriginalTable);
         }
-        if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
-            source.addSql("distcp specified", "-- Run distcp commands");
-        } else {
-            // Set Override Properties.
-            if (hmsMirrorConfig.getOptimization().getOverrides() != null) {
-                for (String key : hmsMirrorConfig.getOptimization().getOverrides().getLeft().keySet()) {
-                    source.addSql("Setting " + key, "set " + key + "=" + hmsMirrorConfig.getOptimization().getOverrides().getLeft().get(key));
-                }
+//        if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
+//            source.addSql("distcp specified", "-- Run distcp commands");
+//        } else {
+        // Set Override Properties.
+        if (hmsMirrorConfig.getOptimization().getOverrides() != null) {
+            for (String key : hmsMirrorConfig.getOptimization().getOverrides().getLeft().keySet()) {
+                source.addSql("Setting " + key, "set " + key + "=" + hmsMirrorConfig.getOptimization().getOverrides().getLeft().get(key));
             }
+        }
 
-            if (transfer.isDefined()) {
-                statsCalculatorService.setSessionOptions(hmsMirrorConfig.getCluster(Environment.LEFT), source, source);
-                if (source.getPartitioned()) {
-                    if (hmsMirrorConfig.getOptimization().isSkip()) {
-                        if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                            source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
-                        }
-                        String partElement = TableUtils.getPartitionElements(source);
-                        String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
-                                source.getName(), transfer.getName(), partElement);
-                        String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
-                        source.addSql(new Pair(transferDesc, transferSql));
-                    } else if (hmsMirrorConfig.getOptimization().isSortDynamicPartitionInserts()) {
-                        if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                            source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
-                            if (!hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
-                                source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
-                            }
-                        }
-                        String partElement = TableUtils.getPartitionElements(source);
-                        String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
-                                source.getName(), transfer.getName(), partElement);
-                        String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
-                        source.addSql(new Pair(transferDesc, transferSql));
-                    } else {
-                        if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                            source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
-                            if (!hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
-                                source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
-                            }
-                        }
-                        String partElement = TableUtils.getPartitionElements(source);
-                        String distPartElement = statsCalculatorService.getDistributedPartitionElements(source);
-                        String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
-                                source.getName(), transfer.getName(), partElement, distPartElement);
-                        String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
-                        source.addSql(new Pair(transferDesc, transferSql));
+        if (transfer.isDefined()) {
+            statsCalculatorService.setSessionOptions(hmsMirrorConfig.getCluster(Environment.LEFT), source, source);
+            if (source.getPartitioned()) {
+                if (hmsMirrorConfig.getOptimization().isSkip()) {
+                    if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
+                        source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
                     }
+                    String partElement = TableUtils.getPartitionElements(source);
+                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
+                            source.getName(), transfer.getName(), partElement);
+                    String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
+                    source.addSql(new Pair(transferDesc, transferSql));
+                } else if (hmsMirrorConfig.getOptimization().isSortDynamicPartitionInserts()) {
+                    if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
+                        source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
+                        if (!hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
+                            source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                        }
+                    }
+                    String partElement = TableUtils.getPartitionElements(source);
+                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
+                            source.getName(), transfer.getName(), partElement);
+                    String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
+                    source.addSql(new Pair(transferDesc, transferSql));
                 } else {
-                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_OVERWRITE,
-                            source.getName(), transfer.getName());
+                    if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
+                        source.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
+                        if (!hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
+                            source.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                        }
+                    }
+                    String partElement = TableUtils.getPartitionElements(source);
+                    String distPartElement = statsCalculatorService.getDistributedPartitionElements(source);
+                    String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
+                            source.getName(), transfer.getName(), partElement, distPartElement);
                     String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
                     source.addSql(new Pair(transferDesc, transferSql));
                 }
-                // Drop Transfer Table
-                if (!isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
-                    String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, transfer.getName());
-                    source.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
-                }
+            } else {
+                String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_OVERWRITE,
+                        source.getName(), transfer.getName());
+                String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, source.getPartitions().size());
+                source.addSql(new Pair(transferDesc, transferSql));
             }
+            // Drop Transfer Table
+            if (!isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+                String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, transfer.getName());
+                source.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
+            }
+        }
+//        }
+        if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
+            source.addSql("distcp specified", "-- Run distcp commands");
         }
         return rtn;
     }

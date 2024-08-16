@@ -38,16 +38,16 @@
                 <fieldset>
                     <legend th:text="#{acid.options}"/>
                     <div class="pure-control-group">
+                        <label for="migrateacidon" th:text="#{config.migrateACID.on}"></label>
                         <input type="checkbox" name="migrateacidon"
                                th:field="*{migrateACID.on}"
                                th:checked="${CONFIG.migrateACID.on}"/>
-                        <label for="migrateacidon" th:text="#{config.migrateACID.on}"></label>
                     </div>
                     <div class="pure-control-group">
+                        <label for="migrateacidonly" th:text="#{config.migrateACID.only}"></label>
                         <input type="checkbox" name="migrateacidonly"
                                th:field="*{migrateACID.only}"
                                th:checked="${CONFIG.migrateACID.only}"/>
-                        <label for="migrateacidonly" th:text="#{config.migrateACID.only}"></label>
                     </div>
                     <div class="pure-control-group">
                         <label for="artificialBucketThreshold"
@@ -56,16 +56,16 @@
                                th:field="*{migrateACID.artificialBucketThreshold}"/>
                     </div>
                     <div class="pure-control-group">
+                        <label for="aciddowngrade" th:text="#{config.migrateACID.downgrade}"></label>
                         <input type="checkbox" name="aciddowngrade"
                                th:field="*{migrateACID.downgrade}"
                                th:checked="${CONFIG.migrateACID.downgrade}"/>
-                        <label for="aciddowngrade" th:text="#{config.migrateACID.downgrade}"></label>
                     </div>
                     <div class="pure-control-group">
+                        <label for="acidinplace" th:text="#{config.migrateACID.inplace}"></label>
                         <input type="checkbox" name="acidinplace"
                                th:field="*{migrateACID.inplace}"
                                th:checked="${CONFIG.migrateACID.inplace}"/>
-                        <label for="acidinplace" th:text="#{config.migrateACID.inplace}"></label>
                     </div>
                 </fieldset>
             </div>
@@ -73,16 +73,16 @@
                 <fieldset>
                     <legend th:text="#{migration.alternatives}"/>
                     <div class="pure-control-group">
+                        <label for="migrateviewon" th:text="#{config.migrateVIEW.on}"></label>
                         <input type="checkbox" name="migrateviewon"
                                th:field="*{migrateVIEW.on}"
                                th:checked="${CONFIG.migrateVIEW.on}"/>
-                        <label for="migrateviewon" th:text="#{config.migrateVIEW.on}"></label>
                     </div>
                     <div class="pure-control-group">
+                        <label for="migratenonnative" th:text="#{config.migratedNonNative}"></label>
                         <input type="checkbox" name="migratenonnative"
                                th:field="*{migratedNonNative}"
                                th:checked="${CONFIG.migratedNonNative}"/>
-                        <label for="migratenonnative" th:text="#{config.migratedNonNative}"></label>
                     </div>
                 </fieldset>
             </div>

@@ -160,6 +160,8 @@ public class TransferService {
                         break;
                 }
                 // Build out DISTCP workplans.
+                boolean consolidateSourceTables = config.getTransfer().getStorageMigration().isConsolidateTablesForDistcp();
+
                 if (rtn.getStatus() == ReturnStatus.Status.SUCCESS && config.getTransfer().getStorageMigration().isDistcp()) {
                     warehouse = databaseService.getWarehousePlan(tableMirror.getParent().getName());
                     // Build distcp reports.
@@ -177,7 +179,7 @@ public class TransferService {
 
                         config.getTranslator().addTranslation(tableMirror.getParent().getName(), Environment.LEFT,
                                 TableUtils.getLocation(tableMirror.getName(), let.getDefinition()),
-                                isLoc, 1);
+                                isLoc, 1, consolidateSourceTables);
                         // RIGHT PULL from INTERMEDIATE
                         String fnlLoc = null;
                         if (!set.getDefinition().isEmpty()) {
@@ -199,7 +201,7 @@ public class TransferService {
                         }
                         config.getTranslator().addTranslation(tableMirror.getParent().getName(), Environment.RIGHT,
                                 isLoc,
-                                fnlLoc, 1);
+                                fnlLoc, 1, consolidateSourceTables);
                     } else if (!isBlank(config.getTransfer().getTargetNamespace())
                             && config.getDataStrategy() != DataStrategyEnum.STORAGE_MIGRATION) {
                         // LEFT PUSH COMMON
@@ -223,7 +225,7 @@ public class TransferService {
                             newLoc = sbDir;
                         }
                         config.getTranslator().addTranslation(tableMirror.getParent().getName(), Environment.LEFT,
-                                origLoc, newLoc, 1);
+                                origLoc, newLoc, 1, consolidateSourceTables);
                     } else {
                         // RIGHT PULL
                         if (TableUtils.isACID(let)
@@ -248,7 +250,7 @@ public class TransferService {
                             }
                             config.getTranslator().addTranslation(tableMirror.getParent().getName(), Environment.RIGHT,
                                     TableUtils.getLocation(tableMirror.getName(), tet.getDefinition()),
-                                    rLoc, 1);
+                                    rLoc, 1, consolidateSourceTables);
                         } else {
                             String rLoc = TableUtils.getLocation(tableMirror.getName(), ret.getDefinition());
                             if (isBlank(rLoc) && config.loadMetadataDetails()) {
@@ -265,7 +267,7 @@ public class TransferService {
                             }
                             config.getTranslator().addTranslation(tableMirror.getParent().getName(), Environment.RIGHT,
                                     TableUtils.getLocation(tableMirror.getName(), let.getDefinition())
-                                    , rLoc, 1);
+                                    , rLoc, 1, consolidateSourceTables);
                         }
                     }
                 }

@@ -33,7 +33,7 @@
         <div class="pure-u-1-6">
             <b th:if="${RUN_CONTAINER != null && RUN_CONTAINER.sessionId != null}"
                     th:text="#{session.id(${RUN_CONTAINER.sessionId})}"/>
-            <a th:href="#{docs.website}" target="_blank"><b th:text="#{documentation}"/></a>
+<!--            <a th:href="#{docs.website}" target="_blank"><b th:text="#{documentation}"/></a>-->
         </div>
         <div class="pure-u-2-3">
             <b th:text="#{version(${VERSION})}" th:if="${VERSION != 'Unknown'}"/>

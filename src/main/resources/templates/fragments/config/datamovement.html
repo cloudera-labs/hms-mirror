@@ -70,6 +70,15 @@
                         th:selected="${cet.equals(CONFIG.transfer.storageMigration.dataMovementStrategy)}"/>
             </select>
         </div>
+        <!-- Consolidate Source Tables -->
+        <div class="pure-control-group">
+            <label for="consolidateSourceTables"
+                   th:text="#{config.transfer.storageMigration.consolidateSourceTables}"></label>
+            <input type="checkbox" id="consolidateSourceTables"
+                   th:field="*{transfer.storageMigration.consolidateTablesForDistcp}"
+                   th:checked="${CONFIG.transfer.storageMigration.consolidateTablesForDistcp}"/>
+            <span class="pure-form-message-inline" th:text="#{config.transfer.storageMigration.consolidateSourceTables.use}"/>
+        </div>
 
         <!-- Data Flow -->
         <div class="pure-control-group">
@@ -86,11 +95,11 @@
 
         <!-- Strict -->
         <div class="pure-control-group">
+            <label for="strict"
+                   th:text="#{config.transfer.storageMigration.strict}"></label>
             <input type="checkbox" id="strict"
                    th:field="*{transfer.storageMigration.strict}"
                    th:checked="${CONFIG.transfer.storageMigration.strict}"/>
-            <label for="strict"
-                   th:text="#{config.transfer.storageMigration.strict}"></label>
         </div>
     </fieldset>
 </div>
