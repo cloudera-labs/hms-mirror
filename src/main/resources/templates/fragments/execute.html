@@ -28,67 +28,79 @@
 </head>
 <body>
 
-<div th:fragment="execute">
-    <div th:if="${RUN_STATUS != null}">
-        <th:block th:unless="${RUN_STATUS.getErrorMessages().size() == 0}">
-            <p th:text="#{session.errors}"/>
-            <div th:insert="fragments/messages::view"></div>
-        </th:block>
-        <h4 th:text="#{execute}"/>
-        <form class="pure-form pure-form-aligned" th:object="${RUN_CONTAINER}">
-            <div class="pure-control-group">
-                <!-- Dry Run -->
-                <input id="dryrun" type="checkbox" th:field="*{dryrun}"/>
-                <label for="dryrun" th:text="#{dry.run}"/>
-            </div>
-            <fieldset style="width: 40%;">
-                <legend th:text="#{acceptance.criteria}"/>
-<!--                silentOverride =-->
-<!--                backedUpHDFS= Boo-->
-<!--                backedUpMetastore-->
-<!--                trashConfigured =-->
-<!--                potentialDataLoss-->
-                <span class="pure-form-message-inline" th:text="#{acceptance.note}"/>
-                <hr/>
-                <div class="pure-control-group">
-                    <input id="buFS" type="checkbox" th:field="*{acceptance.backedUpHDFS}"/>
-                    <label for="buFS" th:text="#{backedUp.HDFS}"/>
-                    <span class="pure-form-message-inline" th:text="#{backedUp.HDFS.note}"/>
-                </div>
-                <div class="pure-control-group">
-                    <input id="buMS" type="checkbox" th:field="*{acceptance.backedUpMetastore}"/>
-                    <label for="buMS" th:text="#{backedUp.Metastore}"/>
-                    <span class="pure-form-message-inline" th:text="#{backedUp.Metastore.note}"/>
-                </div>
-                <div class="pure-control-group">
-                    <input id="trashConfigured" type="checkbox" th:field="*{acceptance.trashConfigured}"/>
-                    <label for="trashConfigured" th:text="#{trashConfigured}"/>
-                    <span class="pure-form-message-inline" th:text="#{trashConfigured.note}"/>
-                </div>
-                <div class="pure-control-group">
-                    <input id="dataLoss" type="checkbox" th:field="*{acceptance.potentialDataLoss}"/>
-                    <label for="dataLoss" th:text="#{potential.dataloss}"/>
-                    <span class="pure-form-message-inline" th:text="#{potential.dataloss.note}"/>
+<div class="pure-u-11-12" th:fragment="execute">
+    <fieldset>
+        <div th:if="${RUN_STATUS != null}">
+            <th:block th:unless="${RUN_STATUS.getErrorMessages().size() == 0}">
+                <p th:text="#{session.errors}"/>
+                <div th:insert="fragments/messages::view"></div>
+            </th:block>
+            <fieldset>
+                <legend th:text="#{execute}"/>
+                <form class="pure-g pure-form pure-form-aligned" th:object="${RUN_CONTAINER}">
+                    <div class="pure-u-2-3">
+                        <fieldset>
+                            <legend th:text="#{acceptance.criteria}"/>
+                            <!--                silentOverride =-->
+                            <!--                backedUpHDFS= Boo-->
+                            <!--                backedUpMetastore-->
+                            <!--                trashConfigured =-->
+                            <!--                potentialDataLoss-->
+                            <span class="pure-form-message-inline" th:text="#{acceptance.note}"/>
+                            <hr/>
+                            <div class="pure-control-group">
+                                <input id="buFS" type="checkbox" th:field="*{acceptance.backedUpHDFS}"/>
+                                <label for="buFS" th:text="#{backedUp.HDFS}"/>
+                                <span class="pure-form-message-inline" th:text="#{backedUp.HDFS.note}"/>
+                            </div>
+                            <div class="pure-control-group">
+                                <input id="buMS" type="checkbox" th:field="*{acceptance.backedUpMetastore}"/>
+                                <label for="buMS" th:text="#{backedUp.Metastore}"/>
+                                <span class="pure-form-message-inline" th:text="#{backedUp.Metastore.note}"/>
+                            </div>
+                            <div class="pure-control-group">
+                                <input id="trashConfigured" type="checkbox" th:field="*{acceptance.trashConfigured}"/>
+                                <label for="trashConfigured" th:text="#{trashConfigured}"/>
+                                <span class="pure-form-message-inline" th:text="#{trashConfigured.note}"/>
+                            </div>
+                            <div class="pure-control-group">
+                                <input id="dataLoss" type="checkbox" th:field="*{acceptance.potentialDataLoss}"/>
+                                <label for="dataLoss" th:text="#{potential.dataloss}"/>
+                                <span class="pure-form-message-inline" th:text="#{potential.dataloss.note}"/>
+                            </div>
+                        </fieldset>
+                    </div>
+                    <div class="pure-u-1-12">
+
+                    </div>
+                    <div class="pure-u-3-12">
+                        <div class="pure-control-group">
+                            <!-- Dry Run -->
+                            <input id="dryrun" type="checkbox" th:field="*{dryrun}"/>
+                            <label for="dryrun" th:text="#{dry.run}"/>
+                        </div>
+                        <div class="pure-button-group">
+                            <button id="execModalBtn" class="pure-button pure-button-primary"
+                                    th:formaction="@{/runtime/doStart}"
+                                    th:formmethod="post" type="submit" th:text="#{button.run}"/>
+                        </div>
+                    </div>
+
+                    <!--            <div class="pure-control-group">-->
+                    <!--                &lt;!&ndash; Auto GLM &ndash;&gt;-->
+                    <!--                <input id="autoglm" type="checkbox" th:field="*{autoGLM}"/>-->
+                    <!--                <label for="autoglm" th:text="#{auto.glm}"/>-->
+                    <!--            </div>-->
+
+                </form>
+                <div th:replace="fragments/modal::modal1('execModal', 'execModalBtn', 'Please wait.  Connecting and gathering data points to run.')">
                 </div>
             </fieldset>
-<!--            <div class="pure-control-group">-->
-<!--                &lt;!&ndash; Auto GLM &ndash;&gt;-->
-<!--                <input id="autoglm" type="checkbox" th:field="*{autoGLM}"/>-->
-<!--                <label for="autoglm" th:text="#{auto.glm}"/>-->
-<!--            </div>-->
-            <div class="pure-button-group">
-                <button id="execModalBtn" class="pure-button pure-button-primary"
-                        th:formaction="@{/runtime/doStart}"
-                        th:formmethod="post" type="submit" th:text="#{button.run}"/>
-            </div>
-
-            <div th:replace="fragments/modal::modal1('execModal', 'execModalBtn', 'Please wait.  Connecting and gathering data points to run.')">
-            </div>
-        </form>
-    </div>
-    <div th:unless="${RUN_STATUS != null}">
-        <p th:text="#{session.not.available}"/>
-    </div>
+        </div>
+        <div th:unless="${RUN_STATUS != null}">
+            <p th:text="#{session.not.available}"/>
+        </div>
+    </fieldset>
 </div>
 
 </body>

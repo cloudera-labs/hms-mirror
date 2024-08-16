@@ -29,12 +29,16 @@
 </head>
 <body>
 <div th:fragment="footer">
-    <div class="pure-g">
-        <div class="pure-u-3-4">
+    <div class="pure-g footer">
+        <div class="pure-u-1-6">
+            <b th:if="${RUN_CONTAINER != null && RUN_CONTAINER.sessionId != null}"
+                    th:text="#{session.id(${RUN_CONTAINER.sessionId})}"/>
+            <a th:href="#{docs.website}" target="_blank"><b th:text="#{documentation}"/></a>
         </div>
-        <div class="pure-u-1-8">
+        <div class="pure-u-2-3">
             <b th:text="#{version(${VERSION})}" th:if="${VERSION != 'Unknown'}"/>
-            <br>
+        </div>
+        <div class="pure-u-1-6">
             <a href="https://github.com/cloudera-labs/hms-mirror" target="_blank"><b th:text="#{copyright}"/></a>
         </div>
     </div>

@@ -27,158 +27,162 @@
 </head>
 <body>
 <div th:fragment="view">
-    <!--    <h4 th:text="#{run.status}"/>-->
-    <div th:insert="fragments/messages::view">
-
-    </div>
-    <!--    <h5 th:text="#{progress}"/>-->
-    <!--    <div class="pure-g pure-form pure-form-aligned">-->
     <fieldset>
-        <legend th:text="#{run.status}"/>
-        <div class="pure-g">
-            <div class="pure-u-1-2">
-                <fieldset>
-                    <legend th:text="#{runtime.progress(${RUN_STATUS.progress})}"/>
-                    <form>
+
+        <!--    <h4 th:text="#{run.status}"/>-->
+        <div th:insert="fragments/messages::view">
+
+        </div>
+        <!--    <h5 th:text="#{progress}"/>-->
+        <!--    <div class="pure-g pure-form pure-form-aligned">-->
+        <fieldset>
+            <legend th:text="#{run.status}"/>
+            <div class="pure-g">
+                <div class="pure-u-1-2">
+                    <fieldset>
+                        <legend th:text="#{runtime.progress(${RUN_STATUS.progress})}"/>
+                        <form>
+                            <table class="pure-table pure-table-striped">
+                                <tr>
+                                    <td th:text="#{concurrency}" style="font-weight: bold;"></td>
+                                    <td th:text="${RUN_STATUS.concurrency}"/>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <th:block th:if="${RUN_STATUS.reportName != null}">
+                                        <td th:text="#{report.name}" style="font-weight: bold;"/>
+                                        <td th:text="${RUN_STATUS.reportName}"/>
+                                    </th:block>
+                                    <th:block th:unless="${RUN_STATUS.reportName != null}">
+                                        <td></td>
+                                        <td></td>
+                                    </th:block>
+                                    <td th:text="#{start.time}" style="font-weight: bold;"></td>
+                                    <td th:text="${#dates.format(RUN_STATUS.start, 'MM-dd-yyyy HH:mm:ss')}"/>
+                                </tr>
+                                <tr>
+                                    <th:block th:if="${RUN_STATUS.progress.toString() == 'COMPLETED'}">
+                                        <input type="hidden" name="REPORT_ID" th:value="${RUN_STATUS.reportName}"
+                                               readonly/>
+                                        <td>
+                                            <button class="pure-button pure-button-primary"
+                                                    type="submit" th:text="#{button.download}"
+                                                    th:formaction="@{/reports/doDownload}" th:formmethod="POST"/>
+                                        </td>
+                                        <td>
+                                            <button class="pure-button pure-button-primary"
+                                                    type="submit" th:text="#{button.details}"
+                                                    th:formaction="@{/reports/detail}" th:formmethod="GET"/>
+                                        </td>
+                                    </th:block>
+                                    <th:block th:unless="${RUN_STATUS.progress.toString() == 'COMPLETED'}">
+                                        <td></td>
+                                        <td></td>
+                                    </th:block>
+                                    <td th:text="#{end.time}" style="font-weight: bold;"></td>
+                                    <td th:text="${#dates.format(RUN_STATUS.end, 'MM-dd-yyyy HH:mm:ss')}"/>
+                                </tr>
+                            </table>
+                        </form>
+                    </fieldset>
+                </div>
+                <div class="pure-u-1-2">
+                    <fieldset>
+                        <legend th:text="#{operational.progress}"/>
+
                         <table class="pure-table pure-table-striped">
                             <tr>
-                                <td th:text="#{concurrency}" style="font-weight: bold;"></td>
-                                <td th:text="${RUN_STATUS.concurrency}"/>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <th:block th:if="${RUN_STATUS.reportName != null}">
-                                    <td th:text="#{report.name}" style="font-weight: bold;"/>
-                                    <td th:text="${RUN_STATUS.reportName}"/>
-                                </th:block>
-                                <th:block th:unless="${RUN_STATUS.reportName != null}">
-                                    <td></td>
-                                    <td></td>
-                                </th:block>
-                                <td th:text="#{start.time}" style="font-weight: bold;"></td>
-                                <td th:text="${#dates.format(RUN_STATUS.start, 'MM-dd-yyyy HH:mm:ss')}"/>
-                            </tr>
-                            <tr>
-                                <th:block th:if="${RUN_STATUS.progress.toString() == 'COMPLETED'}">
-                                    <input type="hidden" name="REPORT_ID" th:value="${RUN_STATUS.reportName}" readonly/>
-                                    <td>
-                                        <button class="pure-button pure-button-primary"
-                                                type="submit" th:text="#{button.download}"
-                                                th:formaction="@{/reports/doDownload}" th:formmethod="POST"/>
-                                    </td>
-                                    <td>
-                                        <button class="pure-button pure-button-primary"
-                                                type="submit" th:text="#{button.details}"
-                                                th:formaction="@{/reports/detail}" th:formmethod="GET"/>
-                                    </td>
-                                </th:block>
-                                <th:block th:unless="${RUN_STATUS.progress.toString() == 'COMPLETED'}">
-                                    <td></td>
-                                    <td></td>
-                                </th:block>
-                                <td th:text="#{end.time}" style="font-weight: bold;"></td>
-                                <td th:text="${#dates.format(RUN_STATUS.end, 'MM-dd-yyyy HH:mm:ss')}"/>
-                            </tr>
-                        </table>
-                    </form>
-                </fieldset>
-            </div>
-            <div class="pure-u-1-2">
-                <fieldset>
-                    <legend th:text="#{operational.progress}"/>
-
-                    <table class="pure-table pure-table-striped">
-                        <tr>
-                            <th></th>
-                            <th>Databases</th>
-                            <th>Tables</th>
-                        </tr>
-                        <tr>
-                            <td>Counts</td>
-                            <td th:text="${RUN_STATUS.operationStatistics.getCounts().getDatabases()}"/>
-                            <td th:text="${RUN_STATUS.operationStatistics.getCounts().getTables()}"/>
-                        </tr>
-                        <tr>
-                            <td>Skipped</td>
-                            <td th:text="${RUN_STATUS.operationStatistics.getSkipped().getDatabases()}"/>
-                            <td th:text="${RUN_STATUS.operationStatistics.getSkipped().getTables()}"/>
-                        </tr>
-                        <tr>
-                            <td>Issues</td>
-                            <td th:text="${RUN_STATUS.operationStatistics.getIssues().getDatabases()}"/>
-                            <td th:text="${RUN_STATUS.operationStatistics.getIssues().getTables()}"/>
-                        </tr>
-                        <tr>
-                            <td>Failures</td>
-                            <td th:text="${RUN_STATUS.operationStatistics.getFailures().getDatabases()}"/>
-                            <td th:text="${RUN_STATUS.operationStatistics.getFailures().getTables()}"/>
-                        </tr>
-                        <tr>
-                            <td>Successes</td>
-                            <td th:text="${RUN_STATUS.operationStatistics.getSuccesses().getDatabases()}"/>
-                            <td th:text="${RUN_STATUS.operationStatistics.getSuccesses().getTables()}"/>
-                        </tr>
-                    </table>
-                </fieldset>
-            </div>
-
-            <!--            <div class="pure-u-1-2" th:if="${RUN_STATUS.inProgressTables.size() > 0}">-->
-            <div class="pure-u-1-2">
-                <fieldset>
-                    <legend th:text="#{inprogress.tables}"/>
-                    <div class="pure-control-group">
-<!--                        <label th:text="#{inprogress.tables}"></label>-->
-                        <table class="pure-table pure-table-bordered pure-table-striped" style="width: 80%;">
-                            <tr>
-                                <th style="width: 20%;" th:text="#{table.name}"/>
-                                <th style="width: 80%;" th:text="#{table.progress}"/>
-                            </tr>
-                            <tr>
                                 <th></th>
-                                <th th:text="#{table.progress.message}"/>
+                                <th>Databases</th>
+                                <th>Tables</th>
                             </tr>
-                            <th:block th:each="table: ${RUN_STATUS.inProgressTables}">
-                                <div class="pure-control-group">
-                                    <tr>
-                                        <td th:text="${table.name}"/>
-                                        <td style="width: 100%">
-                                            <div class="progress"
-                                                 th:style="'--progress: ' + ${table.getProgressPercent()} + '%;'"></div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td></td>
-                                        <td th:text="${table.getMigrationStageMessage()}"/>
-                                    </tr>
-                                </div>
-                            </th:block>
+                            <tr>
+                                <td>Counts</td>
+                                <td th:text="${RUN_STATUS.operationStatistics.getCounts().getDatabases()}"/>
+                                <td th:text="${RUN_STATUS.operationStatistics.getCounts().getTables()}"/>
+                            </tr>
+                            <tr>
+                                <td>Skipped</td>
+                                <td th:text="${RUN_STATUS.operationStatistics.getSkipped().getDatabases()}"/>
+                                <td th:text="${RUN_STATUS.operationStatistics.getSkipped().getTables()}"/>
+                            </tr>
+                            <tr>
+                                <td>Issues</td>
+                                <td th:text="${RUN_STATUS.operationStatistics.getIssues().getDatabases()}"/>
+                                <td th:text="${RUN_STATUS.operationStatistics.getIssues().getTables()}"/>
+                            </tr>
+                            <tr>
+                                <td>Failures</td>
+                                <td th:text="${RUN_STATUS.operationStatistics.getFailures().getDatabases()}"/>
+                                <td th:text="${RUN_STATUS.operationStatistics.getFailures().getTables()}"/>
+                            </tr>
+                            <tr>
+                                <td>Successes</td>
+                                <td th:text="${RUN_STATUS.operationStatistics.getSuccesses().getDatabases()}"/>
+                                <td th:text="${RUN_STATUS.operationStatistics.getSuccesses().getTables()}"/>
+                            </tr>
                         </table>
-                        <!--                <ul>-->
-                        <!--                    -->
-                        <!--                    <li th:each="table: ${RUN_STATUS.inProgressTables}"-->
-                        <!--                        th:text="${table}"/>-->
-                        <!--                </ul>-->
-                    </div>
-                </fieldset>
+                    </fieldset>
+                </div>
+
+                <!--            <div class="pure-u-1-2" th:if="${RUN_STATUS.inProgressTables.size() > 0}">-->
+                <div class="pure-u-1-2">
+                    <fieldset>
+                        <legend th:text="#{inprogress.tables}"/>
+                        <div class="pure-control-group">
+                            <!--                        <label th:text="#{inprogress.tables}"></label>-->
+                            <table class="pure-table pure-table-bordered pure-table-striped" style="width: 80%;">
+                                <tr>
+                                    <th style="width: 20%;" th:text="#{table.name}"/>
+                                    <th style="width: 80%;" th:text="#{table.progress}"/>
+                                </tr>
+                                <tr>
+                                    <th></th>
+                                    <th th:text="#{table.progress.message}"/>
+                                </tr>
+                                <th:block th:each="table: ${RUN_STATUS.inProgressTables}">
+                                    <div class="pure-control-group">
+                                        <tr>
+                                            <td th:text="${table.name}"/>
+                                            <td style="width: 100%">
+                                                <div class="progress"
+                                                     th:style="'--progress: ' + ${table.getProgressPercent()} + '%;'"></div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td></td>
+                                            <td th:text="${table.getMigrationStageMessage()}"/>
+                                        </tr>
+                                    </div>
+                                </th:block>
+                            </table>
+                            <!--                <ul>-->
+                            <!--                    -->
+                            <!--                    <li th:each="table: ${RUN_STATUS.inProgressTables}"-->
+                            <!--                        th:text="${table}"/>-->
+                            <!--                </ul>-->
+                        </div>
+                    </fieldset>
+                </div>
+                <div class="pure-u-1-2 pure-control-group">
+                    <fieldset>
+                        <legend th:text="#{process.progress}"/>
+                        <!--                                            <label th:text="#{stages}"/>-->
+                        <table class="pure-table pure-table-striped">
+                            <tr>
+                                <th>Stage</th>
+                                <th>Status</th>
+                            </tr>
+                            <tr th:each="stage: ${RUN_STATUS.getStages()}">
+                                <td th:text="${stage.key.getStage()}"/>
+                                <td th:text="${stage.value}"/>
+                            </tr>
+                        </table>
+                    </fieldset>
+                </div>
             </div>
-            <div class="pure-u-1-2 pure-control-group">
-                <fieldset>
-                    <legend th:text="#{process.progress}"/>
-                    <!--                                            <label th:text="#{stages}"/>-->
-                    <table class="pure-table pure-table-striped">
-                        <tr>
-                            <th>Stage</th>
-                            <th>Status</th>
-                        </tr>
-                        <tr th:each="stage: ${RUN_STATUS.getStages()}">
-                            <td th:text="${stage.key.getStage()}"/>
-                            <td th:text="${stage.value}"/>
-                        </tr>
-                    </table>
-                </fieldset>
-            </div>
-        </div>
+        </fieldset>
     </fieldset>
 </div>
 </body>

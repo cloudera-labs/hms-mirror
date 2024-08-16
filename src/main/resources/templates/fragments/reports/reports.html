@@ -28,34 +28,36 @@
 </head>
 <body>
 <div th:fragment="select">
-    <h4 th:text="#{reports}"/>
-    <form class="pure-form pure-form-aligned">
-        <div class="pure-g">
-            <div class="pure-u-1">
-                <div class="pure-control-group tooltip">
-                    <span class="tooltiptext" th:text="#{reports.tooltip}"></span>
-                    <label for="report_id" th:text="#{reports.available}"/>
-                    <select name="REPORT_ID">
-                        <option th:each="id: ${REPORT_LIST}"
-                                th:value="${id}"
-                                th:text="${id}"/>
-                    </select>
-                    <button class="pure-button"
-                            type="submit" th:text="#{button.download}"
-                            th:formaction="@{/reports/doDownload}" th:formmethod="POST"/>
-                    <button class="pure-button pure-button-primary"
-                            type="submit" th:text="#{button.details}"
-                            th:formaction="@{/reports/detail}" th:formmethod="GET"/>
-                    <button class="pure-button" type="submit" th:text="#{button.archive}"
-                            th:formaction="@{/reports/archive}" th:formmethod="POST"/>
+    <fieldset>
+        <legend th:text="#{reports}"/>
+        <form class="pure-form pure-form-aligned">
+            <div class="pure-g">
+                <div class="pure-u-1">
+                    <div class="pure-control-group tooltip">
+                        <span class="tooltiptext" th:text="#{reports.tooltip}"></span>
+                        <label for="report_id" th:text="#{reports.available}"/>
+                        <select name="REPORT_ID">
+                            <option th:each="id: ${REPORT_LIST}"
+                                    th:value="${id}"
+                                    th:text="${id}"/>
+                        </select>
+                        <button class="pure-button"
+                                type="submit" th:text="#{button.download}"
+                                th:formaction="@{/reports/doDownload}" th:formmethod="POST"/>
+                        <button class="pure-button pure-button-primary"
+                                type="submit" th:text="#{button.details}"
+                                th:formaction="@{/reports/detail}" th:formmethod="GET"/>
+                        <button class="pure-button" type="submit" th:text="#{button.archive}"
+                                th:formaction="@{/reports/archive}" th:formmethod="POST"/>
 
-                    <!--                        <button class="pure-button"-->
-                    <!--                                type="submit" th:text="#{button.view}"-->
-                    <!--                                th:formaction="@{/report/view}" th:method="get"/>-->
+                        <!--                        <button class="pure-button"-->
+                        <!--                                type="submit" th:text="#{button.view}"-->
+                        <!--                                th:formaction="@{/report/view}" th:method="get"/>-->
+                    </div>
                 </div>
             </div>
-        </div>
-    </form>
+        </form>
+    </fieldset>
 </div>
 <div th:fragment="details">
     <!--
@@ -70,58 +72,61 @@
         - Distcp Shell Scripts for the report.
 
     -->
-    <h4 th:text="#{reports.for(${SESSION_ID})}"/>
-    <!--    Create an Archive button that will take the SESSION_ID-->
-    <form>
-        <input type="hidden" name="REPORT_ID" th:value="${SESSION_ID}"/>
-        <button class="pure-button"
-                type="submit" th:text="#{button.download}"
-                th:formaction="@{/reports/doDownload}" th:formmethod="POST"/>
-        <button class="pure-button" type="submit" th:text="#{button.archive}"
-                th:formaction="@{/reports/archive}" th:formmethod="POST"/>
-    </form>
+    <fieldset>
+        <legend th:text="#{reports.for(${SESSION_ID})}"/>
+        <!--    Create an Archive button that will take the SESSION_ID-->
+        <form>
+            <input type="hidden" name="REPORT_ID" th:value="${SESSION_ID}"/>
+            <button class="pure-button"
+                    type="submit" th:text="#{button.download}"
+                    th:formaction="@{/reports/doDownload}" th:formmethod="POST"/>
+            <button class="pure-button" type="submit" th:text="#{button.archive}"
+                    th:formaction="@{/reports/archive}" th:formmethod="POST"/>
+        </form>
 
-    <b th:if="${RUN_STATUS != null && RUN_STATUS.appVersion != null}" th:text="#{version(${RUN_STATUS.appVersion})}"/>
-    <form class="pure-form pure-form-aligned">
-        <div class="pure-g">
-            <div class="pure-u-1">
-                <div class="pure-control-group">
+        <b th:if="${RUN_STATUS != null && RUN_STATUS.appVersion != null}"
+           th:text="#{version(${RUN_STATUS.appVersion})}"/>
+        <form class="pure-form pure-form-aligned">
+            <div class="pure-g">
+                <div class="pure-u-1">
+                    <div class="pure-control-group">
 
-                    <th:block th:each="section: ${ARTIFACTS}">
-                        <fieldset th:if="${section.key == 'DISTCP_PLANS'}">
-                            <legend th:text="#{distcp.workbook}"/>
-                            <th:block th:each="file: ${section.value}">
-                                <a class="pure-button"
-                                   th:href="@{/reports/distcpWorkbook?REPORT_ID=__${SESSION_ID}__&FILE=__${file}__}"
-                                   target="_blank" th:text="${file}"/>
-                            </th:block>
-<!--                            <a class="pure-button"-->
-<!--                               th:href="@{/reports/distcpWorkbook?REPORT_ID=__${SESSION_ID}__}"-->
-<!--                               target="_blank" th:text="#{button.view}"/>-->
-                        </fieldset>
-                        <fieldset th:if="${section.key != 'DISTCP_PLANS'}">
-                            <legend th:text="${section.key}"/>
-                            <table class="pure-table pure-table-bordered pure-table-striped">
-                                <tr th:each="file: ${section.value}">
-                                    <td th:text="${file}"/>
-                                    <td>
-                                        <a class="pure-button"
-                                           th:if="${section.key == 'DATABASES'}"
-                                           th:href="@{/reports/dbdetail?REPORT_ID=__${SESSION_ID}__&DATABASE=__${file}__}"
-                                           target="_blank" th:text="#{button.view}"/>
-                                        <a class="pure-button"
-                                           th:unless="${section.key == 'DATABASES'}"
-                                           th:href="@{/reports/viewReportFile?REPORT_ID=__${SESSION_ID}__&FILE=__${file}__}"
-                                           target="_blank" th:text="#{button.view}"/>
-                                    </td>
-                                </tr>
-                            </table>
-                        </fieldset>
-                    </th:block>
+                        <th:block th:each="section: ${ARTIFACTS}">
+                            <fieldset th:if="${section.key == 'DISTCP_PLANS'}">
+                                <legend th:text="#{distcp.workbook}"/>
+                                <th:block th:each="file: ${section.value}">
+                                    <a class="pure-button"
+                                       th:href="@{/reports/distcpWorkbook?REPORT_ID=__${SESSION_ID}__&FILE=__${file}__}"
+                                       target="_blank" th:text="${file}"/>
+                                </th:block>
+                                <!--                            <a class="pure-button"-->
+                                <!--                               th:href="@{/reports/distcpWorkbook?REPORT_ID=__${SESSION_ID}__}"-->
+                                <!--                               target="_blank" th:text="#{button.view}"/>-->
+                            </fieldset>
+                            <fieldset th:if="${section.key != 'DISTCP_PLANS'}">
+                                <legend th:text="${section.key}"/>
+                                <table class="pure-table pure-table-bordered pure-table-striped">
+                                    <tr th:each="file: ${section.value}">
+                                        <td th:text="${file}"/>
+                                        <td>
+                                            <a class="pure-button"
+                                               th:if="${section.key == 'DATABASES'}"
+                                               th:href="@{/reports/dbdetail?REPORT_ID=__${SESSION_ID}__&DATABASE=__${file}__}"
+                                               target="_blank" th:text="#{button.view}"/>
+                                            <a class="pure-button"
+                                               th:unless="${section.key == 'DATABASES'}"
+                                               th:href="@{/reports/viewReportFile?REPORT_ID=__${SESSION_ID}__&FILE=__${file}__}"
+                                               target="_blank" th:text="#{button.view}"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </fieldset>
+                        </th:block>
+                    </div>
                 </div>
             </div>
-        </div>
-    </form>
+        </form>
+    </fieldset>
 </div>
 
 </html>

@@ -151,3 +151,44 @@ legend {
     font-size: 18px;
     font-weight: bold;
 }
+
+.left-nav {
+    background-color: #305868;
+    height: 100%;
+    overflow: hidden;
+    position: fixed;
+}
+
+.footer {
+    /*background-color: #305868;*/
+    /*border: 1px solid #ccc;*/
+    /*border-radius: 5px;*/
+    /*padding: 10px;*/
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 50px;
+    bottom: 0;
+}
+
+/*Menu Colors*/
+
+.pure-menu-heading {
+    color: #fff;
+/*    Add Backgroun color */
+    background-color: #6e6d6d;
+/*     Add Border */
+    border-bottom: 1px solid #305868;
+    border-top: 1px solid #305868;
+}
+
+.pure-menu-item {
+/*    Add Border */
+    border-bottom: 1px solid #e1e1e1;
+    border-left: 1px solid #e1e1e1;
+    border-right: 1px solid #e1e1e1;
+}
+
+.no-border {
+    border: none;
+}

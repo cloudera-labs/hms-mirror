@@ -28,54 +28,64 @@
 </head>
 <body>
 <nav th:fragment="left_nav">
-    <div class="pure-menu">
-        <span class="pure-menu-heading" th:text="#{config}"/>
-        <ul class="pure-menu-list">
-            <li class="pure-menu-item">
-                <a class="pure-menu-link" th:text="#{init}"
-                   th:href="@{/config/init}"/>
-            </li>
-            <li class="pure-menu-item" th:if="${CONFIG != null}">
-                <a class="pure-menu-link" th:text="#{view}"
-                   th:href="@{/config/view}"/>
-            </li>
-            <li class="pure-menu-item" th:if="${CONFIG != null}">
-                <a class="pure-menu-link" th:text="#{edit}"
-                   th:href="@{/config/edit}"/>
-            </li>
-            <li class="pure-menu-item" th:if="${CONFIG != null}">
-                <a class="pure-menu-link" th:text="#{summary.view}"
-                   th:href="@{/config/summary}"/>
-            </li>
-            <li class="pure-menu-item" th:if="${CONFIG != null}">
-                <a class="pure-menu-link" th:text="#{persist}"
-                   th:href="@{/config/persist}"/>
-            </li>
-        </ul>
-        <span class="pure-menu-heading" th:text="#{connections}"/>
-        <ul class="pure-menu-list" th:if="${CONFIG != null}">
-            <li class="pure-menu-item">
-                <a class="pure-menu-link" th:text="#{validate}"
-                   th:href="@{/connections/validate}"/>
-            </li>
-        </ul>
-        <span class="pure-menu-heading" th:text="#{runtime}"/>
-        <ul class="pure-menu-list">
-            <li class="pure-menu-item">
-                <a class="pure-menu-link" th:text="#{execute}"
-                   th:if="${CONFIG != null}"
-                   th:href="@{/runtime/start}"/>
-            </li>
-            <li class="pure-menu-item">
-                <a class="pure-menu-link" th:text="#{status}"
-                   th:if="${CONFIG != null}"
-                   th:href="@{/runtime/status}"/>
-            </li>
-            <li class="pure-menu-item">
-                <a class="pure-menu-link" th:text="#{reports}"
-                   th:href="@{/reports/select}"/>
-            </li>
-        </ul>
+    <div class="pure-u-1">
+        <div class="pure-menu">
+            <span class="pure-menu-heading" th:text="#{config}"/>
+            <ul class="pure-menu-list">
+                <li class="pure-menu-item">
+                    <a class="pure-menu-link" th:text="#{init}"
+                       th:href="@{/config/init}"/>
+                </li>
+                <li class="pure-menu-item" th:if="${CONFIG != null}">
+                    <a class="pure-menu-link" th:text="#{view}"
+                       th:href="@{/config/view}"/>
+                </li>
+                <li class="pure-menu-item" th:if="${CONFIG != null}">
+                    <a class="pure-menu-link" th:text="#{edit}"
+                       th:href="@{/config/edit}"/>
+                </li>
+                <li class="pure-menu-item" th:if="${CONFIG != null}">
+                    <a class="pure-menu-link" th:text="#{summary.view}"
+                       th:href="@{/config/summary}"/>
+                </li>
+                <li class="pure-menu-item" th:if="${CONFIG != null}">
+                    <a class="pure-menu-link" th:text="#{persist}"
+                       th:href="@{/config/persist}"/>
+                </li>
+            </ul>
+            <span class="pure-menu-heading" th:text="#{connections}"/>
+            <ul class="pure-menu-list" th:if="${CONFIG != null}">
+                <li class="pure-menu-item">
+                    <a class="pure-menu-link" th:text="#{validate}"
+                       th:href="@{/connections/validate}"/>
+                </li>
+            </ul>
+            <span class="pure-menu-heading" th:text="#{runtime}"/>
+            <ul class="pure-menu-list">
+                <li class="pure-menu-item">
+                    <a class="pure-menu-link" th:text="#{execute}"
+                       th:if="${CONFIG != null}"
+                       th:href="@{/runtime/start}"/>
+                </li>
+                <li class="pure-menu-item">
+                    <a class="pure-menu-link" th:text="#{status}"
+                       th:if="${CONFIG != null}"
+                       th:href="@{/runtime/status}"/>
+                </li>
+                <li class="pure-menu-item">
+                    <a class="pure-menu-link" th:text="#{reports}"
+                       th:href="@{/reports/select}"/>
+                </li>
+            </ul>
+            <!--        <ul class="pure-menu-list bottom-nav">-->
+            <!--            <li class="pure-menu-item">-->
+            <!--                <a th:href="#{docs.website}" target="_blank"><b th:text="#{documentation}"/></a>-->
+            <!--            </li>-->
+            <!--            <li class="pure-menu-item" th:if="${RUN_CONTAINER != null && RUN_CONTAINER.sessionId != null}">-->
+            <!--                <b th:text="#{session.id(${RUN_CONTAINER.sessionId})}"/>-->
+            <!--            </li>-->
+            <!--        </ul>-->
+        </div>
     </div>
 </nav>
 </body>

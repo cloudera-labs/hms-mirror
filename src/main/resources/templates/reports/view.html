@@ -34,7 +34,7 @@
     <div class="pure-u-1-6" th:insert="fragments/nav::left_nav">
     </div>
     <div class="pure-u-5-6">
-        <div class="pure-u-1" th:insert="${ACTION == 'select'} ?
+        <div class="pure-u-11-12" th:insert="${ACTION == 'select'} ?
             ~{fragments/reports/reports :: select} :
             ~{fragments/reports/reports :: details}">
         </div>

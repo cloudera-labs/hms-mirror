@@ -34,13 +34,15 @@
 
     <!--        Use to control input tags use -->
     <fieldset th:disabled="${READ_ONLY}">
+        <legend><span><a th:href="#{docs.url(${CONFIG.dataStrategy.name.toLowerCase().replace('_','-')})}" target="_blank"
+                         style="horiz-align: center"> <p th:text="#{config.dataStrategy(${CONFIG.dataStrategy})}"/></a></span></legend>
         <form class="pure-form pure-form-aligned" id="config_action" th:object="${CONFIG}">
             <input type="hidden" id="datastrategy" th:field="*{dataStrategy}"
                    th:value="${CONFIG.dataStrategy}" readonly/>
 
-            <a th:href="#{docs.url(${CONFIG.dataStrategy.name.toLowerCase().replace('_','-')})}" target="_blank"
-               style="horiz-align: center">
-                <h4 th:text="#{config.dataStrategy(${CONFIG.dataStrategy})}"/></a>
+<!--            <a th:href="#{docs.url(${CONFIG.dataStrategy.name.toLowerCase().replace('_','-')})}" target="_blank"-->
+<!--               style="horiz-align: center">-->
+<!--                <h4 th:text="#{config.dataStrategy(${CONFIG.dataStrategy})}"/></a>-->
 
             <div id="messages" th:insert="fragments/messages::view">
             </div>
@@ -49,7 +51,7 @@
 
                 <ul class="pure-menu-list">
 
-                    <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                    <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover no-border">
                         <a th:text="#{config.filters}" href="#" class="pure-menu-link"/>
                         <ul class="pure-menu-children">
                             <li class="pure-menu-item"
@@ -79,7 +81,7 @@
                         </ul>
                     </li>
 
-                    <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                    <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover no-border">
                         <a th:text="#{attributes}" href="#" class="pure-menu-link"/>
                         <ul class="pure-menu-children">
                             <li class="pure-menu-item"
@@ -113,7 +115,7 @@
                             </li>
                         </ul>
                     </li>
-                    <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                    <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover no-border">
                         <a href="#" id="clusterlink" class="pure-menu-link" th:text="#{clusters}"/>
                         <ul class="pure-menu-children">
                             <li class="pure-menu-item" th:if="${CONFIG.getCluster('LEFT') != null}">
@@ -126,7 +128,7 @@
                             </li>
                         </ul>
                     </li>
-                    <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover">
+                    <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover no-border">
                         <a href="#" class="pure-menu-link" th:text="#{transfer}"/>
                         <ul class="pure-menu-children">
                             <li class="pure-menu-item">
@@ -145,7 +147,7 @@
                         </ul>
 
                     </li>
-                    <li class="pure-menu-item">
+                    <li class="pure-menu-item no-border">
                         <a th:text="#{password.management}" href="#" class="pure-menu-link"
                            onclick="openSection(event, 'password_management')"/>
                     </li>
