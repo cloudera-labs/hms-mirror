@@ -68,6 +68,11 @@
         <toc-element topic="STORAGE_MIGRATION.md"/>
         <toc-element topic="hms-mirror-iceberg_migration.md"/>
     </toc-element>
+    <toc-element topic="Index-of-Settings.md">
+        <toc-element topic="Transfer.md">
+            <toc-element topic="Transfer-Storage-Migration.md"/>
+        </toc-element>
+    </toc-element>
     <toc-element topic="troubleshooting.md"/>
     <toc-element topic="license.md"/>
     <toc-element topic="use-cases.md">

@@ -33,22 +33,30 @@
         <legend th:text="#{config.data.movement}"/>
         <!-- Data Movement Strategy -->
         <div class="pure-control-group">
-            <label for="targetNamespace" th:text="#{config.transfer.targetNamespace}"/>
+            <label for="targetNamespace">
+                <a th:text="#{config.transfer.targetNamespace}"
+                   th:href="#{docs.link('transfer.html#target-namespace')}" target="_blank"></a>
+            </label>
             <input id="targetNamespace" type="text"
                    th:field="*{transfer.targetNamespace}"
                    placeholder="Set Target Namespace"/>
             <span class="pure-form-message-inline" th:text="#{config.transfer.targetNamespace.use}"/>
         </div>
         <div class="pure-control-group">
-            <label for="intermediateStorage" th:text="#{config.transfer.intermediateStorage}"/>
+            <label for="intermediateStorage">
+                <a th:text="#{config.transfer.intermediateStorage}"
+                   th:href="#{docs.link('transfer.html#intermediate-storage')}" target="_blank"></a>
+            </label>
             <input id="intermediateStorage" type="text"
                    th:field="*{transfer.intermediateStorage}"
                    placeholder="Set Intermediate Storage"/>
             <span class="pure-form-message-inline" th:text="#{config.transfer.intermediateStorage.use}"/>
         </div>
         <div class="pure-control-group">
-            <label for="dataMovementStrategy"
-                   th:text="#{config.transfer.storageMigration.translationType}"></label>
+            <label for="dataMovementStrategy">
+                <a th:text="#{config.transfer.storageMigration.translationType}"
+                   th:href="#{docs.link('transfer-storage-migration.html#location-translation-strategy')}" target="_blank"></a>
+            </label>
             <select id="dataAlignmentStrategy"
                     th:field="*{transfer.storageMigration.translationType}">
                 <option th:each="tte: ${translationtypeenums}"
@@ -56,12 +64,15 @@
                         th:text="${tte}"
                         th:selected="${tte.equals(CONFIG.transfer.storageMigration.translationType)}"/>
             </select>
+            <span class="pure-form-message-inline" th:text="#{config.transfer.storageMigration.translationType.use}"/>
         </div>
 
 
         <div class="pure-control-group">
-            <label for="dataMovementStrategy"
-                   th:text="#{config.transfer.storageMigration.dataMovementStrategy}"></label>
+            <label for="dataMovementStrategy">
+                <a th:text="#{config.transfer.storageMigration.dataMovementStrategy}"
+                   th:href="#{docs.link('transfer-storage-migration.html#data-movement-strategy')}" target="_blank"/>
+            </label>
             <select id="dataMovementStrategy"
                     th:field="*{transfer.storageMigration.dataMovementStrategy}">
                 <option th:each="cet: ${datamovementstrategyenums}"
@@ -69,15 +80,20 @@
                         th:text="${cet}"
                         th:selected="${cet.equals(CONFIG.transfer.storageMigration.dataMovementStrategy)}"/>
             </select>
+            <span class="pure-form-message-inline"
+                  th:text="#{config.transfer.storageMigration.dataMovementStrategy.use}"/>
         </div>
         <!-- Consolidate Source Tables -->
         <div class="pure-control-group">
-            <label for="consolidateSourceTables"
-                   th:text="#{config.transfer.storageMigration.consolidateSourceTables}"></label>
+            <label for="consolidateSourceTables">
+                   <a th:text="#{config.transfer.storageMigration.consolidateSourceTables}"
+                      th:href="#{docs.link('transfer-storage-migration.html#consolidate-source-tables')}" target="_blank"/>
+            </label>
             <input type="checkbox" id="consolidateSourceTables"
                    th:field="*{transfer.storageMigration.consolidateTablesForDistcp}"
                    th:checked="${CONFIG.transfer.storageMigration.consolidateTablesForDistcp}"/>
-            <span class="pure-form-message-inline" th:text="#{config.transfer.storageMigration.consolidateSourceTables.use}"/>
+            <span class="pure-form-message-inline"
+                  th:text="#{config.transfer.storageMigration.consolidateSourceTables.use}"/>
         </div>
 
         <!-- Data Flow -->

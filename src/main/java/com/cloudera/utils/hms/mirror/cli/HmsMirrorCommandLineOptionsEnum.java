@@ -26,6 +26,7 @@ public enum HmsMirrorCommandLineOptionsEnum {
     AUTO_TUNE("at", "auto-tune", null, ""),
     CFG("cfg", "config", "filename", ""),
     CONCURRENCY("c", "concurrency", "threads", ""),
+    CONSOLIDATE_TABLES_FOR_DISTCP("ctfd", "consolidate-tables-for-distcp", null, ""),
     CREATE_IF_NOT_EXIST("cine", "create-if-not-exist", null, ""),
     TARGET_NAMESPACE("tns", "target-namespace", "target", ""),
     COMPRESS_TEXT_OUTPUT("cto", "compress-text-output", null, ""),

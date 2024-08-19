@@ -17,12 +17,8 @@
 
 package com.cloudera.utils.hms.mirror.cli.config;
 
-import com.cloudera.utils.hms.mirror.domain.DBMirror;
 import com.cloudera.utils.hms.mirror.cli.CliReporter;
-import com.cloudera.utils.hms.mirror.domain.Cluster;
-import com.cloudera.utils.hms.mirror.domain.HiveServer2Config;
-import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
-import com.cloudera.utils.hms.mirror.domain.TableMirror;
+import com.cloudera.utils.hms.mirror.domain.*;
 import com.cloudera.utils.hms.mirror.domain.support.Conversion;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
@@ -65,6 +61,7 @@ public class CliInit {
     private ConfigService configService;
     private DomainService domainService;
     private ExecuteSessionService executeSessionService;
+    private ObjectMapper yamlMapper;
 
     @Autowired
     public void setConfigService(ConfigService configService) {
@@ -79,6 +76,11 @@ public class CliInit {
     @Autowired
     public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
         this.executeSessionService = executeSessionService;
+    }
+
+    @Autowired
+    public void setYamlMapper(ObjectMapper yamlMapper) {
+        this.yamlMapper = yamlMapper;
     }
 
     private HmsMirrorConfig initializeConfig(String configFilename) {
@@ -132,6 +134,8 @@ public class CliInit {
                                                @Value("${hms-mirror.config.filename}") String configFile) {
         String fullConfigPath;
         // If file is absolute, use it.  Otherwise, use the path.
+        // String the quotes from the string.
+        configFile = configFile.replaceAll("^\"|\"$", "");
         if (configFile.startsWith(File.separator)) {
             fullConfigPath = configFile;
         } else {
@@ -172,15 +176,18 @@ public class CliInit {
     public CommandLineRunner loadTestData(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.conversion.test-filename}") String filename) throws IOException {
 //        RunStatus runStatus = new RunStatus();
         return args -> {
-            hmsMirrorConfig.setLoadTestDataFile(filename);
+            // String quotes from the filename.
+            String adjustedFilename = filename.replaceAll("^\"|\"$", "");
+            hmsMirrorConfig.setLoadTestDataFile(adjustedFilename);
         };
     }
 
     private void loadTestData(ExecuteSession session) {
         log.info("Loading Test Data");
         HmsMirrorConfig config = session.getConfig();
+        String yamlCfgFile = null;
+        String filename = config.getLoadTestDataFile();
         try {
-            String filename = config.getLoadTestDataFile();
             log.info("Reconstituting Conversion from test data file: {}", filename);
             log.info("Checking 'classpath' for test data file");
             URL configURL = this.getClass().getResource(filename);
@@ -191,16 +198,62 @@ public class CliInit {
                     throw new RuntimeException("Couldn't locate test data file: " + filename);
                 configURL = conversionFile.toURI().toURL();
             }
-            ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-            mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+//            ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+//            mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-            String yamlCfgFile = IOUtils.toString(configURL, StandardCharsets.UTF_8);
-            Conversion conversion = mapper.readerFor(Conversion.class).readValue(yamlCfgFile);
+            yamlCfgFile = IOUtils.toString(configURL, StandardCharsets.UTF_8);
+            Conversion conversion = yamlMapper.readerFor(Conversion.class).readValue(yamlCfgFile);
             // Set Config Databases;
             List<String> databases = new ArrayList<>(conversion.getDatabases().keySet());
             config.setDatabases(databases);
             // Replace the conversion in the session.
             executeSessionService.getSession().setConversion(conversion);
+        } catch (UnrecognizedPropertyException upe) {
+            // Appears that the file isn't a Conversion file, so try to load it as a DBMirror file.
+            try {
+                DBMirror dbMirror = loadDBMirrorFromFile(config.getLoadTestDataFile());
+                Conversion conversion = new Conversion();
+                conversion.getDatabases().put(dbMirror.getName(), dbMirror);
+                // Set Config Databases;
+                List<String> databases = new ArrayList<>(conversion.getDatabases().keySet());
+                config.setDatabases(databases);
+                // Replace the conversion in the session.
+                executeSessionService.getSession().setConversion(conversion);
+            } catch (Throwable t2) {
+                log.error(t2.getMessage(), t2);
+                throw t2;
+            }
+//
+//            throw new RuntimeException("\nThere may have been a breaking change in the configuration since the previous " +
+//                    "release. Review the note below and remove the 'Unrecognized field' from the configuration and try " +
+//                    "again.\n\n", upe);
+        } catch (Throwable t) {
+            // Look for yaml update errors.
+//            if (t.toString().contains("MismatchedInputException")) {
+////                throw new RuntimeException("The format of the 'config' yaml file MAY HAVE CHANGED from the last release.  Please make a copy and run " +
+////                        "'-su|--setup' again to recreate in the new format", t);
+//            } else {
+            throw new RuntimeException(t);
+//            }
+
+        }
+    }
+
+    private DBMirror loadDBMirrorFromFile(String filename) {
+        DBMirror dbMirror = null;
+        try {
+            log.info("Reconstituting DBMirror from file: {}", filename);
+            log.info("Checking 'classpath' for DBMirror file");
+            URL configURL = this.getClass().getResource(filename);
+            if (isNull(configURL)) {
+                log.info("Checking filesystem for DBMirror file: {}", filename);
+                File conversionFile = new File(filename);
+                if (!conversionFile.exists())
+                    throw new RuntimeException("Couldn't locate DBMirror file: " + filename);
+                configURL = conversionFile.toURI().toURL();
+            }
+            String yamlCfgFile = IOUtils.toString(configURL, StandardCharsets.UTF_8);
+            dbMirror = yamlMapper.readerFor(DBMirror.class).readValue(yamlCfgFile);
         } catch (UnrecognizedPropertyException upe) {
             throw new RuntimeException("\nThere may have been a breaking change in the configuration since the previous " +
                     "release. Review the note below and remove the 'Unrecognized field' from the configuration and try " +
@@ -215,7 +268,7 @@ public class CliInit {
                 throw new RuntimeException("A configuration element is no longer valid, progress.  Please remove the element from the configuration yaml and try again.", t);
             }
         }
-
+        return dbMirror;
     }
 
     @Bean
@@ -252,7 +305,6 @@ public class CliInit {
                     }
                 }
             }
-
 
 
             try {
@@ -336,7 +388,8 @@ public class CliInit {
     @ConditionalOnProperty(
             name = "hms-mirror.config.output-dir")
         // Will set this when the value is set externally.
-    CommandLineRunner configOutputDir(HmsMirrorConfig hmsMirrorConfig, CliReporter reporter, @Value("${hms-mirror.config.output-dir}") String value) {
+    CommandLineRunner configOutputDir(HmsMirrorConfig hmsMirrorConfig, CliReporter
+            reporter, @Value("${hms-mirror.config.output-dir}") String value) {
         return configOutputDirInternal(hmsMirrorConfig, reporter, value);
     }
 

@@ -258,6 +258,30 @@ public class HmsMirrorCommandLineOptions {
     @Bean
     @Order(1)
     @ConditionalOnProperty(
+            name = "hms-mirror.config.consolidate-tables-for-distcp",
+            havingValue = "true")
+    CommandLineRunner configConsolidateTablesForDistcpTrue(HmsMirrorConfig hmsMirrorConfig) {
+        return args -> {
+            log.info("consolidate-tables-for-distcp: {}", Boolean.TRUE);
+            hmsMirrorConfig.getTransfer().getStorageMigration().setConsolidateTablesForDistcp(Boolean.TRUE);
+        };
+    }
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
+            name = "hms-mirror.config.consolidate-tables-for-distcp",
+            havingValue = "false")
+    CommandLineRunner configConsolidateTablesForDistcpFalse(HmsMirrorConfig hmsMirrorConfig) {
+        return args -> {
+            log.info("consolidate-tables-for-distcp: {}", Boolean.FALSE);
+            hmsMirrorConfig.getTransfer().getStorageMigration().setConsolidateTablesForDistcp(Boolean.FALSE);
+        };
+    }
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
             name = "hms-mirror.config.db-prefix")
     CommandLineRunner configDatabasePrefix(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.db-prefix}") String value) {
         return args -> {
@@ -1996,6 +2020,9 @@ public class HmsMirrorCommandLineOptions {
             } else if (opt.equals("concurrency")) {
                 // Set Concurrency
                 springOptions.add("--hms-mirror.concurrency.max-threads" + "=\"" + String.join(",", values) + "\"");
+            } else if (opt.equals("load-test-data")) {
+                // Set Concurrency
+                springOptions.add("--hms-mirror.conversion.test-filename" + "=\"" + String.join(",", values) + "\"");
             }else {
                 if (nonNull(values) && values.length > 0) {
                     springOptions.add("--" + SPRING_CONFIG_PREFIX + "." + opt + "=" + String.join(",", values));
