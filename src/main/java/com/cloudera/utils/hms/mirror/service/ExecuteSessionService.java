@@ -183,6 +183,13 @@ public class ExecuteSessionService {
             throw new SessionException("No session loaded.");
         }
 
+        // Reset for each transition.
+        // Set the active session id to the current date and time.
+        if (nonNull(session)) {
+            DateFormat dtf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+            session.setSessionId(dtf.format(new Date()));
+        }
+
         // If it's connected (Active Session), don't go through all this again.
         if (isNull(session) || !session.isConnected()) {
             log.debug("Configure and setup Session");
@@ -219,33 +226,21 @@ public class ExecuteSessionService {
 
             // TODO: Set Metastore Direct Concurrency.
 
-//            session = currentSession.clone();
-
             // Connection Service should be set to the resolved config.
             connectionPoolService.close();
-//        connectionPoolService.setHmsMirrorConfig(session.getConfig());
             connectionPoolService.setExecuteSession(session);
 
-//        try {
-//            connectionPoolService.init();
-//        } catch (Exception e) {
-//            log.error("Error initializing connections pool.", e);
-//            throw new RuntimeException("Error initializing connections pool.", e);
-//        }
+            // Set Session Id.
+            DateFormat dtf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+            session.setSessionId(dtf.format(new Date()));
 
-            if (isNull(session.getSessionId())) {
-                // Set the active session id to the current date and time.
-                DateFormat dtf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
-                session.setSessionId(dtf.format(new Date()));
-            }
-
-            String sessionReportDir = null;
-            if (amendSessionIdToReportDir) {
-                sessionReportDir = reportOutputDirectory + File.separator + session.getSessionId();
-            } else {
-                sessionReportDir = reportOutputDirectory;
-            }
-            session.getConfig().setOutputDirectory(sessionReportDir);
+//            String sessionReportDir = null;
+//            if (amendSessionIdToReportDir) {
+//                sessionReportDir = reportOutputDirectory + File.separator + session.getSessionId();
+//            } else {
+//                sessionReportDir = reportOutputDirectory;
+//            }
+//            session.getConfig().setOutputDirectory(sessionReportDir);
 
             // Create the RunStatus and Conversion objects.
             RunStatus runStatus = session.getRunStatus();

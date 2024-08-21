@@ -44,6 +44,7 @@ import java.sql.Connection;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.regex.Matcher;
 
 import static com.cloudera.utils.hms.mirror.MessageCode.*;
 import static com.cloudera.utils.hms.mirror.MirrorConf.*;
@@ -267,7 +268,7 @@ public class DatabaseService {
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet resultSet = null;
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 //        String database = tableMirror.getParent().getName();
 //        EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
         try {
@@ -280,19 +281,36 @@ public class DatabaseService {
                 pstmt.setString(1, database);
                 resultSet = pstmt.executeQuery();
                 while (resultSet.next()) {
-                    String table = resultSet.getString(1);
+                    String tableName = resultSet.getString(1);
                     String tableType = resultSet.getString(2);
                     String location = resultSet.getString(3);
                     // Filter out some table types. Don't transfer previously moved tables or
                     // interim tables created by hms-mirror.
-                    if (table.startsWith(hmsMirrorConfig.getTransfer().getTransferPrefix())
-                            || table.endsWith("storage_migration")) {
+                    if (tableName.startsWith(config.getTransfer().getTransferPrefix())
+                            || tableName.endsWith("storage_migration")) {
                         log.warn("Database: {} Table: {} was NOT added to list.  The name matches the transfer prefix " +
                                 "and is most likely a remnant of a previous event. If this is a mistake, change the " +
-                                "'transferPrefix' to something more unique.", database, table);
+                                "'transferPrefix' to something more unique.", database, tableName);
                     } else {
-                        hmsMirrorConfig.getTranslator().addTableSource(database, table, tableType, location, consolidationLevelBase,
-                                partitionLevelMismatch);
+                        if (isBlank(config.getFilter().getTblRegEx()) && isBlank(config.getFilter().getTblExcludeRegEx())) {
+                            config.getTranslator().addTableSource(database, tableName, tableType, location, consolidationLevelBase,
+                                    partitionLevelMismatch);
+                        } else if (!isBlank(config.getFilter().getTblRegEx())) {
+                            // Filter Tables
+                            assert (config.getFilter().getTblFilterPattern() != null);
+                            Matcher matcher = config.getFilter().getTblFilterPattern().matcher(tableName);
+                            if (matcher.matches()) {
+                                config.getTranslator().addTableSource(database, tableName, tableType, location, consolidationLevelBase,
+                                        partitionLevelMismatch);
+                            }
+                        } else if (config.getFilter().getTblExcludeRegEx() != null) {
+                            assert (config.getFilter().getTblExcludeFilterPattern() != null);
+                            Matcher matcher = config.getFilter().getTblExcludeFilterPattern().matcher(tableName);
+                            if (!matcher.matches()) { // ANTI-MATCH
+                                config.getTranslator().addTableSource(database, tableName, tableType, location, consolidationLevelBase,
+                                        partitionLevelMismatch);
+                            }
+                        }
                     }
                 }
                 resultSet.close();
@@ -303,13 +321,31 @@ public class DatabaseService {
                 pstmt.setString(1, database);
                 resultSet = pstmt.executeQuery();
                 while (resultSet.next()) {
-                    String table = resultSet.getString(1);
+                    String tableName = resultSet.getString(1);
                     String tableType = resultSet.getString(2);
                     String partitionSpec = resultSet.getString(3);
                     String tableLocation = resultSet.getString(4);
                     String partitionLocation = resultSet.getString(5);
-                    hmsMirrorConfig.getTranslator().addPartitionSource(database, table, tableType, partitionSpec,
-                            tableLocation, partitionLocation, consolidationLevelBase, partitionLevelMismatch);
+
+                    if (isBlank(config.getFilter().getTblRegEx()) && isBlank(config.getFilter().getTblExcludeRegEx())) {
+                        config.getTranslator().addPartitionSource(database, tableName, tableType, partitionSpec,
+                                tableLocation, partitionLocation, consolidationLevelBase, partitionLevelMismatch);
+                    } else if (!isBlank(config.getFilter().getTblRegEx())) {
+                        // Filter Tables
+                        assert (config.getFilter().getTblFilterPattern() != null);
+                        Matcher matcher = config.getFilter().getTblFilterPattern().matcher(tableName);
+                        if (matcher.matches()) {
+                            config.getTranslator().addPartitionSource(database, tableName, tableType, partitionSpec,
+                                    tableLocation, partitionLocation, consolidationLevelBase, partitionLevelMismatch);
+                        }
+                    } else if (config.getFilter().getTblExcludeRegEx() != null) {
+                        assert (config.getFilter().getTblExcludeFilterPattern() != null);
+                        Matcher matcher = config.getFilter().getTblExcludeFilterPattern().matcher(tableName);
+                        if (!matcher.matches()) { // ANTI-MATCH
+                            config.getTranslator().addPartitionSource(database, tableName, tableType, partitionSpec,
+                                    tableLocation, partitionLocation, consolidationLevelBase, partitionLevelMismatch);
+                        }
+                    }
                 }
             }
 

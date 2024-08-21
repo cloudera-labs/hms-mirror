@@ -30,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -46,7 +47,7 @@ public class DistCpService {
         this.yamlMapper = yamlMapper;
     }
 
-    public void buildAllDistCpReports(ExecuteSession session) {
+    public void buildAllDistCpReports(ExecuteSession session, String outputDir) {
         HmsMirrorConfig config = session.getConfig();
         Conversion conversion = session.getConversion();
 
@@ -109,7 +110,7 @@ public class DistCpService {
 
                     Map<String, Map<String, Set<String>>> distcpPlans = buildDistcpListForDatabase(config, database, distcpEnv, 1, config.getTransfer().getStorageMigration().isConsolidateTablesForDistcp());
                     if (!distcpPlans.isEmpty()) {
-                        String distcpPlansFile = config.getOutputDirectory() + FileSystems.getDefault().getSeparator() + originalDatabase + "_" + distcpEnv.toString() + "_distcp_plans.yaml";
+                        String distcpPlansFile = outputDir + File.separator + originalDatabase + "_" + distcpEnv.toString() + "_distcp_plans.yaml";
                         FileWriter distcpPlansFW = new FileWriter(distcpPlansFile);
                         String planYaml = yamlMapper.writeValueAsString(distcpPlans);
                         distcpPlansFW.write(planYaml);
@@ -130,7 +131,7 @@ public class DistCpService {
                         for (Map.Entry<String, Set<String>> dbMap : value.entrySet()) {
                             if (dbMap.getValue().size() > 1) {
                                 String distcpSourceFile = entry.getKey() + "_" + distcpEnv.toString() + "_" + i++ + "_distcp_source.txt";
-                                String distcpSourceFileFull = config.getOutputDirectory() + FileSystems.getDefault().getSeparator() + distcpSourceFile;
+                                String distcpSourceFileFull = outputDir + File.separator + distcpSourceFile;
                                 distcpSourceFW = new FileWriter(distcpSourceFileFull);
 
                                 StringBuilder line = new StringBuilder();
@@ -198,9 +199,9 @@ public class DistCpService {
 //                                break;
 //                        }
 
-                        String distcpWorkbookFile = config.getOutputDirectory() + FileSystems.getDefault().getSeparator() + database +
+                        String distcpWorkbookFile = outputDir + File.separator + database +
                                 "_" + distcpEnv + "_distcp_workbook.md";
-                        String distcpScriptFile = config.getOutputDirectory() + FileSystems.getDefault().getSeparator() + database +
+                        String distcpScriptFile = outputDir + File.separator + database +
                                 "_" + distcpEnv + "_distcp_script.sh";
 
                         FileWriter distcpWorkbookFW = new FileWriter(distcpWorkbookFile);

@@ -456,9 +456,9 @@ public class TableService {
                             if (copySpec.isReplaceLocation() && (!TableUtils.isACID(source) || config.getMigrateACID().isDowngrade())) {
                                 String sourceLocation = TableUtils.getLocation(tableMirror.getName(), tableMirror.getTableDefinition(copySpec.getSource()));
                                 int level = 1;
-                                if (config.getFilter().isTableFiltering()) {
-                                    level = 0;
-                                }
+//                                if (config.getFilter().isTableFiltering()) {
+//                                    level = 0;
+//                                }
                                 String targetLocation = null;
                                 targetLocation = getTranslatorService().
                                         translateLocation(tableMirror, sourceLocation, level, null);

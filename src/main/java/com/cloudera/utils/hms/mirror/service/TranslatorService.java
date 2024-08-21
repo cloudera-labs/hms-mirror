@@ -167,64 +167,10 @@ public class TranslatorService {
         this.executeSessionService = executeSessionService;
     }
 
-//    public Warehouse getDatabaseWarehouse(String database) throws MissingDataPointException {
-//        Warehouse dbWarehouse = null;
-//        ExecuteSession session = executeSessionService.getSession();
-//        HmsMirrorConfig config = session.getConfig();
-//        dbWarehouse = config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().get(database);
-//        if (isNull(dbWarehouse)) {
-//            if (config.getTransfer().getWarehouse().getManagedDirectory() != null &&
-//                    config.getTransfer().getWarehouse().getExternalDirectory() != null) {
-//                dbWarehouse = new Warehouse(config.getTransfer().getWarehouse().getExternalDirectory(),
-//                        config.getTransfer().getWarehouse().getManagedDirectory());
-//            }
-//        }
-//        if (isNull(dbWarehouse)) {
-//            // Look for Location in the right DB Definition for Migration Strategies.
-//            switch (config.getDataStrategy()) {
-//                case SCHEMA_ONLY:
-//                case EXPORT_IMPORT:
-//                case HYBRID:
-//                case SQL:
-//                case COMMON:
-//                case LINKED:
-//                    if (nonNull(config.getCluster(Environment.RIGHT).getEnvVars())) {
-//                        String extDir = config.getCluster(Environment.RIGHT).getEnvVars().get(EXT_DB_LOCATION_PROP);
-//                        String manDir = config.getCluster(Environment.RIGHT).getEnvVars().get(MNGD_DB_LOCATION_PROP);
-//                        if (extDir != null && manDir != null) {
-//                            dbWarehouse = new Warehouse(extDir, manDir);
-//                            session.addWarning(WAREHOUSE_DIRECTORIES_RETRIEVED_FROM_HIVE_ENV);
-//                        } else {
-//                            session.addError(WAREHOUSE_DIRECTORIES_NOT_DEFINED);
-//                            throw new MissingDataPointException("Couldn't find a Warehouse Plan for database: " + database +
-//                                    ". The global warehouse locations aren't defined either.  Please define a warehouse plan or " +
-//                                    "set the global warehouse locations.");
-//                        }
-//                    } else {
-//                        session.addError(WAREHOUSE_DIRECTORIES_NOT_DEFINED);
-//                        throw new MissingDataPointException("Couldn't find a Warehouse Plan for database: " + database +
-//                                ". The global warehouse locations aren't defined either.  Please define a warehouse plan or " +
-//                                "set the global warehouse locations.");
-//                    }
-//                    break;
-//                default: // STORAGE_MIGRATION should set these manually.
-//                    session.addError(WAREHOUSE_DIRECTORIES_NOT_DEFINED);
-//                    throw new MissingDataPointException("Couldn't find a Warehouse Plan for database: " + database +
-//                            ". The global warehouse locations aren't defined either.  Please define a warehouse plan or " +
-//                            "set the global warehouse locations.");
-//            }
-//        }
-//        return dbWarehouse;
-//    }
-
     public Boolean translatePartitionLocations(TableMirror tblMirror) throws RequiredConfigurationException, MissingDataPointException, MismatchException {
         Boolean rtn = Boolean.TRUE;
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
-//        Warehouse warehouse = databaseService.getWarehousePlan(tblMirror.getParent().getName());
-
-//        Map<String, String> dbRef = tblMirror.getParent().getDBDefinition(Environment.RIGHT);
-//        Boolean chkLocation = config.getTransfer().getWarehouse().getManagedDirectory() != null && config.getTransfer().getWarehouse().getExternalDirectory() != null;
         if (tblMirror.getEnvironmentTable(Environment.LEFT).getPartitioned()) {
             // Only Translate for SCHEMA_ONLY.  Leave the DUMP location as is.
             EnvironmentTable target = tblMirror.getEnvironmentTable(Environment.RIGHT);
@@ -245,60 +191,18 @@ public class TranslatorService {
                     int level = StringUtils.countMatches(partSpec, "/") + 1;
                     // Increase level to the table, since we're not filter any tables.  It's assumed that
                     //   we're pulling the whole DB.
-                    if (!config.getFilter().isTableFiltering()) {
-                        level++;
-                    }
+//                    if (!config.getFilter().isTableFiltering()) {
+//                        level++;
+//                    }
                     if (isBlank(partitionLocation) || partitionLocation.isEmpty() ||
                             partitionLocation.equals(NOT_SET)) {
                         rtn = Boolean.FALSE;
                         continue;
                     }
 
-//                    // Get the relative dir.
-//                    String relativeDir = NamespaceUtils.stripNamespace(partitionLocation);//.replace(config.getCluster(Environment.LEFT).getHcfsNamespace(), "");
-//                    // Check the Global Location Map for a match.
-//                    String mappedDir = processGlobalLocationMap(relativeDir, isExternal);
-//                    if (relativeDir.equals(mappedDir)) {
-//                        String errMsg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "partition", entry.getKey(), entry.getValue());
-//                        tblMirror.addIssue(Environment.RIGHT, errMsg);
-//                    }
-//                    // Check for 'common storage'
-//                    mappedDir = mappedDir.replace(originalDatabase, targetDatabase);
-//
-//                    String newPartitionLocation = config.getTargetNamespace() + mappedDir;
-
                     String newPartitionLocation = translateLocation(tblMirror, partitionLocation, level, partSpec);
 
                     entry.setValue(newPartitionLocation);
-                    // For distcp.
-//                    config.getTranslator().addTranslation(originalDatabase, Environment.RIGHT, partitionLocation,
-//                            newPartitionLocation, ++level);
-
-                    // Check and warn against warehouse locations if specified.
-//                    if (config.getTransfer().getWarehouse().getExternalDirectory() != null &&
-//                            config.getTransfer().getWarehouse().getManagedDirectory() != null) {
-//                    if (TableUtils.isExternal(tblMirror.getEnvironmentTable(Environment.LEFT))) {
-//                        // We store the DB LOCATION in the RIGHT dbDef so we can avoid changing the original LEFT
-//                        String lclLoc = tblMirror.getParent().getProperty(Environment.RIGHT, DB_LOCATION);
-//                        if (!isBlank(lclLoc) && !newPartitionLocation.startsWith(lclLoc)) {
-//                            // Set warning that even though you've specified to warehouse directories, the current configuration
-//                            // will NOT place it in that directory.
-//                            String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "partition",
-//                                    lclLoc, newPartitionLocation);
-//                            tblMirror.addIssue(Environment.RIGHT, msg);
-//                        }
-//                    } else {
-//                        String lclLoc = tblMirror.getParent().getProperty(Environment.RIGHT, DB_MANAGED_LOCATION);
-//                        if (!isBlank(lclLoc) && !newPartitionLocation.startsWith(lclLoc)) {
-//                            // Set warning that even though you've specified to warehouse directories, the current configuration
-//                            // will NOT place it in that directory.
-//                            String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "partition",
-//                                    lclLoc, newPartitionLocation);
-//                            tblMirror.addIssue(Environment.RIGHT, msg);
-//                        }
-//                    }
-//                    }
-
                 }
             }
             // end partitions location conversion.

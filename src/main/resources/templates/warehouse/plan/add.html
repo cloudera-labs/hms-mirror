@@ -11,13 +11,14 @@
 
 </head>
 <body>
- <div class="pure-g">
-        <div class="pure-u-1" th:insert="fragments/header::header">
-        </div>
-        <div class="pure-u-1-6" th:insert="fragments/nav::left_nav">
-        </div>
-        <div class="pure-u-5-6">
-            <h4 th:text="#{warehouse.plan.add}"/>
+<div class="pure-g">
+    <div class="pure-u-1" th:insert="fragments/header::header">
+    </div>
+    <div class="pure-u-1-6" th:insert="fragments/nav::left_nav">
+    </div>
+    <div class="pure-u-5-6">
+        <fieldset>
+            <legend th:text="#{warehouse.plan.add}"/>
             <form class="pure-form pure-form-aligned" th:action="@{/warehouse/plan/save}" method="post">
                 <div class="pure-control-group">
                     <label for="database" th:text="#{database}"/>
@@ -49,11 +50,12 @@
                             th:text="#{button.add.again}"/>
                 </div>
             </form>
-<!--            <div th:replace="fragments/modal::modal('whAddModal', 'whAddBtn', 'Please wait.  Adding Warehouse.')">-->
-<!--            </div>-->
-        </div>
-        <div class="pure-u-1" th:insert="fragments/footer::footer">
-        </div>
+            <!--            <div th:replace="fragments/modal::modal('whAddModal', 'whAddBtn', 'Please wait.  Adding Warehouse.')">-->
+            <!--            </div>-->
+        </fieldset>
     </div>
+    <div class="pure-u-1" th:insert="fragments/footer::footer">
+    </div>
+</div>
 </body>
 </html>

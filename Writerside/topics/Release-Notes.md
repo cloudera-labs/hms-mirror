@@ -11,6 +11,13 @@ The latest set of enhancement requests can be
 found [here](https://github.com/cloudera-labs/hms-mirror/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement). If there is
 something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 2.2.0.4
+
+### Bugs
+
+[Report Output Directory Issue](https://github.com/cloudera-labs/hms-mirror/issues/115)
+[Filters Optimizations and Fixes](https://github.com/cloudera-labs/hms-mirror/issues/116)
+
 ## 2.2.0.2
 
 This is a big release for `hms-mirror`. We've added a Web interface to `hms-mirror` that makes it easier to configure
