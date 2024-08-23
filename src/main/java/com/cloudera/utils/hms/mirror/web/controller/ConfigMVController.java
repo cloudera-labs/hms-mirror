@@ -108,7 +108,7 @@ public class ConfigMVController implements ControllerReferences {
                        @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) {
 //        model.addAttribute(ACTION, "home");
 
-//        ExecuteSession executeSession = executeSessionService.getCurrentSession();
+//        ExecuteSession executeSession = executeSessionService.getSession();
 
         // Get list of available configs
         Set<String> configs = webConfigService.getConfigList();
@@ -132,7 +132,7 @@ public class ConfigMVController implements ControllerReferences {
 //        HmsMirrorConfig config = configService.createForDataStrategy(DataStrategyEnum.valueOf(dataStrategy));
 //        ExecuteSession session = executeSessionService.createSession(NEW_CONFIG, config);
         // Set the Loaded Session
-//        executeSessionService.setCurrentSession(session);
+//        executeSessionService.setSession(session);
 //        // Setup Model for MVC
 //        model.addAttribute(CONFIG, session.getConfig());
 //        model.addAttribute(SESSION_ID, session.getSessionId());
@@ -152,12 +152,12 @@ public class ConfigMVController implements ControllerReferences {
                            @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
         model.addAttribute(READ_ONLY, Boolean.FALSE);
         // Clear the loaded and active session.
-        executeSessionService.clearSession();
+        executeSessionService.closeSession();
         // Create new Session (with blank config)
         HmsMirrorConfig config = configService.createForDataStrategy(DataStrategyEnum.valueOf(dataStrategy));
         ExecuteSession session = executeSessionService.createSession(NEW_CONFIG, config);
         // Set the Loaded Session
-        executeSessionService.setCurrentSession(session);
+        executeSessionService.setSession(session);
 //        // Setup Model for MVC
 //        model.addAttribute(CONFIG, session.getConfig());
 //        model.addAttribute(SESSION_ID, session.getSessionId());
@@ -205,7 +205,7 @@ public class ConfigMVController implements ControllerReferences {
                          @ModelAttribute(CONFIG) HmsMirrorConfig config,
 //                         @PathVariable @NotNull ConfigSection section,
                          @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         AtomicReference<Boolean> passwordCheck = new AtomicReference<>(Boolean.FALSE);
 
@@ -310,7 +310,7 @@ public class ConfigMVController implements ControllerReferences {
                             @ModelAttribute(PERSIST) PersistContainer persistContainer,
                             @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws IOException, SessionException {
         // Get the current session config.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         ExecuteSession curSession = executeSessionService.getSession();
         HmsMirrorConfig currentConfig = curSession.getConfig();
@@ -357,18 +357,18 @@ public class ConfigMVController implements ControllerReferences {
                            @RequestParam(value = SESSION_ID, required = true) String sessionId,
                            @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
         // Don't reload if running.
-        executeSessionService.clearSession();
+        executeSessionService.closeSession();
 
         log.info("ReLoading Config: {}", sessionId);
         HmsMirrorConfig config = configService.loadConfig(sessionId);
         // Remove the old session
-        executeSessionService.getSessions().remove(sessionId);
+//        executeSessionService.getSessionHistory().remove(sessionId);
         // Create a new session
         ExecuteSession session = executeSessionService.createSession(sessionId, config);
-        executeSessionService.setCurrentSession(session);
+        executeSessionService.setSession(session);
 
         // Set to null, so it will reset.
-        session.setSessionId(null);
+//        session.setSessionId(null);
 
         configService.validate(session, null);
 //        executeSessionService.transitionLoadedSessionToActive(maxThreads);
@@ -389,7 +389,7 @@ public class ConfigMVController implements ControllerReferences {
                           @RequestParam(value = DATA_STRATEGY_CLONE, required = true) String dataStrategy,
                           @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
         // Don't reload if running.
-        executeSessionService.clearSession();
+        executeSessionService.closeSession();
 
         log.info("Clone Config: {} with Data Strategy: {}", sessionId, dataStrategy);
         HmsMirrorConfig config = configService.loadConfig(sessionId);
@@ -399,14 +399,14 @@ public class ConfigMVController implements ControllerReferences {
         configService.overlayConfig(newConfig, config);
 
         // Remove the old session
-        executeSessionService.getSessions().remove(sessionId);
+//        executeSessionService.getSessionHistory().remove(sessionId);
 
         // Create a new session
         ExecuteSession session = executeSessionService.createSession(sessionId, newConfig);
-        executeSessionService.setCurrentSession(session);
+        executeSessionService.setSession(session);
 
         // Set to null, so it will reset.
-        session.setSessionId(null);
+//        session.setSessionId(null);
 
 //        executeSessionService.transitionLoadedSessionToActive(maxThreads);
 
@@ -431,7 +431,7 @@ public class ConfigMVController implements ControllerReferences {
 
     @RequestMapping(value = "/doEncryptPasswords", method = RequestMethod.GET)
     public String doEncryptPasswords(Model model) throws SessionException, EncryptionException {
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         // Work with the current session config.  All the values should've been saved already to allow this.
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
@@ -475,7 +475,7 @@ public class ConfigMVController implements ControllerReferences {
 
     @RequestMapping(value = "/doDecryptPasswords", method = RequestMethod.GET)
     public String doDecryptPasswords(Model model) throws SessionException, EncryptionException {
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         // Work with the current session config.  All the values should've been saved already to allow this.
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();

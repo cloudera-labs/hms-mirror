@@ -128,9 +128,9 @@ public class ConfigController {
 //    private boolean isCurrentSessionRunning() {
 //        boolean rtn = Boolean.FALSE;
 //        // Need to check that nothing is running currently.
-//        ExecuteSession currentSession = executeSessionService.getActiveSession();
-//        if (currentSession != null) {
-//            RunStatus runStatus = currentSession.getRunStatus();
+//        ExecuteSession session = executeSessionService.getActiveSession();
+//        if (session != null) {
+//            RunStatus runStatus = session.getRunStatus();
 //            if (runStatus.isRunning()) {
 //                rtn = Boolean.TRUE;
 //            }
@@ -161,7 +161,7 @@ public class ConfigController {
             session.setConfig(config);
         }
         // Set it as the current session.
-        executeSessionService.setCurrentSession(session);
+        executeSessionService.setSession(session);
         return config;
     }
 
@@ -176,17 +176,17 @@ public class ConfigController {
     @RequestMapping(method = RequestMethod.POST, value = "/reload/{id}")
     public HmsMirrorConfig reload(@PathVariable @NotNull String id) throws SessionException {
         // Don't reload if running.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         log.info("ReLoading Config: {}", id);
         HmsMirrorConfig config = configService.loadConfig(id);
         // Remove the old session
-        executeSessionService.getSessions().remove(id);
+        executeSessionService.getSessionHistory().remove(id);
         // Create a new session
         ExecuteSession session = executeSessionService.createSession(id, config);
 
         // Set it as the current session.
-        executeSessionService.setCurrentSession(session);
+        executeSessionService.setSession(session);
 
         return config;
     }
@@ -280,7 +280,7 @@ public class ConfigController {
             @RequestParam(value = "transferOwnership", required = false) Boolean transferOwnership
     ) throws SessionException {
         // Don't reload if running.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
@@ -375,7 +375,7 @@ public class ConfigController {
                                  @RequestParam(value = "tblPartitionLimit", required = false) String tblPartitionLimit) throws SessionException {
 
         // Don't reload if running.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         Filter filter = executeSessionService.getSession().getConfig().getFilter();
 
@@ -419,7 +419,7 @@ public class ConfigController {
                                       @RequestParam(value = "views", required = false) Boolean views) throws SessionException {
 
         // Don't reload if running.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         MigrateACID migrateACID = executeSessionService.getSession().getConfig().getMigrateACID();
 
@@ -476,7 +476,7 @@ public class ConfigController {
     ) throws SessionException {
 
         // Don't reload if running.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         TransferConfig transferConfig = executeSessionService.getSession().getConfig().getTransfer();
 
@@ -520,7 +520,7 @@ public class ConfigController {
                                                 @RequestParam(value = "externalDirectory", required = false) String externalDirectory
     ) throws SessionException {
         // Don't reload if running.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         Warehouse warehouseConfig = executeSessionService.getSession().getConfig().getTransfer().getWarehouse();
 
@@ -550,7 +550,7 @@ public class ConfigController {
     ) throws SessionException {
 
         // Don't reload if running.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         StorageMigration storageMigration = executeSessionService.getSession().getConfig().getTransfer().getStorageMigration();
 

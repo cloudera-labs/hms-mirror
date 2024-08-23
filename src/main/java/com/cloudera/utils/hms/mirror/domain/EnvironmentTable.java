@@ -83,8 +83,10 @@ public class EnvironmentTable implements Cloneable {
     }
 
     public void addSql(String desc, String sql) {
-        Pair pair = new Pair(desc, sql);
-        addSql(pair);
+        if (nonNull(sql)) {
+            Pair pair = new Pair(desc, sql);
+            addSql(pair);
+        }
     }
 
     @JsonIgnore

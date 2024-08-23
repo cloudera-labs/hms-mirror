@@ -70,7 +70,7 @@ public class WebInit {
 //                hmsMirrorConfig = new HmsMirrorConfig();
             }
 //            ExecuteSession createdSession = executeSessionService.createSession(null, hmsMirrorConfig);
-//            executeSessionService.setCurrentSession(createdSession);
+//            executeSessionService.setSession(createdSession);
         };
     }
 

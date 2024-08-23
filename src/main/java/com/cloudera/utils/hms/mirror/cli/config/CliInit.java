@@ -279,7 +279,7 @@ public class CliInit {
         return args -> {
             // TODO: Need to review this process for redundancy.
             ExecuteSession session = executeSessionService.createSession(null, builtConfig);
-            executeSessionService.setCurrentSession(session);
+            executeSessionService.setSession(session);
 
             // Sync the concurrency for the connections.
             // We need to pass on a few scale parameters to the hs2 configs so the connections pools can handle the scale requested.
@@ -308,7 +308,7 @@ public class CliInit {
 
 
             try {
-                executeSessionService.transitionLoadedSessionToActive(maxThreads);
+                executeSessionService.startSession(maxThreads);
             } catch (SessionException e) {
                 throw new RuntimeException(e);
             }

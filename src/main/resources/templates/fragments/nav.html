@@ -69,7 +69,7 @@
                 </li>
                 <li class="pure-menu-item">
                     <a class="pure-menu-link" th:text="#{status}"
-                       th:if="${CONFIG != null}"
+                       th:if="${RUN_STATUS != null && RUN_STATUS.getProgress().toString() != 'INITIALIZED'}"
                        th:href="@{/runtime/status}"/>
                 </li>
                 <li class="pure-menu-item">

@@ -196,7 +196,7 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
         // Build Shadow Spec (don't build when using commonStorage)
         // If acid and ma.isOn
         // if not downgrade
-        if ((hmsMirrorConfig.getTransfer().getIntermediateStorage() != null && !TableUtils.isACID(let)) ||
+        if ((!isBlank(hmsMirrorConfig.getTransfer().getIntermediateStorage()) && !TableUtils.isACID(let)) ||
                 (TableUtils.isACID(let) && hmsMirrorConfig.getMigrateACID().isOn())) {
             if (!hmsMirrorConfig.getMigrateACID().isDowngrade() ||
                     // Is Downgrade but the downgraded location isn't available to the right.
@@ -240,21 +240,26 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
         database = tableMirror.getParent().getName();
         useDb = MessageFormat.format(MirrorConf.USE, database);
 
-        let.addSql(TableUtils.USE_DESC, useDb);
-        // Drop any previous TRANSFER table, if it exists.
-        String transferDropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, tet.getName());
-        let.addSql(TableUtils.DROP_DESC, transferDropStmt);
 
-        // Create Transfer Table
+        // Manage Transfer Table
         String transferCreateStmt = tableService.getCreateStatement(tableMirror, Environment.TRANSFER);
-        let.addSql(TableUtils.CREATE_TRANSFER_DESC, transferCreateStmt);
+        if (!isBlank(transferCreateStmt)) {
+            let.addSql(TableUtils.USE_DESC, useDb);
+            // Drop any previous TRANSFER table, if it exists.
+            if (!isBlank(tet.getName())) {
+                String transferDropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, tet.getName());
+                let.addSql(TableUtils.DROP_DESC, transferDropStmt);
+            }
+            let.addSql(TableUtils.CREATE_TRANSFER_DESC, transferCreateStmt);
+        }
 
         database = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
         useDb = MessageFormat.format(MirrorConf.USE, database);
         ret.addSql(TableUtils.USE_DESC, useDb);
 
         // RIGHT SHADOW Table
-        if (!set.getDefinition().isEmpty()) { //config.getTransfer().getTargetNamespace() == null || !config.getMigrateACID().isDowngrade()) {
+        if (!set.getDefinition().isEmpty() &&
+          !config.getTransfer().getStorageMigration().isDistcp()) { //config.getTransfer().getTargetNamespace() == null || !config.getMigrateACID().isDowngrade()) {
 
             // Drop any previous SHADOW table, if it exists.
             String dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());

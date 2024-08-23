@@ -89,8 +89,10 @@ public class UIModelService implements ControllerReferences {
                 map.put(RUN_STATUS, runStatus);
             } else {
                 RunStatus runStatus = session.getRunStatus();
-                runStatus.setConcurrency(concurrency);
-                map.put(RUN_STATUS, runStatus);
+                if (nonNull(runStatus)) {
+                    runStatus.setConcurrency(concurrency);
+                    map.put(RUN_STATUS, runStatus);
+                }
             }
         }
 

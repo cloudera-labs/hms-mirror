@@ -24,6 +24,7 @@ import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
 import com.cloudera.utils.hms.mirror.exceptions.MismatchException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
+import com.cloudera.utils.hms.mirror.service.ConfigService;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.UIModelService;
 import com.cloudera.utils.hms.mirror.web.service.RunStatusService;
@@ -44,10 +45,16 @@ import static com.cloudera.utils.hms.mirror.web.controller.ControllerReferences.
 @Slf4j
 public class RuntimeMVController {
 
+    private ConfigService configService;
     private ExecuteSessionService executeSessionService;
     private RunStatusService runStatusService;
     private RuntimeService runtimeService;
     private UIModelService uiModelService;
+
+    @Autowired
+    public void setConfigService(ConfigService configService) {
+        this.configService = configService;
+    }
 
     @Autowired
     public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
@@ -72,6 +79,8 @@ public class RuntimeMVController {
     @RequestMapping(value = "/start", method = RequestMethod.GET)
     public String start(Model model,
                           @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) {
+        ExecuteSession session = executeSessionService.getSession();
+        configService.validate(session, null);
         uiModelService.sessionToModel(model, maxThreads, false);
         return "runtime/index";
     }

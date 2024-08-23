@@ -86,7 +86,7 @@ public class TranslatorController {
             @RequestParam(value = "forceExternalLocation", required = false) Boolean forceExternalLocation ) throws SessionException {
 
         // Don't reload if running.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         if (forceExternalLocation != null) {
             log.info("Setting Translator 'forceExternalLocation' to: {}", forceExternalLocation);
@@ -111,7 +111,7 @@ public class TranslatorController {
                                      @RequestParam(name = "target", required = true) String target) throws SessionException {
         log.info("Adding global location map for source: {} and target: {}", source, target);
         // Don't reload if running.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         translatorService.addGlobalLocationMap(tableType, source, target);
     }
@@ -130,7 +130,7 @@ public class TranslatorController {
     public void removeGlobalLocationMap(@RequestParam(name = "source", required = true) String source,
                                           @RequestParam(name = "tableType", required = true) TableType tableType) throws SessionException {
         // Don't reload if running.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         log.info("Removing global location map for source: {}", source);
         translatorService.removeGlobalLocationMap(source, tableType);
@@ -173,7 +173,7 @@ public class TranslatorController {
         log.info("Building global location maps");
         boolean lclDryrun = dryrun != null ? dryrun : true;
         if (!dryrun) {
-            executeSessionService.clearActiveSession();
+            executeSessionService.closeSession();
         }
         boolean lclBuildSources = buildSources != null ? buildSources : false;
         int lclConsolidationLevel = consolidationLevel != null ? consolidationLevel : 1;

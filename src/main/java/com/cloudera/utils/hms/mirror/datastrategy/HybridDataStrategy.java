@@ -31,6 +31,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import static org.apache.commons.lang3.StringUtils.isBlank;
+
 @Component
 @Slf4j
 @Getter
@@ -90,8 +92,8 @@ public class HybridDataStrategy extends DataStrategyBase implements DataStrategy
                             ".  Hence, the SQL method has been selected for the migration.");
 
                     tableMirror.setStrategy(DataStrategyEnum.SQL);
-                    if (config.getTransfer().getIntermediateStorage() != null
-                            || config.getTransfer().getTargetNamespace() != null) {
+                    if (!isBlank(config.getTransfer().getIntermediateStorage())
+                            || !isBlank(config.getTransfer().getTargetNamespace())) {
                         rtn = intermediateDataStrategy.execute(tableMirror);
                     } else {
                         rtn = sqlDataStrategy.execute(tableMirror);

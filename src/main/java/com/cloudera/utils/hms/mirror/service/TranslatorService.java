@@ -17,7 +17,6 @@
 
 package com.cloudera.utils.hms.mirror.service;
 
-import com.cloudera.utils.hms.mirror.EnvironmentMap;
 import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.domain.*;
 import com.cloudera.utils.hms.mirror.domain.support.*;
@@ -362,7 +361,7 @@ public class TranslatorService {
 
     public void addGlobalLocationMap(TableType type, String source, String target) throws SessionException {
         // Don't reload if running.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
         hmsMirrorConfig.getTranslator().addUserGlobalLocationMap(type, source, target);
@@ -370,7 +369,7 @@ public class TranslatorService {
 
     public void removeGlobalLocationMap(String source, TableType type) throws SessionException {
         // Don't reload if running.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
         hmsMirrorConfig.getTranslator().removeUserGlobalLocationMap(source, type);

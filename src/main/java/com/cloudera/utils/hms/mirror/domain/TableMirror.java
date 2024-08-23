@@ -42,7 +42,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Setter
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TableMirror {
-    @JsonIgnore
+//    @JsonIgnore
     private final List<Marker> steps = new ArrayList<Marker>();
     /*
     Use to indicate the tblMirror should be removed from processing, post setup.

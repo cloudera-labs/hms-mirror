@@ -74,9 +74,11 @@ public class RuntimeService {
                            Integer concurrency) throws RequiredConfigurationException, MismatchException, SessionException, EncryptionException {
         RunStatus runStatus = null;
         ExecuteSession session = null;
-        if (executeSessionService.transitionLoadedSessionToActive(concurrency)) {
+        if (executeSessionService.startSession(concurrency)) {
 
             session = executeSessionService.getSession();
+            configService.validate(session, executeSessionService.getCliEnvironment());
+
             runStatus = session.getRunStatus();
 
 //            rtn = configService.validate(session, executeSessionService.getCliEnvironment(), Boolean.FALSE);

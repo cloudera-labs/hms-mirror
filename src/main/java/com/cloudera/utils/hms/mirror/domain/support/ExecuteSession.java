@@ -44,7 +44,7 @@ public class ExecuteSession implements Cloneable {
     private RunStatus runStatus;
     //    private HmsMirrorConfig resolvedConfig;
     private HmsMirrorConfig config;
-    private CliEnvironment cliEnvironment;
+//    private CliEnvironment cliEnvironment;
     private Conversion conversion;
     
     public void addError(MessageCode code) {
@@ -95,6 +95,11 @@ public class ExecuteSession implements Cloneable {
         return running;
     }
 
+//    public void clearRunStatus() {
+//        if (nonNull(runStatus)) {
+//            runStatus = null;
+//        }
+//    }
     public RunStatus getRunStatus() {
         if (isNull(runStatus)) {
             this.runStatus = new RunStatus();
@@ -129,7 +134,7 @@ public class ExecuteSession implements Cloneable {
             if (nonNull(runStatus)) {
                 clone.runStatus = runStatus.clone();
             }
-            clone.cliEnvironment = cliEnvironment; // This isn't a cloneable object. Just establish the reference.
+//            clone.cliEnvironment = cliEnvironment; // This isn't a cloneable object. Just establish the reference.
             // Don't clone the other parts: runStatus, cliEnvironment, conversion, runResults
             return clone;
         } catch (CloneNotSupportedException e) {

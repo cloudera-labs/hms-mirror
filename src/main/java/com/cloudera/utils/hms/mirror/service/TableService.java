@@ -35,6 +35,7 @@ import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.feature.Feature;
 import com.cloudera.utils.hms.mirror.feature.FeaturesEnum;
 import com.cloudera.utils.hms.stage.ReturnStatus;
+import com.cloudera.utils.hms.util.NamespaceUtils;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.Setter;
@@ -511,7 +512,7 @@ public class TableService {
                                     rtn = Boolean.FALSE;
                                 }
                             } else if (copySpec.isReplaceLocation()) {
-                                if (nonNull(config.getTransfer().getIntermediateStorage())) {
+                                if (!isBlank(config.getTransfer().getIntermediateStorage())) {
                                     String isLoc = config.getTransfer().getIntermediateStorage();
                                     // Deal with extra '/'
                                     isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
@@ -523,27 +524,29 @@ public class TableService {
                                     if (!TableUtils.updateTableLocation(target, isLoc)) {
                                         rtn = Boolean.FALSE;
                                     }
-                                } else if (nonNull(config.getTransfer().getTargetNamespace())) {
-                                    String sourceLocation = TableUtils.getLocation(tableMirror.getName(), tableMirror.getTableDefinition(copySpec.getSource()));
-                                    String targetLocation = getTranslatorService().
-                                            translateLocation(tableMirror, sourceLocation, 1, null);
-                                    if (!TableUtils.updateTableLocation(target, targetLocation)) {
-                                        rtn = Boolean.FALSE;
-                                    }
-                                } else if (copySpec.isStripLocation()) {
-                                    TableUtils.stripLocation(target);
-                                } else if (config.isReplace()) {
-                                    String sourceLocation = TableUtils.getLocation(tableMirror.getName(), tableMirror.getTableDefinition(copySpec.getSource()));
-                                    String replacementLocation = sourceLocation + "_replacement";
-                                    if (!TableUtils.updateTableLocation(target, replacementLocation)) {
-                                        rtn = Boolean.FALSE;
-                                    }
+//                                } else if (!isBlank(config.getTransfer().getTargetNamespace())) {
+//                                    String sourceLocation = TableUtils.getLocation(tableMirror.getName(), tableMirror.getTableDefinition(copySpec.getSource()));
+//                                    String targetLocation = getTranslatorService().
+//                                            translateLocation(tableMirror, sourceLocation, 1, null);
+//                                    if (!TableUtils.updateTableLocation(target, targetLocation)) {
+//                                        rtn = Boolean.FALSE;
+//                                    }
+//                                } else if (copySpec.isStripLocation()) {
+//                                    TableUtils.stripLocation(target);
+//                                } else if (config.isReplace()) {
+//                                    String sourceLocation = TableUtils.getLocation(tableMirror.getName(), tableMirror.getTableDefinition(copySpec.getSource()));
+//                                    String replacementLocation = sourceLocation + "_replacement";
+//                                    if (!TableUtils.updateTableLocation(target, replacementLocation)) {
+//                                        rtn = Boolean.FALSE;
+//                                    }
                                 } else {
                                     // Need to use export location
                                     String isLoc = config.getTransfer().getExportBaseDirPrefix();
                                     // Deal with extra '/'
                                     isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
-                                    isLoc = config.getCluster(Environment.LEFT).getHcfsNamespace() +
+                                    // Get Namespace of Original Table
+                                    String origNamespace = NamespaceUtils.getNamespace(TableUtils.getLocation(source.getName(), source.getDefinition()));
+                                    isLoc = origNamespace +
                                             isLoc + tableMirror.getParent().getName() + "/" + tableMirror.getName();
                                     if (!TableUtils.updateTableLocation(target, isLoc)) {
                                         rtn = Boolean.FALSE;
@@ -744,29 +747,33 @@ public class TableService {
     public String getCreateStatement(TableMirror tableMirror, Environment environment) {
         StringBuilder createStatement = new StringBuilder();
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+        Cluster cluster = hmsMirrorConfig.getCluster(environment);
+        if (nonNull(cluster)) {
+            Boolean cine = cluster.isCreateIfNotExists();
 
-        Boolean cine = hmsMirrorConfig.getCluster(environment).isCreateIfNotExists();
-
-        List<String> tblDef = tableMirror.getTableDefinition(environment);
-        if (tblDef != null) {
-            Iterator<String> iter = tblDef.iterator();
-            while (iter.hasNext()) {
-                String line = iter.next();
-                if (cine && line.startsWith("CREATE TABLE")) {
-                    line = line.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
-                } else if (cine && line.startsWith("CREATE EXTERNAL TABLE")) {
-                    line = line.replace("CREATE EXTERNAL TABLE", "CREATE EXTERNAL TABLE IF NOT EXISTS");
+            List<String> tblDef = tableMirror.getTableDefinition(environment);
+            if (tblDef != null) {
+                Iterator<String> iter = tblDef.iterator();
+                while (iter.hasNext()) {
+                    String line = iter.next();
+                    if (cine && line.startsWith("CREATE TABLE")) {
+                        line = line.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
+                    } else if (cine && line.startsWith("CREATE EXTERNAL TABLE")) {
+                        line = line.replace("CREATE EXTERNAL TABLE", "CREATE EXTERNAL TABLE IF NOT EXISTS");
+                    }
+                    createStatement.append(line);
+                    if (iter.hasNext()) {
+                        createStatement.append("\n");
+                    }
                 }
-                createStatement.append(line);
-                if (iter.hasNext()) {
-                    createStatement.append("\n");
-                }
+            } else {
+                throw new RuntimeException("Couldn't location definition for table: " + tableMirror.getName() +
+                        " in environment: " + environment.toString());
             }
+            return createStatement.toString();
         } else {
-            throw new RuntimeException("Couldn't location definition for table: " + tableMirror.getName() +
-                    " in environment: " + environment.toString());
+            return null;
         }
-        return createStatement.toString();
     }
 
     public void getTableDefinition(TableMirror tableMirror, Environment environment) throws SQLException {

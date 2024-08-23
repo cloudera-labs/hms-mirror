@@ -78,8 +78,8 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
         ret = getEnvironmentTable(Environment.RIGHT, tableMirror);
 
         // Different transfer technique.  Staging location.
-        if (config.getTransfer().getIntermediateStorage() != null ||
-                config.getTransfer().getTargetNamespace() != null ||
+        if (!isBlank(config.getTransfer().getIntermediateStorage()) ||
+                !isBlank(config.getTransfer().getTargetNamespace()) ||
                 TableUtils.isACID(let)) {
             return getIntermediateDataStrategy().buildOutDefinition(tableMirror);
         }
@@ -98,7 +98,7 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
             ret.setCreateStrategy(CreateStrategy.CREATE);
         }
 
-        if (isBlank(config.getTransfer().getTargetNamespace())) {
+        if (!isBlank(config.getTargetNamespace())) {
             // If the temp cluster doesn't exist, create it as a clone of the LEFT.
             if (isNull(config.getCluster(Environment.SHADOW))) {
                 Cluster shadowCluster = config.getCluster(Environment.LEFT).clone();
@@ -236,8 +236,8 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
 
         if (tableService.isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
             rtn = getSqlAcidDowngradeInPlaceDataStrategy().execute(tableMirror);
-        } else if (hmsMirrorConfig.getTransfer().getIntermediateStorage() != null
-                || hmsMirrorConfig.getTransfer().getTargetNamespace() != null
+        } else if (!isBlank(hmsMirrorConfig.getTransfer().getIntermediateStorage())
+                || !isBlank(hmsMirrorConfig.getTransfer().getTargetNamespace())
                 || (TableUtils.isACID(let)
                 && hmsMirrorConfig.getMigrateACID().isOn())) {
             if (TableUtils.isACID(let)) {

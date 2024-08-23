@@ -190,13 +190,13 @@ public class ConfigService {
             case SQL:
             case HYBRID:
                 // Correct to the only supported translation type (ALIGNED).
-                if (config.getTransfer().getStorageMigration().getTranslationType() != TranslationTypeEnum.ALIGNED) {
-                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
-                            "TranslationType",
-                            config.getTransfer().getStorageMigration().getTranslationType().toString(),
-                            TranslationTypeEnum.ALIGNED.toString(), "Only the ALIGNED Translation Type is supported for SQL and HYBRID.");
-                    config.getTransfer().getStorageMigration().setTranslationType(TranslationTypeEnum.ALIGNED);
-                }
+//                if (config.getTransfer().getStorageMigration().getTranslationType() != TranslationTypeEnum.ALIGNED) {
+//                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
+//                            "TranslationType",
+//                            config.getTransfer().getStorageMigration().getTranslationType().toString(),
+//                            TranslationTypeEnum.ALIGNED.toString(), "Only the ALIGNED Translation Type is supported for SQL and HYBRID.");
+//                    config.getTransfer().getStorageMigration().setTranslationType(TranslationTypeEnum.ALIGNED);
+//                }
                 // Ensure the proper Data Movement Strategy is set. (which is SQL)
                 switch (config.getTransfer().getStorageMigration().getDataMovementStrategy()) {
                     case SQL:
@@ -260,6 +260,14 @@ public class ConfigService {
                 break;
         }
         if (config.loadMetadataDetails()) {
+            if (config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().isEmpty() &&
+                    !config.getDatabases().isEmpty()) {
+                session.addConfigAdjustmentMessage(config.getDataStrategy(),
+                        "Databases",
+                        config.getDatabases().toString(), "",
+                        "Only Warehouse Plans supported with ALIGNED/DISTCP combination.");
+                rtn = Boolean.FALSE;
+            }
             // Need to ensure we have Warehouse Plans and Databases are in sync.
             config.getDatabases().clear();
             if (!config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().isEmpty()) {
@@ -799,10 +807,15 @@ public class ConfigService {
 
         RunStatus runStatus = session.getRunStatus();
 
-        // Reset RunStatus
-        runStatus.clearErrors();
-        runStatus.clearWarnings();
-
+        if (isNull(runStatus)) {
+            // Needed to hold errors and warnings.
+            runStatus = new RunStatus();
+            session.setRunStatus(runStatus);
+        } else {
+            // Reset RunStatus
+            runStatus.clearErrors();
+            runStatus.clearWarnings();
+        }
         // Set distcp options.
         canDeriveDistcpPlan(session);
 
@@ -1016,11 +1029,11 @@ public class ConfigService {
                 runStatus.addError(VALID_ACID_DA_IP_STRATEGIES);
                 rtn = Boolean.FALSE;
             }
-            if (config.getTransfer().getTargetNamespace() != null) {
+            if (!isBlank(config.getTransfer().getTargetNamespace())) {
                 runStatus.addError(COMMON_STORAGE_WITH_DA_IP);
                 rtn = Boolean.FALSE;
             }
-            if (config.getTransfer().getIntermediateStorage() != null) {
+            if (!isBlank(config.getTransfer().getIntermediateStorage())) {
                 runStatus.addError(INTERMEDIATE_STORAGE_WITH_DA_IP);
                 rtn = Boolean.FALSE;
             }
@@ -1083,7 +1096,7 @@ public class ConfigService {
                     runStatus.addError(COMMON_STORAGE_WITH_LINKED);
                     rtn = Boolean.FALSE;
                 }
-                if (config.getTransfer().getIntermediateStorage() != null) {
+                if (!isBlank(config.getTransfer().getIntermediateStorage())) {
                     runStatus.addError(INTERMEDIATE_STORAGE_WITH_LINKED);
                     rtn = Boolean.FALSE;
                 }

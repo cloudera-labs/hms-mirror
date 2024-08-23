@@ -19,10 +19,10 @@ package com.cloudera.utils.hms.mirror.domain.support;
 
 public enum StageEnum {
 
+    VALIDATING_CONFIG("Validating Configuration"),
     VALIDATE_CONNECTION_CONFIG("Validating Connection Configuration"),
     CONNECTION("Connecting to Endpoints"),
     GLM_BUILD("Building GLM's from Sources"),
-    VALIDATING_CONFIG("Validating Configuration"),
     GATHERING_DATABASES("Gathering Databases"),
     ENVIRONMENT_VARS("Retrieving Environment Variables"),
     DATABASES("Loading Databases"),

@@ -30,8 +30,10 @@
 
 <div class="pure-u-11-12" th:fragment="execute">
     <fieldset>
-        <div th:if="${RUN_STATUS != null}">
-            <th:block th:unless="${RUN_STATUS.getErrorMessages().size() == 0}">
+        <div th:if="${CONFIG != null}">
+            <th:block
+                    th:if="${RUN_STATUS != null}"
+                    th:unless="${RUN_STATUS.getErrorMessages().size() == 0}">
                 <p th:text="#{session.errors}"/>
                 <div th:insert="fragments/messages::view"></div>
             </th:block>
@@ -80,9 +82,17 @@
                             <input id="dryrun" type="checkbox" th:field="*{dryrun}"/>
                         </div>
                         <div class="pure-button-group">
-                            <button id="execModalBtn" class="pure-button pure-button-primary"
-                                    th:formaction="@{/runtime/doStart}"
-                                    th:formmethod="post" type="submit" th:text="#{button.run}"/>
+                            <div th:switch="${RUN_STATUS.hasErrors()}">
+                                <button id="execModalBtn" class="pure-button pure-button-primary"
+                                        th:case="true"
+                                        th:formaction="@{/runtime/doStart}"
+                                        th:formmethod="post" type="submit" th:text="#{button.run}"
+                                        disabled/>
+                                <button id="execModalBtn" class="pure-button pure-button-primary"
+                                        th:case="*"
+                                        th:formaction="@{/runtime/doStart}"
+                                        th:formmethod="post" type="submit" th:text="#{button.run}"/>
+                            </div>
                         </div>
                     </div>
 
@@ -97,7 +107,7 @@
                 </div>
             </fieldset>
         </div>
-        <div th:unless="${RUN_STATUS != null}">
+        <div th:unless="${CONFIG != null}">
             <p th:text="#{session.not.available}"/>
         </div>
     </fieldset>

@@ -54,9 +54,9 @@ public class TestTranslator01 extends TranslatorTestBase {
         ExecuteSession session = executeSessionService.createSession(null, config);
         ConfigService configService = new ConfigService();
         executeSessionService.setConfigService(configService);
-        executeSessionService.setCurrentSession(session);
+        executeSessionService.setSession(session);
         try {
-            executeSessionService.transitionLoadedSessionToActive(1);
+            executeSessionService.startSession(1);
         } catch (SessionException e) {
             throw new RuntimeException(e);
         }
@@ -159,7 +159,7 @@ public class TestTranslator01 extends TranslatorTestBase {
 //        HmsMirrorConfig config = ConfigTest.deserializeResource("/config/default_01.yaml");
 //        config.setTranslator(translator);
 //        ExecuteSessionService executeSessionService = new ExecuteSessionService();
-//        executeSessionService.getCurrentSession().setHmsMirrorConfig(config);
+//        executeSessionService.getSession().setHmsMirrorConfig(config);
 ////        hmsMirrorCfgService.setHmsMirrorConfig(config);
 //        TranslatorService translatorService = new TranslatorService();
 //        translatorService.setExecuteSessionService(executeSessionService);

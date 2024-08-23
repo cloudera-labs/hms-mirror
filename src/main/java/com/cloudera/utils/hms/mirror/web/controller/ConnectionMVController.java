@@ -42,8 +42,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-import static com.cloudera.utils.hms.mirror.MessageCode.MISSING_PROPERTY;
-import static com.cloudera.utils.hms.mirror.MessageCode.TARGET_NAMESPACE_NOT_DEFINED;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
@@ -92,7 +90,7 @@ public class ConnectionMVController {
     @RequestMapping(value = "/doValidate", method = RequestMethod.POST)
     public String doValidate(Model model) throws SessionException, EncryptionException {
 
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         ExecuteSession session = executeSessionService.getSession();
         Connections connections = session.getConnections();
@@ -101,7 +99,7 @@ public class ConnectionMVController {
         boolean configErrors = !configService.validateForConnections(session);
         if (!configErrors) {
             try {
-                executeSessionService.transitionLoadedSessionToActive(1);
+                executeSessionService.startSession(1);
                 log.info("Initializing Connection Pools");
                 connectionPoolService.init();
                 log.info("Connection Pools Initialized");

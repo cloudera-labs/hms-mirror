@@ -33,13 +33,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -56,12 +54,6 @@ public class ExecuteSessionService {
     private ConfigService configService;
     private ConnectionPoolService connectionPoolService;
 
-//    /*
-//    This should be an immutable 'running' or 'ran' version of a session.
-//     */
-//    @Setter
-////    private ExecuteSession activeSession;
-
     /*
     This is the current session that can be modified (but not running yet).  This is where
     configurations can be changed before running.  Once the session is kicked off, the object
@@ -69,20 +61,18 @@ public class ExecuteSessionService {
     to the 'executeSessionQueue'.
      */
     @Setter
-    private ExecuteSession currentSession;
-
-//    private ExecuteSession activeSession;
+    private ExecuteSession session;
 
     private String reportOutputDirectory;
 
     private boolean amendSessionIdToReportDir = Boolean.TRUE;
 
     /*
-    Used to limit the number of sessions that are retained in memory.
+    Used to limit the number of sessionHistory that are retained in memory.
      */
 //    private int maxRetainedSessions = 5;
-    private final Map<String, ExecuteSession> executeSessionMap = new TreeMap<>();
-    private final Map<String, ExecuteSession> sessions = new HashMap<>();
+//    private final Map<String, ExecuteSession> executeSessionMap = new TreeMap<>();
+    private final Map<String, ExecuteSession> sessionHistory = new HashMap<>();
 
     @Autowired
     public void setConfigService(ConfigService configService) {
@@ -106,28 +96,28 @@ public class ExecuteSessionService {
 
     public ExecuteSession createSession(String sessionId, HmsMirrorConfig hmsMirrorConfig) {
         String sessionName = !isBlank(sessionId) ? sessionId : DEFAULT;
-
+//
         ExecuteSession session;
-        if (sessions.containsKey(sessionName)) {
-            session = sessions.get(sessionName);
-            session.setConfig(hmsMirrorConfig);
-        } else {
-            session = new ExecuteSession();
-            session.setSessionId(sessionName);
-            session.setConfig(hmsMirrorConfig);
-            sessions.put(sessionName, session);
-        }
+//        if (sessionHistory.containsKey(sessionName)) {
+//            session = sessionHistory.get(sessionName);
+//            session.setConfig(hmsMirrorConfig);
+//        } else {
+        session = new ExecuteSession();
+        session.setSessionId(sessionName);
+        session.setConfig(hmsMirrorConfig);
+//        sessionHistory.put(sessionName, session);
+//        }
         return session;
     }
 
-    public void clearSession() throws SessionException {
-        clearActiveSession();
-        currentSession = null;
-    }
+//    public void clear2Session() throws SessionException {
+//        closeSession();
+//        session = null;
+//    }
 
-    public void clearActiveSession() throws SessionException {
-        if (nonNull(currentSession)) {
-            if (currentSession.isRunning()) {
+    public void closeSession() throws SessionException {
+        if (nonNull(session)) {
+            if (session.isRunning()) {
                 throw new SessionException("Session is still running.  You can't change the session while it is running.");
             }
 
@@ -137,7 +127,7 @@ public class ExecuteSessionService {
     }
 
     public ExecuteSession getSession() {
-        return currentSession;
+        return session;
     }
 
     /*
@@ -147,13 +137,13 @@ public class ExecuteSessionService {
      */
     public ExecuteSession getSession(String sessionId) {
         if (isBlank(sessionId)) {
-            if (isNull(currentSession)) {
+            if (isNull(session)) {
                 throw new RuntimeException("No session loaded.");
             }
-            return currentSession;
+            return session;
         } else {
-            if (sessions.containsKey(sessionId)) {
-                return sessions.get(sessionId);
+            if (sessionHistory.containsKey(sessionId)) {
+                return sessionHistory.get(sessionId);
             } else {
                 throw new RuntimeException("Session not found: " + sessionId);
             }
@@ -162,15 +152,18 @@ public class ExecuteSessionService {
 
     /*
       Look at the 'activeSession' and if it is not null, check that it is not running.
-        If it is not running, then clone the currentSession and add it to the 'executeSessionQueue'.
+        If it is not running, then clone the session and add it to the 'executeSessionQueue'.
         Set the 'activeSession' to null.  The 'getActiveSession' will then return the last session
         placed in the queue and set 'activeSession' to that session.
 
-        This allow us to keep the current and active sessions separate.  The active session is the
+        This allow us to keep the current and active sessionHistory separate.  The active session is the
         one that will be referenced during the run.
      */
-    public Boolean transitionLoadedSessionToActive(Integer concurrency) throws SessionException {
+    public Boolean startSession(Integer concurrency) throws SessionException {
         Boolean rtn = Boolean.TRUE;
+
+        // Throws Exception if can't close (running).
+        closeSession();
 
         ExecuteSession session = getSession();
 
@@ -185,89 +178,64 @@ public class ExecuteSessionService {
 
         // Reset for each transition.
         // Set the active session id to the current date and time.
-        if (nonNull(session)) {
-            DateFormat dtf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
-            session.setSessionId(dtf.format(new Date()));
-        }
+        DateFormat dtf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+        session.setSessionId(dtf.format(new Date()));
 
         // If it's connected (Active Session), don't go through all this again.
-        if (isNull(session) || !session.isConnected()) {
-            log.debug("Configure and setup Session");
-            HmsMirrorConfig config = session.getConfig();
+//        if (isNull(session) || !session.isConnected()) {
+        log.debug("Configure and setup Session");
+        HmsMirrorConfig config = session.getConfig();
 
-            // Setup connections concurrency
-            // We need to pass on a few scale parameters to the hs2 configs so the connections pools can handle the scale requested.
-            if (nonNull(config.getCluster(Environment.LEFT)) && nonNull(config.getCluster(Environment.LEFT).getHiveServer2()) && nonNull(concurrency)) {
-                Cluster cluster = config.getCluster(Environment.LEFT);
-                cluster.getHiveServer2().getConnectionProperties().setProperty("initialSize", Integer.toString(concurrency / 2));
-                cluster.getHiveServer2().getConnectionProperties().setProperty("minIdle", Integer.toString(concurrency / 2));
-                if (cluster.getHiveServer2().getDriverClassName().equals(HiveServer2Config.APACHE_HIVE_DRIVER_CLASS_NAME)) {
-                    cluster.getHiveServer2().getConnectionProperties().setProperty("maxIdle", Integer.toString(concurrency));
-                    if (isNull(cluster.getHiveServer2().getConnectionProperties().getProperty("maxWaitMillis")) ||
-                            isBlank(cluster.getHiveServer2().getConnectionProperties().getProperty("maxWaitMillis"))) {
-                        cluster.getHiveServer2().getConnectionProperties().setProperty("maxWaitMillis", "5000");
-                    }
-                    cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", Integer.toString(concurrency));
+        // Setup connections concurrency
+        // We need to pass on a few scale parameters to the hs2 configs so the connections pools can handle the scale requested.
+        if (nonNull(config.getCluster(Environment.LEFT)) && nonNull(config.getCluster(Environment.LEFT).getHiveServer2()) && nonNull(concurrency)) {
+            Cluster cluster = config.getCluster(Environment.LEFT);
+            cluster.getHiveServer2().getConnectionProperties().setProperty("initialSize", Integer.toString(concurrency / 2));
+            cluster.getHiveServer2().getConnectionProperties().setProperty("minIdle", Integer.toString(concurrency / 2));
+            if (cluster.getHiveServer2().getDriverClassName().equals(HiveServer2Config.APACHE_HIVE_DRIVER_CLASS_NAME)) {
+                cluster.getHiveServer2().getConnectionProperties().setProperty("maxIdle", Integer.toString(concurrency));
+                if (isNull(cluster.getHiveServer2().getConnectionProperties().getProperty("maxWaitMillis")) ||
+                        isBlank(cluster.getHiveServer2().getConnectionProperties().getProperty("maxWaitMillis"))) {
+                    cluster.getHiveServer2().getConnectionProperties().setProperty("maxWaitMillis", "5000");
                 }
+                cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", Integer.toString(concurrency));
             }
-            if (nonNull(config.getCluster(Environment.RIGHT)) && nonNull(config.getCluster(Environment.RIGHT).getHiveServer2()) && nonNull(concurrency)) {
-                Cluster cluster = config.getCluster(Environment.RIGHT);
-                cluster.getHiveServer2().getConnectionProperties().setProperty("initialSize", Integer.toString(concurrency / 2));
-                cluster.getHiveServer2().getConnectionProperties().setProperty("minIdle", Integer.toString(concurrency / 2));
-                if (cluster.getHiveServer2().getDriverClassName().equals(HiveServer2Config.APACHE_HIVE_DRIVER_CLASS_NAME)) {
-                    cluster.getHiveServer2().getConnectionProperties().setProperty("maxIdle", Integer.toString(concurrency));
-                    if (isNull(cluster.getHiveServer2().getConnectionProperties().getProperty("maxWaitMillis")) ||
-                            isBlank(cluster.getHiveServer2().getConnectionProperties().getProperty("maxWaitMillis"))) {
-                        cluster.getHiveServer2().getConnectionProperties().setProperty("maxWaitMillis", "5000");
-                    }
-                    cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", Integer.toString(concurrency));
-                }
-            }
-
-            // TODO: Set Metastore Direct Concurrency.
-
-            // Connection Service should be set to the resolved config.
-            connectionPoolService.close();
-            connectionPoolService.setExecuteSession(session);
-
-            // Set Session Id.
-            DateFormat dtf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
-            session.setSessionId(dtf.format(new Date()));
-
-//            String sessionReportDir = null;
-//            if (amendSessionIdToReportDir) {
-//                sessionReportDir = reportOutputDirectory + File.separator + session.getSessionId();
-//            } else {
-//                sessionReportDir = reportOutputDirectory;
-//            }
-//            session.getConfig().setOutputDirectory(sessionReportDir);
-
-            // Create the RunStatus and Conversion objects.
-            RunStatus runStatus = session.getRunStatus();
-            runStatus.setConcurrency(concurrency);
-            try {
-                runStatus.setAppVersion(Manifests.read("HMS-Mirror-Version"));
-            } catch (IllegalArgumentException iae) {
-                runStatus.setAppVersion("Unknown");
-            }
-
-            // Link the RunStatus to the session so users know what session details to retrieve.
-            runStatus.setSessionId(session.getSessionId());
-            session.setRunStatus(runStatus);
-            session.setConversion(new Conversion());
-            // Clear all previous run states from sessions to keep memory usage down.
-            for (Map.Entry<String, ExecuteSession> entry : executeSessionMap.entrySet()) {
-                entry.getValue().setConversion(null);
-                entry.getValue().setRunStatus(null);
-            }
-//            activeSession = session;
-
-//            configService.validate(activeSession, getCliEnvironment());
-            executeSessionMap.put(session.getSessionId(), session);
-
-        } else {
-            log.debug("Session connected already");
         }
+        if (nonNull(config.getCluster(Environment.RIGHT)) && nonNull(config.getCluster(Environment.RIGHT).getHiveServer2()) && nonNull(concurrency)) {
+            Cluster cluster = config.getCluster(Environment.RIGHT);
+            cluster.getHiveServer2().getConnectionProperties().setProperty("initialSize", Integer.toString(concurrency / 2));
+            cluster.getHiveServer2().getConnectionProperties().setProperty("minIdle", Integer.toString(concurrency / 2));
+            if (cluster.getHiveServer2().getDriverClassName().equals(HiveServer2Config.APACHE_HIVE_DRIVER_CLASS_NAME)) {
+                cluster.getHiveServer2().getConnectionProperties().setProperty("maxIdle", Integer.toString(concurrency));
+                if (isNull(cluster.getHiveServer2().getConnectionProperties().getProperty("maxWaitMillis")) ||
+                        isBlank(cluster.getHiveServer2().getConnectionProperties().getProperty("maxWaitMillis"))) {
+                    cluster.getHiveServer2().getConnectionProperties().setProperty("maxWaitMillis", "5000");
+                }
+                cluster.getHiveServer2().getConnectionProperties().setProperty("maxTotal", Integer.toString(concurrency));
+            }
+        }
+
+        // TODO: Set Metastore Direct Concurrency.
+
+        // Connection Service should be set to the resolved config.
+        connectionPoolService.setExecuteSession(session);
+
+        // Will create new RunStatus and set version info.
+        RunStatus runStatus = new RunStatus();
+        runStatus.setConcurrency(concurrency);
+        // Link the RunStatus to the session so users know what session details to retrieve.
+        runStatus.setSessionId(session.getSessionId());
+        try {
+            runStatus.setAppVersion(Manifests.read("HMS-Mirror-Version"));
+        } catch (IllegalArgumentException iae) {
+            runStatus.setAppVersion("Unknown");
+        }
+        // Set/Reset the run status.
+        session.setRunStatus(runStatus);
+
+        // New Conversion object for each run.
+        session.setConversion(new Conversion());
+
         return rtn;
     }
 

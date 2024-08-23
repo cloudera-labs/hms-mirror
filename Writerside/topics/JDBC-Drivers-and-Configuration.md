@@ -1,4 +1,4 @@
-# JDBC Drivers and Configuration
+# Hive JDBC Drivers and Configuration
 
 `hms-mirror` requires JDBC drivers to connect to the various end-points needed to perform it's tasks.  The `LEFT` and `RIGHT` cluster endpoints for HiveServer2 require the standalone JDBC drivers that are specific to that Hive version.
 
@@ -14,10 +14,6 @@ Hive JDBC Drivers need to be inline with the version of HS2 you're connecting to
 <b> Hive Server 2 Configuration</b>
 
 ![hs2_cfg.png](hs2_cfg.png)
-
-<b>Metastore Direct Configuration</b>
-
-![metastore_direct_cfg.png](metastore_direct_cfg.png)
 
 </tab>
 <tab id="cli-hs2" title="CLI">

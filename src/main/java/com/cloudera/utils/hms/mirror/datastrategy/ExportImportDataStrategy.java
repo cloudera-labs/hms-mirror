@@ -37,6 +37,7 @@ import java.text.MessageFormat;
 
 import static com.cloudera.utils.hms.mirror.MessageCode.EXPORT_IMPORT_SYNC;
 import static com.cloudera.utils.hms.mirror.TablePropertyVars.TRANSLATED_TO_EXTERNAL;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Component
 @Slf4j
@@ -142,7 +143,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
             let.addSql(TableUtils.USE_DESC, useLeftDb);
             String exportLoc = null;
 
-            if (config.getTransfer().getIntermediateStorage() != null) {
+            if (!isBlank(config.getTransfer().getIntermediateStorage())) {
                 String isLoc = config.getTransfer().getIntermediateStorage();
                 // Deal with extra '/'
                 isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
@@ -151,7 +152,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
                         config.getRunMarker() + "/" +
                         tableMirror.getParent().getName() + "/" +
                         tableMirror.getName();
-            } else if (config.getTransfer().getTargetNamespace() != null) {
+            } else if (!isBlank(config.getTransfer().getTargetNamespace())) {
                 String isLoc = config.getTransfer().getTargetNamespace();
                 // Deal with extra '/'
                 isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
@@ -187,8 +188,8 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
             }
 
             String importLoc = null;
-            if (config.getTransfer().getIntermediateStorage() != null
-                    || config.getTransfer().getTargetNamespace() != null) {
+            if (!isBlank(config.getTransfer().getIntermediateStorage())
+                    || !isBlank(config.getTransfer().getTargetNamespace())) {
                 importLoc = exportLoc;
             } else {
                 // checked

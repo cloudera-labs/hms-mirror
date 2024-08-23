@@ -75,7 +75,7 @@ public class WarehouseMVController {
 
     @RequestMapping(value = "/plan/add", method = RequestMethod.GET)
     public String addWarehousePlan(Model model) throws SQLException, SessionException, EncryptionException {
-        if (executeSessionService.transitionLoadedSessionToActive(1)
+        if (executeSessionService.startSession(1)
                 && configService.validateForConnections(executeSessionService.getSession())) {
             if (!connectionPoolService.isConnected()) {
                 connectionPoolService.init();
@@ -143,7 +143,7 @@ public class WarehouseMVController {
     @RequestMapping(value = "/plan/{database}/delete", method = RequestMethod.GET)
     public String deleteWarehousePlan(Model model,
                                       @PathVariable @NotNull String database) throws SessionException {
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         databaseService.removeWarehousePlan(database);
 

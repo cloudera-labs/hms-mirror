@@ -55,9 +55,9 @@ public class TestTranslator02 extends TranslatorTestBase {
         ExecuteSession session = executeSessionService.createSession(ExecuteSessionService.DEFAULT, config);
         ConfigService configService = new ConfigService();
         executeSessionService.setConfigService(configService);
-        executeSessionService.setCurrentSession(session);
+        executeSessionService.setSession(session);
         try {
-            executeSessionService.transitionLoadedSessionToActive(1);
+            executeSessionService.startSession(1);
         } catch (SessionException e) {
             throw new RuntimeException(e);
         }

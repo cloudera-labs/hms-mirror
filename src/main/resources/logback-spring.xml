@@ -95,6 +95,12 @@
     <logger name="com.cloudera.utils.hms.mirror.service.ReportWriterService" level="info" additivity="false">
         <appender-ref ref="Console"/>
     </logger>
+    <logger name="com.cloudera.utils.hms.mirror.service.DatabaseService" level="debug" additivity="false">
+        <appender-ref ref="RollingFile"/>
+    </logger>
+    <logger name="com.cloudera.utils.hms.mirror.service.TableService" level="debug" additivity="false">
+        <appender-ref ref="RollingFile"/>
+    </logger>
     <logger name="com.cloudera.utils.hms.mirror.domain.DBMirror" level="info" additivity="false">
         <appender-ref ref="Console"/>
     </logger>

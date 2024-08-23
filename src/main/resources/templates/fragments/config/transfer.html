@@ -72,14 +72,14 @@
                    th:field="*{transfer.remoteWorkingDirectory}"
                    placeholder="Set Remote Working Directory"/>
         </div>
-        <!--                        intermediateStorage: null-->
-        <div class="pure-control-group"
-             th:if="${('HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">
-            <label for="intermediateStorage" th:text="#{config.transfer.intermediateStorage}"></label>
-            <input id="intermediateStorage" type="text"
-                   th:field="*{transfer.intermediateStorage}"
-                   placeholder="Set Intermediate Storage"/>
-        </div>
+<!--        &lt;!&ndash;                        intermediateStorage: null&ndash;&gt;-->
+<!--        <div class="pure-control-group"-->
+<!--             th:if="${('HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">-->
+<!--            <label for="intermediateStorage" th:text="#{config.transfer.intermediateStorage}"></label>-->
+<!--            <input id="intermediateStorage" type="text"-->
+<!--                   th:field="*{transfer.intermediateStorage}"-->
+<!--                   placeholder="Set Intermediate Storage"/>-->
+<!--        </div>-->
     </fieldset>
 </div>
 <!--</div>-->

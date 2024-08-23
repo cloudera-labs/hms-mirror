@@ -25,9 +25,12 @@ import static java.util.Objects.isNull;
 @Getter
 @Setter
 public class Marker {
-    private final String mark;
-    private final String description;
-    private final String action;
+    private String mark;
+    private String description;
+    private String action;
+
+    public Marker() {
+    }
 
     public Marker(String mark, String description, Object action) {
         this.mark = mark;

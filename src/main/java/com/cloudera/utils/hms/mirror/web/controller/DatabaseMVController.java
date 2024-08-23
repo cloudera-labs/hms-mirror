@@ -60,7 +60,7 @@ public class DatabaseMVController implements ControllerReferences {
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     public String addDatabase(Model model,
                               @RequestParam(value = DATABASES, required = true) String databases) throws SessionException {
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();
@@ -78,7 +78,7 @@ public class DatabaseMVController implements ControllerReferences {
     @RequestMapping(value = "/{database}/delete", method = RequestMethod.GET)
     public String deleteDatabase(Model model,
                                       @PathVariable @NotNull String database) throws SessionException {
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();

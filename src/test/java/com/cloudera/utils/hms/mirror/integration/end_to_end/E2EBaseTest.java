@@ -161,7 +161,7 @@ public class E2EBaseTest {
 
     protected Long getReturnCode() {
         return hmsMirrorAppService.getReturnCode();
-//        return executeSessionService.getCurrentSession().getRunStatus().getErrors().getReturnCode();
+//        return executeSessionService.getSession().getRunStatus().getErrors().getReturnCode();
     }
 
     protected Long getWarningCode() {

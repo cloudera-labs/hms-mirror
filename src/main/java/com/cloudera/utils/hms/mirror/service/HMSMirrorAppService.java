@@ -115,6 +115,15 @@ public class HMSMirrorAppService {
         runStatus.setStart(new Date());
         OperationStatistics stats = runStatus.getOperationStatistics();
 
+        runStatus.setStage(StageEnum.VALIDATING_CONFIG, CollectionEnum.IN_PROGRESS);
+        if (configService.validate(session, executeSessionService.getCliEnvironment())) {
+            runStatus.setStage(StageEnum.VALIDATING_CONFIG, CollectionEnum.COMPLETED);
+        } else {
+            runStatus.setStage(StageEnum.VALIDATING_CONFIG, CollectionEnum.ERRORED);
+            reportWriterService.wrapup();
+            return new AsyncResult<>(Boolean.FALSE);
+        }
+
         try {// Refresh the connections pool.
             runStatus.setStage(StageEnum.VALIDATE_CONNECTION_CONFIG, CollectionEnum.IN_PROGRESS);
 
@@ -173,16 +182,6 @@ public class HMSMirrorAppService {
                 return new AsyncResult<>(Boolean.FALSE);
             }
         }
-
-        runStatus.setStage(StageEnum.VALIDATING_CONFIG, CollectionEnum.IN_PROGRESS);
-        if (configService.validate(session, executeSessionService.getCliEnvironment())) {
-            runStatus.setStage(StageEnum.VALIDATING_CONFIG, CollectionEnum.COMPLETED);
-        } else {
-            runStatus.setStage(StageEnum.VALIDATING_CONFIG, CollectionEnum.ERRORED);
-            reportWriterService.wrapup();
-            return new AsyncResult<>(Boolean.FALSE);
-        }
-
 
         // Correct the load data issue ordering.
         if (config.isLoadingTestData() &&
@@ -312,6 +311,13 @@ public class HMSMirrorAppService {
                 } catch (SQLException se) {
                     log.error("Issue getting databases", se);
                     executeSessionService.getSession().addError(MISC_ERROR, "Issue getting databases");
+                    runStatus.getOperationStatistics().getFailures().incrementDatabases();
+                    runStatus.setStage(StageEnum.DATABASES, CollectionEnum.ERRORED);
+                    reportWriterService.wrapup();
+                    return new AsyncResult<>(Boolean.FALSE);
+                } catch (RuntimeException rte) {
+                    log.error("Runtime Issue", rte);
+                    runStatus.addError(MISC_ERROR, rte.getMessage());
                     runStatus.getOperationStatistics().getFailures().incrementDatabases();
                     runStatus.setStage(StageEnum.DATABASES, CollectionEnum.ERRORED);
                     reportWriterService.wrapup();

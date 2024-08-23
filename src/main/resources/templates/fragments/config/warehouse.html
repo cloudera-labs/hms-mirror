@@ -35,16 +35,16 @@
 
             <legend th:text="#{config.warehouse}"/>
             <div class="pure-control-group">
-                <label for="managedDirectory" th:text="#{config.transfer.warehouse.managedDirectory}"></label>
-                <input id="managedDirectory" type="text"
-                       th:field="*{transfer.warehouse.managedDirectory}"
-                       placeholder="Set Managed Directory"/>
-            </div>
-            <div class="pure-control-group">
                 <label for="externalDirectory" th:text="#{config.transfer.warehouse.externalDirectory}"></label>
                 <input id="externalDirectory" type="text"
                        th:field="*{transfer.warehouse.externalDirectory}"
                        placeholder="Set External Directory"/>
+            </div>
+            <div class="pure-control-group">
+                <label for="managedDirectory" th:text="#{config.transfer.warehouse.managedDirectory}"></label>
+                <input id="managedDirectory" type="text"
+                       th:field="*{transfer.warehouse.managedDirectory}"
+                       placeholder="Set Managed Directory"/>
             </div>
         </fieldset>
     </div>

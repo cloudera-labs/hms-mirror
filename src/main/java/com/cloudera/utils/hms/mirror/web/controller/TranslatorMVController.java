@@ -82,7 +82,7 @@ public class TranslatorMVController {
                                        @RequestParam(name = TARGET, required = true) String target) throws SessionException, RequiredConfigurationException {
         log.info("Adding global location map for source: {} and target: {}", source, target);
         // Don't reload if running.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         if (isBlank(source) || isBlank(target)) {
             throw new RequiredConfigurationException("Source and Target are required (and can't be blank) when adding a global location map.");
@@ -98,7 +98,7 @@ public class TranslatorMVController {
                                           @RequestParam String source,
                                           @RequestParam TableType tableType) throws SessionException {
         // Don't reload if running.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
 
         log.info("Removing global location map for source: {}", source);
         translatorService.removeGlobalLocationMap(source, tableType);
@@ -120,11 +120,11 @@ public class TranslatorMVController {
         boolean lclDryrun = dryrun != null ? dryrun : false;
 
         // Reset Connections and reload most current config.
-        executeSessionService.clearActiveSession();
+        executeSessionService.closeSession();
         ExecuteSession session = executeSessionService.getSession();
         configService.validateForConnections(session);
 
-        if (executeSessionService.transitionLoadedSessionToActive(maxThreads)) {
+        if (executeSessionService.startSession(maxThreads)) {
 
             session = executeSessionService.getSession();
             HmsMirrorConfig config = session.getConfig();
