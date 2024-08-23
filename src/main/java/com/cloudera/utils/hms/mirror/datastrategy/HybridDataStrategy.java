@@ -25,6 +25,7 @@ import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.service.ConfigService;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
+import com.cloudera.utils.hms.mirror.service.TranslatorService;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -49,8 +50,9 @@ public class HybridDataStrategy extends DataStrategyBase implements DataStrategy
         this.configService = configService;
     }
 
-    public HybridDataStrategy(ExecuteSessionService executeSessionService) {
+    public HybridDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
         this.executeSessionService = executeSessionService;
+        this.translatorService = translatorService;
     }
 
     @Override

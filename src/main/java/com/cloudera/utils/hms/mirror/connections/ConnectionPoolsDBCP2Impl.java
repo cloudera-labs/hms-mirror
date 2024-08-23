@@ -135,6 +135,7 @@ public class ConnectionPoolsDBCP2Impl extends ConnectionPoolsBase implements Con
                         new GenericObjectPool<>(mspoolableConnectionFactory);
 
                 mspoolableConnectionFactory.setPool(msconnectionPool);
+                metastoreDirectDataSources.put(environment, new PoolingDataSource<>(msconnectionPool));
 
                 // Attempt to get the Driver Version for the Metastore Direct Connection.
                 try {
@@ -147,7 +148,6 @@ public class ConnectionPoolsDBCP2Impl extends ConnectionPoolsBase implements Con
 //                    throw new RuntimeException(e);
                 }
 
-                metastoreDirectDataSources.put(environment, new PoolingDataSource<>(msconnectionPool));
                 // Test Connection.
                 Connection conn = null;
                 try {

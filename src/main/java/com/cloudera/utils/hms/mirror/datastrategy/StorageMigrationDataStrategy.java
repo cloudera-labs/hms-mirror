@@ -59,7 +59,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
 
     private DatabaseService databaseService;
     private TableService tableService;
-    private TranslatorService translatorService;
+    //    private TranslatorService translatorService;
     private StatsCalculatorService statsCalculatorService;
 
     @Autowired
@@ -67,8 +67,9 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
         this.databaseService = databaseService;
     }
 
-    public StorageMigrationDataStrategy(ExecuteSessionService executeSessionService) {
+    public StorageMigrationDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
         this.executeSessionService = executeSessionService;
+        this.translatorService = translatorService;
     }
 
     @Override
@@ -171,7 +172,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
         }
 
         // Build Shadow from Source.
-        rtn = tableService.buildTableSchema(copySpec);
+        rtn = buildTableSchema(copySpec);
 
         return rtn;
     }
@@ -504,8 +505,8 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
         this.tableService = tableService;
     }
 
-    @Autowired
-    public void setTranslatorService(TranslatorService translatorService) {
-        this.translatorService = translatorService;
-    }
+//    @Autowired
+//    public void setTranslatorService(TranslatorService translatorService) {
+//        this.translatorService = translatorService;
+//    }
 }

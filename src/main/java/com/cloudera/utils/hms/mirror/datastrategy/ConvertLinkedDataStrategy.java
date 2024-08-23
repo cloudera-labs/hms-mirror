@@ -48,15 +48,16 @@ public class ConvertLinkedDataStrategy extends DataStrategyBase implements DataS
     private ConfigService configService;
     private SchemaOnlyDataStrategy schemaOnlyDataStrategy;
     private TableService tableService;
-    private TranslatorService translatorService;
+//    private TranslatorService translatorService;
 
     @Autowired
     public void setConfigService(ConfigService configService) {
         this.configService = configService;
     }
 
-    public ConvertLinkedDataStrategy(ExecuteSessionService executeSessionService) {
+    public ConvertLinkedDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
         this.executeSessionService = executeSessionService;
+        this.translatorService = translatorService;
     }
 
     @Override
@@ -150,8 +151,4 @@ public class ConvertLinkedDataStrategy extends DataStrategyBase implements DataS
         this.tableService = tableService;
     }
 
-    @Autowired
-    public void setTranslatorService(TranslatorService translatorService) {
-        this.translatorService = translatorService;
-    }
 }

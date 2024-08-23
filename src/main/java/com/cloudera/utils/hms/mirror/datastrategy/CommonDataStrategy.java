@@ -50,15 +50,16 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
     private ConfigService configService;
 
     private TableService tableService;
-    private TranslatorService translatorService;
+//    private TranslatorService translatorService;
 
     @Autowired
     public void setConfigService(ConfigService configService) {
         this.configService = configService;
     }
 
-    public CommonDataStrategy(ExecuteSessionService executeSessionService) {
+    public CommonDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
         this.executeSessionService = executeSessionService;
+        this.translatorService = translatorService;
     }
 
     @Override
@@ -76,7 +77,7 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
         copySpec = new CopySpec(tableMirror, Environment.LEFT, Environment.RIGHT);
         // Can't LINK ACID tables.
         if (TableUtils.isHiveNative(let) && !TableUtils.isACID(let)) {
-            // Swap out the namespace of the LEFT with the RIGHT.
+            // For COMMON, we're assuming the namespace is used by 'both' so we don't change anything..
             copySpec.setReplaceLocation(Boolean.FALSE);
             if (hmsMirrorConfig.convertManaged())
                 copySpec.setUpgrade(Boolean.TRUE);
@@ -129,7 +130,7 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
                 }
             }
             // Rebuild Target from Source.
-            rtn = tableService.buildTableSchema(copySpec);
+            rtn = buildTableSchema(copySpec);
         } else {
             let.addIssue("Can't use COMMON for ACID tables");
             ret.setCreateStrategy(CreateStrategy.NOTHING);
@@ -261,8 +262,8 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
         this.tableService = tableService;
     }
 
-    @Autowired
-    public void setTranslatorService(TranslatorService translatorService) {
-        this.translatorService = translatorService;
-    }
+//    @Autowired
+//    public void setTranslatorService(TranslatorService translatorService) {
+//        this.translatorService = translatorService;
+//    }
 }

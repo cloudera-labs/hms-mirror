@@ -27,6 +27,7 @@ import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.TableService;
+import com.cloudera.utils.hms.mirror.service.TranslatorService;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -43,8 +44,9 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
     private SchemaOnlyDataStrategy schemaOnlyDataStrategy;
     private TableService tableService;
 
-    public LinkedDataStrategy(ExecuteSessionService executeSessionService) {
+    public LinkedDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
         this.executeSessionService = executeSessionService;
+        this.translatorService = translatorService;
     }
 
     @Override
@@ -113,7 +115,7 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
                 }
             }
             // Rebuild Target from Source.
-            rtn = tableService.buildTableSchema(copySpec);
+            rtn = buildTableSchema(copySpec);
         } else {
             let.addIssue("Can't LINK ACID tables");
             ret.setCreateStrategy(CreateStrategy.NOTHING);
@@ -123,7 +125,8 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
 
     @Override
     public Boolean buildOutSql(TableMirror tableMirror) throws MissingDataPointException {
-        return schemaOnlyDataStrategy.execute(tableMirror);
+        // Reuse the SchemaOnlyDataStrategy to build out the DDL SQL for the LINKED table.
+        return schemaOnlyDataStrategy.buildOutSql(tableMirror);
     }
 
     @Override
@@ -132,9 +135,6 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
-        EnvironmentTable tet = getEnvironmentTable(Environment.TRANSFER, tableMirror);
-        EnvironmentTable set = getEnvironmentTable(Environment.SHADOW, tableMirror);
-        EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT, tableMirror);
 
         if (TableUtils.isACID(let)) {
             tableMirror.addIssue(Environment.LEFT, "You can't 'LINK' ACID tables.");

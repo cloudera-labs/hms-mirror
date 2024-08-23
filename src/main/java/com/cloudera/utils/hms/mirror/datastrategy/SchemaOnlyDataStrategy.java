@@ -49,7 +49,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStrategy {
 
     private ConfigService configService;
-    TranslatorService translatorService;
+//    TranslatorService translatorService;
     private TableService tableService;
 
     @Autowired
@@ -57,8 +57,9 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
         this.configService = configService;
     }
 
-    public SchemaOnlyDataStrategy(ExecuteSessionService executeSessionService) {
+    public SchemaOnlyDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
         this.executeSessionService = executeSessionService;
+        this.translatorService = translatorService;
     }
 
     @Override
@@ -167,7 +168,7 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
         if (!TableUtils.isACID(let)
                 || (TableUtils.isACID(let)
                 && hmsMirrorConfig.getMigrateACID().isOn())) {
-            rtn = getTableService().buildTableSchema(copySpec);
+            rtn = buildTableSchema(copySpec);
         } else {
             let.addIssue(TableUtils.ACID_NOT_ON);
             ret.setCreateStrategy(CreateStrategy.NOTHING);
@@ -298,11 +299,5 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
     public void setTableService(TableService tableService) {
         this.tableService = tableService;
     }
-
-    @Autowired
-    public void setTranslatorService(TranslatorService translatorService) {
-        this.translatorService = translatorService;
-    }
-
 
 }

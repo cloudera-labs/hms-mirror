@@ -26,6 +26,7 @@ import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.ExportCircularResolveService;
 import com.cloudera.utils.hms.mirror.service.TableService;
+import com.cloudera.utils.hms.mirror.service.TranslatorService;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -43,8 +44,9 @@ public class ExportImportAcidDowngradeInPlaceDataStrategy extends DataStrategyBa
     private TableService tableService;
 
 
-    public ExportImportAcidDowngradeInPlaceDataStrategy(ExecuteSessionService executeSessionService) {
+    public ExportImportAcidDowngradeInPlaceDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
         this.executeSessionService = executeSessionService;
+        this.translatorService = translatorService;
     }
 
     @Override

@@ -17,7 +17,10 @@
 
 package com.cloudera.utils.hms.mirror.datastrategy;
 
-import com.cloudera.utils.hms.mirror.*;
+import com.cloudera.utils.hms.mirror.CopySpec;
+import com.cloudera.utils.hms.mirror.CreateStrategy;
+import com.cloudera.utils.hms.mirror.MirrorConf;
+import com.cloudera.utils.hms.mirror.Pair;
 import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
@@ -28,6 +31,7 @@ import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.service.ConfigService;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.TableService;
+import com.cloudera.utils.hms.mirror.service.TranslatorService;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +43,6 @@ import java.text.MessageFormat;
 import static com.cloudera.utils.hms.mirror.MessageCode.*;
 import static com.cloudera.utils.hms.mirror.SessionVars.SET_TEZ_AS_EXECUTION_ENGINE;
 import static com.cloudera.utils.hms.mirror.SessionVars.TEZ_EXECUTION_DESC;
-import static java.util.Objects.isNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Component
@@ -48,7 +51,6 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 public class IntermediateDataStrategy extends DataStrategyBase implements DataStrategy {
 
     private ConfigService configService;
-
     private TableService tableService;
 
     @Autowired
@@ -56,14 +58,17 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
         this.configService = configService;
     }
 
-    public IntermediateDataStrategy(ExecuteSessionService executeSessionService) {
+    public IntermediateDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
         this.executeSessionService = executeSessionService;
+        this.translatorService = translatorService;
     }
 
     @Override
     public Boolean buildOutDefinition(TableMirror tableMirror) throws RequiredConfigurationException {
         Boolean rtn = Boolean.FALSE;
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+
+        BuildWhat buildWhat = whatToBuild(hmsMirrorConfig, tableMirror);
 
         log.debug("Table: {} buildout Intermediate Definition", tableMirror.getName());
         EnvironmentTable let = null;
@@ -72,149 +77,96 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
         let = getEnvironmentTable(Environment.LEFT, tableMirror);
         ret = getEnvironmentTable(Environment.RIGHT, tableMirror);
 
-        CopySpec rightSpec = new CopySpec(tableMirror, Environment.LEFT, Environment.RIGHT);
+        if (buildWhat.rightTable) {
+            CopySpec rightSpec = new CopySpec(tableMirror, Environment.LEFT, Environment.RIGHT);
 
-        if (ret.isExists()) {
-            if (!TableUtils.isACID(ret) && hmsMirrorConfig.getCluster(Environment.RIGHT).isCreateIfNotExists() && hmsMirrorConfig.isSync()) {
-                ret.addIssue(CINE_WITH_EXIST.getDesc());
+            if (ret.isExists()) {
+                if (!TableUtils.isACID(ret) && hmsMirrorConfig.getCluster(Environment.RIGHT).isCreateIfNotExists() && hmsMirrorConfig.isSync()) {
+                    ret.addIssue(CINE_WITH_EXIST.getDesc());
+                    ret.setCreateStrategy(CreateStrategy.CREATE);
+                } else if (TableUtils.isACID(ret) && hmsMirrorConfig.isSync()) {
+                    ret.addIssue(SCHEMA_EXISTS_SYNC_ACID.getDesc());
+                    ret.setCreateStrategy(CreateStrategy.REPLACE);
+                } else {
+                    // Already exists, no action.
+                    ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                    ret.setCreateStrategy(CreateStrategy.NOTHING);
+                    return Boolean.FALSE;
+                }
+            } else {
                 ret.setCreateStrategy(CreateStrategy.CREATE);
-            } else if (TableUtils.isACID(ret) && hmsMirrorConfig.isSync()) {
-                ret.addIssue(SCHEMA_EXISTS_SYNC_ACID.getDesc());
-                ret.setCreateStrategy(CreateStrategy.REPLACE);
-            } else {
-                // Already exists, no action.
-                ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
-                ret.setCreateStrategy(CreateStrategy.NOTHING);
-                return Boolean.FALSE;
             }
-        } else {
-            ret.setCreateStrategy(CreateStrategy.CREATE);
-        }
 
-        if (!TableUtils.isACID(let) && TableUtils.isManaged(let)) {
-            // Managed to EXTERNAL
-            rightSpec.setUpgrade(Boolean.TRUE);
-            rightSpec.setReplaceLocation(Boolean.TRUE);
-        } else if (TableUtils.isACID(let)) {
-            // ACID
-            if (hmsMirrorConfig.getMigrateACID().isDowngrade()) {
-                if (isBlank(hmsMirrorConfig.getTransfer().getTargetNamespace())) {
-                    if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
-                        rightSpec.setReplaceLocation(Boolean.TRUE);
-                    } else {
-                        rightSpec.setStripLocation(Boolean.TRUE);
-                    }
-                } else {
-                    rightSpec.setReplaceLocation(Boolean.TRUE);
-                }
-                rightSpec.setMakeExternal(Boolean.TRUE);
-                // Strip the Transactional Elements
-                rightSpec.setMakeNonTransactional(Boolean.TRUE);
-                // Set Purge Flag
-                rightSpec.setTakeOwnership(Boolean.TRUE);
-            } else {
-                // Use the system default location when converting.
-                rightSpec.setStripLocation(Boolean.TRUE);
-            }
-        } else {
-            // External
-            rightSpec.setReplaceLocation(Boolean.TRUE);
-        }
-
-        // Build Target from Source.
-        rtn = tableService.buildTableSchema(rightSpec);
-        //tableMirror.buildTableSchema(rightSpec);
-
-        // Build Transfer Spec.
-        CopySpec transferSpec = new CopySpec(tableMirror, Environment.LEFT, Environment.TRANSFER);
-        if (isBlank(hmsMirrorConfig.getTransfer().getTargetNamespace())) {
-            if (hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()
-                    != hmsMirrorConfig.getCluster(Environment.RIGHT).isLegacyHive()) {
-                if (hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                    transferSpec.setMakeNonTransactional(Boolean.TRUE);
-                } else {
-                    // Don't support non-legacy to legacy conversions.
-                    let.addIssue("Don't support Non-Legacy to Legacy conversions.");
-                    return Boolean.FALSE;
-                }
-            } else {
-                if (hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                    // Legacy to Legacy
-                    // Non-Transactional, Managed (for ownership)
-                    transferSpec.setMakeNonTransactional(Boolean.TRUE);
-                } else {
-                    // Non Legacy to Non Legacy
-                    // External w/ Ownership
-                    transferSpec.setMakeExternal(Boolean.TRUE);
-                    transferSpec.setTakeOwnership(Boolean.TRUE);
-                }
-            }
-        } else {
-            // Storage will be used by right.  So don't let Transfer table own data.
-            transferSpec.setMakeNonTransactional(Boolean.TRUE);
-            if (hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()
-                    != hmsMirrorConfig.getCluster(Environment.RIGHT).isLegacyHive()) {
-                if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                    // Don't support non-legacy to legacy conversions.
-                    let.addIssue("Don't support Non-Legacy to Legacy conversions.");
-                    return Boolean.FALSE;
-                } else {
-                    if (TableUtils.isACID(let) && hmsMirrorConfig.getMigrateACID().isDowngrade()) {
-                        if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                            transferSpec.setMakeExternal(Boolean.TRUE);
-                            transferSpec.setTakeOwnership(Boolean.FALSE);
+            if (!TableUtils.isACID(let) && TableUtils.isManaged(let)) {
+                // Managed to EXTERNAL
+                rightSpec.setUpgrade(Boolean.TRUE);
+                rightSpec.setReplaceLocation(Boolean.TRUE);
+            } else if (TableUtils.isACID(let)) {
+                // ACID
+                if (hmsMirrorConfig.getMigrateACID().isDowngrade()) {
+                    if (isBlank(hmsMirrorConfig.getTransfer().getTargetNamespace())) {
+                        if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
+                            rightSpec.setReplaceLocation(Boolean.TRUE);
                         } else {
-                            transferSpec.setMakeExternal(Boolean.TRUE);
+                            rightSpec.setStripLocation(Boolean.TRUE);
                         }
                     } else {
-                        transferSpec.setMakeExternal(Boolean.TRUE);
+                        rightSpec.setReplaceLocation(Boolean.TRUE);
                     }
+                    rightSpec.setMakeExternal(Boolean.TRUE);
+                    // Strip the Transactional Elements
+                    rightSpec.setMakeNonTransactional(Boolean.TRUE);
+                    // Set Purge Flag
+                    rightSpec.setTakeOwnership(Boolean.TRUE);
+                } else {
+                    // Use the system default location when converting.
+                    rightSpec.setStripLocation(Boolean.TRUE);
                 }
             } else {
-                if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                    // Non Legacy to Non Legacy
-                    // External w/ Ownership
-                    transferSpec.setMakeExternal(Boolean.TRUE);
-                    if (hmsMirrorConfig.getMigrateACID().isDowngrade()) {
-                        // The location will be used by the right cluster, so do not own the data.
-                        transferSpec.setTakeOwnership(Boolean.FALSE);
-                    } else {
-                        // Common Storage is used just like Intermediate Storage in this case.
-                        transferSpec.setTakeOwnership(Boolean.TRUE);
-                    }
-                }
+                // External
+                rightSpec.setReplaceLocation(Boolean.TRUE);
             }
+
+            // Build Target from Source.
+            rtn = buildTableSchema(rightSpec);
         }
 
-        transferSpec.setTableNamePrefix(hmsMirrorConfig.getTransfer().getTransferPrefix());
-        transferSpec.setReplaceLocation(Boolean.TRUE);
+        if (rtn && buildWhat.isTransferTable()) {
+            // Build Transfer Spec.
+            // When the source is ACID and we need to downgrade the dataset or Intermediate Storage is used.
+            CopySpec transferSpec = new CopySpec(tableMirror, Environment.LEFT, Environment.TRANSFER);
+            // The Transfer Table should OWN the data, since we need to clean it up after the migration.
+            transferSpec.setMakeNonTransactional(Boolean.TRUE);
+            transferSpec.setMakeExternal(Boolean.TRUE);
+            transferSpec.setTakeOwnership(Boolean.TRUE);
 
-        if (rtn)
+            transferSpec.setTableNamePrefix(hmsMirrorConfig.getTransfer().getTransferPrefix());
+            transferSpec.setReplaceLocation(Boolean.TRUE);
+
             // Build transfer table.
-            rtn = tableService.buildTableSchema(transferSpec);
+            rtn = buildTableSchema(transferSpec);
+        }
 
         // Build Shadow Spec (don't build when using commonStorage)
         // If acid and ma.isOn
         // if not downgrade
-        if ((!isBlank(hmsMirrorConfig.getTransfer().getIntermediateStorage()) && !TableUtils.isACID(let)) ||
-                (TableUtils.isACID(let) && hmsMirrorConfig.getMigrateACID().isOn())) {
-            if (!hmsMirrorConfig.getMigrateACID().isDowngrade() ||
-                    // Is Downgrade but the downgraded location isn't available to the right.
-                    (hmsMirrorConfig.getMigrateACID().isDowngrade()
-                            && isNull(hmsMirrorConfig.getTransfer().getTargetNamespace()))) {
-                if (!hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
-                    CopySpec shadowSpec = new CopySpec(tableMirror, Environment.LEFT, Environment.SHADOW);
-                    shadowSpec.setUpgrade(Boolean.TRUE);
-                    shadowSpec.setMakeExternal(Boolean.TRUE);
-                    shadowSpec.setTakeOwnership(Boolean.FALSE);
-                    shadowSpec.setReplaceLocation(Boolean.TRUE);
-                    shadowSpec.setTableNamePrefix(hmsMirrorConfig.getTransfer().getShadowPrefix());
 
-                    if (rtn)
-                        rtn = tableService.buildTableSchema(shadowSpec);
-                }
+        if (buildWhat.isShadowTable()) {
+            CopySpec shadowSpec = null;
+            // If we built a transfer table, use it as the source for the shadow table.
+            if (TableUtils.isACID(let) || !isBlank(hmsMirrorConfig.getTransfer().getIntermediateStorage())) {
+                shadowSpec = new CopySpec(tableMirror, Environment.TRANSFER, Environment.SHADOW);
+            } else {
+                shadowSpec = new CopySpec(tableMirror, Environment.LEFT, Environment.SHADOW);
             }
+            shadowSpec.setUpgrade(Boolean.TRUE);
+            shadowSpec.setMakeExternal(Boolean.TRUE);
+            shadowSpec.setTakeOwnership(Boolean.FALSE);
+            shadowSpec.setTableNamePrefix(hmsMirrorConfig.getTransfer().getShadowPrefix());
+
+            rtn = buildTableSchema(shadowSpec);
         }
+
         return rtn;
     }
 
@@ -222,6 +174,8 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
     public Boolean buildOutSql(TableMirror tableMirror) throws MissingDataPointException {
         Boolean rtn = Boolean.FALSE;
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
+
+        BuildWhat buildWhat = whatToBuild(config, tableMirror);
 
         log.debug("Table: {} buildout Intermediate SQL", tableMirror.getName());
 
@@ -241,87 +195,125 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
         useDb = MessageFormat.format(MirrorConf.USE, database);
 
 
-        // Manage Transfer Table
-        String transferCreateStmt = tableService.getCreateStatement(tableMirror, Environment.TRANSFER);
-        if (!isBlank(transferCreateStmt)) {
-            let.addSql(TableUtils.USE_DESC, useDb);
-            // Drop any previous TRANSFER table, if it exists.
-            if (!isBlank(tet.getName())) {
-                String transferDropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, tet.getName());
-                let.addSql(TableUtils.DROP_DESC, transferDropStmt);
+        // Manage Transfer Table.  Should only make this if the TRANSFER table is defined.
+        if (buildWhat.isTransferTable()) {
+            String transferCreateStmt = tableService.getCreateStatement(tableMirror, Environment.TRANSFER);
+            if (!isBlank(transferCreateStmt)) {
+                let.addSql(TableUtils.USE_DESC, useDb);
+                // Drop any previous TRANSFER table, if it exists.
+                if (!isBlank(tet.getName())) {
+                    String transferDropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, tet.getName());
+                    let.addSql(TableUtils.DROP_DESC, transferDropStmt);
+                }
+                let.addSql(TableUtils.CREATE_TRANSFER_DESC, transferCreateStmt);
             }
-            let.addSql(TableUtils.CREATE_TRANSFER_DESC, transferCreateStmt);
         }
+
 
         database = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
         useDb = MessageFormat.format(MirrorConf.USE, database);
         ret.addSql(TableUtils.USE_DESC, useDb);
 
         // RIGHT SHADOW Table
-        if (!set.getDefinition().isEmpty() &&
-          !config.getTransfer().getStorageMigration().isDistcp()) { //config.getTransfer().getTargetNamespace() == null || !config.getMigrateACID().isDowngrade()) {
-
-            // Drop any previous SHADOW table, if it exists.
-            String dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
-            ret.addSql(TableUtils.DROP_DESC, dropStmt);
-            // Create Shadow Table
+        if (buildWhat.shadowTable) {
             String shadowCreateStmt = tableService.getCreateStatement(tableMirror, Environment.SHADOW);
-            ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
-            // Repair Partitions
-//            if (let.getPartitioned()) {
-//                String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
-//                ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
-//            }
+            if (!isBlank(shadowCreateStmt)) {
+                // Drop any previous SHADOW table, if it exists.
+                String dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
+                ret.addSql(TableUtils.DROP_DESC, dropStmt);
+                // Create Shadow Table
+                ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
+                // Repair Partitions
+                // TODO: Handle odd partitions.
+                if (let.getPartitioned()) {
+                    String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
+                    ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
+                }
+            }
         }
 
         // RIGHT Final Table
-        String rightDrop = null;
-        switch (ret.getCreateStrategy()) {
-            case NOTHING:
-            case LEAVE:
-                // Do Nothing.
-                break;
-            case DROP:
-                rightDrop = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
-                ret.addSql(TableUtils.DROP_DESC, rightDrop);
-                break;
-            case REPLACE:
-                rightDrop = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
-                ret.addSql(TableUtils.DROP_DESC, rightDrop);
-                String createStmt = tableService.getCreateStatement(tableMirror, Environment.RIGHT);
-                ret.addSql(TableUtils.CREATE_DESC, createStmt);
-                break;
-            case CREATE:
-                String createStmt2 = tableService.getCreateStatement(tableMirror, Environment.RIGHT);
-                ret.addSql(TableUtils.CREATE_DESC, createStmt2);
-                if (!config.getCluster(Environment.RIGHT).isLegacyHive()
-                        && config.isTransferOwnership() && let.getOwner() != null) {
-                    String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, ret.getName(), let.getOwner());
-                    ret.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
-                }
-                if (let.getPartitioned()) {
-                    if (config.getTransfer().getTargetNamespace() != null) {
-                        if (!TableUtils.isACID(let) || (TableUtils.isACID(let) && config.getMigrateACID().isDowngrade())) {
-                            String rightMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, ret.getName());
-                            ret.addSql(TableUtils.REPAIR_DESC, rightMSCKStmt);
-                        }
+        if (buildWhat.rightTable) {
+            String rightDrop = null;
+            switch (ret.getCreateStrategy()) {
+                case NOTHING:
+                case LEAVE:
+                    // Do Nothing.
+                    break;
+                case DROP:
+                    rightDrop = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                    ret.addSql(TableUtils.DROP_DESC, rightDrop);
+                    break;
+                case REPLACE:
+                    rightDrop = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                    ret.addSql(TableUtils.DROP_DESC, rightDrop);
+                    String createStmt = tableService.getCreateStatement(tableMirror, Environment.RIGHT);
+                    ret.addSql(TableUtils.CREATE_DESC, createStmt);
+                    break;
+                case CREATE:
+                    String createStmt2 = tableService.getCreateStatement(tableMirror, Environment.RIGHT);
+                    ret.addSql(TableUtils.CREATE_DESC, createStmt2);
+                    if (!config.getCluster(Environment.RIGHT).isLegacyHive()
+                            && config.isTransferOwnership() && let.getOwner() != null) {
+                        String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, ret.getName(), let.getOwner());
+                        ret.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
                     }
-                }
+                    // Don't need this for final table..
+                    // Unless we are using 'distcp' to copy the data.
+                    // Partitioned, non-acid, w/ distcp.
+                    if (let.getPartitioned() && config.getTransfer().getStorageMigration().isDistcp()
+                        && !TableUtils.isACID(ret)) {
+                                String rightMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, ret.getName());
+                                ret.addSql(TableUtils.REPAIR_DESC, rightMSCKStmt);
+                    }
 
-                break;
+                    break;
+            }
         }
-
         rtn = Boolean.TRUE;
         return rtn;
+    }
+
+
+    @Override
+    public BuildWhat whatToBuild(HmsMirrorConfig config, TableMirror tableMirror) {
+        BuildWhat buildWhat = new BuildWhat();
+
+        EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
+
+        // Build the RIGHT table definition.
+        // TODO: Do we need to check for the existence of the RIGHT table?
+
+        // When NOT using 'distcp' create the transfer and shadow tables.
+        if (!config.getTransfer().getStorageMigration().isDistcp()) {
+            if (TableUtils.isACID(let) || !isBlank(config.getTransfer().getIntermediateStorage())) {
+                buildWhat.transferTable = true;
+                buildWhat.transferSql = true;
+            }
+            buildWhat.shadowTable = true;
+            buildWhat.shadowSql = true;
+        } else {
+            if (TableUtils.isACID(let)) {
+                buildWhat.transferTable = true;
+                buildWhat.transferSql = true;
+            }
+        }
+
+        // Build the RIGHT table definition.
+        buildWhat.rightTable = true;
+
+        return buildWhat;
     }
 
     @Override
     public Boolean execute(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
-
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
         EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
 
+        BuildWhat buildWhat = whatToBuild(config, tableMirror);
+
+        // ================================
         try {
             rtn = buildOutDefinition(tableMirror);
         } catch (RequiredConfigurationException e) {
@@ -338,14 +330,9 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
             }
         }
 
-//        EnvironmentTable tet = tableMirror.getEnvironmentTable(Environment.TRANSFER);
-//        EnvironmentTable set = tableMirror.getEnvironmentTable(Environment.SHADOW);
-//        EnvironmentTable ret = tableMirror.getEnvironmentTable(Environment.RIGHT);
-
-        if (rtn) {
-            // Construct Transfer SQL
-            if (hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()
-                    && !hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
+        // Construct Transfer SQL
+        if (rtn && buildWhat.isTransferSql()) {
+            if (config.getCluster(Environment.LEFT).isLegacyHive()) {
                 // We need to ensure that 'tez' is the execution engine.
                 let.addSql(new Pair(TEZ_EXECUTION_DESC, SET_TEZ_AS_EXECUTION_ENGINE));
             }
@@ -357,42 +344,29 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
             Pair leftUsePair = new Pair(TableUtils.USE_DESC, useLeftDb);
             let.addCleanUpSql(leftUsePair);
 
-            rtn = tableService.buildTransferSql(tableMirror, Environment.LEFT, Environment.TRANSFER, Environment.RIGHT);
-            //tableMirror.buildTransferSql(let, set, ret, config);
-
-            // Execute the LEFT sql if config.execute.
-            if (rtn) {
-                rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
-            }
-
-            // Execute the RIGHT sql if config.execute.
-            if (rtn) {
-                rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
-            }
-
-            if (rtn) {
-                // Run the Cleanup Scripts
-                tableService.runTableSql(let.getCleanUpSql(), tableMirror, Environment.LEFT);
-            }
-
-            // RIGHT Shadow table
-//            if (set.getDefinition().size() > 0) {
-//                List<Pair> rightCleanup = new ArrayList<Pair>();
-//
-//                String useRightDb = MessageFormat.format(MirrorConf.USE, config.getResolvedDB(dbMirror.getName()));
-//                Pair rightUsePair = new Pair(TableUtils.USE_DESC, useRightDb);
-//                ret.addCleanUpSql(rightUsePair);
-//                String rightDropShadow = MessageFormat.format(MirrorConf.DROP_TABLE, set.getName());
-//                Pair rightDropPair = new Pair(TableUtils.DROP_SHADOW_TABLE, rightDropShadow);
-//                ret.addCleanUpSql(rightDropPair);
-//                tblMirror.addStep("RIGHT ACID Shadow SQL Cleanup", "Built");
-//
-//                if (rtn) {
-//                    // Run the Cleanup Scripts
-//                    config.getCluster(Environment.RIGHT).runTableSql(ret.getCleanUpSql(), tblMirror, Environment.RIGHT);
-//                }
-//            }
+            rtn = buildMigrationSql(tableMirror, Environment.LEFT, Environment.TRANSFER, Environment.RIGHT);
+            //tableMirror.transferSql(let, set, ret, config);
         }
+
+        if (rtn && buildWhat.isShadowSql()) {
+            rtn = buildMigrationSql(tableMirror, Environment.LEFT, Environment.SHADOW, Environment.RIGHT);
+        }
+
+        // Execute the LEFT sql if config.execute.
+        if (rtn) {
+            rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
+        }
+
+        // Execute the RIGHT sql if config.execute.
+        if (rtn) {
+            rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
+        }
+
+        if (rtn) {
+            // Run the Cleanup Scripts
+            tableService.runTableSql(let.getCleanUpSql(), tableMirror, Environment.LEFT);
+        }
+
         return rtn;
     }
 

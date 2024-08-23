@@ -85,7 +85,7 @@
                         <a th:text="#{attributes}" href="#" class="pure-menu-link"/>
                         <ul class="pure-menu-children">
                             <li class="pure-menu-item"
-                                th:if="${('HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
+                                th:if="${('HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY COMMON').contains(CONFIG.dataStrategy.toString())}">
                                 <a th:text="#{config.data.movement}" href="#" class="pure-menu-link"
                                    onclick="openSection(event, 'datamovement')"/>
                             </li>

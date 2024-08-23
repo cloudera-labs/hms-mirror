@@ -146,7 +146,7 @@ locations aren't standard, will result in data loss because we're not inspecting
 </tr>
 <tr>
 <td>EXPORT_IMPORT</td>
-<td><img src="closeRound.png" width="30" height="30"/></td>
+<td><img src="checkmarkRound.png" width="30" height="30"/></td>
 <td><p>RELATIVE </p></td>
 <td/>
 <td/>
@@ -156,7 +156,7 @@ locations aren't standard, will result in data loss because we're not inspecting
 <td></td>
 <td><img src="checkmarkRound.png" width="30" height="30"/></td>
 <td><p>ALIGNED </p></td>
-<td><img src="typcn-arrow-sync.png" width="20" height="20"/></td>
+<td/>
 <td><p>
 <img src="typcn-world.png" width="20" height="20"/><br/>
 <img src="linea--basic-elaboration-document-next.png" width="20" height="20"/>(Optional)

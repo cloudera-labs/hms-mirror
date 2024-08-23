@@ -27,6 +27,7 @@ import com.cloudera.utils.hms.mirror.domain.support.HmsMirrorConfigUtil;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.service.*;
+import com.cloudera.utils.hms.util.NamespaceUtils;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ import java.text.MessageFormat;
 import static com.cloudera.utils.hms.mirror.MessageCode.EXPORT_IMPORT_SYNC;
 import static com.cloudera.utils.hms.mirror.TablePropertyVars.TRANSLATED_TO_EXTERNAL;
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.left;
 
 @Component
 @Slf4j
@@ -45,7 +47,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 public class ExportImportDataStrategy extends DataStrategyBase implements DataStrategy {
 
     private ExportCircularResolveService exportCircularResolveService;
-    private TranslatorService translatorService;
+//    private TranslatorService translatorService;
     private ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy;
     private ConfigService configService;
     private DatabaseService databaseService;
@@ -61,8 +63,9 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
         this.databaseService = databaseService;
     }
 
-    public ExportImportDataStrategy(ExecuteSessionService executeSessionService) {
+    public ExportImportDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
         this.executeSessionService = executeSessionService;
+        this.translatorService = translatorService;
     }
 
     @Override
@@ -117,7 +120,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
         }
         if (rtn)
             // Build Target from Source.
-            rtn = tableService.buildTableSchema(copySpec);
+            rtn = buildTableSchema(copySpec);
         return rtn;
     }
 
@@ -134,7 +137,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
         database = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
 
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
-        String leftNamespace = TableUtils.getLocation(let.getName(), let.getDefinition());
+        String leftNamespace = NamespaceUtils.getNamespace(TableUtils.getLocation(let.getName(), let.getDefinition()));
 
         EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT, tableMirror);
         try {
@@ -161,11 +164,11 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
                         tableMirror.getParent().getName() + "/" +
                         tableMirror.getName();
             } else {
-                exportLoc = config.getTransfer().getExportBaseDirPrefix()
+                exportLoc = leftNamespace + config.getTransfer().getExportBaseDirPrefix()
                         + tableMirror.getParent().getName() + "/" + let.getName();
             }
             String origTableName = let.getName();
-            if (getTableService().isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+            if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
                 // Rename original table.
                 // Remove property (if exists) to prevent rename from happening.
                 if (TableUtils.hasTblProperty(TRANSLATED_TO_EXTERNAL, let)) {
@@ -182,19 +185,19 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
             let.addSql(TableUtils.EXPORT_TABLE, exportSql);
 
             // RIGHT IMPORT from Directory
-            if (!getTableService().isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+            if (!isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
                 String useRightDb = MessageFormat.format(MirrorConf.USE, database);
                 ret.addSql(TableUtils.USE_DESC, useRightDb);
             }
 
-            String importLoc = null;
-            if (!isBlank(config.getTransfer().getIntermediateStorage())
-                    || !isBlank(config.getTransfer().getTargetNamespace())) {
-                importLoc = exportLoc;
-            } else {
-                // checked
-                importLoc = leftNamespace + exportLoc;
-            }
+            String importLoc = exportLoc;
+//            if (!isBlank(config.getTransfer().getIntermediateStorage())
+//                    || !isBlank(config.getTransfer().getTargetNamespace())) {
+//                importLoc = exportLoc;
+//            } else {
+//                // checked
+//                importLoc = leftNamespace + exportLoc;
+//            }
 
             String sourceLocation = TableUtils.getLocation(let.getName(), let.getDefinition());
             String targetLocation = getTranslatorService().translateLocation(tableMirror, sourceLocation, 1, null);
@@ -231,7 +234,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
                 if (config.isSync()) {
                     // Need to Drop table first.
                     String dropExistingTable = MessageFormat.format(MirrorConf.DROP_TABLE, let.getName());
-                    if (tableService.isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+                    if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
                         let.addSql(MirrorConf.DROP_TABLE_DESC, dropExistingTable);
                         let.addIssue(EXPORT_IMPORT_SYNC.getDesc());
                     } else {
@@ -240,7 +243,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
                     }
                 }
             }
-            if (tableService.isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+            if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
                 let.addSql(TableUtils.IMPORT_TABLE, importSql);
             } else {
                 ret.addSql(TableUtils.IMPORT_TABLE, importSql);
@@ -284,7 +287,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
             }
         }
 
-        if (tableService.isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+        if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
             rtn = getExportImportAcidDowngradeInPlaceDataStrategy().execute(tableMirror);//doEXPORTIMPORTACIDInplaceDowngrade();
         } else {
             if (TableUtils.isACID(let)) {
@@ -341,8 +344,4 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
         this.tableService = tableService;
     }
 
-    @Autowired
-    public void setTranslatorService(TranslatorService translatorService) {
-        this.translatorService = translatorService;
-    }
 }

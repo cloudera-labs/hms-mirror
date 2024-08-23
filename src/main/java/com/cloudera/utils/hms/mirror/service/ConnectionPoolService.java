@@ -62,10 +62,6 @@ public class ConnectionPoolService {
     private PasswordService passwordService;
 
 
-    private HmsMirrorConfig getConfig() {
-        return executeSession.getConfig();
-    }
-
     @Autowired
     public void setEnvironmentService(EnvironmentService environmentService) {
         this.environmentService = environmentService;
@@ -78,14 +74,16 @@ public class ConnectionPoolService {
 
     public Boolean checkConnections() {
         boolean rtn = Boolean.FALSE;
-        if (isNull(getConfig())) {
+        HmsMirrorConfig config = executeSession.getConfig();
+
+        if (isNull(config)) {
             throw new RuntimeException("Configuration not set.  Connections can't be established.");
         }
 
         Set<Environment> envs = new HashSet<>();
-        if (!(getConfig().getDataStrategy() == DataStrategyEnum.DUMP ||
-                getConfig().getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION ||
-                getConfig().getDataStrategy() == DataStrategyEnum.ICEBERG_CONVERSION)) {
+        if (!(config.getDataStrategy() == DataStrategyEnum.DUMP ||
+                config.getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION ||
+                config.getDataStrategy() == DataStrategyEnum.ICEBERG_CONVERSION)) {
             envs.add(Environment.LEFT);
             envs.add(Environment.RIGHT);
         } else {
@@ -93,7 +91,7 @@ public class ConnectionPoolService {
         }
 
         for (Environment env : envs) {
-            Cluster cluster = getConfig().getCluster(env);
+            Cluster cluster = config.getCluster(env);
             if (nonNull(cluster)
                     && nonNull(cluster.getHiveServer2())
                     && cluster.getHiveServer2().isValidUri()
@@ -161,11 +159,12 @@ public class ConnectionPoolService {
 
     private ConnectionPools getConnectionPoolsImpl() throws SQLException {
         ConnectionPools rtn = null;
+        HmsMirrorConfig config = executeSession.getConfig();
 
-        if (isNull(getConfig())) {
+        if (isNull(config)) {
             throw new RuntimeException("Configuration not set.  Connections can't be established.");
         }
-        ConnectionPoolType cpt = getConfig().getConnectionPoolLib();
+        ConnectionPoolType cpt = config.getConnectionPoolLib();
         if (isNull(cpt)) {
             // Need to calculate the connectio pool type:
             // When both clusters are defined:
@@ -175,18 +174,18 @@ public class ConnectionPoolService {
             // When only the left cluster is defined:
                 // Use DBCP2 when the left cluster is legacy
                 // Use HIKARICP when the left cluster is non-legacy
-            if (isNull(getConfig().getCluster(Environment.RIGHT))) {
-                if (getConfig().getCluster(Environment.LEFT).isLegacyHive()) {
+            if (isNull(config.getCluster(Environment.RIGHT))) {
+                if (config.getCluster(Environment.LEFT).isLegacyHive()) {
                     cpt = ConnectionPoolType.DBCP2;
                 } else {
                     cpt = ConnectionPoolType.HIKARICP;
                 }
             } else {
-                if (getConfig().getCluster(Environment.LEFT).isLegacyHive()
-                        && getConfig().getCluster(Environment.RIGHT).isLegacyHive()) {
+                if (config.getCluster(Environment.LEFT).isLegacyHive()
+                        && config.getCluster(Environment.RIGHT).isLegacyHive()) {
                     cpt = ConnectionPoolType.DBCP2;
-                } else if (getConfig().getCluster(Environment.LEFT).isLegacyHive()
-                        || getConfig().getCluster(Environment.RIGHT).isLegacyHive()) {
+                } else if (config.getCluster(Environment.LEFT).isLegacyHive()
+                        || config.getCluster(Environment.RIGHT).isLegacyHive()) {
                     cpt = ConnectionPoolType.HYBRID;
                 } else {
                     cpt = ConnectionPoolType.HIKARICP;
@@ -235,57 +234,60 @@ public class ConnectionPoolService {
     public void init() throws SQLException, SessionException, EncryptionException {
 //        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getActiveSession().getResolvedConfig();
 //        ExecuteSession executeSession = executeSessionService.getActiveSession();
+        HmsMirrorConfig config = executeSession.getConfig();
         RunStatus runStatus = executeSession.getRunStatus();
 
-        if (getConfig().getDataStrategy() == DataStrategyEnum.DUMP) {
-            getConfig().setExecute(Boolean.FALSE); // No Actions.
-            getConfig().setSync(Boolean.FALSE);
+        if (config.getDataStrategy() == DataStrategyEnum.DUMP) {
+            config.setExecute(Boolean.FALSE); // No Actions.
+            config.setSync(Boolean.FALSE);
         }
 
         // Make adjustments to the config clusters based on settings.
         // Buildout the right connections pool details.
         Set<Environment> hs2Envs = new HashSet<Environment>();
-        switch (getConfig().getDataStrategy()) {
+        switch (config.getDataStrategy()) {
             case DUMP:
                 // Don't load the datasource for the right with DUMP strategy.
-                if (getConfig().getDumpSource() == Environment.RIGHT) {
+                if (config.getDumpSource() == Environment.RIGHT) {
                     // switch LEFT and RIGHT
-                    getConfig().getClusters().remove(Environment.LEFT);
-                    getConfig().getClusters().put(Environment.LEFT, getConfig().getCluster(Environment.RIGHT));
-                    getConfig().getCluster(Environment.LEFT).setEnvironment(Environment.LEFT);
-                    getConfig().getClusters().remove(Environment.RIGHT);
+                    config.getClusters().remove(Environment.LEFT);
+                    config.getClusters().put(Environment.LEFT, config.getCluster(Environment.RIGHT));
+                    config.getCluster(Environment.LEFT).setEnvironment(Environment.LEFT);
+                    config.getClusters().remove(Environment.RIGHT);
                 }
             case STORAGE_MIGRATION:
                 // Get Pool
-                getConnectionPools().addHiveServer2(Environment.LEFT, getConfig().getCluster(Environment.LEFT).getHiveServer2());
+                getConnectionPools().addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
                 hs2Envs.add(Environment.LEFT);
                 break;
             case SQL:
+            case COMMON:
+            case LINKED:
             case SCHEMA_ONLY:
             case EXPORT_IMPORT:
             case HYBRID:
                 // When doing inplace downgrade of ACID tables, we're only dealing with the LEFT cluster.
-                if (!getConfig().getMigrateACID().isInplace() && null != getConfig().getCluster(Environment.RIGHT).getHiveServer2()) {
-                    getConnectionPools().addHiveServer2(Environment.RIGHT, getConfig().getCluster(Environment.RIGHT).getHiveServer2());
+                if (!config.getMigrateACID().isInplace() && null != config.getCluster(Environment.RIGHT).getHiveServer2()) {
+                    getConnectionPools().addHiveServer2(Environment.RIGHT, config.getCluster(Environment.RIGHT).getHiveServer2());
                     hs2Envs.add(Environment.RIGHT);
                 }
             default:
-                getConnectionPools().addHiveServer2(Environment.LEFT, getConfig().getCluster(Environment.LEFT).getHiveServer2());
+                getConnectionPools().addHiveServer2(Environment.LEFT, config.getCluster(Environment.LEFT).getHiveServer2());
                 hs2Envs.add(Environment.LEFT);
                 break;
         }
 //        if (getConfig().loadMetadataDetails()) {
-            if (nonNull(getConfig().getCluster(Environment.LEFT)) &&
-                    nonNull(getConfig().getCluster(Environment.LEFT).getMetastoreDirect())) {
-                getConnectionPools().addMetastoreDirect(Environment.LEFT, getConfig().getCluster(Environment.LEFT).getMetastoreDirect());
+            if (nonNull(config.getCluster(Environment.LEFT)) &&
+                    nonNull(config.getCluster(Environment.LEFT).getMetastoreDirect())) {
+                getConnectionPools().addMetastoreDirect(Environment.LEFT, config.getCluster(Environment.LEFT).getMetastoreDirect());
             }
-            if (nonNull(getConfig().getCluster(Environment.RIGHT)) &&
-                    nonNull(getConfig().getCluster(Environment.RIGHT).getMetastoreDirect())) {
-                getConnectionPools().addMetastoreDirect(Environment.RIGHT, getConfig().getCluster(Environment.RIGHT).getMetastoreDirect());
+            if (nonNull(config.getCluster(Environment.RIGHT)) &&
+                    nonNull(config.getCluster(Environment.RIGHT).getMetastoreDirect())) {
+                getConnectionPools().addMetastoreDirect(Environment.RIGHT, config.getCluster(Environment.RIGHT).getMetastoreDirect());
             }
 //        }
 
-        if (getConfig().isConnectionKerberized()) {
+        if (config.isConnectionKerberized()) {
             log.debug("Detected a Kerberized JDBC Connection.  Attempting to setup/initialize GSS.");
             environmentService.setupGSS();
         }
@@ -299,10 +301,10 @@ public class ConnectionPoolService {
                 try {
                     conn = getConnectionPools().getHS2EnvironmentConnection(target);
                     if (isNull(conn)) {
-                        if (target == Environment.RIGHT && getConfig().getCluster(target).getHiveServer2().isDisconnected()) {
+                        if (target == Environment.RIGHT && config.getCluster(target).getHiveServer2().isDisconnected()) {
                             // Skip error.  Set Warning that we're disconnected.
                             runStatus.addWarning(ENVIRONMENT_DISCONNECTED, target);
-                        } else if (!getConfig().isLoadingTestData()) {
+                        } else if (!config.isLoadingTestData()) {
                             runStatus.addError(ENVIRONMENT_CONNECTION_ISSUE, target);
                         }
                     } else {
@@ -311,7 +313,7 @@ public class ConnectionPoolService {
                         stmt.execute("SELECT 1");
                     }
                 } catch (SQLException se) {
-                    if (target == Environment.RIGHT && getConfig().getCluster(target).getHiveServer2().isDisconnected()) {
+                    if (target == Environment.RIGHT && config.getCluster(target).getHiveServer2().isDisconnected()) {
                         // Set warning that RIGHT is disconnected.
                         runStatus.addWarning(ENVIRONMENT_DISCONNECTED, target);
                     } else {
@@ -351,9 +353,9 @@ public class ConnectionPoolService {
 //        }
 
         log.debug("Checking Hive Connections");
-        if (!getConfig().isLoadingTestData() && !checkConnections()) {
+        if (!config.isLoadingTestData() && !checkConnections()) {
             log.error("Check Hive Connections Failed.");
-            if (getConfig().isConnectionKerberized()) {
+            if (config.isConnectionKerberized()) {
                 log.error("Check Kerberos configuration if GSS issues are encountered.  See the running.md docs for details.");
             }
             throw new RuntimeException("Check Hive Connections Failed.  Check Logs.");

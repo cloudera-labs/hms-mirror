@@ -43,10 +43,11 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 public class DumpDataStrategy extends DataStrategyBase implements DataStrategy {
 
     private TableService tableService;
-    private TranslatorService translatorService;
+//    private TranslatorService translatorService;
 
-    public DumpDataStrategy(ExecuteSessionService executeSessionService) {
+    public DumpDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
         this.executeSessionService = executeSessionService;
+        this.translatorService = translatorService;
     }
 
     @Override
@@ -144,8 +145,8 @@ public class DumpDataStrategy extends DataStrategyBase implements DataStrategy {
         this.tableService = tableService;
     }
 
-    @Autowired
-    public void setTranslatorService(TranslatorService translatorService) {
-        this.translatorService = translatorService;
-    }
+//    @Autowired
+//    public void setTranslatorService(TranslatorService translatorService) {
+//        this.translatorService = translatorService;
+//    }
 }

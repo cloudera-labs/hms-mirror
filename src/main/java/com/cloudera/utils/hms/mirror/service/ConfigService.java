@@ -212,13 +212,13 @@ public class ConfigService {
                 }
                 break;
             case EXPORT_IMPORT:
-                if (config.getTransfer().getStorageMigration().getTranslationType() == TranslationTypeEnum.RELATIVE) {
-                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
-                            "TranslationType",
-                            config.getTransfer().getStorageMigration().getTranslationType().toString(),
-                            TranslationTypeEnum.ALIGNED.toString(), "Only the ALIGNED Translation Type is supported for EXPORT_IMPORT.");
-                    config.getTransfer().getStorageMigration().setTranslationType(TranslationTypeEnum.ALIGNED);
-                }
+//                if (config.getTransfer().getStorageMigration().getTranslationType() == TranslationTypeEnum.RELATIVE) {
+//                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
+//                            "TranslationType",
+//                            config.getTransfer().getStorageMigration().getTranslationType().toString(),
+//                            TranslationTypeEnum.ALIGNED.toString(), "Only the ALIGNED Translation Type is supported for EXPORT_IMPORT.");
+//                    config.getTransfer().getStorageMigration().setTranslationType(TranslationTypeEnum.ALIGNED);
+//                }
                 if (config.getTransfer().getStorageMigration().getDataMovementStrategy() != DataMovementStrategyEnum.NA) {
                     session.addConfigAdjustmentMessage(config.getDataStrategy(),
                             "DataMovementStrategy",

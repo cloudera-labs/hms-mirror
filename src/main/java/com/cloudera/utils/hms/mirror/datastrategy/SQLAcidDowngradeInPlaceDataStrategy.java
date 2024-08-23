@@ -29,6 +29,7 @@ import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.StatsCalculatorService;
 import com.cloudera.utils.hms.mirror.service.TableService;
+import com.cloudera.utils.hms.mirror.service.TranslatorService;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -49,8 +50,9 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
     private TableService tableService;
     private StatsCalculatorService statsCalculatorService;
 
-    public SQLAcidDowngradeInPlaceDataStrategy(ExecuteSessionService executeSessionService) {
+    public SQLAcidDowngradeInPlaceDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
         this.executeSessionService = executeSessionService;
+        this.translatorService = translatorService;
     }
 
     @Override
@@ -72,7 +74,7 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
         // Location of converted data will got to default location.
         leftNewTableSpec.setStripLocation(Boolean.TRUE);
 
-        rtn = tableService.buildTableSchema(leftNewTableSpec);
+        rtn = buildTableSchema(leftNewTableSpec);
 
         String origTableName = let.getName();
 

@@ -32,6 +32,7 @@ import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.service.ConfigService;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.TableService;
+import com.cloudera.utils.hms.mirror.service.TranslatorService;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -60,8 +61,9 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
         this.configService = configService;
     }
 
-    public SQLDataStrategy(ExecuteSessionService executeSessionService) {
+    public SQLDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
         this.executeSessionService = executeSessionService;
+        this.translatorService = translatorService;
     }
 
     @Override
@@ -120,7 +122,7 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
             shadowSpec.setTableNamePrefix(config.getTransfer().getShadowPrefix());
 
             // Build Shadow from Source.
-            rtn = tableService.buildTableSchema(shadowSpec);
+            rtn = buildTableSchema(shadowSpec);
         }
 
         // Create final table in right.
@@ -143,7 +145,7 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
         }
 
         // Rebuild Target from Source.
-        rtn = tableService.buildTableSchema(rightSpec);
+        rtn = buildTableSchema(rightSpec);
 
         return rtn;
     }
@@ -234,7 +236,7 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
 
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
 
-        if (tableService.isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+        if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
             rtn = getSqlAcidDowngradeInPlaceDataStrategy().execute(tableMirror);
         } else if (!isBlank(hmsMirrorConfig.getTransfer().getIntermediateStorage())
                 || !isBlank(hmsMirrorConfig.getTransfer().getTargetNamespace())
@@ -272,7 +274,7 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
             // Construct Transfer SQL
             if (rtn) {
                 // TODO: Double check this...
-                rtn = tableService.buildTransferSql(tableMirror, Environment.TRANSFER, Environment.SHADOW, Environment.RIGHT);
+                rtn = buildMigrationSql(tableMirror, Environment.LEFT, Environment.SHADOW, Environment.RIGHT);
 
                 // Execute the RIGHT sql if config.execute.
                 if (rtn) {

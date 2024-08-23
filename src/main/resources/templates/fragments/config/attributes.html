@@ -51,7 +51,7 @@
             <tr>
                 <td>
                     <div th:insert="fragments/config/datamovement::view"
-                         th:if="${('HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
+                         th:if="${('HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY COMMON').contains(CONFIG.dataStrategy.toString())}">
                     </div>
                 </td>
                 <td colspan="2">
