@@ -161,6 +161,7 @@ public class ConfigMVController implements ControllerReferences {
 //        // Setup Model for MVC
 //        model.addAttribute(CONFIG, session.getConfig());
 //        model.addAttribute(SESSION_ID, session.getSessionId());
+        model.addAttribute(READ_ONLY, Boolean.FALSE);
 
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
 

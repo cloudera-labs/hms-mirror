@@ -284,18 +284,35 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
         // Build the RIGHT table definition.
         // TODO: Do we need to check for the existence of the RIGHT table?
 
-        // When NOT using 'distcp' create the transfer and shadow tables.
-        if (!config.getTransfer().getStorageMigration().isDistcp()) {
-            if (TableUtils.isACID(let) || !isBlank(config.getTransfer().getIntermediateStorage())) {
-                buildWhat.transferTable = true;
-                buildWhat.transferSql = true;
-            }
+            // Assumes Clusters are linked.
+            // acid
+                // intermediate
+                    // transfer YES (downgrade to intermediate namespace)
+                    // shadow YES (convert back from intermediate namespace)
+                // no intermediate
+                    // transfer YES (downgrade on source namespace)
+                    // shadow YES (convert back from source namespace)
+            // non-acid
+                // intermediate
+                    // transfer YES (transfer to intermediate namespace)
+                    // shadow YES (convert back from intermediate namespace)
+                // no intermediate
+                    // transfer NO
+                    // shadow YES (convert back from source namespace)
+        if (TableUtils.isACID(let)) {
+            buildWhat.transferTable = true;
+            buildWhat.transferSql = true;
             buildWhat.shadowTable = true;
             buildWhat.shadowSql = true;
         } else {
-            if (TableUtils.isACID(let)) {
+            if (!isBlank(config.getTransfer().getIntermediateStorage())) {
                 buildWhat.transferTable = true;
                 buildWhat.transferSql = true;
+                buildWhat.shadowTable = true;
+                buildWhat.shadowSql = true;
+            } else {
+                buildWhat.shadowTable = true;
+                buildWhat.shadowSql = true;
             }
         }
 
@@ -344,12 +361,12 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
             Pair leftUsePair = new Pair(TableUtils.USE_DESC, useLeftDb);
             let.addCleanUpSql(leftUsePair);
 
-            rtn = buildMigrationSql(tableMirror, Environment.LEFT, Environment.TRANSFER, Environment.RIGHT);
+            rtn = buildMigrationSql(tableMirror, Environment.LEFT, Environment.TRANSFER, Environment.TRANSFER);
             //tableMirror.transferSql(let, set, ret, config);
         }
 
         if (rtn && buildWhat.isShadowSql()) {
-            rtn = buildMigrationSql(tableMirror, Environment.LEFT, Environment.SHADOW, Environment.RIGHT);
+            rtn = buildMigrationSql(tableMirror, Environment.SHADOW, Environment.RIGHT, Environment.RIGHT);
         }
 
         // Execute the LEFT sql if config.execute.

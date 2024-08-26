@@ -36,8 +36,7 @@ import static org.junit.Assert.assertEquals;
                 "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts_01.yaml",
 //                "--hms-mirror.config.reset-to-default-location=true",
                 "--hms-mirror.config.data-strategy=STORAGE_MIGRATION",
-                "--hms-mirror.config.warehouse-directory=/finance/managed-fso",
-                "--hms-mirror.config.external-warehouse-directory=/finance/external-fso",
+                "--hms-mirror.config.warehouse-plans=ext_purge_odd_parts=/finance/external-fso:/finance/managed-fso",
                 "--hms-mirror.config.storage-migration-namespace=ofs://OHOME90",
 //                "--hms-mirror.config.evaluate-partition-location=true",
                 "--hms-mirror.config.align-locations=true",
@@ -58,7 +57,7 @@ public class Test_sm_smn_wd_epl_dc extends E2EBaseTest {
     @Test
     public void issueTest() {
         validateTableIssueCount("ext_purge_odd_parts", "web_sales",
-                Environment.LEFT, 4);
+                Environment.LEFT, 2);
     }
 
     @Test

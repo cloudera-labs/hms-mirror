@@ -35,8 +35,9 @@ import static org.junit.Assert.assertEquals;
                 "--hms-mirror.config.data-strategy=SCHEMA_ONLY",
 //                "--hms-mirror.config.migrate-acid=true",
 //                "--hms-mirror.config.migrate-acid-only=true",
-                "--hms-mirror.config.warehouse-directory=/finance/managed-fso",
-                "--hms-mirror.config.external-warehouse-directory=/finance/external-fso",
+                "--hms-mirror.config.warehouse-plans=ext_purge_odd_parts=/finance/external-fso:/finance/managed-fso",
+//                "--hms-mirror.config.warehouse-directory=/finance/managed-fso",
+//                "--hms-mirror.config.external-warehouse-directory=/finance/external-fso",
 //                "--hms-mirror.config.downgrade-acid=true",
 //                "--hms-mirror.config.read-only=true",
 //                "--hms-mirror.config.sync=true",
@@ -81,7 +82,7 @@ public class Test_so_wd_epl_dc_ext_purge_w_odd_parts extends E2EBaseTest {
     @Test
     public void issueTest_01() {
         validateTableIssueCount("ext_purge_odd_parts", "web_sales",
-                Environment.LEFT, 1);
+                Environment.RIGHT, 2);
     }
 
 //    @Test
@@ -124,7 +125,7 @@ public class Test_so_wd_epl_dc_ext_purge_w_odd_parts extends E2EBaseTest {
 
     @Test
     public void phaseTest_01() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.ERROR);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
     }
 
     @Test
@@ -132,7 +133,7 @@ public class Test_so_wd_epl_dc_ext_purge_w_odd_parts extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        long check = 1L;
+        long check = getCheckCode();
         assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 }

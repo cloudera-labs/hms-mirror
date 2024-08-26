@@ -32,9 +32,10 @@ import static org.junit.Assert.assertEquals;
         args = {
                 "--hms-mirror.config.target-namespace=s3a://my_cs_bucket",
                 "--hms-mirror.config.align-locations=true",
+                "--hms-mirror.config.warehouse-plans=assorted_test_db=/warehouse/external:/warehouse/managed",
 //                "--hms-mirror.config.reset-to-default-location=true",
-                "--hms-mirror.config.warehouse-directory=/warehouse/managed",
-                "--hms-mirror.config.external-warehouse-directory=/warehouse/external",
+//                "--hms-mirror.config.warehouse-directory=/warehouse/managed",
+//                "--hms-mirror.config.external-warehouse-directory=/warehouse/external",
                 "--hms-mirror.config.distcp=true",
                 "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_01.yaml",
                 "--hms-mirror.config.filename=/config/default.yaml.cdp-cdp",
@@ -75,7 +76,7 @@ public class Test_so_cs_rdl_dc_wd extends E2EBaseTest {
         long rtn = getReturnCode();
         // Verify the return code.
         long check = 0L;
-        assertEquals("Return Code Failure: " + rtn, check * -1, rtn);
+        assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 
 //    @Test

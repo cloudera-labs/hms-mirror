@@ -71,7 +71,9 @@ public class Test_sql_ma_dc extends E2EBaseTest {
         // Get Runtime Return Code.
         long actual = getReturnCode();
         // Verify the return code.
-        long expected = getCheckCode(MessageCode.SQL_DISTCP_ONLY_W_DA_ACID);
+        // distcp adjusted automatically.
+        long expected = getCheckCode();
+//                getCheckCode(MessageCode.SQL_DISTCP_ONLY_W_DA_ACID);
 
         assertEquals("Return Code Failure: ", expected, actual);
 

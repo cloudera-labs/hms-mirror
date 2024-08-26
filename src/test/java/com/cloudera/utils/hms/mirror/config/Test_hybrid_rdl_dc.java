@@ -73,7 +73,8 @@ public class Test_hybrid_rdl_dc extends E2EBaseTest {
         long actual = getReturnCode();
         // Verify the return code.
         long expected = getCheckCode(
-                MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS);
+                MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS,
+                MessageCode.DATABASE_CREATION);
 
         assertEquals("Return Code Failure: ", expected, actual);
 
@@ -85,9 +86,9 @@ public class Test_hybrid_rdl_dc extends E2EBaseTest {
         long actual = getWarningCode();
         // Verify the return code.
         long expected = getCheckCode(
-                MessageCode.ALIGNED_DISTCP_EXECUTE,
                 MessageCode.LINK_TEST_SKIPPED_WITH_IS,
-                MessageCode.DISTCP_WO_TABLE_FILTERS
+                MessageCode.DATABASE_FILTER_CONTROLLED_BY,
+                MessageCode.WAREHOUSE_DIRECTORIES_NOT_DEFINED
         );
 
         assertEquals("Warning Code Failure: ", expected, actual);

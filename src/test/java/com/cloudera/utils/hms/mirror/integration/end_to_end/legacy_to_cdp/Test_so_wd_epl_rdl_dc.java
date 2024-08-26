@@ -35,6 +35,7 @@ import static org.junit.Assert.assertEquals;
                 "--hms-mirror.config.data-strategy=SCHEMA_ONLY",
 //                "--hms-mirror.config.migrate-acid=true",
 //                "--hms-mirror.config.migrate-acid-only=true",
+//                "--hms-mirror.config.warehouse-plans=tpcds_bin_partitioned_orc_10=/warehouse/tablespace/external/hive:/warehouse/tablespace/managed/hive",
                 "--hms-mirror.config.warehouse-directory=/warehouse/tablespace/managed/hive",
                 "--hms-mirror.config.external-warehouse-directory=/warehouse/tablespace/external/hive",
 //                "--hms-mirror.config.downgrade-acid=true",

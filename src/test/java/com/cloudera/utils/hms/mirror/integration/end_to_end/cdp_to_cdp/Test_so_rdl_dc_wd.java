@@ -32,8 +32,9 @@ import static org.junit.Assert.assertEquals;
         args = {
 //                "--hms-mirror.config.reset-to-default-location=true",
                 "--hms-mirror.config.align-locations=true",
-                "--hms-mirror.config.warehouse-directory=/warehouse/managed",
-                "--hms-mirror.config.external-warehouse-directory=/warehouse/external",
+                "--hms-mirror.config.warehouse-plans=assorted_test_db=/warehouse/external:/warehouse/managed",
+//                "--hms-mirror.config.warehouse-directory=/warehouse/managed",
+//                "--hms-mirror.config.external-warehouse-directory=/warehouse/external",
                 "--hms-mirror.config.distcp=true",
                 "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_01.yaml",
                 "--hms-mirror.config.filename=/config/default.yaml.cdp-cdp",

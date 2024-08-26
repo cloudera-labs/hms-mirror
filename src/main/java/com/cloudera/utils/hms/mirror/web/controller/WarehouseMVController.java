@@ -112,7 +112,7 @@ public class WarehouseMVController {
 //        model.addAttribute(READ_ONLY, Boolean.TRUE);
 //        sessionToModel(model, Boolean.FALSE);
 
-        return "redirect:/config/view";
+        return "redirect:/config/edit";
     }
 
     @RequestMapping(value = "/plan/saveAdd", method = RequestMethod.POST)

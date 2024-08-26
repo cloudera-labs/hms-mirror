@@ -41,8 +41,7 @@ import static org.junit.Assert.assertEquals;
                 "--hms-mirror.config.target-namespace=ofs://OHOME90",
                 "--hms-mirror.config.migrate-acid=true",
                 "--hms-mirror.config.distcp=true",
-                "--hms-mirror.config.warehouse-directory=/new/warehouse/managed",
-                "--hms-mirror.config.external-warehouse-directory=/new/warehouse/external"
+                "--hms-mirror.config.warehouse-plans=assort_test_db=/new/warehouse/external:/new/warehouse/managed"
         })
 @Slf4j
 /*

@@ -35,8 +35,9 @@ import static org.junit.Assert.assertEquals;
                 "--hms-mirror.config.data-strategy=SCHEMA_ONLY",
 //                "--hms-mirror.config.migrate-acid=true",
 //                "--hms-mirror.config.migrate-acid-only=true",
-                "--hms-mirror.config.warehouse-directory=/warehouse/tablespace/managed/hive",
-                "--hms-mirror.config.external-warehouse-directory=/warehouse/tablespace/external/hive",
+                "--hms-mirror.config.warehouse-plans=tpcds_bin_partitioned_orc_10=/warehouse/tablespace/external/hive:/warehouse/tablespace/managed/hive",
+//                "--hms-mirror.config.warehouse-directory=/warehouse/tablespace/managed/hive",
+//                "--hms-mirror.config.external-warehouse-directory=/warehouse/tablespace/external/hive",
 //                "--hms-mirror.config.downgrade-acid=true",
 //                "--hms-mirror.config.read-only=true",
 //                "--hms-mirror.config.sync=true",
@@ -81,8 +82,8 @@ public class Test_so_wd_epl extends E2EBaseTest {
     public void locationTest_01() {
         validateTableLocation("tpcds_bin_partitioned_orc_10",
                 "web_sales", Environment.RIGHT,
-//                "hdfs://HOME90/warehouse/tablespace/external/hive/tpcds_bin_partitioned_orc_10.db/web_sales");
-        null);
+                "hdfs://HOME90/warehouse/tablespace/external/hive/tpcds_bin_partitioned_orc_10.db/web_sales");
+//        null);
     }
 
     @Test

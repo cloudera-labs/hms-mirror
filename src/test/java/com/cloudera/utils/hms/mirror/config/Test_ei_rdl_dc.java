@@ -89,7 +89,7 @@ public class Test_ei_rdl_dc extends E2EBaseTest {
 //                MessageCode.DISTCP_WO_TABLE_FILTERS,
 //                MessageCode.RDL_DC_WARNING_TABLE_ALIGNMENT,
                 MessageCode.LINK_TEST_SKIPPED_WITH_IS,
-                MessageCode.DISTCP_OUTPUT_NOT_REQUESTED,
+//                MessageCode.DISTCP_OUTPUT_NOT_REQUESTED,
                 MessageCode.DATABASE_FILTER_CONTROLLED_BY,
                 MessageCode.WAREHOUSE_DIRECTORIES_NOT_DEFINED
         );

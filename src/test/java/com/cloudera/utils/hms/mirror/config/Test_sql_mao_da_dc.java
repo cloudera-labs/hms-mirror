@@ -71,9 +71,10 @@ public class Test_sql_mao_da_dc extends E2EBaseTest {
         // Get Runtime Return Code.
         long actual = getReturnCode();
         // Verify the return code.
+        // distcp adjusted automatically.
         long expected = getCheckCode(
                 MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS,
-                MessageCode.SQL_ACID_DA_DISTCP_WO_EXT_WAREHOUSE);
+                MessageCode.DATABASE_CREATION);
 
         assertEquals("Return Code Failure: ", expected, actual);
 

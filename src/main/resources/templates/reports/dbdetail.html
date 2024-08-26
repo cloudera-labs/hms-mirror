@@ -35,7 +35,7 @@
            th:text="#{version(${RUN_STATUS.appVersion})}"/>
         <br/>
         <b th:if="${RUN_STATUS != null}"
-              th:text="#{job.runtime(${RUN_STATUS.getRuntimeMS()})}"/>
+           th:text="#{job.runtime(${RUN_STATUS.getRuntimeMS()})}"/>
         <br/>
     </div>
 
@@ -138,7 +138,8 @@
                                 <!--                    <th th:text="#{table.source.acid}"/>-->
                                 <!--                    <th th:text="#{table.stage.duration}"/>-->
                                 <!--                    <th th:text="#{table.added.properties}"/>-->
-                                <th th:text="#{table.issues}"/>
+                                <th th:text="#{table.issues.steps}"/>
+<!--                                <th th:text="#{table.steps}"/>-->
                                 <th th:text="#{table.sql}"/>
                             </tr>
                             </thead>
@@ -197,6 +198,23 @@
                                                 </th:block>
                                             </fieldset>
                                         </th:block>
+<!--                                    </td>-->
+                                    <!--                                    Steps-->
+<!--                                    <td>-->
+                                        <table class="pure-table pure-table-bordered pure-table-odd pure-table-striped">
+                                            <tr>
+                                                <th th:text="#{step.mark}"/>
+                                                <th th:text="#{step.desc}"/>
+                                                <th th:text="#{step.action}"/>
+                                            </tr>
+                                            <th:block th:each="step: ${table.value.steps}">
+                                                <tr>
+                                                    <td th:text="${step.mark}"/>
+                                                    <td th:text="${step.description}"/>
+                                                    <td th:text="${step.action}"/>
+                                                </tr>
+                                            </th:block>
+                                        </table>
                                     </td>
                                     <td>
                                         <th:block th:each="env: ${table.value.environments.keySet()}">

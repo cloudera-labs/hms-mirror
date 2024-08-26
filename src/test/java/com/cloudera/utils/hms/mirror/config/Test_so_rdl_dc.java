@@ -85,6 +85,7 @@ public class Test_so_rdl_dc extends E2EBaseTest {
         // Verify the return code.
         long expected = getCheckCode(
                 MessageCode.ALIGNED_DISTCP_EXECUTE,
+                MessageCode.DATABASE_FILTER_CONTROLLED_BY,
                 MessageCode.DISTCP_WO_TABLE_FILTERS
                 );
 

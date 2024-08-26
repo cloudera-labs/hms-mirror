@@ -34,8 +34,9 @@ import static org.junit.Assert.fail;
 @SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.data-strategy=STORAGE_MIGRATION",
-                "--hms-mirror.config.warehouse-directory=/finance/managed-fso",
-                "--hms-mirror.config.external-warehouse-directory=/finance/external-fso",
+                "--hms-mirror.config.warehouse-plans=ext_purge_odd_parts=/finance/external-fso:/finance/managed-fso",
+//                "--hms-mirror.config.warehouse-directory=/finance/managed-fso",
+//                "--hms-mirror.config.external-warehouse-directory=/finance/external-fso",
                 "--hms-mirror.config.target-namespace=ofs://OHOME90",
                 "--hms-mirror.config.distcp=PULL",
                 "--hms-mirror.config.filename=/config/default.yaml.cdp",
@@ -93,7 +94,7 @@ public class Test_sm_wd_epl_rdl_dc_mmd extends E2EBaseTest {
 
     @Test
     public void issueCountTest() {
-        validateTableIssueCount("ext_purge_odd_parts", "web_sales", Environment.LEFT, 3);
+        validateTableIssueCount("ext_purge_odd_parts", "web_sales", Environment.LEFT, 2);
     }
 
     @Test

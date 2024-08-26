@@ -81,7 +81,8 @@ public class Test_sql_dc_is_ext_purge extends E2EBaseTest {
         // can't translate that location.
 
         // Verify the return code.
-        long check = 1L;
+        long check = getCheckCode();
+        // DISTCP Adjusted automatically.
         assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 

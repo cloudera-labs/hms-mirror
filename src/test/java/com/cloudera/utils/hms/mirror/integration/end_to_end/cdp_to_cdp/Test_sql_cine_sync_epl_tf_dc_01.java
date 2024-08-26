@@ -66,7 +66,9 @@ public class Test_sql_cine_sync_epl_tf_dc_01 extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        long check = 1L;
+        // distcp Adjusted automatically.
+        long check = getCheckCode();
+
         assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 

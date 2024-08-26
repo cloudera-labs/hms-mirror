@@ -247,7 +247,8 @@ public abstract class DataStrategyBase implements DataStrategy {
 
         try {
             // Set Table Name
-            if (source.isExists()) {
+            //
+            if (source.isExists() || copySpec.getSource() != Environment.RIGHT) {
                 target.setName(source.getName());
 
                 // Clear the target spec.

@@ -40,6 +40,7 @@ import static org.junit.Assert.assertEquals;
 //                "--hms-mirror.config.intermediate-storage=s3a://my_is_bucket",
 //                "--hms-mirror.config.target-namespace=s3a://my_cs_bucket",
 //                "--hms-mirror.config.reset-to-default-location=true",
+                "--hms-mirror.config.warehouse-plans=tpcds_bin_partitioned_orc_10=/warehouse/external:/warehouse/managed",
                 "--hms-mirror.config.align-locations=true",
                 "--hms-mirror.config.distcp=true",
                 "--hms-mirror.conversion.test-filename=/test_data/legacy_mngd_parts_01.yaml",

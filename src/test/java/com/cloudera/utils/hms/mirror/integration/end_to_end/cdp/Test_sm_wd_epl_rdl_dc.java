@@ -34,8 +34,9 @@ import static org.junit.Assert.fail;
 @SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.data-strategy=STORAGE_MIGRATION",
-                "--hms-mirror.config.warehouse-directory=/finance/managed-fso",
-                "--hms-mirror.config.external-warehouse-directory=/finance/external-fso",
+                "--hms-mirror.config.warehouse-plans=ext_purge_odd_parts=/finance/external-fso:/finance/managed-fso",
+//                "--hms-mirror.config.warehouse-directory=/finance/managed-fso",
+//                "--hms-mirror.config.external-warehouse-directory=/finance/external-fso",
                 "--hms-mirror.config.align-locations=true",
                 "--hms-mirror.config.distcp=PULL",
                 "--hms-mirror.config.filename=/config/default.yaml.cdp",

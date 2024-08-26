@@ -73,8 +73,9 @@ public class Test_sql_ma_is_dc extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        long check = getCheckCode(
-                MessageCode.SQL_DISTCP_ONLY_W_DA_ACID);
+        // The DISTCP setting is adjusted back to SQL, since that isn't a valid configuration for SQL.
+        long check = getCheckCode();
+//                MessageCode.SQL_DISTCP_ONLY_W_DA_ACID);
         assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 

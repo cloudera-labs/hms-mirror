@@ -17,10 +17,8 @@
 
 package com.cloudera.utils.hms.mirror.service;
 
-import com.cloudera.utils.hadoop.shell.commands.Env;
 import com.cloudera.utils.hms.mirror.domain.DBMirror;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
-import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.RunStatus;
 import com.cloudera.utils.hms.util.NamespaceUtils;
 import com.cloudera.utils.hms.util.UrlUtils;
@@ -28,8 +26,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.file.AccumulatorPathVisitor;
-import org.apache.commons.io.filefilter.*;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.io.filefilter.NotFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -37,9 +36,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
@@ -49,6 +50,7 @@ import java.util.zip.ZipOutputStream;
 
 import static com.cloudera.utils.hms.mirror.web.controller.ControllerReferences.*;
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 
 @Component
 @Slf4j
@@ -267,7 +269,13 @@ public class ReportService {
             // Descending order.
             @Override
             public int compare(String o1, String o2) {
-                return o2.compareTo(o1);
+                String l1 = NamespaceUtils.getLastDirectory(o1);
+                String l2 = NamespaceUtils.getLastDirectory(o2);
+                if (nonNull(l1) && nonNull(l2)) {
+                    return l2.compareTo(l1);
+                } else {
+                    return o2.compareTo(o1);
+                }
             }
         });
         // Validate that the report id directory exists.
@@ -276,17 +284,31 @@ public class ReportService {
         File folder = new File(reportDirectory);
         if (folder.isDirectory()) {
             Collection<File> files = FileUtils.listFilesAndDirs(folder, new NotFileFilter(TrueFileFilter.INSTANCE), DirectoryFileFilter.DIRECTORY);
-            for (File file: files) {
+            for (File file : files) {
                 String filename = file.getPath();
                 if (file.getPath().equals(reportDirectory)) {
                     // Skip putting the report dir in the list.
                     continue;
                 }
-                try {
-                    filename = filename.substring(reportDirectory.length() + 1);
-                    rtn.add(filename);
-                } catch (StringIndexOutOfBoundsException e) {
-                    log.error("Error processing file: {}", filename);
+                // Get listing of files in the directory. Filter on yaml files.
+                Collection<File> dirFiles = FileUtils.listFiles(new File(filename), new String[]{"yaml"}, false);
+                //  We only want to list it if it has some report files in it.
+                boolean found = Boolean.FALSE;
+                for (File dirFile : dirFiles) {
+                    // Look for the session-config.yaml file.
+                    if (dirFile.getName().endsWith("session-config.yaml")) {
+                        found = Boolean.TRUE;
+                        break;
+                    }
+                }
+                // If we found the session yaml, then we can assume it's an actual report directory and add it to the list.
+                if (found) {
+                    try {
+                        filename = filename.substring(reportDirectory.length() + 1);
+                        rtn.add(filename);
+                    } catch (StringIndexOutOfBoundsException e) {
+                        log.error("Error processing file: {}", filename);
+                    }
                 }
             }
         } else {

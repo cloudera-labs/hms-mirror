@@ -59,7 +59,9 @@ public class Test_sql_mao_dc extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        long check = MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
+        // DISTCP Adjusted automatically.
+        long check = getCheckCode();
+//                MessageCode.SQL_DISTCP_ONLY_W_DA_ACID.getLong();
         assertEquals("Return Code Failure: " + rtn, check * -1, rtn);
     }
 }

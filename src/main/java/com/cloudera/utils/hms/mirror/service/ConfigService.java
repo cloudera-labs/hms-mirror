@@ -110,8 +110,8 @@ public class ConfigService {
 //                }
 //            }
 //            rtn = Boolean.TRUE;
-        } else {
-            session.addWarning(DISTCP_OUTPUT_NOT_REQUESTED);
+//        } else {
+//            session.addWarning(DISTCP_OUTPUT_NOT_REQUESTED);
         }
 
         return rtn;
@@ -129,6 +129,7 @@ public class ConfigService {
         }
         return rtn;
     }
+
     /*
     Using our alignment table, make the necessary adjustment and record changes to the session for information.
 
@@ -200,13 +201,12 @@ public class ConfigService {
                 // Ensure the proper Data Movement Strategy is set. (which is SQL)
                 switch (config.getTransfer().getStorageMigration().getDataMovementStrategy()) {
                     case SQL:
-                    case DISTCP:
                         break;
                     default:
                         session.addConfigAdjustmentMessage(config.getDataStrategy(),
                                 "DataMovementStrategy",
                                 config.getTransfer().getStorageMigration().getDataMovementStrategy().toString(),
-                                DataMovementStrategyEnum.SQL.toString(), "Only the SQL/DISTCP Data Movement Strategy is supported for SQL and HYBRID.");
+                                DataMovementStrategyEnum.SQL.toString(), "Only the SQL Data Movement Strategy is supported for SQL and HYBRID.");
                         config.getTransfer().getStorageMigration().setDataMovementStrategy(DataMovementStrategyEnum.SQL);
                         break;
                 }
@@ -260,20 +260,28 @@ public class ConfigService {
                 break;
         }
         if (config.loadMetadataDetails()) {
-            if (config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().isEmpty() &&
-                    !config.getDatabases().isEmpty()) {
-                session.addConfigAdjustmentMessage(config.getDataStrategy(),
-                        "Databases",
-                        config.getDatabases().toString(), "",
-                        "Only Warehouse Plans supported with ALIGNED/DISTCP combination.");
-                rtn = Boolean.FALSE;
-            }
-            // Need to ensure we have Warehouse Plans and Databases are in sync.
-            config.getDatabases().clear();
-            if (!config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().isEmpty()) {
-                for (Map.Entry<String, Warehouse> warehousePlan : config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().entrySet()) {
-                    config.getDatabases().add(warehousePlan.getKey());
-                }
+            switch (config.getDatabaseFilterType()) {
+                case WAREHOUSE_PLANS:
+//                    if (config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().isEmpty() &&
+//                            !config.getDatabases().isEmpty()) {
+//                        session.addConfigAdjustmentMessage(config.getDataStrategy(),
+//                                "Databases",
+//                                config.getDatabases().toString(), "",
+//                                "Only Warehouse Plans supported with ALIGNED/DISTCP combination.");
+//                        rtn = Boolean.FALSE;
+//                    }
+                    // Need to ensure we have Warehouse Plans and Databases are in sync.
+                    config.getDatabases().clear();
+                    if (!config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().isEmpty()) {
+                        for (Map.Entry<String, Warehouse> warehousePlan : config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().entrySet()) {
+                            config.getDatabases().add(warehousePlan.getKey());
+                        }
+                    }
+                    break;
+                case MANUAL:
+                case REGEX:
+                case UNDETERMINED:
+                    break;
             }
         }
 

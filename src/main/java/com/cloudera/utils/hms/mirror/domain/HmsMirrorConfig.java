@@ -294,7 +294,13 @@ public class HmsMirrorConfig implements Cloneable {
         // When we're ALIGNED and asking fir DISTCP, we need to load the partition metadata.
         if (transfer.getStorageMigration().getTranslationType() == TranslationTypeEnum.ALIGNED
                 && getTransfer().getStorageMigration().isDistcp()) {
-            return Boolean.TRUE;
+            switch (dataStrategy) {
+                case LINKED:
+                case COMMON:
+                    return Boolean.FALSE;
+                default:
+                    return Boolean.TRUE;
+            }
         } else {
             return Boolean.FALSE;
         }
@@ -337,6 +343,8 @@ public class HmsMirrorConfig implements Cloneable {
                 System.out.println("Setup " + env + " cluster....");
                 System.out.println();
 
+                Cluster cluster = new Cluster();
+                hmsMirrorConfig.getClusters().put(env, cluster);
 
                 // get their input as a String
                 // Legacy?

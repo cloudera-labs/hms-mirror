@@ -35,8 +35,9 @@ import static org.junit.Assert.assertEquals;
                 "--hms-mirror.config.data-strategy=SCHEMA_ONLY",
 //                "--hms-mirror.config.migrate-acid=true",
 //                "--hms-mirror.config.migrate-acid-only=true",
-                "--hms-mirror.config.warehouse-directory=/finance/managed-fso",
-                "--hms-mirror.config.external-warehouse-directory=/finance/external-fso",
+                "--hms-mirror.config.warehouse-plans=tpcds_bin_partitioned_orc_10=/finance/external-fso:/finance/managed-fso",
+//                "--hms-mirror.config.warehouse-directory=/finance/managed-fso",
+//                "--hms-mirror.config.external-warehouse-directory=/finance/external-fso",
 //                "--hms-mirror.config.downgrade-acid=true",
 //                "--hms-mirror.config.read-only=true",
 //                "--hms-mirror.config.sync=true",
@@ -87,7 +88,7 @@ public class Test_so_wd_epl_dc_legacy_mngd_w_parts extends E2EBaseTest {
         // Table Location removed because table will ALIGN with DB.
         validateTableLocation("tpcds_bin_partitioned_orc_10",
                 "web_sales", Environment.RIGHT,
-                null);
+                "hdfs://HOME90/finance/external-fso/tpcds_bin_partitioned_orc_10.db/web_sales");
     }
 
     @Test

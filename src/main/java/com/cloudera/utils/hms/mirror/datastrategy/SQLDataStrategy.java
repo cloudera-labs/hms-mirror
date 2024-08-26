@@ -190,11 +190,12 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
 
                 String shadowCreateStmt = tableService.getCreateStatement(tableMirror, Environment.SHADOW);
                 ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
-                // Repair Partitions
-//                if (let.getPartitioned()) {
-//                    String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
-//                    ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
-//                }
+//                 Repair Partitions
+                // TODO: Need to add ALTER partitions here if we know them.
+                if (let.getPartitioned()) {
+                    String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
+                    ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
+                }
             }
 
             // RIGHT Final Table
@@ -232,16 +233,16 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
     @Override
     public Boolean execute(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
 
         if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
             rtn = getSqlAcidDowngradeInPlaceDataStrategy().execute(tableMirror);
-        } else if (!isBlank(hmsMirrorConfig.getTransfer().getIntermediateStorage())
-                || !isBlank(hmsMirrorConfig.getTransfer().getTargetNamespace())
+        } else if (!isBlank(config.getTransfer().getIntermediateStorage())
+                || !isBlank(config.getTransfer().getTargetNamespace())
                 || (TableUtils.isACID(let)
-                && hmsMirrorConfig.getMigrateACID().isOn())) {
+                && config.getMigrateACID().isOn())) {
             if (TableUtils.isACID(let)) {
                 tableMirror.setStrategy(DataStrategyEnum.ACID);
             }

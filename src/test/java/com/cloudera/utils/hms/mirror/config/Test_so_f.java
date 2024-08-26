@@ -83,7 +83,7 @@ public class Test_so_f extends E2EBaseTest {
         long actual = getWarningCode();
         // Verify the return code.
         long expected = getCheckCode(
-                MessageCode.DISTCP_OUTPUT_NOT_REQUESTED,
+//                MessageCode.DISTCP_OUTPUT_NOT_REQUESTED,
                 MessageCode.RELATIVE_MANUAL,
                 MessageCode.DATABASE_FILTER_CONTROLLED_BY
         );

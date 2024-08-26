@@ -68,7 +68,8 @@ public class Test_sql_dc_ext_purge extends E2EBaseTest {
 
         // Non-standard partition location can't be translated without additional GLM entries to support distcp.
         // Verify the return code.
-        long check = 1L;
+        long check = getCheckCode();
+        // distcp adjusted automatically.
         assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 
