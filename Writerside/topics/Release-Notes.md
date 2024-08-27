@@ -11,6 +11,13 @@ The latest set of enhancement requests can be
 found [here](https://github.com/cloudera-labs/hms-mirror/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement). If there is
 something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 2.2.0.5
+
+[CLI Setup Issues](https://github.com/cloudera-labs/hms-mirror/issues/120)
+[Stale Config after several runs](https://github.com/cloudera-labs/hms-mirror/issues/118)
+[SQL Strategy Transfer Fixes](https://github.com/cloudera-labs/hms-mirror/issues/117)
+[Partition Reductions for Distcp](https://github.com/cloudera-labs/hms-mirror/issues/116)
+
 ## 2.2.0.4
 
 ### Bugs

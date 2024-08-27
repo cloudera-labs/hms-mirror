@@ -34,9 +34,9 @@
             <legend th:text="#{hive.server2}"/>
 
             <!--        <div class="pure-form pure-form-aligned">-->
-            <input type="hidden"
-                   th:field="*{clusters[__${env}__].hiveServer2.disconnected}"
-                   th:checked="${CONFIG.clusters[__${env}__]?.hiveServer2?.disconnected}"/>
+<!--            <input type="hidden"-->
+<!--                   th:field="*{clusters[__${env}__].hiveServer2.disconnected}"-->
+<!--                   th:checked="${CONFIG.clusters[__${env}__]?.hiveServer2?.disconnected}"/>-->
             <input type="hidden"
                    th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[maxTotal]}"
                    th:value="${CONFIG.clusters[__${env}__].hiveServer2?.connectionProperties[maxTotal]}"/>
@@ -53,7 +53,12 @@
             <!--            <input type="hidden"-->
             <!--                   th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[maxWaitMillis]}"-->
             <!--                   th:value="${CONFIG.clusters[__${env}__].hiveServer2?.connectionProperties[maxWaitMillis]}"/>-->
-
+            <div class="pure-control-group">
+                <label th:text="#{hive.server2.disconnected}"/>
+                <input type="checkbox"
+                       th:field="*{clusters[__${env}__].hiveServer2.disconnected}"
+                       th:checked="${CONFIG.clusters[__${env}__]?.hiveServer2?.disconnected}"/>
+            </div>
             <div class="pure-control-group">
                 <label th:text="#{hive.server2.uri}"/>
                 <textarea rows="2" cols="50"

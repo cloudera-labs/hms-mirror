@@ -126,7 +126,7 @@ public enum MessageCode {
     LEGACY_HIVE_RIGHT_CLUSTER("Legacy Hive is not supported as a 'target' (RIGHT) cluster.  clusters->RIGHT->legacyHive"),
     LINKED_NO_ACID_SUPPORT("Can't LINK ACID tables.  ma|mao options are not valid with LINKED data strategy."),
     LINK_TEST_FAILED("Link test failed.  Use -slc|--skip-link-check to bypass."),
-    LINK_TEST_SKIPPED_WITH_IS("Link TEST skipped because you've specified 'Intermediate Storage' option"),
+    LINK_TEST_SKIPPED_WITH_OPTIONS("Link TEST skipped because you've specified an option that indicates the right isn't available/attached ('right-is-disconnected' or 'intermediate-storage')"),
     LOCATION_NOT_MATCH_WAREHOUSE("After all the translations, the `{0}` " +
             "location is still NOT aligned in the DBs warehouse. `{1}`->`{2}`. Consider adding a warehouse plan, a glm mapping, or resetting to default locations to align them"),
     METASTORE_DIRECT_NOT_DEFINED_OR_CONFIGURED("The {0} metastore_direct is NOT defined or configured in the runtime configuration.  " +

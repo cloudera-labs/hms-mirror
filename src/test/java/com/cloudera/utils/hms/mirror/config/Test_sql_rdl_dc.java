@@ -85,7 +85,7 @@ public class Test_sql_rdl_dc extends E2EBaseTest {
         // Verify the return code.
         long expected = getCheckCode(
                 MessageCode.DATABASE_FILTER_CONTROLLED_BY,
-                MessageCode.LINK_TEST_SKIPPED_WITH_IS,
+                MessageCode.LINK_TEST_SKIPPED_WITH_OPTIONS,
                 MessageCode.WAREHOUSE_DIRECTORIES_NOT_DEFINED
                 );
 

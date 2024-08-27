@@ -1130,7 +1130,7 @@ public class ConfigService {
                             rtn = Boolean.FALSE;
                         }
                     } else {
-                        runStatus.addWarning(LINK_TEST_SKIPPED_WITH_IS);
+                        runStatus.addWarning(LINK_TEST_SKIPPED_WITH_OPTIONS);
                     }
                 }
                 break;
