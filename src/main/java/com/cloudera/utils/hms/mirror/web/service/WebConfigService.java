@@ -103,6 +103,14 @@ public class WebConfigService {
                 }
             }
         }
+
+        // Handle the case where no valid config files are found. This will help get us past the chicken and egg scenario
+        //    with the UI/
+        if (configList.isEmpty()) {
+            configList.add("--non defined--");
+            log.warn("No valid config files found in the config directory: " + cfgPath);
+        }
+
         return configList;
     }
 

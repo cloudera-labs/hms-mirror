@@ -48,67 +48,7 @@ public class TranslatorService {
 
     @Getter
     private ExecuteSessionService executeSessionService = null;
-//    @Getter
-//    private ConfigService configService = null;
-
-    //    private ConfigService configService;
     private DatabaseService databaseService;
-
-//    @Autowired
-//    public void setConfigService(ConfigService configService) {
-//        this.configService = configService;
-//    }
-
-    /**
-     * @param consolidationLevel how far up the directory hierarchy to go to build the distcp list based on the sources
-     *                           provided.
-     * @return A map of databases.  Each database will have a map that has 1 or more 'targets' and 'x' sources for each
-     * target.
-     */
-//    public synchronized Map<String, Map<String, Set<String>>> buildDistcpList(String database, Environment environment, int consolidationLevel) {
-//        Map<String, Map<String, Set<String>>> rtn = new TreeMap<>();
-//
-//        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
-//
-//        // get the map for a db.
-//        Set<String> databases = hmsMirrorConfig.getTranslator().getTranslationMap().keySet();
-//
-//        // get the map.entry
-//        Map<String, Set<String>> reverseMap = new TreeMap<>();
-//        // Get a static view of set to avoid concurrent modification.
-//        Set<EnvironmentMap.TranslationLevel> dbTranslationLevel =
-//                new HashSet<>(hmsMirrorConfig.getTranslator().getTranslationMap(database, environment));
-//
-//        Map<String, String> dbLocationMap = new TreeMap<>();
-//
-//        for (EnvironmentMap.TranslationLevel translationLevel : dbTranslationLevel) {
-//            if (translationLevel.getOriginal() != null &&
-//                    translationLevel.getTarget() != null) {
-//                dbLocationMap.put(translationLevel.getAdjustedOriginal(), translationLevel.getAdjustedTarget());
-//            }
-//        }
-//
-//        for (Map.Entry<String, String> entry : dbLocationMap.entrySet()) {
-//            // reduce folder level by 'consolidationLevel' for key and value.
-//            // Source
-//            String reducedSource = UrlUtils.reduceUrlBy(entry.getKey(), consolidationLevel);
-//            // Target
-//            String reducedTarget = UrlUtils.reduceUrlBy(entry.getValue(), consolidationLevel);
-//
-//            if (reverseMap.get(reducedTarget) != null) {
-//                reverseMap.get(reducedTarget).add(entry.getKey());
-//            } else {
-//                Set<String> sourceSet = new TreeSet<String>();
-//                sourceSet.add(entry.getKey());
-//                reverseMap.put(reducedTarget, sourceSet);
-//            }
-//
-//        }
-//        if (!reverseMap.isEmpty()) {
-//            rtn.put(database, reverseMap);
-//        }
-//        return rtn;
-//    }
 
     public String buildPartitionAddStatement(EnvironmentTable environmentTable) {
         StringBuilder sbPartitionDetails = new StringBuilder();
@@ -187,7 +127,10 @@ public class TranslatorService {
                 for (Map.Entry<String, String> entry : partitionLocationMap.entrySet()) {
                     String partitionLocation = entry.getValue();
                     String partSpec = entry.getKey();
-                    int level = StringUtils.countMatches(partSpec, "/") + 1;
+                    // First level partitions are +2 from the DB level.  So we need to add 2 to the level.
+                    // EG: The spec for a single partition will have level 1.
+                    String spec[] = partSpec.split("/");
+                    int level = spec.length + 1;
                     // Increase level to the table, since we're not filter any tables.  It's assumed that
                     //   we're pulling the whole DB.
 //                    if (!config.getFilter().isTableFiltering()) {
@@ -258,8 +201,6 @@ public class TranslatorService {
 
             if (config.getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION
                     && origNamespace.equals(config.getTransfer().getTargetNamespace())) {
-//                tableMirror.addIssue(Environment.LEFT, "Location Mapping can't be determined.  No matching `glm` entry to make translation." +
-//                        "Original Location: " + originalLocation);
                 tableMirror.setPhaseState(PhaseState.ERROR);
                 throw new MissingDataPointException("Location Mapping can't be determined.  No matching `glm` entry to make translation." +
                         "Original Location: " + originalLocation);
@@ -381,8 +322,6 @@ public class TranslatorService {
     }
 
     public Map<String, Map<TableType, String>> buildGlobalLocationMapFromWarehousePlansAndSources(boolean dryrun, int consolidationLevel) throws MismatchException, SessionException {
-        // Don't reload if running.
-//        executeSessionService.clearActiveSession();
 
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
@@ -427,7 +366,6 @@ public class TranslatorService {
         */
 
         for (Map.Entry<String, Warehouse> warehouseEntry : warehousePlans.entrySet()) {
-//            String database = warehouseEntry.getKey();
             String database = HmsMirrorConfigUtil.getResolvedDB(warehouseEntry.getKey(), config);
             Warehouse warehouse = warehouseEntry.getValue();
             String externalBaseLocation = warehouse.getExternalDirectory();
@@ -438,32 +376,12 @@ public class TranslatorService {
                     String typeTargetLocation = null;
                     String extTargetLocation = new String(externalBaseLocation + "/" + database + ".db");
                     String mngdTargetLocation = new String(managedBaseLocation + "/" + database + ".db");
-                    // Set the location based on the table type.
 
-//                    switch (sourceLocationEntry.getKey()) {
-//                        case EXTERNAL_TABLE:
-//                            typeTargetLocation = externalBaseLocation;
-//                            break;
-//                        case MANAGED_TABLE:
-//                            typeTargetLocation = managedBaseLocation;
-//                            break;
-//                    }
-//                    typeTargetLocation = typeTargetLocation + "/" + database + ".db";
                     // Locations and the tables that are in that location.
                     for (Map.Entry<String, Set<String>> sourceLocationSet : sourceLocationEntry.getValue().entrySet()) {
                         String sourceLocation = new String(sourceLocationSet.getKey());
                         // Strip the namespace from the location.
                         sourceLocation = NamespaceUtils.stripNamespace(sourceLocation); //.replace(hmsMirrorConfig.getCluster(Environment.LEFT).getHcfsNamespace(), "");
-                        // I don't think this is relevant anymore, since we switch the namespace stripping to not required the LEFT hcfsNamespace.
-//                        if (config.getTransfer().getStorageMigration().isStrict() && (!sourceLocation.startsWith("/") || (sourceLocation.length() == sourceLocationSet.getKey().length()))) {
-//                            // Issue with reducing the location.
-//                            // This happens when the table(s) location doesn't match the source namespace.
-//                            throw new MismatchException("Location doesn't start with the configured namespace.  This is a problem"
-//                                    + " and doesn't allow for the location to be converted to the new namespace."
-//                                    + " Location: " + sourceLocationSet.getKey() + " Database: " + database + " Type: " + sourceLocationEntry.getKey()
-//                                    + " containing tables: " + String.join(",", sourceLocationSet.getValue())
-//                                    + " HCFS Namespace: " + config.getCluster(Environment.LEFT).getHcfsNamespace());
-//                        }
 
                         // NOTE: The locations were already reduced by '1' when the Sources were built.
                         //       This removed the 'table' directory from the location and allows for them to
