@@ -1,9 +1,9 @@
 # Metastore JDBC Drivers and Configuration
 
-For some data points, we revert to direct access to the metastore RDBMS.  To support this, we need to include the 
-JDBC drivers for the metastore RDBMS in the `aux_libs` directory.  The `aux_libs` directory is located in the 
-`$HOME/.hms-mirror` directory.  The JDBC drivers should be placed in the `aux_libs` directory and the configuration 
-setup for the session.
+For some data points, we revert to direct access to the metastore RDBMS.  To support this, you need to place the appropriate  
+JDBC drivers for the metastore RDBMS in `$HOME/.hms-mirror/aux_libs` directory. 
+
+You'll have to get the drivers from your RDBMS vendor.
 
 <tabs>
 <tab id="web-msd" title="Web UI">

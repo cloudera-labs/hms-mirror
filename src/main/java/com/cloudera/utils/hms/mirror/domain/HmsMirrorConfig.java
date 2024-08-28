@@ -81,7 +81,7 @@ public class HmsMirrorConfig implements Cloneable {
 //    private boolean evaluatePartitionLocation = Boolean.FALSE;
     private Filter filter = new Filter();
     private boolean skipLinkCheck = Boolean.FALSE;
-    private List<String> databases = new ArrayList<>();
+    private Set<String> databases = new TreeSet<>();
 
     private LegacyTranslations legacyTranslations = new LegacyTranslations();
     /*
@@ -245,9 +245,9 @@ public class HmsMirrorConfig implements Cloneable {
     }
 
     // Handle null databases from config load.
-    public List<String> getDatabases() {
+    public Set<String> getDatabases() {
         if (isNull(databases)) {
-            databases = new ArrayList<>();
+            databases = new TreeSet<>();
         }
         return databases;
     }

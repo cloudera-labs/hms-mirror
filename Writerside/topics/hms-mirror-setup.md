@@ -13,6 +13,8 @@ On the edgenode:
       directory, hence you won't get the new version.
 - Expand the tarball `tar zxvf hms-mirror-<version>-dist.tar.gz`.
   > This produces a child `hms-mirror-install-<version>` directory.
+- Make sure you **STOP** any previous release of `hms-mirror` before attempting install.
+  - `hms-mirror --stop`
 - Two options for installation:
     - As the root user (or `sudo`), run `hms-mirror-install-<version>/setup.sh`. This will install the `hms-mirror`
       packages in `/usr/local/hms-mirror` and create symlinks for the executables in `/usr/local/bin`. At this

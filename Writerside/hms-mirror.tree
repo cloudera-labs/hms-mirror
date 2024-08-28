@@ -33,6 +33,7 @@
             <toc-element topic="Example-URL-s.md"/>
         </toc-element>
         <toc-element topic="Metastore-JDBC-Drivers-and-Configuration.md"/>
+        <toc-element topic="Storage-Systems-Distributed-File-Systems.md"/>
         <toc-element topic="hms-mirror-Default-Configuration-Template.md"/>
         <toc-element topic="Password-Security.md"/>
         <toc-element topic="Memory-Settings.md"/>

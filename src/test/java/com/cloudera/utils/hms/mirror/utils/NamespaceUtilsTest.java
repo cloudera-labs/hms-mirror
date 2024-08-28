@@ -104,6 +104,11 @@ public class NamespaceUtilsTest {
         String strippedLocation3 = NamespaceUtils.stripNamespace(locationWithNamespace3);
         assertEquals("/user/hive/warehouse", strippedLocation3);
 
+        // adfs Namespace
+        String locationWithNamespace4 = "abfs://container@somelakehouse.dfs.core.windows.net/user/hive/warehouse";
+        String strippedLocation4 = NamespaceUtils.stripNamespace(locationWithNamespace4);
+        assertEquals("/user/hive/warehouse", strippedLocation4);
+
         // Test without namespace
         locationWithNamespace = "hdfs://user/hive/warehouse";
         strippedLocation = NamespaceUtils.stripNamespace(locationWithNamespace);

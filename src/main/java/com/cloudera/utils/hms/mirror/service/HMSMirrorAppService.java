@@ -37,10 +37,8 @@ import org.springframework.stereotype.Service;
 
 import java.sql.*;
 import java.sql.Connection;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.Date;
-import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
@@ -216,7 +214,7 @@ public class HMSMirrorAppService {
         log.info("GATHERING METADATA: Start Processing for databases: {}", String.join(",", config.getDatabases()));
 
         if (config.isLoadingTestData()) {
-            List<String> databases = new ArrayList<>();
+            Set<String> databases = new TreeSet<>();
             for (DBMirror dbMirror : conversion.getDatabases().values()) {
                 stats.getCounts().incrementDatabases();
                 databases.add(dbMirror.getName());
@@ -227,7 +225,7 @@ public class HMSMirrorAppService {
             // Look for the dbRegEx.
             Connection conn = null;
             Statement stmt = null;
-            List<String> databases = new ArrayList<>();
+            Set<String> databases = new TreeSet<>();
             try {
                 conn = connectionPoolService.getHS2EnvironmentConnection(Environment.LEFT);
                 //getConfig().getCluster(Environment.LEFT).getConnection();

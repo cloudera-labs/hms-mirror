@@ -49,6 +49,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 
 import static java.util.Objects.isNull;
@@ -204,7 +206,7 @@ public class CliInit {
             yamlCfgFile = IOUtils.toString(configURL, StandardCharsets.UTF_8);
             Conversion conversion = yamlMapper.readerFor(Conversion.class).readValue(yamlCfgFile);
             // Set Config Databases;
-            List<String> databases = new ArrayList<>(conversion.getDatabases().keySet());
+            Set<String> databases = new TreeSet<>(conversion.getDatabases().keySet());
             config.setDatabases(databases);
             // Replace the conversion in the session.
             executeSessionService.getSession().setConversion(conversion);
@@ -215,7 +217,7 @@ public class CliInit {
                 Conversion conversion = new Conversion();
                 conversion.getDatabases().put(dbMirror.getName(), dbMirror);
                 // Set Config Databases;
-                List<String> databases = new ArrayList<>(conversion.getDatabases().keySet());
+                Set<String> databases = new TreeSet<>(conversion.getDatabases().keySet());
                 config.setDatabases(databases);
                 // Replace the conversion in the session.
                 executeSessionService.getSession().setConversion(conversion);

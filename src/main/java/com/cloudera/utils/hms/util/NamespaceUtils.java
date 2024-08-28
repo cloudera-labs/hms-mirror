@@ -28,7 +28,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Slf4j
 public class NamespaceUtils {
 
-    public static final Pattern protocolNSPattern = Pattern.compile("(^.*://)(\\w*(?:(?:[a-zA-Z0-9-]*|(?<!-)\\.(?![-.]))*[a-zA-Z0-9]+)?)(:\\d{4})?");
+    public static final Pattern protocolNSPattern = Pattern.compile("(^.*://)(\\w*(?:(?:[a-zA-Z0-9-@]*|(?<!-)\\.(?![-.]))*[a-zA-Z0-9]+)?)(:\\d{4})?");
     public static final Pattern lastDirPattern = Pattern.compile(".*/([^/?]+).*");
 
     public static String getNamespace(String locationWithNamespace) {

@@ -263,7 +263,7 @@ public class ConfigController {
             @RequestParam(value = "copyAvroSchemaUrls", required = false) Boolean copyAvroSchemaUrls,
             @RequestParam(value = "dataStrategy", required = false) DataStrategyEnum dataStrategy,
             @RequestParam(value = "databaseOnly", required = false) Boolean databaseOnly,
-            @RequestParam(value = "databases", required = false) List<String> databases,
+            @RequestParam(value = "databases", required = false) Set<String> databases,
             @RequestParam(value = "dbPrefix", required = false) String dbPrefix,
             @RequestParam(value = "dbRename", required = false) String dbRename,
             @RequestParam(value = "evaluatePartitionLocation", required = false) Boolean evaluatePartitionLocation,

@@ -8,22 +8,41 @@ found [here](https://github.com/cloudera-labs/hms-mirror/issues?q=is%3Aissue+is%
 ## Enhancement Requests
 
 The latest set of enhancement requests can be
-found [here](https://github.com/cloudera-labs/hms-mirror/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement). If there is
+found [here](https://github.com/cloudera-labs/hms-mirror/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement). 
+
+If there is
 something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
+
+## 2.2.0.8
+
+**Bugs (Fixed)**
+
+- [Not parsing abfs protocol locations correctly](https://github.com/cloudera-labs/hms-mirror/issues/124)
+- [Database input duplication](https://github.com/cloudera-labs/hms-mirror/issues/125)
+
+## 2.2.0.7
+
+**Bugs (Fixed)**
+
+- [Non Configs blocking WEB UI Create](https://github.com/cloudera-labs/hms-mirror/issues/122)
+- [SCHEMA_ONLY with ALIGNED, DISTCP and Partitions is too granular on partition distcp](https://github.com/cloudera-labs/hms-mirror/issues/123)
+- [Expose rid in web ui](https://github.com/cloudera-labs/hms-mirror/issues/121)
 
 ## 2.2.0.5
 
-[CLI Setup Issues](https://github.com/cloudera-labs/hms-mirror/issues/120)
-[Stale Config after several runs](https://github.com/cloudera-labs/hms-mirror/issues/118)
-[SQL Strategy Transfer Fixes](https://github.com/cloudera-labs/hms-mirror/issues/117)
-[Partition Reductions for Distcp](https://github.com/cloudera-labs/hms-mirror/issues/116)
+**Bugs (Fixed)**
+
+- [CLI Setup Issues](https://github.com/cloudera-labs/hms-mirror/issues/120)
+- [Stale Config after several runs](https://github.com/cloudera-labs/hms-mirror/issues/118)
+- [SQL Strategy Transfer Fixes](https://github.com/cloudera-labs/hms-mirror/issues/117)
+- [Partition Reductions for Distcp](https://github.com/cloudera-labs/hms-mirror/issues/116)
 
 ## 2.2.0.4
 
-### Bugs
+**Bugs (Fixed)**
 
-[Report Output Directory Issue](https://github.com/cloudera-labs/hms-mirror/issues/115)
-[Filters Optimizations and Fixes](https://github.com/cloudera-labs/hms-mirror/issues/116)
+- [Report Output Directory Issue](https://github.com/cloudera-labs/hms-mirror/issues/115)
+- [Filters Optimizations and Fixes](https://github.com/cloudera-labs/hms-mirror/issues/116)
 
 ## 2.2.0.2
 
