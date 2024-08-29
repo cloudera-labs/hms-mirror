@@ -366,7 +366,7 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
         }
 
         if (rtn && buildWhat.isShadowSql()) {
-            rtn = buildMigrationSql(tableMirror, Environment.SHADOW, Environment.RIGHT, Environment.RIGHT);
+            rtn = buildMigrationSql(tableMirror, Environment.LEFT, Environment.SHADOW, Environment.RIGHT);
         }
 
         // Execute the LEFT sql if config.execute.

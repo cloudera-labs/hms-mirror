@@ -53,7 +53,7 @@
             <!--            <input type="hidden"-->
             <!--                   th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[maxWaitMillis]}"-->
             <!--                   th:value="${CONFIG.clusters[__${env}__].hiveServer2?.connectionProperties[maxWaitMillis]}"/>-->
-            <div class="pure-control-group">
+            <div class="pure-control-group" th:if="${env.toString() == 'RIGHT'}">
                 <label th:text="#{hive.server2.disconnected}"/>
                 <input type="checkbox"
                        th:field="*{clusters[__${env}__].hiveServer2.disconnected}"
