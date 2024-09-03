@@ -58,8 +58,8 @@ public class Test_ei_mao_da_ip extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        long check = MessageCode.VALID_ACID_DA_IP_STRATEGIES.getLong();
-        assertEquals("Return Code Failure: " + rtn, check * -1, rtn);
+        long check = getCheckCode(MessageCode.VALID_ACID_DA_IP_STRATEGIES);
+        assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 
 //    @Test

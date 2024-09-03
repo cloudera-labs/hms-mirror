@@ -361,7 +361,7 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
             Pair leftUsePair = new Pair(TableUtils.USE_DESC, useLeftDb);
             let.addCleanUpSql(leftUsePair);
 
-            rtn = buildMigrationSql(tableMirror, Environment.LEFT, Environment.TRANSFER, Environment.TRANSFER);
+            rtn = buildMigrationSql(tableMirror, Environment.LEFT, Environment.LEFT, Environment.TRANSFER);
             //tableMirror.transferSql(let, set, ret, config);
         }
 

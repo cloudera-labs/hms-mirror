@@ -116,16 +116,16 @@ public class Test_sm_wd_epl_rdl_dc extends E2EBaseTest {
 
     @Test
     public void sqlTest() {
-        if (!validateSqlPair("ext_purge_odd_parts", Environment.LEFT, "web_sales", "Alter Table Location",
+        if (!validateTableSqlPair("ext_purge_odd_parts", Environment.LEFT, "web_sales", "Alter Table Location",
                 "ALTER TABLE web_sales SET LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales\"")) {
             fail("Alter Table Location not found");
         }
-        if (!validateSqlPair("ext_purge_odd_parts", Environment.LEFT, "web_sales",
+        if (!validateTableSqlPair("ext_purge_odd_parts", Environment.LEFT, "web_sales",
                 "Alter Table Partition Spec `ws_sold_date_sk`='2451180' Location",
                 "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451180') SET LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451180\"")) {
             fail("Alter Table Partition Location not found");
         }
-        if (!validateSqlPair("ext_purge_odd_parts", Environment.LEFT, "web_sales",
+        if (!validateTableSqlPair("ext_purge_odd_parts", Environment.LEFT, "web_sales",
                 "Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location",
                 "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451188') SET LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451188\"")) {
             fail("Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location");

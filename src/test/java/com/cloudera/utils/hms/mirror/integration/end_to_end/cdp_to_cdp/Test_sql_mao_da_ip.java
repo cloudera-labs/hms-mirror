@@ -18,13 +18,17 @@
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp_to_cdp;
 
 import com.cloudera.utils.hms.mirror.cli.Mirror;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
+import com.cloudera.utils.hms.util.TableUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import static com.cloudera.utils.hms.mirror.MirrorConf.ALTER_DB_LOCATION_DESC;
+import static com.cloudera.utils.hms.mirror.MirrorConf.RENAME_TABLE_DESC;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
@@ -60,4 +64,20 @@ public class Test_sql_mao_da_ip extends E2EBaseTest {
         long check = 0L;
         assertEquals("Return Code Failure: " + rtn, check * -1, rtn);
     }
+
+    @Test
+    public void sqlPairTest() {
+        // Validate the SQL Pair.
+        validateTableSqlPair("assorted_test_db", Environment.LEFT, "acid_01", TableUtils.STORAGE_MIGRATION_TRANSFER_DESC,
+                "FROM acid_01_archive INSERT OVERWRITE TABLE acid_01 SELECT *");
+        validateTableSqlPair("assorted_test_db", Environment.RIGHT, "acid_01", RENAME_TABLE_DESC,
+                "ALTER TABLE acid_01 RENAME TO acid_01_archive");
+    }
+
+    @Test
+    public void tableLocationTest() {
+        validateTableLocation("assorted_test_db", "acid_01", Environment.RIGHT,
+                null);
+    }
+
 }

@@ -17,7 +17,6 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
-import com.cloudera.utils.hms.mirror.MessageCode;
 import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
@@ -100,7 +99,7 @@ public class Test_sm_smn_wd_dc extends E2EBaseTest {
 
     @Test
     public void validateSqlTest() {
-        if (!validateSqlPair("assorted_test_db", Environment.LEFT, "ext_part_01", "Alter Table Location",
+        if (!validateTableSqlPair("assorted_test_db", Environment.LEFT, "ext_part_01", "Alter Table Location",
                 "ALTER TABLE ext_part_01 SET LOCATION \"s3a://my_cs_bucket/warehouse/external_tables/assorted_test_db.db/ext_part_01\"")) {
             fail("Alter Table Location not found");
         }

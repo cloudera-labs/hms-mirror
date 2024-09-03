@@ -21,7 +21,9 @@ import com.cloudera.utils.hms.mirror.domain.DBMirror;
 import com.cloudera.utils.hms.mirror.MessageCode;
 import com.cloudera.utils.hms.mirror.Pair;
 import com.cloudera.utils.hms.mirror.PhaseState;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
+import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.support.Conversion;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.service.DomainService;
@@ -46,8 +48,11 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.cloudera.utils.hms.mirror.MirrorConf.*;
+import static java.util.Objects.nonNull;
 import static org.junit.Assert.*;
 
 @Slf4j
@@ -220,11 +225,23 @@ public class E2EBaseTest {
                         .getPhaseState());
     }
 
-    protected Boolean validateSqlPair(String database, Environment environment, String tableName, String description, String actionTest) {
+    protected Boolean validateDBSqlPair(String database, Environment environment, String description, String actionTest) {
+        Boolean found = Boolean.FALSE;
+        for (Pair pair : getConversion().getDatabase(database).getSql(environment)) {
+            if (pair.getDescription().trim().equals(description)) {
+                assertEquals("DB SQL doesn't match", actionTest, pair.getAction());
+                found = Boolean.TRUE;
+            }
+        }
+        return found;
+    }
+
+
+    protected Boolean validateTableSqlPair(String database, Environment environment, String tableName, String description, String actionTest) {
         Boolean found = Boolean.FALSE;
         for (Pair pair : getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironmentTable(environment).getSql()) {
             if (pair.getDescription().trim().equals(description)) {
-                assertEquals("Location doesn't match", actionTest, pair.getAction());
+                assertEquals("Table SQL doesn't match", actionTest, pair.getAction());
                 found = Boolean.TRUE;
             }
         }
@@ -248,4 +265,23 @@ public class E2EBaseTest {
                         .getTableMirrors().get(tableName).getEnvironmentTable(environment)
                         .getDefinition()));
     }
+
+    protected void validateWorkingTableLocation(String database, String tableName, String workingTableName, Environment environment, String expectedLocation) {
+        Pattern pattern = Pattern.compile(expectedLocation);
+
+
+        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
+        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().containsKey(tableName));
+
+        TableMirror tableMirror = getConversion().getDatabase(database).getTableMirrors().get(tableName);
+        assertTrue("Working Table doesn't exist", nonNull(tableMirror.getEnvironmentTable(environment)) );
+        EnvironmentTable environmentTable = tableMirror.getEnvironmentTable(environment);
+        assertEquals("Working Table name doesn't match", environmentTable.getName(), workingTableName);
+        String location = TableUtils.getLocation(workingTableName, environmentTable.getDefinition());
+        Matcher matcher = pattern.matcher(location);
+        assertTrue("Working Location doesn't match", matcher.matches());
+//        assertEquals("Working Location doesn't match", expectedLocation,
+//                TableUtils.getLocation(workingTableName, environmentTable.getDefinition()));
+    }
+
 }

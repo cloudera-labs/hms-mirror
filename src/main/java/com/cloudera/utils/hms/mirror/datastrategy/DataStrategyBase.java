@@ -792,7 +792,7 @@ public abstract class DataStrategyBase implements DataStrategy {
                     }
                     String partElement = TableUtils.getPartitionElements(original);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
-                            original.getName(), source.getName(), partElement);
+                            source.getName(), target.getName(), partElement);
                     String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, original.getPartitions().size());
                     targetEnvTable.addSql(new Pair(transferDesc, transferSql));
                 } else {
@@ -811,9 +811,9 @@ public abstract class DataStrategyBase implements DataStrategy {
                 }
             } else {
                 String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_OVERWRITE,
-                        original.getName(), source.getName());
-                String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, original.getPartitions().size());
-                targetEnvTable.addSql(new Pair(transferDesc, transferSql));
+                        source.getName(), target.getName());
+//                String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_DESC);
+                targetEnvTable.addSql(new Pair(TableUtils.STAGE_TRANSFER_DESC, transferSql));
             }
             // Drop Transfer Table
             if (!isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
