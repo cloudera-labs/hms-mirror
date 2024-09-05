@@ -83,6 +83,64 @@ public class NamespaceUtilsTest {
     }
 
     @Test
+    public void testRetrieveProtocol() {
+        // Test with namespace
+        String locationWithNamespace = "hdfs://nameservice1/user/hive/warehouse";
+        String namespace = NamespaceUtils.getProtocol(locationWithNamespace);
+        assertEquals("hdfs://", namespace);
+
+        // Test with namespace
+        String locationWithNamespace1 = "hdfs://nameservice1:8020/user/hive/warehouse";
+        String namespace1 = NamespaceUtils.getProtocol(locationWithNamespace1);
+        assertEquals("hdfs://", namespace1);
+
+        // Test with namespace
+        String locationWithNamespace10 = "hdfs://name_service1:8020/user/hive/warehouse";
+        String namespace10 = NamespaceUtils.getProtocol(locationWithNamespace10);
+        assertEquals("hdfs://", namespace10);
+
+        // Test with namespace
+        String locationWithNamespace2 = "hdfs://CAPSNAMESPACE/user/hive/warehouse";
+        String namespace2 = NamespaceUtils.getProtocol(locationWithNamespace2);
+        assertEquals("hdfs://", namespace2);
+
+        // Test with namespace
+        String locationWithNamespace3 = "hdfs://CAPS_NAMESPACE/user/hive/warehouse";
+        String namespace3 = NamespaceUtils.getProtocol(locationWithNamespace3);
+        assertEquals("hdfs://", namespace3);
+
+        // Test with namespace
+        String locationWithNamespace4 = "ofs://CAPS_NAMESPACE/user/hive/warehouse";
+        String namespace4 = NamespaceUtils.getProtocol(locationWithNamespace4);
+        assertEquals("ofs://", namespace4);
+
+        // Test with namespace
+        String locationWithNamespace5 = "s3a://BUCKET/user/hive/warehouse";
+        String namespace5 = NamespaceUtils.getProtocol(locationWithNamespace5);
+        assertEquals("s3a://", namespace5);
+
+        // Test without namespace
+        locationWithNamespace = "hdfs://user/hive/warehouse";
+        namespace = NamespaceUtils.getProtocol(locationWithNamespace);
+        assertEquals("hdfs://", namespace);
+
+        // Test with empty namespace
+        locationWithNamespace = "hdfs:///user/hive/warehouse";
+        namespace = NamespaceUtils.getProtocol(locationWithNamespace);
+        assertEquals("hdfs://", namespace);
+
+        // Test with empty namespace
+        String locationWithNamespace6 = "/user/hive/warehouse";
+        String namespace6 = NamespaceUtils.getProtocol(locationWithNamespace6);
+        assertEquals(null, namespace6);
+
+        // Test with null namespace
+        locationWithNamespace = null;
+        namespace = NamespaceUtils.getProtocol(locationWithNamespace);
+        assertEquals(null, namespace);
+    }
+
+    @Test
     public void testStripNamespace() {
         // Test with namespace
         String locationWithNamespace = "hdfs://nameservice1/user/hive/warehouse";

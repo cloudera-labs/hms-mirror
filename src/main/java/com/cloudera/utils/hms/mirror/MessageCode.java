@@ -120,6 +120,7 @@ public enum MessageCode {
     KERB_ACROSS_VERSIONS("Kerberos connections can only be supported to a single version of the platform.  LEFT and RIGHT " +
             "'legacy' definitions are not the same, so we are assuming the cluster versions aren't the same."),
     LEFT_HS2_URI_INVALID("LEFT HiveServer2 URI config is NOT valid"),
+    LEFT_HS2_DRIVER_JARS("The Hive JDBC jar files haven't been defined for the LEFT(source) cluster"),
     LEFT_KERB_JAR_LOCATION("LEFT: For Kerberized connections, place the Hive JDBC jar file in $HOME/.hms-mirror/aux_libs and remove the 'jarFile' entry in the config."),
     LEFT_NAMESPACE_NOT_DEFINED("The namespace for the LEFT cluster is NOT defined.  Please config it and try again."),
     LEGACY_AND_HIVE3("Setting legacyHive=true and hdpHive3=true is a conflicting configuration"),
@@ -152,6 +153,7 @@ public enum MessageCode {
     RESET_TO_DEFAULT_LOCATION_REQUIRED_FOR_STORAGE_MIGRATION("You must specify `-rdl` when using STORAGE_MIGRATION to ensure the locations are correctly aligned. To override this, set 'strict' to FALSE"),
     RIGHT_HS2_DEFINITION_MISSING("The 'RIGHT' HS2 definition is missing.  Only STORAGE_MIGRATION or DUMP strategies allow " +
             "that definition to be skipped."),
+    RIGHT_HS2_DRIVER_JARS("The Hive JDBC jar files haven't been defined for the RIGHT(target) cluster"),
     RIGHT_HS2_URI_INVALID("The RIGHT HiveServer2 URI is not defined OR invalid. You need to define the RIGHT cluster " +
             "with a valid URI for all Data Strategies, except DUMP"),
     RIGHT_KERB_JAR_LOCATION("RIGHT: For Kerberized connections, place the Hive JDBC jar file in $HOME/.hms-mirror/aux_libs and remove the 'jarFile' entry in the config."),

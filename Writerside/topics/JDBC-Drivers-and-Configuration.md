@@ -35,3 +35,23 @@ For example: `jarFile: "<cdp_parcel_jars>/hive-jdbc-3.1.3000.7.1.8.28-1-standalo
 
 The Cloudera JDBC driver shouldn't require additional jars.
 
+## Kerberized HS2 Connections
+
+We currently have validated **kerberos** HS2 connections to CDP clusters using the Hive JDBC driver you'll find in your target CDP distribution.
+
+> This process has CHANGED compared to v1.x of `hms-mirror`.  Please adjust your configurations accordingly.
+
+We NO LONGER need to have the hive JDBC driver in the `aux_libs` directory ($HOME/.hms-mirror/aux_libs).  The driver should be stored locally on the machine running `hms-mirror` and referenced in the configuration file via the `jarFile' attribute.  Follow the same procedure as above for **Kerberized** connections as is done for non-kerberized connections.
+
+![hs2_kerb_config.png](hs2_kerb_config.png)
+
+At this point, just like the previous version of `hms-mirror`, you'll need to have a valid kerberos ticket on the machine running `hms-mirror`.  This is required to authenticate to the kerberized HS2 endpoint.
+
+REMOVE all 'hive' related JDBC jar files from `aux_libs`.  Leaving them there WILL cause conflicts during the service startup.
+
+## Validating HS2 Connectivity
+
+Once you have everything configured, you can validate all connections required by `hms-mirror` through the 
+'CONNECTIONS --> Validate' left menu option in the UI.  This will test the connectivity to the various endpoints 
+required by `hms-mirror`.
+

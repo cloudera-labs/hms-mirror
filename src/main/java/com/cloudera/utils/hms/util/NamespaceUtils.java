@@ -51,18 +51,25 @@ public class NamespaceUtils {
                 rtn = sb.toString();
             }
         }
-        // Old method
-//        if (nonNull(locationWithNamespace)) {
-//            if (locationWithNamespace.contains("://")) {
-//                String[] parts = locationWithNamespace.split("://");
-//                if (parts.length > 1) {
-//                    String[] pathParts = parts[1].split("/");
-//                    if (pathParts.length > 1) {
-//                        rtn = parts[0] + "://" + pathParts[0];
-//                    }
-//                }
-//            }
-//        }
+        return rtn;
+    }
+
+    public static String getProtocol(String locationWithNamespace) {
+        String rtn = null;
+        if (!isBlank(locationWithNamespace)) {
+            log.trace("Location with namespace: {}", locationWithNamespace);
+            // Find the protocol (namespace
+            Matcher matcher = protocolNSPattern.matcher(locationWithNamespace);
+            if (matcher.find()) {
+                StringBuilder sb = new StringBuilder();
+                log.trace("{} protocol found.", locationWithNamespace);
+                if (nonNull(matcher.group(1))) {
+                    sb.append(matcher.group(1));
+                }
+                // Return the namespace
+                rtn = sb.toString();
+            }
+        }
         return rtn;
     }
 

@@ -209,7 +209,7 @@ public class HmsMirrorConfig implements Cloneable {
 
     @JsonIgnore
     public boolean canDecryptPasswords() {
-        if (encryptedPasswords && nonNull(passwordKey)) {
+        if (encryptedPasswords) { // && nonNull(passwordKey)) {
             return Boolean.TRUE;
         } else {
             return Boolean.FALSE;
@@ -218,7 +218,7 @@ public class HmsMirrorConfig implements Cloneable {
 
     @JsonIgnore
     public boolean canEncryptPasswords() {
-        if (!encryptedPasswords && nonNull(passwordKey)) {
+        if (!encryptedPasswords) { // && nonNull(passwordKey)) {
             return Boolean.TRUE;
         } else {
             return Boolean.FALSE;

@@ -24,6 +24,7 @@ import com.cloudera.utils.hms.mirror.domain.support.Conversion;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
 import com.cloudera.utils.hms.mirror.domain.support.HmsMirrorConfigUtil;
+import com.cloudera.utils.hms.util.NamespaceUtils;
 import com.cloudera.utils.hms.util.UrlUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.util.*;
+
+import static java.util.Objects.nonNull;
 
 @Component
 @Slf4j
@@ -150,7 +153,8 @@ public class DistCpService {
                                 distcpScriptSb.append("hdfs dfs -copyFromLocal -f ").append(distcpSourceFile).append(" ${HCFS_BASE_DIR}").append("\n");
                                 distcpScriptSb.append("\n");
                                 distcpScriptSb.append("echo \"Running 'distcp'\"").append("\n");
-                                distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} -f ${HCFS_BASE_DIR}/").append(distcpSourceFile).append(" ").append(dbMap.getKey()).append("\n").append("\n");
+                                // Adding -skipcrccheck to avoid failures with distcp between different protocols.
+                                distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} -skipcrccheck -f ${HCFS_BASE_DIR}/").append(distcpSourceFile).append(" ").append(dbMap.getKey()).append("\n").append("\n");
 
                                 distcpSourceFW.close();
                             } else {
@@ -163,13 +167,17 @@ public class DistCpService {
 
                                 String target = dbMap.getKey();
 
-                                // Concatenate the last path element to the target
-                                if (!target.endsWith("/") && !lastPathElement.startsWith("/")) {
-                                    target += "/" + lastPathElement;
-                                } else if (target.endsWith("/") && lastPathElement.startsWith("/")) {
-                                    target += lastPathElement.substring(1);
-                                } else {
-                                    target += lastPathElement;
+                                if (config.getTransfer().getStorageMigration().isConsolidateTablesForDistcp()) {
+                                    // Reduce the target by 1 level
+                                    target = UrlUtils.reduceUrlBy(target, 1);
+                                    // Concatenate the last path element to the target
+//                                    if (!target.endsWith("/") && !lastPathElement.startsWith("/")) {
+//                                        target += "/" + lastPathElement;
+//                                    } else if (target.endsWith("/") && lastPathElement.startsWith("/")) {
+//                                        target += lastPathElement.substring(1);
+//                                    } else {
+//                                        target += lastPathElement;
+//                                    }
                                 }
 
                                 StringBuilder line = new StringBuilder();
@@ -180,7 +188,17 @@ public class DistCpService {
                                 distcpWorkbookSb.append(line);
 
                                 distcpScriptSb.append("echo \"Running 'distcp'\"").append("\n");
-                                distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} ").append(source).append(" ").append(target).append("\n").append("\n");
+
+                                String sourceProtocol = NamespaceUtils.getProtocol(source);
+                                String targetProtocol = NamespaceUtils.getProtocol(target);
+
+                                if (nonNull(sourceProtocol) && nonNull(targetProtocol) && !sourceProtocol.equals(targetProtocol)) {
+                                        distcpScriptSb.append("#  Source and target protocols are different. This may cause issues with 'distcp' is -skipcrccheck isn't set.");
+                                        // Add -skipcrccheck to the distcp command
+                                        distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} -skipcrccheck ").append(source).append(" ").append(target).append("\n").append("\n");
+                                } else {
+                                    distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} ").append(source).append(" ").append(target).append("\n").append("\n");
+                                }
                             }
 
                             dcFound = Boolean.TRUE;

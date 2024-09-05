@@ -761,9 +761,9 @@ public class ConfigService {
                 runStatus.addError(LEFT_HS2_URI_INVALID);
             }
 
-            if (leftHS2.isKerberosConnection() && !isBlank(leftHS2.getJarFile())) {
+            if (isBlank(leftHS2.getJarFile())) {
                 rtn = Boolean.FALSE;
-                runStatus.addError(LEFT_KERB_JAR_LOCATION);
+                runStatus.addError(LEFT_HS2_DRIVER_JARS);
             }
 
             if (nonNull(config.getCluster(Environment.RIGHT)) && nonNull(config.getCluster(Environment.RIGHT).getHiveServer2())) {
@@ -773,6 +773,11 @@ public class ConfigService {
                 //
                 HiveServer2Config rightHS2 = config.getCluster(Environment.RIGHT).getHiveServer2();
 
+                if (isBlank(rightHS2.getJarFile())) {
+                    rtn = Boolean.FALSE;
+                    runStatus.addError(RIGHT_HS2_DRIVER_JARS);
+                }
+
                 if (config.getDataStrategy() != STORAGE_MIGRATION
                         && !rightHS2.isValidUri()) {
                     if (!config.getDataStrategy().equals(DataStrategyEnum.DUMP)) {
@@ -781,11 +786,6 @@ public class ConfigService {
                     }
                 } else {
 
-                    if (rightHS2.isKerberosConnection()
-                            && rightHS2.getJarFile() != null) {
-                        rtn = Boolean.FALSE;
-                        runStatus.addError(RIGHT_KERB_JAR_LOCATION);
-                    }
 
                     if (leftHS2.isKerberosConnection()
                             && rightHS2.isKerberosConnection()
