@@ -531,13 +531,19 @@ public class HMSMirrorAppService {
                 }
                 break;
         }
-//        log.info("Setting 'running' to FALSE");
-//        session.getRunning().set(Boolean.FALSE);
+
         runStatus.setStage(StageEnum.SAVING_REPORTS, CollectionEnum.IN_PROGRESS);
         // Set RunStatus End Date.
         runStatus.setEnd(new Date());
-        reportWriterService.wrapup();
-        runStatus.setStage(StageEnum.SAVING_REPORTS, CollectionEnum.COMPLETED);
+        try {
+            reportWriterService.wrapup();
+            runStatus.setStage(StageEnum.SAVING_REPORTS, CollectionEnum.COMPLETED);
+        } catch (RuntimeException rte) {
+            log.error("Issue saving reports", rte);
+            runStatus.addError(MISC_ERROR, rte.getMessage());
+            runStatus.setStage(StageEnum.SAVING_REPORTS, CollectionEnum.ERRORED);
+            rtn = Boolean.FALSE;
+        }
 
         return new AsyncResult<>(rtn);
     }

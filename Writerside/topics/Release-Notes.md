@@ -17,6 +17,14 @@ something you'd like to see, add a new issue [here](https://github.com/cloudera-
 
 **Bugs (Fixed)**
 
+- [Allow process path that doesn't require Metastore Direct Connection](https://github.com/cloudera-labs/hms-mirror/issues/128)
+- [Fix Kerberos Connection Issues to HS2](https://github.com/cloudera-labs/hms-mirror/issues/129)
+
+**Enhancements**
+
+Increase build dependencies to CDP 7.1.9 SP1.
+Rework Pass Key Management.
+Additional details in Connection Validation.
 
 ## 2.2.0.8
 

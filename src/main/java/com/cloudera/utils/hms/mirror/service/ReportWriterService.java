@@ -98,9 +98,9 @@ public class ReportWriterService {
         log.info("Writing out report(s)");
         writeReport();
 //        getCliReporter().refresh(Boolean.TRUE);
-        log.trace("==============================");
-        log.trace(conversion.toString());
-        log.trace("==============================");
+//        log.trace("==============================");
+//        log.trace(conversion.toString());
+//        log.trace("==============================");
         Date endTime = new Date();
         DecimalFormat df = new DecimalFormat("#.###");
         df.setRoundingMode(RoundingMode.CEILING);
