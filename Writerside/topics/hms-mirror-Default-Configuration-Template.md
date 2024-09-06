@@ -1,6 +1,6 @@
 # Default Configuration Template
 
-Use this as a template for the `default.yaml` configuration file used by the `cli` interface.
+Use this as a template for the `default.yaml` configuration file used by the `cli` interface.  You can also build a configuration file in the 'web' interface and reference it in the `cli` interface.
 
 
 ```yaml

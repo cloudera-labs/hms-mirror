@@ -38,7 +38,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static com.cloudera.utils.hms.mirror.MessageCode.ENCRYPTED_PASSWORD_CHANGE_ATTEMPT;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -92,6 +94,89 @@ public class ExecuteSessionService {
     public void setReportOutputDirectory(String reportOutputDirectory, boolean amendSessionIdToReportDir) {
         this.amendSessionIdToReportDir = amendSessionIdToReportDir;
         this.reportOutputDirectory = reportOutputDirectory;
+    }
+
+    public boolean save(HmsMirrorConfig config, int maxThreads) throws SessionException {
+        boolean rtn = Boolean.TRUE;
+        AtomicReference<Boolean> passwordCheck = new AtomicReference<>(Boolean.FALSE);
+
+        ExecuteSession session = getSession();
+
+        if (session.isRunning()) {
+            throw new SessionException("Can't save while running.");
+        } else {
+            session.getRunStatus().reset();
+        }
+
+        HmsMirrorConfig currentConfig = session.getConfig();
+
+        // Reload Databases
+        config.getDatabases().addAll(currentConfig.getDatabases());
+
+        // Merge Passwords
+        config.getClusters().forEach((env, cluster) -> {
+            // HS2
+            if (nonNull(cluster.getHiveServer2())) {
+                String currentPassword = (String) currentConfig.getClusters().get(env).getHiveServer2().getConnectionProperties().get("password");
+                String newPassword = (String) cluster.getHiveServer2().getConnectionProperties().get("password");
+                if (newPassword != null && !newPassword.isEmpty()) {
+                    // Set new Password, IF the current passwords aren't ENCRYPTED...  set warning if they attempted.
+                    if (config.isEncryptedPasswords()) {
+                        // Restore original password
+                        cluster.getHiveServer2().getConnectionProperties().put("password", currentPassword);
+                        passwordCheck.set(Boolean.TRUE);
+                    } else {
+                        cluster.getHiveServer2().getConnectionProperties().put("password", newPassword);
+                    }
+                } else if (currentPassword != null) {
+                    // Restore original password
+                    cluster.getHiveServer2().getConnectionProperties().put("password", currentPassword);
+                } else {
+                    cluster.getHiveServer2().getConnectionProperties().remove("password");
+                }
+            }
+
+            // Metastore
+            if (nonNull(cluster.getMetastoreDirect())) {
+                String currentPassword = (String) currentConfig.getClusters().get(env).getMetastoreDirect().getConnectionProperties().get("password");
+                String newPassword = (String) cluster.getMetastoreDirect().getConnectionProperties().get("password");
+                if (newPassword != null && !newPassword.isEmpty()) {
+                    // Set new password
+                    if (config.isEncryptedPasswords()) {
+                        // Restore original password
+                        cluster.getHiveServer2().getConnectionProperties().put("password", currentPassword);
+                        passwordCheck.set(Boolean.TRUE);
+                    } else {
+                        cluster.getMetastoreDirect().getConnectionProperties().put("password", newPassword);
+                    }
+                } else if (currentPassword != null) {
+                    // Restore Original password
+                    cluster.getMetastoreDirect().getConnectionProperties().put("password", currentPassword);
+                } else {
+                    cluster.getMetastoreDirect().getConnectionProperties().remove("password");
+                }
+            }
+        });
+
+        // Merge Translator
+        config.setTranslator(currentConfig.getTranslator());
+
+        // Apply rules for the DataStrategy that are not in the config.
+        configService.alignConfigurationSettings(session, config);
+
+        // Reset to the merged config.
+        session.setConfig(config);
+
+//        model.addAttribute(READ_ONLY, Boolean.TRUE);
+        configService.validate(session, null);
+
+        if (passwordCheck.get()) {
+            ExecuteSession session1 = getSession();
+            session1.getRunStatus().addError(ENCRYPTED_PASSWORD_CHANGE_ATTEMPT);
+            rtn = Boolean.FALSE;
+        }
+
+        return rtn;
     }
 
     public ExecuteSession createSession(String sessionId, HmsMirrorConfig hmsMirrorConfig) {

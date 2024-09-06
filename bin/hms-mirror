@@ -98,7 +98,8 @@ while [[ $# -gt 0 ]]; do
     ;;
   --hadoop-classpath)
     shift
-    HADOOP_CLASSPATH="true"
+    # Not supported in this version, yet.
+#    HADOOP_CLASSPATH="true"
     ;;
   --aux-libs)
     shift

@@ -30,5 +30,6 @@ public class PasswordContainer {
     private String rightMetastore;
     private String testPassword;
     private String passwordKey;
+    private boolean encrypted;
 
 }

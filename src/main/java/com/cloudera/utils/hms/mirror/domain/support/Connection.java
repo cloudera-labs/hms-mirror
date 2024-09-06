@@ -25,6 +25,7 @@ import lombok.Setter;
 public class Connection implements Cloneable {
 
     private ConnectionStatus status = ConnectionStatus.NOT_CONFIGURED;
+    private String endpoint;
     private String message;
 
     public void reset() {

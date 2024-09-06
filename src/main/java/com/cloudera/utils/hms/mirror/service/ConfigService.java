@@ -20,10 +20,12 @@ package com.cloudera.utils.hms.mirror.service;
 import com.cloudera.utils.hadoop.cli.CliEnvironment;
 import com.cloudera.utils.hadoop.cli.DisabledException;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
+import com.cloudera.utils.hadoop.shell.commands.Env;
 import com.cloudera.utils.hive.config.DBStore;
 import com.cloudera.utils.hms.mirror.domain.*;
 import com.cloudera.utils.hms.mirror.domain.support.*;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
+import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
@@ -33,6 +35,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.cloudera.utils.hms.mirror.MessageCode.*;
 import static com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.STORAGE_MIGRATION;
@@ -84,9 +87,20 @@ public class ConfigService {
         return rtn;
     }
 
+    public boolean isMetastoreDirectConfigured(ExecuteSession session, Environment environment) {
+        HmsMirrorConfig config = session.getConfig();
+        boolean rtn = Boolean.FALSE;
+        if (nonNull(config.getCluster(environment).getMetastoreDirect())) {
+            DBStore dbStore = config.getCluster(environment).getMetastoreDirect();
+            if (!isBlank(dbStore.getUri())) {
+                rtn = Boolean.TRUE;
+            }
+        }
+        return rtn;
+    }
+
     public boolean canDeriveDistcpPlan(ExecuteSession session) {
         boolean rtn = Boolean.FALSE;
-//        ExecuteSession executeSession = executeSessionService.getActiveSession();
         HmsMirrorConfig config = session.getConfig();
 
         if (config.getTransfer().getStorageMigration().isDistcp()) {
@@ -95,25 +109,7 @@ public class ConfigService {
                 rtn = Boolean.FALSE;
                 session.addError(DISTCP_W_RENAME_NOT_SUPPORTED);
             }
-//            if (rtn) {
-//                rtn = doWareHousePlansExist(session);
-//            }
-            // We need to get partition location to support partitioned tables and distcp
-//            if (!config.isEvaluatePartitionLocation()) {
-//                if (config.getDataStrategy() == STORAGE_MIGRATION) {
-//                    // This is an ERROR condition since we can NOT build the correct ALTER TABLE statements without this
-//                    // information.
-//                    rtn = Boolean.FALSE;
-//                    session.addError(DISTCP_REQUIRES_EPL);
-//                } else {
-//                    session.addWarning(DISTCP_REQUIRES_EPL);
-//                }
-//            }
-//            rtn = Boolean.TRUE;
-//        } else {
-//            session.addWarning(DISTCP_OUTPUT_NOT_REQUESTED);
         }
-
         return rtn;
     }
 
@@ -766,32 +762,43 @@ public class ConfigService {
                 runStatus.addError(LEFT_HS2_DRIVER_JARS);
             }
 
-            if (nonNull(config.getCluster(Environment.RIGHT)) && nonNull(config.getCluster(Environment.RIGHT).getHiveServer2())) {
+            if (nonNull(config.getCluster(Environment.LEFT).getMetastoreDirect())) {
+                DBStore leftMS = config.getCluster(Environment.LEFT).getMetastoreDirect();
+
+                if (isBlank(leftMS.getUri())) {
+//                    rtn = Boolean.FALSE;
+                    runStatus.addWarning(LEFT_METASTORE_URI_NOT_DEFINED);
+                }
+            }
+
+            if (nonNull(config.getCluster(Environment.RIGHT))) {
                 // TODO: Add validation for -rid (right-is-disconnected) option.
                 // - Only applies to SCHEMA_ONLY, SQL, EXPORT_IMPORT, and HYBRID data strategies.
                 // -
                 //
-                HiveServer2Config rightHS2 = config.getCluster(Environment.RIGHT).getHiveServer2();
+                if (nonNull(config.getCluster(Environment.RIGHT).getHiveServer2())) {
+                    HiveServer2Config rightHS2 = config.getCluster(Environment.RIGHT).getHiveServer2();
 
-                if (isBlank(rightHS2.getJarFile())) {
-                    rtn = Boolean.FALSE;
-                    runStatus.addError(RIGHT_HS2_DRIVER_JARS);
-                }
-
-                if (config.getDataStrategy() != STORAGE_MIGRATION
-                        && !rightHS2.isValidUri()) {
-                    if (!config.getDataStrategy().equals(DataStrategyEnum.DUMP)) {
+                    if (isBlank(rightHS2.getJarFile())) {
                         rtn = Boolean.FALSE;
-                        runStatus.addError(RIGHT_HS2_URI_INVALID);
+                        runStatus.addError(RIGHT_HS2_DRIVER_JARS);
                     }
-                } else {
+
+                    if (config.getDataStrategy() != STORAGE_MIGRATION
+                            && !rightHS2.isValidUri()) {
+                        if (!config.getDataStrategy().equals(DataStrategyEnum.DUMP)) {
+                            rtn = Boolean.FALSE;
+                            runStatus.addError(RIGHT_HS2_URI_INVALID);
+                        }
+                    } else {
 
 
-                    if (leftHS2.isKerberosConnection()
-                            && rightHS2.isKerberosConnection()
-                            && (config.getCluster(Environment.LEFT).isLegacyHive() != config.getCluster(Environment.RIGHT).isLegacyHive())) {
-                        rtn = Boolean.FALSE;
-                        runStatus.addError(KERB_ACROSS_VERSIONS);
+                        if (leftHS2.isKerberosConnection()
+                                && rightHS2.isKerberosConnection()
+                                && (config.getCluster(Environment.LEFT).isLegacyHive() != config.getCluster(Environment.RIGHT).isLegacyHive())) {
+                            rtn = Boolean.FALSE;
+                            runStatus.addError(KERB_ACROSS_VERSIONS);
+                        }
                     }
                 }
             } else {
@@ -899,6 +906,13 @@ public class ConfigService {
                         rtn = Boolean.FALSE;
                     }
                 }
+        }
+
+        if (nonNull(config.getCluster(Environment.LEFT).getMetastoreDirect())) {
+            DBStore leftMS = config.getCluster(Environment.LEFT).getMetastoreDirect();
+            if (isBlank(leftMS.getUri())) {
+                runStatus.addWarning(LEFT_METASTORE_URI_NOT_DEFINED);
+            }
         }
 
         // Check for valid acid downgrade scenario.

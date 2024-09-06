@@ -104,6 +104,9 @@ public class UIModelService implements ControllerReferences {
 
         DataStrategyEnum dataStrategy = session == null ? DataStrategyEnum.SCHEMA_ONLY : session.getConfig().getDataStrategy();
 
+        // Always editable.
+        map.put(READ_ONLY, Boolean.FALSE);
+
         ModelUtils.allEnumsForMap(dataStrategy, map);
     }
 

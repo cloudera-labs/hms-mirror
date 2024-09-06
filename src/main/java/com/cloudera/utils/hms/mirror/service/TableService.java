@@ -23,19 +23,11 @@ import com.cloudera.utils.hadoop.cli.CliEnvironment;
 import com.cloudera.utils.hadoop.cli.DisabledException;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import com.cloudera.utils.hive.config.QueryDefinitions;
-import com.cloudera.utils.hms.mirror.CopySpec;
-import com.cloudera.utils.hms.mirror.MessageCode;
 import com.cloudera.utils.hms.mirror.MirrorConf;
 import com.cloudera.utils.hms.mirror.Pair;
 import com.cloudera.utils.hms.mirror.domain.*;
 import com.cloudera.utils.hms.mirror.domain.support.*;
-import com.cloudera.utils.hms.mirror.exceptions.MismatchException;
-import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
-import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
-import com.cloudera.utils.hms.mirror.feature.Feature;
-import com.cloudera.utils.hms.mirror.feature.FeaturesEnum;
 import com.cloudera.utils.hms.stage.ReturnStatus;
-import com.cloudera.utils.hms.util.NamespaceUtils;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.Setter;
@@ -50,15 +42,14 @@ import java.sql.*;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 
+import static com.cloudera.utils.hms.mirror.MessageCode.METASTORE_PARTITION_LOCATIONS_NOT_FETCHED;
+import static com.cloudera.utils.hms.mirror.MessageCode.METASTORE_TABLE_LOCATIONS_NOT_FETCHED;
 import static com.cloudera.utils.hms.mirror.MirrorConf.*;
-import static com.cloudera.utils.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION;
-import static com.cloudera.utils.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION_THRESHOLD;
-import static com.cloudera.utils.hms.mirror.TablePropertyVars.*;
+import static com.cloudera.utils.hms.mirror.TablePropertyVars.HMS_STORAGE_MIGRATION_FLAG;
 import static com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.DUMP;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -699,7 +690,17 @@ public class TableService {
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet resultSet = null;
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+        ExecuteSession session = executeSessionService.getSession();
+        RunStatus runStatus = session.getRunStatus();
+        HmsMirrorConfig config = session.getConfig();
+
+        // TODO: Handle RIGHT Environment. At this point, we're only handling LEFT.
+        if (!configService.isMetastoreDirectConfigured(session, environment)) {
+            log.info("Metastore Direct Connection is not configured for {}.  Skipping.", environment);
+            runStatus.addWarning(METASTORE_PARTITION_LOCATIONS_NOT_FETCHED);
+            return;
+        }
+
         String database = tableMirror.getParent().getName();
         EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
         try {

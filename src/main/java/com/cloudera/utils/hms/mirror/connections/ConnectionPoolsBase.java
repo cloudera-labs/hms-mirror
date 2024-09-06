@@ -41,6 +41,7 @@ import java.sql.SQLException;
 import java.util.*;
 
 import static java.util.Objects.nonNull;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Getter
 @Setter
@@ -183,7 +184,7 @@ public abstract class ConnectionPoolsBase implements ConnectionPools {
         for (Environment environment : environments) {
             DBStore metastoreDirectConfig = metastoreDirectConfigs.get(environment);
 
-            if (metastoreDirectConfig != null) {
+            if (nonNull(metastoreDirectConfig) && !isBlank(metastoreDirectConfig.getUri())) {
 
                 // Make a copy.
                 Properties connProperties = new Properties();

@@ -35,41 +35,45 @@
         <table class="pure-table pure-table-bordered pure-table-striped" style="width: 80%; padding: 5px;">
             <tr>
                 <th style="width: 20%" th:text="#{connection}"/>
+                <th style="width: 20%" th:text="#{connection.endpoint}"/>
                 <th style="width: 20%" th:text="#{connection.status}"/>
                 <th style="width: 60%" th:text="#{connection.message}"/>
             </tr>
             <tr>
-                <td colspan="3">
+                <td colspan="4">
                     <hr>
                 </td>
             </tr>
             <th:block th:each="key: ${CONNECTIONS_STATUS.namespaces.keySet()}">
                 <tr>
                     <td th:text="#{__${key}__.namespace}"/>
+                    <td th:text="${CONNECTIONS_STATUS.getNamespaces().get(key).endpoint}"/>
                     <td th:text="${CONNECTIONS_STATUS.getNamespaces().get(key).status}"/>
                     <td th:text="${CONNECTIONS_STATUS.getNamespaces().get(key).message}"/>
                 </tr>
             </th:block>
             <tr>
-                <td colspan="3">
+                <td colspan="4">
                     <hr>
                 </td>
             </tr>
             <th:block th:each="key: ${CONNECTIONS_STATUS.getHiveServer2Connections().keySet()}">
                 <tr>
                     <td th:text="#{__${key}__.hs2}"/>
+                    <td th:text="${CONNECTIONS_STATUS.getHiveServer2Connections().get(key).endpoint}"/>
                     <td th:text="${CONNECTIONS_STATUS.getHiveServer2Connections().get(key).status}"/>
                     <td th:text="${CONNECTIONS_STATUS.getHiveServer2Connections().get(key).message}"/>
                 </tr>
             </th:block>
             <tr>
-                <td colspan="3">
+                <td colspan="4">
                     <hr>
                 </td>
             </tr>
             <th:block th:each="key: ${CONNECTIONS_STATUS.getMetastoreDirectConnections().keySet()}">
                 <tr>
                     <td th:text="#{__${key}__.metastore}"/>
+                    <td th:text="${CONNECTIONS_STATUS.getMetastoreDirectConnections().get(key).endpoint}"/>
                     <td th:text="${CONNECTIONS_STATUS.getMetastoreDirectConnections().get(key).status}"/>
                     <td th:text="${CONNECTIONS_STATUS.getMetastoreDirectConnections().get(key).message}"/>
                 </tr>

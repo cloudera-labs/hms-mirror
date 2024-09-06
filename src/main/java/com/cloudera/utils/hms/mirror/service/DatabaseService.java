@@ -17,8 +17,6 @@
 
 package com.cloudera.utils.hms.mirror.service;
 
-//import com.cloudera.utils.hadoop.HadoopSession;
-
 import com.cloudera.utils.hadoop.cli.CliEnvironment;
 import com.cloudera.utils.hadoop.cli.DisabledException;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
@@ -268,9 +266,17 @@ public class DatabaseService {
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet resultSet = null;
-        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
-//        String database = tableMirror.getParent().getName();
-//        EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
+        ExecuteSession session = executeSessionService.getSession();
+        HmsMirrorConfig config = session.getConfig();
+        RunStatus runStatus = session.getRunStatus();
+
+        // TODO: Handle RIGHT Environment. At this point, we're only handling LEFT.
+        if (!configService.isMetastoreDirectConfigured(session, environment)) {
+            log.info("Metastore Direct Connection is not configured for {}.  Skipping.", environment);
+            runStatus.addWarning(METASTORE_TABLE_LOCATIONS_NOT_FETCHED);
+            return;
+        }
+
         try {
             conn = getConnectionPoolService().getMetastoreDirectEnvironmentConnection(environment);
             log.info("Loading Partitions from Metastore Direct Connection {}:{}", environment, database);

@@ -13,6 +13,11 @@ found [here](https://github.com/cloudera-labs/hms-mirror/issues?q=is%3Aissue+is%
 If there is
 something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 2.2.0.9
+
+**Bugs (Fixed)**
+
+
 ## 2.2.0.8
 
 **Bugs (Fixed)**

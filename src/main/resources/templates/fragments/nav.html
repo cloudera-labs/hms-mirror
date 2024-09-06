@@ -40,10 +40,10 @@
                     <a class="pure-menu-link" th:text="#{view}"
                        th:href="@{/config/view}"/>
                 </li>
-                <li class="pure-menu-item" th:if="${CONFIG != null}">
-                    <a class="pure-menu-link" th:text="#{edit}"
-                       th:href="@{/config/edit}"/>
-                </li>
+<!--                <li class="pure-menu-item" th:if="${CONFIG != null}">-->
+<!--                    <a class="pure-menu-link" th:text="#{edit}"-->
+<!--                       th:href="@{/config/edit}"/>-->
+<!--                </li>-->
                 <li class="pure-menu-item" th:if="${CONFIG != null}">
                     <a class="pure-menu-link" th:text="#{summary.view}"
                        th:href="@{/config/summary}"/>
@@ -51,6 +51,10 @@
                 <li class="pure-menu-item" th:if="${CONFIG != null}">
                     <a class="pure-menu-link" th:text="#{persist}"
                        th:href="@{/config/persist}"/>
+                </li>
+                <li class="pure-menu-item" th:if="${CONFIG != null}">
+                    <a class="pure-menu-link" th:text="#{password.key}"
+                       th:href="@{/password/view}"/>
                 </li>
             </ul>
             <span class="pure-menu-heading" th:text="#{connections}"/>

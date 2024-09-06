@@ -1,13 +1,24 @@
 # Hive JDBC Drivers and Configuration
 
-`hms-mirror` requires JDBC drivers to connect to the various end-points needed to perform it's tasks.  The `LEFT` and `RIGHT` cluster endpoints for HiveServer2 require the standalone JDBC drivers that are specific to that Hive version.
+`hms-mirror` requires JDBC drivers to connect to the various end-points needed to perform tasks.  The `LEFT` and `RIGHT` cluster endpoints for HiveServer2 require the standalone JDBC drivers that are specific to that Hive version.
 
-`hms-mirror` supports the Apache and packaged hive **standalone** drivers that are found with your distribution.  For CDP, we also support to Cloudera JDBC driver found and maintained at on the [Cloudera Hive JDBC Downloads Page](https://www.cloudera.com/downloads/connectors/hive/jdbc).  Note that the URL configurations between the Apache and Cloudera JDBC drivers are different.
+`hms-mirror` supports the Apache Hive packaged **standalone** drivers that are found with your distribution.  You can find a copy of this driver in: 
+
+| Platform | Driver Location/Pattern                                                              |
+|----------|--------------------------------------------------------------------------------------|
+| HDP      | `/usr/hdp/current/hive-client/jdbc/hive-jdbc-<hive-platform-version>-standalone.jar` |
+| CDP      | `/opt/cloudera/parcels/CDH/jars/hive-jdbc-<hive-platform-version>-standalone.jar`    |
+|          |                                                                                      |
+
+
+For CDP, we also support to Cloudera JDBC driver found and maintained at on the [Cloudera Hive JDBC Downloads Page](https://www.cloudera.com/downloads/connectors/hive/jdbc).  Note that the URL configurations between the Apache and Cloudera JDBC drivers are different.
 
 Hive JDBC Drivers need to be inline with the version of HS2 you're connecting to.  If the cluster is an HDP cluster, get the appropriate **standalone** driver from that cluster.  These drivers(jar files) should be stored locally on the machine running `hms-mirror` and referenced in the configuration file. 
 
-> Do NOT put these drivers in ${HOME}/.hms-mirror/aux_libs or any sub-directory of that location.  `hms-mirror` connects to different versions of Hive and the drivers need to be specific to the version of Hive you're connecting to.  To do this, we need to manage the classpath and the drivers in a more controlled manner.  They should NOT be in the applications main classpath, this will cause connectivity issues.
-
+<warning>
+Do NOT put these drivers in ${HOME}/.hms-mirror/aux_libs or any sub-directory of that location.  `hms-mirror` connects to different versions of Hive and the drivers need to be specific to the version of Hive you're connecting to.  To do this, we need to manage the classpath and the drivers in a more controlled manner.  They should NOT be in the applications main classpath
+which includes jar files in `$HOME/.hms-mirror/aux_libs`, this will cause connectivity issues.
+</warning>
 
 <tabs>
 <tab title="Web UI">
@@ -37,9 +48,15 @@ The Cloudera JDBC driver shouldn't require additional jars.
 
 ## Kerberized HS2 Connections
 
-We currently have validated **kerberos** HS2 connections to CDP clusters using the Hive JDBC driver you'll find in your target CDP distribution.
+We currently have validated **kerberos** HS2 connections to CDP clusters using the Hive JDBC driver you'll find in your target CDP distribution. 
 
-> This process has CHANGED compared to v1.x of `hms-mirror`.  Please adjust your configurations accordingly.
+<warning>
+Connections to Kerberized HS2 endpoints on NON-CDP clusters is NOT currently supported.  You will need to use KNOX in HDP to connect to a kerberized HS2 endpoint. For CDH, you can setup a non-kerberized HS2 endpoint to support the migration.
+</warning>  
+
+<note>
+This process has CHANGED compared to v1.x of `hms-mirror`.  Please adjust your configurations accordingly.
+</note>
 
 We NO LONGER need to have the hive JDBC driver in the `aux_libs` directory ($HOME/.hms-mirror/aux_libs).  The driver should be stored locally on the machine running `hms-mirror` and referenced in the configuration file via the `jarFile' attribute.  Follow the same procedure as above for **Kerberized** connections as is done for non-kerberized connections.
 

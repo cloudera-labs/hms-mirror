@@ -6,7 +6,9 @@ The CLI interface requires users to define a configuration file that the is used
 
 The Web interface provides a much more complete experience for users and allows configurations to be built and validated in a more interactive way.  The Web interface is the preferred interface for users who are new to the application and we encourage existing users to adopt this interface as well since it's capabilities and usability a vast improvement over the CLI.
 
-> We understand that a big part of the attraction to the CLI was its simple commandline interface and feedback UI.  And under many circumstances, the CLI was a natural choice due to security restrictions and port exposure in CDP environments.  However, the Web interface offers a much more robust and user-friendly experience.  See below for some suggestions on how to gain access to the Web Interface in environments with security restrictions.
+<tip>
+We understand that a big part of the attraction to the CLI was its simple commandline interface and feedback UI.  And under many circumstances, the CLI was a natural choice due to security restrictions and port exposure in CDP environments.  However, the Web interface offers a much more robust and user-friendly experience.  See below for some suggestions on how to gain access to the Web Interface in environments with security restrictions.
+</tip>  
 
 ## Accessing the Web Interface in Secure Environments
 

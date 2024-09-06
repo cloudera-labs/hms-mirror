@@ -20,6 +20,7 @@ package com.cloudera.utils.hms.mirror.web.controller;
 import com.cloudera.utils.hadoop.cli.CliEnvironment;
 import com.cloudera.utils.hadoop.cli.DisabledException;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
+import com.cloudera.utils.hms.mirror.MessageCode;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.support.ConnectionStatus;
 import com.cloudera.utils.hms.mirror.domain.support.Connections;
@@ -32,6 +33,7 @@ import com.cloudera.utils.hms.mirror.service.ConfigService;
 import com.cloudera.utils.hms.mirror.service.ConnectionPoolService;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.UIModelService;
+import com.cloudera.utils.hms.util.NamespaceUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -113,6 +115,7 @@ public class ConnectionMVController {
         config.getClusters().forEach((k, v) -> {
             if (nonNull(v)) {
                 if (nonNull(v.getHiveServer2()) && !finalConfigErrors) {
+                    connections.getHiveServer2Connections().get(k).setEndpoint(v.getHiveServer2().getUri());
                     try {
                         log.info("Testing HiveServer2 Connection for {}", k);
                         Connection conn = connectionPoolService.getConnectionPools().getHS2EnvironmentConnection(k);
@@ -136,19 +139,25 @@ public class ConnectionMVController {
                 }
 
                 if (nonNull(v.getMetastoreDirect()) && !finalConfigErrors) {
-                    try {
-                        log.info("Testing Metastore Direct Connection for {}", k);
-                        Connection conn = connectionPoolService.getConnectionPools().getMetastoreDirectEnvironmentConnection(k);
-                        if (conn != null) {
-                            log.info("Metastore Direct Connection Successful for {}", k);
-                        } else {
-                            log.error("Metastore Direct Connection Failed for {}", k);
+                    connections.getMetastoreDirectConnections().get(k).setEndpoint(v.getMetastoreDirect().getUri());
+                    if (!configService.isMetastoreDirectConfigured(session, k)) {
+                        connections.getMetastoreDirectConnections().get(k).setStatus(ConnectionStatus.NOT_CONFIGURED);
+                        connections.getMetastoreDirectConnections().get(k).setMessage(MessageCode.LEFT_METASTORE_URI_NOT_DEFINED.getDesc());
+                    } else {
+                        try {
+                            log.info("Testing Metastore Direct Connection for {}", k);
+                            Connection conn = connectionPoolService.getConnectionPools().getMetastoreDirectEnvironmentConnection(k);
+                            if (conn != null) {
+                                log.info("Metastore Direct Connection Successful for {}", k);
+                            } else {
+                                log.error("Metastore Direct Connection Failed for {}", k);
+                            }
+                            connections.getMetastoreDirectConnections().get(k).setStatus(ConnectionStatus.SUCCESS);
+                        } catch (SQLException se) {
+                            log.error("Metastore Direct Connection Failed for {}", k, se);
+                            connections.getMetastoreDirectConnections().get(k).setStatus(ConnectionStatus.FAILED);
+                            connections.getMetastoreDirectConnections().get(k).setMessage(se.getMessage());
                         }
-                        connections.getMetastoreDirectConnections().get(k).setStatus(ConnectionStatus.SUCCESS);
-                    } catch (SQLException se) {
-                        log.error("Metastore Direct Connection Failed for {}", k, se);
-                        connections.getMetastoreDirectConnections().get(k).setStatus(ConnectionStatus.FAILED);
-                        connections.getMetastoreDirectConnections().get(k).setMessage(se.getMessage());
                     }
 
                 } else if (nonNull(v.getMetastoreDirect())) {
@@ -160,6 +169,7 @@ public class ConnectionMVController {
                 }
                 // checked..
                 if (!isBlank(v.getHcfsNamespace())) {
+                    connections.getNamespaces().get(k).setEndpoint(v.getHcfsNamespace());
                     try {
                         log.info("Testing HCFS Connection for {}", k);
                         CommandReturn cr = cliEnvironment.processInput("ls /");
@@ -184,8 +194,16 @@ public class ConnectionMVController {
         });
         try {
             if (!config.isSkipLinkCheck() && !isBlank(config.getTargetNamespace())) {
+                connections.getNamespaces().get(Environment.TARGET).setEndpoint(config.getTargetNamespace());
                 try {
-                    CommandReturn cr = cliEnvironment.processInput("ls " + config.getTargetNamespace());
+                    String targetNamespace = config.getTargetNamespace();
+                    if (NamespaceUtils.getProtocol(targetNamespace).toLowerCase().startsWith("ofs")) {
+                        if (!targetNamespace.endsWith("/")) {
+                            // For ofs, using just the protocol namespace is NOT enough and throws an Not found error.
+                            targetNamespace = targetNamespace + "/";
+                        }
+                    }
+                    CommandReturn cr = cliEnvironment.processInput("ls " + targetNamespace);
                     if (cr.isError()) {
                         connections.getNamespaces().get(Environment.TARGET).setStatus(ConnectionStatus.FAILED);
                         connections.getNamespaces().get(Environment.TARGET).setMessage(cr.getError());

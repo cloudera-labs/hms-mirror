@@ -121,6 +121,11 @@ public enum MessageCode {
             "'legacy' definitions are not the same, so we are assuming the cluster versions aren't the same."),
     LEFT_HS2_URI_INVALID("LEFT HiveServer2 URI config is NOT valid"),
     LEFT_HS2_DRIVER_JARS("The Hive JDBC jar files haven't been defined for the LEFT(source) cluster"),
+    LEFT_METASTORE_URI_NOT_DEFINED("The LEFT metastore URI is NOT defined.  Metastore inquiries will be skipped, which have an impact on building the data movement plan for 'ALIGNED' with 'distcp'."),
+    METASTORE_TABLE_LOCATIONS_NOT_FETCHED("The table locations were NOT fetched from the Metastore because it isn't configured.  " +
+            "This will impact the 'ALIGNED' strategy with 'distcp' as we can't build the data movement plan."),
+    METASTORE_PARTITION_LOCATIONS_NOT_FETCHED("The partition locations were NOT fetched from the Metastore because it isn't configured.  " +
+            "This will impact the 'ALIGNED' strategy with 'distcp' as we can't build the data movement plan."),
     LEFT_KERB_JAR_LOCATION("LEFT: For Kerberized connections, place the Hive JDBC jar file in $HOME/.hms-mirror/aux_libs and remove the 'jarFile' entry in the config."),
     LEFT_NAMESPACE_NOT_DEFINED("The namespace for the LEFT cluster is NOT defined.  Please config it and try again."),
     LEGACY_AND_HIVE3("Setting legacyHive=true and hdpHive3=true is a conflicting configuration"),
