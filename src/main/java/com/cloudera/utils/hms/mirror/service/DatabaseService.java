@@ -571,11 +571,19 @@ public class DatabaseService {
             String originalDatabase = dbMirror.getName();
             String targetDatabase = HmsMirrorConfigUtil.getResolvedDB(dbMirror.getName(), config);
 
-            String originalLocation = dbMirror.getProperty(Environment.LEFT, DB_LOCATION);
-            String originalManagedLocation = dbMirror.getProperty(Environment.LEFT, DB_MANAGED_LOCATION);
 
-//            String leftNamespace = config.getCluster(Environment.LEFT).getHcfsNamespace();
-//            String rightNamespace = config.getCluster(Environment.RIGHT).getHcfsNamespace();
+            String originalLocation = null;
+            String originalManagedLocation = null;
+
+            // The LOCATION element in HDP3 (Early Hive 3) is actually the MANAGEDLOCATION.
+            //   all other versions, LOCATION is for EXTERNAL tables and Legacy Managed Tables (Hive 1/2)
+            if (config.getCluster(Environment.LEFT).isHdpHive3()) {
+                originalManagedLocation = dbMirror.getProperty(Environment.LEFT, DB_LOCATION);
+            } else {
+                originalLocation = dbMirror.getProperty(Environment.LEFT, DB_LOCATION);
+                originalManagedLocation = dbMirror.getProperty(Environment.LEFT, DB_MANAGED_LOCATION);
+            }
+
             String targetNamespace = null;
             try {
                 targetNamespace = config.getTargetNamespace();
@@ -824,8 +832,8 @@ public class DatabaseService {
                         if (nonNull(ownerFromLeft) && nonNull(ownerTypeFromLeft)) {
                             log.info("Setting Owner: {} of type: {} on Database: {}", ownerFromLeft, ownerTypeFromLeft, targetDatabase);
                             if (ownerTypeFromLeft.equals("USER")) {
-                                String alterOwner = MessageFormat.format(SET_OWNER, targetDatabase, ownerFromLeft);
-                                dbMirror.getSql(Environment.RIGHT).add(new Pair(SET_OWNER_DESC, alterOwner));
+                                String alterOwner = MessageFormat.format(SET_DB_OWNER, targetDatabase, ownerFromLeft);
+                                dbMirror.getSql(Environment.RIGHT).add(new Pair(SET_DB_OWNER_DESC, alterOwner));
                             }
                         }
                     }

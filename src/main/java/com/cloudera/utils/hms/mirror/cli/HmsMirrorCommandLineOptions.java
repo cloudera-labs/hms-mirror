@@ -69,6 +69,18 @@ public class HmsMirrorCommandLineOptions {
     @Bean
     @Order(1)
     @ConditionalOnProperty(
+            name = "hms-mirror.config.debug-dir")
+    CommandLineRunner runDebugSession(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.acid-partition-count}") String value) {
+        return args -> {
+            log.info("acid-partition-count: {}", value);
+            hmsMirrorConfig.getMigrateACID().setPartitionLimit(Integer.parseInt(value));
+        };
+    }
+
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
             name = "hms-mirror.config.acid-partition-count")
     CommandLineRunner configAcidPartitionCount(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.acid-partition-count}") String value) {
         return args -> {

@@ -94,8 +94,8 @@ public class DumpDataStrategy extends DataStrategyBase implements DataStrategy {
         let.addSql(TableUtils.CREATE_DESC, createTbl);
         if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()
                 && hmsMirrorConfig.isTransferOwnership() && let.getOwner() != null) {
-            String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, let.getName(), let.getOwner());
-            let.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
+            String ownerSql = MessageFormat.format(MirrorConf.SET_TABLE_OWNER, let.getName(), let.getOwner());
+            let.addSql(MirrorConf.SET_TABLE_OWNER_DESC, ownerSql);
         }
 
         // If partitioned, !ACID, repair

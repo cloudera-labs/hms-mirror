@@ -66,8 +66,11 @@ public interface MirrorConf {
     String DROP_VIEW = "DROP VIEW IF EXISTS {0}";
     String RENAME_TABLE_DESC = "Rename table";
     String RENAME_TABLE = "ALTER TABLE {0} RENAME TO {1}";
-    String SET_OWNER_DESC = "Set table owner";
-    String SET_OWNER = "ALTER TABLE {0} SET OWNER USER {1}";
+    String SET_TABLE_OWNER_DESC = "Set table owner";
+    String SET_TABLE_OWNER = "ALTER TABLE {0} SET OWNER USER {1}";
+    String SET_DB_OWNER = "ALTER DATABASE {0} SET OWNER {1}";
+    String SET_DB_OWNER_DESC = "Set database owner";
+
     String EXPORT_TABLE =
             "EXPORT TABLE {0} TO \"{1}\"";
     String IMPORT_EXTERNAL_TABLE =

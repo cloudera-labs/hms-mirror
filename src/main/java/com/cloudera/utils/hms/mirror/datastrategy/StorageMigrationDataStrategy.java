@@ -211,8 +211,8 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
         String createStmt2 = tableService.getCreateStatement(tableMirror, Environment.RIGHT);
         let.addSql(TableUtils.CREATE_DESC, createStmt2);
         if (!config.getCluster(Environment.LEFT).isLegacyHive() && config.isTransferOwnership() && let.getOwner() != null) {
-            String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, let.getName(), let.getOwner());
-            let.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
+            String ownerSql = MessageFormat.format(MirrorConf.SET_TABLE_OWNER, let.getName(), let.getOwner());
+            let.addSql(MirrorConf.SET_TABLE_OWNER_DESC, ownerSql);
         }
 
         // Drop Renamed Table.

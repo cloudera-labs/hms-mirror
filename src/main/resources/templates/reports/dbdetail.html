@@ -237,6 +237,27 @@
                                                     </th:block>
                                                 </table>
                                             </fieldset>
+                                            <th:block th:unless="${table.value.environments.get(env).cleanUpSql.isEmpty()}">
+                                                <fieldset
+                                                        th:if="${('LEFT RIGHT').contains(env.toString()) && !table.value.environments.get(env).sql.isEmpty()}">
+                                                    <legend th:text="${env + '(Clean Up SQL)'}"/>
+                                                    <table class="pure-table pure-table-bordered pure-table-striped">
+                                                        <tr>
+                                                            <th th:text="#{description}"/>
+                                                            <th th:text="#{action}"/>
+                                                        </tr>
+                                                        <th:block
+                                                                th:each="sqlPair: ${table.value.environments.get(env).cleanUpSql}">
+                                                            <tr>
+                                                                <td th:text="${sqlPair.description}"/>
+                                                                <td>
+                                                                    <pre th:text="${sqlPair.action}"/>
+                                                                </td>
+                                                            </tr>
+                                                        </th:block>
+                                                    </table>
+                                                </fieldset>
+                                            </th:block>
                                         </th:block>
                                     </td>
                                 </tr>

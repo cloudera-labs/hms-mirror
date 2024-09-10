@@ -214,6 +214,8 @@ public class CliInit {
             // Appears that the file isn't a Conversion file, so try to load it as a DBMirror file.
             try {
                 DBMirror dbMirror = loadDBMirrorFromFile(config.getLoadTestDataFile());
+                // Reset the work for debug session.
+                dbMirror.stripWork();
                 Conversion conversion = new Conversion();
                 conversion.getDatabases().put(dbMirror.getName(), dbMirror);
                 // Set Config Databases;

@@ -113,6 +113,7 @@ while [[ $# -gt 0 ]]; do
   --service)
     shift
     SERVICE_MODE="true"
+    APP_JAVA_OPTS="${APP_JAVA_OPTS} -Djava.net.preferIPv4Stack=true"
     APP_MAIN_CLASS="com.cloudera.utils.hms.mirror.web.Mirror"
     ;;
   -o|--output-dir)
@@ -140,6 +141,11 @@ while [[ $# -gt 0 ]]; do
     ;;
   esac
 done
+
+# Set the user home directory for java to ensure that we have consistent behavior.
+# This could occur when a user doesn't have the traditional home directory available.
+# If the users home directory isn't standard, like /home/username, then the user will need to set the HOME variable.
+APP_JAVA_OPTS="${APP_JAVA_OPTS} -Duser.home=${HOME}"
 
 ## If the ACTION is STOP, then we need to kill the process and exit.
 if [[ "${ACTION}" == "STOP" ]]; then

@@ -718,15 +718,19 @@ public abstract class DataStrategyBase implements DataStrategy {
 
         // We need to establish what 'environment' LEFT|RIGHT that we are running this in.
         EnvironmentTable targetEnvTable;
+        Environment targetEnv2 = Environment.RIGHT;
         switch (targetEnv) {
             case SHADOW:
                 targetEnvTable = tableMirror.getEnvironmentTable(Environment.RIGHT);
+                targetEnv2 = Environment.RIGHT;
                 break;
             case TRANSFER:
                 targetEnvTable = tableMirror.getEnvironmentTable(Environment.LEFT);
+                targetEnv2 = Environment.LEFT;
                 break;
             case RIGHT:
                 targetEnvTable = tableMirror.getEnvironmentTable(Environment.RIGHT);
+                targetEnv2 = Environment.RIGHT;
                 break;
             default:
                 targetEnvTable = null;
@@ -772,7 +776,7 @@ public abstract class DataStrategyBase implements DataStrategy {
         }
 
         if (source.isDefined()) {
-            statsCalculatorService.setSessionOptions(hmsMirrorConfig.getCluster(Environment.LEFT), original, original);
+            statsCalculatorService.setSessionOptions(hmsMirrorConfig.getCluster(targetEnv2), original, targetEnvTable);
             if (original.getPartitioned()) {
                 if (hmsMirrorConfig.getOptimization().isSkip()) {
                     if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
@@ -815,10 +819,27 @@ public abstract class DataStrategyBase implements DataStrategy {
 //                String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_DESC);
                 targetEnvTable.addSql(new Pair(TableUtils.STAGE_TRANSFER_DESC, transferSql));
             }
-            // Drop Transfer Table
+            // Drop Shadow or Transfer Table via the Clean Up Scripts.
             if (!isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
-                String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, source.getName());
-                original.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
+                // When the source and target are the same, we're on the LEFT cluster and need to cleanup the 'transfer' table,
+                //  which is the target table in this case.
+                if (originalEnv == sourceEnv) {
+                    String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, target.getName());
+                    targetEnvTable.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
+                } else {
+                    // Otherwise, we're on the RIGHT cluster and need to cleanup the 'shadow' table.
+                    // Add USE clause to the SQL
+                    Pair cleanUp = new Pair("Post Migration Cleanup", "-- To be run AFTER final RIGHT SQL statements.");
+                    targetEnvTable.addCleanUpSql(cleanUp);
+
+                    String useRightDb = MessageFormat.format(MirrorConf.USE, tableMirror.getParent().getName());
+                    Pair leftRightPair = new Pair(TableUtils.USE_DESC, useRightDb);
+                    targetEnvTable.addCleanUpSql(leftRightPair);
+
+                    // Drop Shadow Table.
+                    String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, source.getName());
+                    targetEnvTable.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
+                }
             }
         }
 //        }

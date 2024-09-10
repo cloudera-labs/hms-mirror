@@ -19,6 +19,7 @@ something you'd like to see, add a new issue [here](https://github.com/cloudera-
 
 - [Allow process path that doesn't require Metastore Direct Connection](https://github.com/cloudera-labs/hms-mirror/issues/128)
 - [Fix Kerberos Connection Issues to HS2](https://github.com/cloudera-labs/hms-mirror/issues/129)
+- [Job Progress getting stuck at the end while writing reports](https://github.com/cloudera-labs/hms-mirror/issues/130)
 
 **Enhancements**
 

@@ -1,5 +1,11 @@
 # Pre-Requisites
 
+## User Home Directory
+
+A lot of what happens in `hms-mirror` depends on a 'user' $HOME directory.  Whatever user runs `hms-mirror` we will use the $HOME environment variable to store configurations, logs, and reports.
+
+If your environment doesn't follow a typical home environment setup, you will NEED to set the $HOME environment variable before running the application to ensure that the application can find and store the necessary files.
+
 ## Hive/TEZ Properties Whitelist Requirements
 
 HiveServer2 has restrictions on what properties can be set by the user in a session.  To ensure that `hms-mirror` will be able to set the properties it needs, add [`hive.security.authorization.sqlstd.confwhitelist.append`](https://cwiki.apache.org/confluence/display/Hive/Configuration+Properties#ConfigurationProperties-hive.security.authorization.sqlstd.confwhitelist.append) property in the HiveServer2 Advanced Configuration Snippet (Safety Valve) for `hive-site.xml` with at least the following value(s) so `hms-mirror` can set the properties it needs:

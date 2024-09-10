@@ -198,8 +198,8 @@ public class ExportCircularResolveService extends DataStrategyBase {
                 ret.addSql(TableUtils.IMPORT_TABLE, importSql);
                 if (!config.getCluster(Environment.RIGHT).isLegacyHive()
                         && config.isTransferOwnership() && !isBlank(let.getOwner())) {
-                    String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, let.getName(), let.getOwner());
-                    ret.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
+                    String ownerSql = MessageFormat.format(MirrorConf.SET_TABLE_OWNER, let.getName(), let.getOwner());
+                    ret.addSql(MirrorConf.SET_TABLE_OWNER_DESC, ownerSql);
                 }
             }
 

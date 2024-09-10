@@ -39,7 +39,6 @@ import java.text.MessageFormat;
 import static com.cloudera.utils.hms.mirror.MessageCode.EXPORT_IMPORT_SYNC;
 import static com.cloudera.utils.hms.mirror.TablePropertyVars.TRANSLATED_TO_EXTERNAL;
 import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.apache.commons.lang3.StringUtils.left;
 
 @Component
 @Slf4j
@@ -249,8 +248,8 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
                 ret.addSql(TableUtils.IMPORT_TABLE, importSql);
                 if (!config.getCluster(Environment.RIGHT).isLegacyHive()
                         && config.isTransferOwnership() && let.getOwner() != null) {
-                    String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, let.getName(), let.getOwner());
-                    ret.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
+                    String ownerSql = MessageFormat.format(MirrorConf.SET_TABLE_OWNER, let.getName(), let.getOwner());
+                    ret.addSql(MirrorConf.SET_TABLE_OWNER_DESC, ownerSql);
                 }
             }
 

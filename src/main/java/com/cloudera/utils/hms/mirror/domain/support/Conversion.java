@@ -487,6 +487,13 @@ public class Conversion {
                         sb.append("</td>\n");
                         sb.append("</tr>\n");
                     }
+                    if (!entry.getValue().getCleanUpSql().isEmpty()) {
+                        sb.append("<tr>\n");
+                        sb.append("<th colspan=\"2\">");
+                        sb.append("=== SQL CleanUp ===");
+                        sb.append("</th>\n");
+                        sb.append("</tr>").append("\n");
+                    }
                     for (Pair pair : entry.getValue().getCleanUpSql()) {
                         sb.append("<tr>\n");
                         sb.append("<td>");

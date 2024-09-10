@@ -251,4 +251,26 @@ public class DBMirror {
         properties.put(enviroment, dbProperties);
     }
 
+    // Used to strip 'work' recorded in DBMirror.  Things like SQL, issues, etc.
+    public void stripWork() {
+        this.getSql().clear();
+        this.getIssues().clear();
+        this.getFilteredOut().clear();
+        for (TableMirror tableMirror : getTableMirrors().values()) {
+            // Leave LEFT because it is the source.
+            EnvironmentTable let = tableMirror.getEnvironments().get(Environment.LEFT);
+            let.getIssues().clear();
+            let.getSql().clear();
+            let.getCleanUpSql().clear();
+//            let.getStatistics().clear();
+            tableMirror.getEnvironments().remove(Environment.SHADOW);
+            tableMirror.getEnvironments().remove(Environment.TRANSFER);
+            tableMirror.getEnvironments().remove(Environment.RIGHT);
+//            tableMirror.getIssues().clear();
+//            tableMirror.getSql().clear();
+//            tableMirror.getStatistics().clear();
+            tableMirror.getSteps().clear();
+        }
+    }
+
 }

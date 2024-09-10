@@ -184,8 +184,8 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
                 ret.addSql(TableUtils.CREATE_DESC, createStmt2);
                 if (!config.getCluster(Environment.RIGHT).isLegacyHive()
                         && config.isTransferOwnership() && let.getOwner() != null) {
-                    String ownerSql = MessageFormat.format(MirrorConf.SET_OWNER, ret.getName(), let.getOwner());
-                    ret.addSql(MirrorConf.SET_OWNER_DESC, ownerSql);
+                    String ownerSql = MessageFormat.format(MirrorConf.SET_TABLE_OWNER, ret.getName(), let.getOwner());
+                    ret.addSql(MirrorConf.SET_TABLE_OWNER_DESC, ownerSql);
                 }
                 break;
             case AMEND_PARTS:

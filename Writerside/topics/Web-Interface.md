@@ -8,10 +8,10 @@ The `hms-mirror` web application is started by running:
 hms-mirror --service
 ```
 
-This will start the web application on the default port of `8090`.  The port can be changed by using the `--service.port` option during startup.
+This will start the web application on the default port of `8090`.  The port can be changed by using the `--server.port` option during startup.
 
 ```bash
-hms-mirror --service --service.port=8080
+hms-mirror --service --server.port=8080
 ```
 
 Point your browser to `http://server-host:8090/hms-mirror` to access the web application.
