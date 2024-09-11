@@ -1,0 +1,102 @@
+<!--
+  ~ Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~  
+  -->
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>Load Create</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/pure.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/modal.css}">
+</head>
+<body>
+<div th:fragment="view">
+    <form class="pure-form pure-form-aligned" id="propertyOptimizations">
+        <fieldset>
+            <legend th:text="#{property.overrides}"/>
+            <table class="pure-table">
+                <!--                th:if="${CONFIG.optimization.overrides.properties.size() > 0}"-->
+                <thead>
+                <tr>
+                    <th></th>
+                    <th>Property</th>
+                    <th>Value</th>
+                    <th>Cluster Application</th>
+                </tr>
+                </thead>
+                <tbody>
+                <th:block
+                        th:each="property: ${CONFIG.optimization.overrides.properties}">
+                    <th:block th:each="side: ${property.value}">
+
+                        <tr>
+                            <td>
+                                <a class="pure-button"
+                                   th:href="@{/config/optimization/overrides/__${property.key}__/__${side.key}__/delete}"
+                                   th:text="#{delete}"/>
+                            </td>
+                            <td><input type="text" th:value="${property.key}" th:disabled="true"/></td>
+                            <td><input type="text" th:value="${side.value}" th:disabled="true"/></td>
+                            <td><input type="text" th:value="${side.key}" th:disabled="true"/></td>
+                        </tr>
+                    </th:block>
+                </th:block>
+                <tr>
+                    <!--                 Add form button to add new property -->
+                    <!--                 First field is the property, second is the value, and the third is the application (BOTH, LEFT, RIGHT) -->
+                    <td>
+                        <button class="pure-button"
+                                th:formmethod="post"
+                                th:formaction="@{/config/optimization/overrides/add}"
+                                th:text="#{button.add}"/>
+                    </td>
+                    <td><input type="text" id="property" name="PROPERTY"/></td>
+                    <td><input type="text" id="value" name="VALUE"/></td>
+                    <td>
+                        <div class="pure-control-group">
+                            <select id="side" name="SIDE">
+                                <option th:each="side: ${sidetypes}"
+                                        th:value="${side}"
+                                        th:text="${side}"
+                                        th:selected="${side.equals('BOTH')}"/>
+                            </select>
+                        </div>
+
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <!--        </div>-->
+            <!--    </div>-->
+            <!--        <div class="pure-control-group">-->
+            <!--            <a id="whModalBtn" class="pure-button pure-button-primary"-->
+            <!--               th:if="${('UNDETERMINED WAREHOUSE_PLANS').contains(CONFIG.getDatabaseFilterType().toString())}"-->
+            <!--               th:href="@{/warehouse/plan/add}"-->
+            <!--               th:text="#{button.add}"/>-->
+            <!--            &lt;!&ndash;                        th:formmethod="get"&ndash;&gt;-->
+            <!--        </div>-->
+            <!--        <div th:replace="fragments/modal::modal1('whAddModal', 'whModalBtn', 'Please wait.  Gathering database list.')">-->
+            <!--        </div>-->
+        </fieldset>
+    </form>
+</div>
+</body>
+</html>

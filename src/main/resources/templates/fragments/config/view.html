@@ -115,6 +115,10 @@
                                 <a th:text="#{optimizations}" href="#" class="pure-menu-link"
                                    onclick="openSection(event, 'optimizations')"/>
                             </li>
+                            <li class="pure-menu-item">
+                                <a th:text="#{property.overrides}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'propertyOverrides')"/>
+                            </li>
                         </ul>
                     </li>
                     <li class="pure-menu-item pure-menu-has-children pure-menu-allow-hover no-border">
@@ -147,7 +151,6 @@
                                    onclick="openSection(event, 'sources')"/>
                             </li>
                         </ul>
-
                     </li>
 <!--                    <li class="pure-menu-item no-border">-->
 <!--                        <a th:text="#{password.management}" href="#" class="pure-menu-link"-->
@@ -199,6 +202,11 @@
                  th:insert="fragments/config/cluster::main('RIGHT')">
             </div>
         </form>
+        <div id="propertyOverrides" class="tabcontent">
+            <div th:insert="fragments/config/propOverrides::view">
+
+            </div>
+        </div>
         <div id="glmBuild" class="tabcontent">
             <div th:insert="fragments/config/glmBuild::view">
 

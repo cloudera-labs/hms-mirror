@@ -78,4 +78,7 @@ public interface ControllerReferences {
     String TABLE_TYPE = "TABLE_TYPE";
     String SOURCE = "SOURCE";
     String TARGET = "TARGET";
+    String PROPERTY = "PROPERTY";
+    String SIDE = "SIDE";
+    String VALUE = "VALUE";
 }

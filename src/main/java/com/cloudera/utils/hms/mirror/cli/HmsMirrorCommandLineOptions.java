@@ -18,7 +18,6 @@
 package com.cloudera.utils.hms.mirror.cli;
 
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
-import com.cloudera.utils.hms.mirror.domain.Overrides;
 import com.cloudera.utils.hms.mirror.domain.Warehouse;
 import com.cloudera.utils.hms.mirror.domain.support.*;
 import com.cloudera.utils.hms.mirror.reporting.ReportingConf;
@@ -912,7 +911,7 @@ public class HmsMirrorCommandLineOptions {
             log.info("property-overrides: {}", value);
             String[] overrides = value.split(",");
             if (nonNull(overrides))
-                hmsMirrorConfig.getOptimization().getOverrides().setPropertyOverridesStr(overrides, Overrides.Side.BOTH);
+                hmsMirrorConfig.getOptimization().getOverrides().setPropertyOverridesStr(overrides, SideType.BOTH);
         };
     }
 
@@ -925,7 +924,7 @@ public class HmsMirrorCommandLineOptions {
             log.info("property-overrides-left: {}", value);
             String[] overrides = value.split(",");
             if (nonNull(overrides))
-                hmsMirrorConfig.getOptimization().getOverrides().setPropertyOverridesStr(overrides, Overrides.Side.LEFT);
+                hmsMirrorConfig.getOptimization().getOverrides().setPropertyOverridesStr(overrides, SideType.LEFT);
         };
     }
 
@@ -938,7 +937,7 @@ public class HmsMirrorCommandLineOptions {
             log.info("property-overrides-right: {}", value);
             String[] overrides = value.split(",");
             if (nonNull(overrides))
-                hmsMirrorConfig.getOptimization().getOverrides().setPropertyOverridesStr(overrides, Overrides.Side.RIGHT);
+                hmsMirrorConfig.getOptimization().getOverrides().setPropertyOverridesStr(overrides, SideType.RIGHT);
         };
     }
 

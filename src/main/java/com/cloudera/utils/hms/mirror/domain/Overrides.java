@@ -17,6 +17,9 @@
 
 package com.cloudera.utils.hms.mirror.domain;
 
+import com.cloudera.utils.hms.mirror.domain.support.SideType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -24,29 +27,49 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static java.util.Objects.isNull;
-
 @Slf4j
 @Getter
 @Setter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Overrides {
-    private Map<String, String> left = null;
+    private Map<String, Map<SideType, String>> properties = new TreeMap<String, Map<SideType, String>>();
 
-    private Map<String, String> right = null;
+    public void addProperty(String key, String value, SideType side) {
+        if (!properties.containsKey(key)) {
+            properties.put(key, new TreeMap<SideType, String>());
+        }
+        properties.get(key).put(side, value);
+    }
 
+    @JsonIgnore
     public Map<String, String> getLeft() {
-        if (isNull(left))
-            left = new TreeMap<String, String>();
+        Map<String, String> left = new TreeMap<String, String>();
+        for (Map.Entry<String, Map<SideType, String>> entry : properties.entrySet()) {
+            if (entry.getValue().containsKey(SideType.LEFT)) {
+                left.put(entry.getKey(), entry.getValue().get(SideType.LEFT));
+            }
+            if (entry.getValue().containsKey(SideType.BOTH)) {
+                left.put(entry.getKey(), entry.getValue().get(SideType.BOTH));
+            }
+        }
         return left;
     }
 
+    @JsonIgnore
     public Map<String, String> getRight() {
-        if (isNull(right))
-            right = new TreeMap<String, String>();
+        Map<String, String> right = new TreeMap<String, String>();
+        for (Map.Entry<String, Map<SideType, String>> entry : properties.entrySet()) {
+            if (entry.getValue().containsKey(SideType.RIGHT)) {
+                right.put(entry.getKey(), entry.getValue().get(SideType.RIGHT));
+            }
+            if (entry.getValue().containsKey(SideType.BOTH)) {
+                right.put(entry.getKey(), entry.getValue().get(SideType.BOTH));
+            }
+        }
         return right;
     }
 
-    public void setPropertyOverridesStr(String[] inPropsStr, Side side) {
+    public void setPropertyOverridesStr(String[] inPropsStr, SideType side) {
         if (inPropsStr != null) {
             for (String property : inPropsStr) {
                 try {
@@ -71,7 +94,5 @@ public class Overrides {
             }
         }
     }
-
-    public enum Side {BOTH, LEFT, RIGHT}
 
 }

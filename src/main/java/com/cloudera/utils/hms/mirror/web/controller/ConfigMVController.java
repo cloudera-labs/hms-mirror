@@ -19,10 +19,7 @@ package com.cloudera.utils.hms.mirror.web.controller;
 
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.Translator;
-import com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum;
-import com.cloudera.utils.hms.mirror.domain.support.Environment;
-import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
-import com.cloudera.utils.hms.mirror.domain.support.PersistContainer;
+import com.cloudera.utils.hms.mirror.domain.support.*;
 import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import com.cloudera.utils.hms.mirror.service.*;
@@ -33,11 +30,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
+import javax.validation.constraints.NotNull;
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
@@ -435,6 +430,35 @@ public class ConfigMVController implements ControllerReferences {
 //        model.addAttribute(READ_ONLY, Boolean.TRUE);
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
         return "config/view";
+    }
+
+    @RequestMapping(value = "/optimization/overrides/add", method = RequestMethod.POST)
+    public String addOverrideProperty(Model model,
+                                      @RequestParam(value = PROPERTY, required = true) String property,
+                                      @RequestParam(value = VALUE, required = true) String value,
+                                      @RequestParam(value = SIDE, required = true) SideType side) throws SessionException {
+        ExecuteSession session = executeSessionService.getSession();
+        HmsMirrorConfig config = session.getConfig();
+        config.getOptimization().getOverrides().addProperty(property, value, side);
+
+        return "redirect:/config/view";
+    }
+
+    @RequestMapping(value = "/optimization/overrides/{property}/{side}/delete", method = RequestMethod.GET)
+    public String deleteOverride(Model model,
+                                      @PathVariable @NotNull String property,
+                                 @PathVariable @NotNull SideType side) throws SessionException {
+        executeSessionService.closeSession();
+
+        ExecuteSession session = executeSessionService.getSession();
+        HmsMirrorConfig config = session.getConfig();
+        try {
+            config.getOptimization().getOverrides().getProperties().get(property).remove(side);
+        } catch (Exception e) {
+            log.error("Error deleting property: {}", e.getMessage());
+        }
+
+        return "redirect:/config/view";
     }
 
 }

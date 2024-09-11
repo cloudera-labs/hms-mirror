@@ -37,6 +37,7 @@ public class ModelUtils implements ControllerReferences {
         enumForMap(com.cloudera.utils.hms.mirror.domain.support.TableType.class, map);
         enumForMap(com.cloudera.utils.hms.mirror.domain.support.StageEnum.class, map);
         enumForMap(com.cloudera.utils.hms.mirror.domain.support.CollectionEnum.class, map);
+        enumForMap(com.cloudera.utils.hms.mirror.domain.support.SideType.class, map);
         enumForMap(com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.class, map);
         enumForMap(com.cloudera.utils.hms.mirror.domain.support.DistcpFlowEnum.class, map);
         enumForMap(com.cloudera.utils.hms.mirror.domain.support.TranslationTypeEnum.class, map);
