@@ -139,7 +139,7 @@ public class HmsMirrorConfigCloneFullTest_01 {
         // Migrate View
         assertEquals(clone.getMigrateVIEW().isOn(), hmsMirrorConfig.getMigrateVIEW().isOn());
 
-        assertEquals(clone.isMigratedNonNative(), hmsMirrorConfig.isMigratedNonNative());
+        assertEquals(clone.isMigrateNonNative(), hmsMirrorConfig.isMigrateNonNative());
 
         // Optimizations
         assertEquals(clone.getOptimization().isSortDynamicPartitionInserts(), hmsMirrorConfig.getOptimization().isSortDynamicPartitionInserts());

@@ -19,6 +19,7 @@ package com.cloudera.utils.hms.mirror.domain;
 
 import com.cloudera.utils.hive.config.DBStore;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.domain.support.PlatformType;
 import com.cloudera.utils.hms.mirror.domain.support.WarehouseSource;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -62,6 +63,8 @@ public class Cluster implements Comparable<Cluster>, Cloneable {
 
     private Environment environment = null;
 
+    @Deprecated
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Schema(description = "Treat the target Hive environment as Legacy. This means it's Hive 1/2.  Hive 3 is NOT legacy.  This is used to determine how to create tables.")
     private boolean legacyHive = Boolean.TRUE;
     @Schema(description = "Use IF NOT EXIST syntax in CREATE statements for Database and Table.")
@@ -83,17 +86,25 @@ public class Cluster implements Comparable<Cluster>, Cloneable {
     We will add a DB properties that can be used later on to set the DATABASE's MANAGEDLOCATION property
     after you've upgraded to CDP Hive 3.
      */
+    @Deprecated
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Schema(description = "HDP Hive 3 and Manage table creation and location methods weren't mature and had a lot of bugs/incomplete features. Set this to 'true' when using HDP Hive 3.")
     private boolean hdpHive3 = Boolean.FALSE;
+
+    @Schema(description = "The platform type for the cluster.  This is used to determine the Hive version and other platform specific settings.")
+    private PlatformType platformType = null;
+
     @Schema(description = "The namespace for the HCFS system.  Only used for Link check.  Namespace information is pulled from database, table, and partition information.  The target namespace is defined elsewhere and is the namespace used for translations.")
-//    @Deprecated
     private String hcfsNamespace = null;
+
     @Schema(description = "The HiveServer2 configuration for the cluster.")
     private HiveServer2Config hiveServer2 = null;
+
     @JsonProperty(value = "metastore_direct")
     @JsonAlias("metastore_direct")
     @Schema(description = "The direct connections to the Hive Metastore. Optimization used for extracting table and partition details that aren't efficient through the JDBC interface")
     private DBStore metastoreDirect = null;
+
     @Schema(description = "Methods used to find/discover partitions during initialization and on-going.")
     private PartitionDiscovery partitionDiscovery = new PartitionDiscovery();
     private boolean enableAutoTableStats = Boolean.FALSE;
@@ -177,6 +188,40 @@ public class Cluster implements Comparable<Cluster>, Cloneable {
         return hiveServer2.equals(cluster.hiveServer2);
     }
 
+    // Bridges gap between old properties and the new 'platform type'
+    public boolean isLegacyHive() {
+        return getPlatformType().getHiveVersion().isLegacy();
+    }
+
+//    public void setLegacyHive(boolean legacyHive) {
+//        this.legacyHive = legacyHive;
+//    }
+
+    public boolean isHdpHive3() {
+        if (getPlatformType() == PlatformType.HDP3) {
+            return Boolean.TRUE;
+        } else {
+            return Boolean.FALSE;
+        }
+    }
+
+//    public void setHdpHive3(boolean hdpHive3) {
+//        this.hdpHive3 = hdpHive3;
+//    }
+
+    public PlatformType getPlatformType() {
+        if (isNull(platformType)) {
+            if (legacyHive && hdpHive3) {
+                platformType = PlatformType.HDP3;
+            } else if (legacyHive) {
+                platformType = PlatformType.HDP2;
+            } else {
+                platformType = PlatformType.CDP7_1;
+            }
+        }
+        return platformType;
+    }
+
 //    @JsonIgnore
 //    public Connection getConnection() throws SQLException {
 //        Connection conn = null;
@@ -211,10 +256,6 @@ public class Cluster implements Comparable<Cluster>, Cloneable {
 //        result = 31 * result + hcfsNamespace.hashCode();
         result = 31 * result + hiveServer2.hashCode();
         return result;
-    }
-
-    public boolean isHdpHive3() {
-        return hdpHive3;
     }
 
     public boolean isInitialized() {

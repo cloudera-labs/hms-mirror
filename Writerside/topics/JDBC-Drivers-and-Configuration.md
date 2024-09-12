@@ -40,7 +40,7 @@ hiveServer2:
 </tab>
 </tabs>
 
-Starting with the Apache Standalone driver shipped with CDP 7.1.8 cummulative hot fix parcels, you will need to include additional jars in the configuration `jarFile` configuration, due to some packaging adjustments.
+Starting with the Apache Standalone driver shipped with **CDP 7.1.8 cummulative** hot fix parcels, you will need to include additional jars in the configuration `jarFile` configuration, due to some packaging adjustments.
 
 For example: `jarFile: "<cdp_parcel_jars>/hive-jdbc-3.1.3000.7.1.8.28-1-standalone.jar:<cdp_parcel_jars>/log4j-1.2-api-2.18.0.jar:<cdp_parcel_jars>/log4j-api-2.18.0.jar:<cdp_parcel_jars>/log4j-core-2.18.0.jar"` NOTE: The jar file with the Hive Driver MUST be the first in the list of jar files.
 
@@ -48,7 +48,7 @@ The Cloudera JDBC driver shouldn't require additional jars.
 
 ## Kerberized HS2 Connections
 
-We currently have validated **kerberos** HS2 connections to CDP clusters using the Hive JDBC driver you'll find in your target CDP distribution. 
+We currently have validated **kerberos** HS2 connections to CDP clusters using the Hive JDBC driver you'll find in your target CDP distribution.
 
 <warning>
 Connections to Kerberized HS2 endpoints on NON-CDP clusters is NOT currently supported.  You will need to use KNOX in HDP to connect to a kerberized HS2 endpoint. For CDH, you can setup a non-kerberized HS2 endpoint to support the migration.
@@ -72,3 +72,6 @@ Once you have everything configured, you can validate all connections required b
 'CONNECTIONS --> Validate' left menu option in the UI.  This will test the connectivity to the various endpoints 
 required by `hms-mirror`.
 
+## HDP 3 Connections
+
+The JDBC driver for HDP Hive 3 has some embedded classes for `log4j` that conflict with the `log4j` classes in the `hms-mirror` application.  To resolve this, you can use the Cloudera Apache JDBC driver for HDP 3 Hive.  This driver is compatible with HDP 3 and does not have the `log4j` conflict.

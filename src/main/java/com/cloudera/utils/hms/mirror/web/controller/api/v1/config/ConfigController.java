@@ -318,7 +318,7 @@ public class ConfigController {
         }
         if (migratedNonNative != null) {
             log.info("{}: Setting Migrated Non Native to: {}", sessionId, migratedNonNative);
-            hmsMirrorConfig.setMigratedNonNative(migratedNonNative);
+            hmsMirrorConfig.setMigrateNonNative(migratedNonNative);
         }
         if (outputDirectory != null) {
             log.info("{}: Setting Output Directory to: {}", sessionId, outputDirectory);
@@ -449,7 +449,7 @@ public class ConfigController {
         }
         if (nonNative != null) {
             log.info("{}: Setting Migrate ACID 'nonNative' to: {}", sessionId, nonNative);
-            executeSessionService.getSession().getConfig().setMigratedNonNative(nonNative);
+            executeSessionService.getSession().getConfig().setMigrateNonNative(nonNative);
         }
         if (views != null) {
             log.info("{}: Setting Migrate ACID 'views' to: {}", sessionId, views);

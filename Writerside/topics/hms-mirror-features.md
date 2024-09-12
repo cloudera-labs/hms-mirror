@@ -124,8 +124,7 @@ But there is a corner case where these optimizations can get in the way and caus
 ```yaml
 clusters:
   LEFT:
-    legacyHive: false
-    hdpHive3: true
+    platformType: 'HDP3'
 ```
 
 ## Compress Text Output

@@ -35,6 +35,7 @@
         <fieldset th:unless="${CONFIG.clusters[__${env}__] == null}"
                   th:disabled="${READ_ONLY}"
                   style="border: 0;">
+            <legend th:text="#{cluster(${env})}"/>
             <div class="pure-g">
                 <div class="pure-u-1">
                     <fieldset>
@@ -63,11 +64,19 @@
                                th:value="${CONFIG.clusters[__${env}__]?.environment}"/>
 
                         <div class="pure-control-group">
-                            <label th:text="#{hive.server2.legacy}"/>
-                            <input type="checkbox"
-                                   th:field="*{clusters[__${env}__].legacyHive}"
-                                   th:checked="${CONFIG.clusters[__${env}__]?.legacyHive}"/>
+                            <label th:text="#{cluster.platform.type}"/>
+                            <select name="platformtype" th:field="*{clusters[__${env}__].platformType}">
+                                <option th:each="platform : ${T(com.cloudera.utils.hms.mirror.domain.support.PlatformType).values()}"
+                                        th:value="${platform}" th:text="${platform}"></option>
+                            </select>
                         </div>
+<!--Removed in favor of PlatformType -->
+<!--                        <div class="pure-control-group">-->
+<!--                            <label th:text="#{hive.server2.legacy}"/>-->
+<!--                            <input type="checkbox"-->
+<!--                                   th:field="*{clusters[__${env}__].legacyHive}"-->
+<!--                                   th:checked="${CONFIG.clusters[__${env}__]?.legacyHive}"/>-->
+<!--                        </div>-->
 
                         <div class="pure-control-group">
                             <label th:text="#{cluster.cine}"/>
@@ -75,12 +84,14 @@
                                    th:field="*{clusters[__${env}__].createIfNotExists}"
                                    th:checked="${CONFIG.clusters[__${env}__]?.createIfNotExists}"/>
                         </div>
-                        <div class="pure-control-group">
-                            <label th:text="#{cluster.hdp.hive3}"/>
-                            <input type="checkbox"
-                                   th:field="*{clusters[__${env}__].hdpHive3}"
-                                   th:checked="${CONFIG.clusters[__${env}__]?.hdpHive3}"/>
-                        </div>
+
+                        <!--Removed in favor of PlatformType -->
+<!--                        <div class="pure-control-group">-->
+<!--                            <label th:text="#{cluster.hdp.hive3}"/>-->
+<!--                            <input type="checkbox"-->
+<!--                                   th:field="*{clusters[__${env}__].hdpHive3}"-->
+<!--                                   th:checked="${CONFIG.clusters[__${env}__]?.hdpHive3}"/>-->
+<!--                        </div>-->
 
                         <div class="pure-control-group">
                             <label th:text="#{cluster.partition.auto}"/>

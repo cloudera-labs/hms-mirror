@@ -832,7 +832,13 @@ public class DatabaseService {
                         if (nonNull(ownerFromLeft) && nonNull(ownerTypeFromLeft)) {
                             log.info("Setting Owner: {} of type: {} on Database: {}", ownerFromLeft, ownerTypeFromLeft, targetDatabase);
                             if (ownerTypeFromLeft.equals("USER")) {
-                                String alterOwner = MessageFormat.format(SET_DB_OWNER, targetDatabase, ownerFromLeft);
+                                String alterOwner = null;
+                                // Figure out which DDL syntax to use.
+                                if (config.getCluster(Environment.RIGHT).getPlatformType().isDbOwnerType()) {
+                                    alterOwner = MessageFormat.format(SET_DB_OWNER_W_USER_TYPE, targetDatabase, ownerFromLeft);
+                                } else {
+                                    alterOwner = MessageFormat.format(SET_DB_OWNER, targetDatabase, ownerFromLeft);
+                                }
                                 dbMirror.getSql(Environment.RIGHT).add(new Pair(SET_DB_OWNER_DESC, alterOwner));
                             }
                         }

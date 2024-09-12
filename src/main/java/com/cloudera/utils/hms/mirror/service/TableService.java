@@ -47,7 +47,6 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 
 import static com.cloudera.utils.hms.mirror.MessageCode.METASTORE_PARTITION_LOCATIONS_NOT_FETCHED;
-import static com.cloudera.utils.hms.mirror.MessageCode.METASTORE_TABLE_LOCATIONS_NOT_FETCHED;
 import static com.cloudera.utils.hms.mirror.MirrorConf.*;
 import static com.cloudera.utils.hms.mirror.TablePropertyVars.HMS_STORAGE_MIGRATION_FLAG;
 import static com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.DUMP;
@@ -123,7 +122,7 @@ public class TableService {
                     }
                 } else {
                     // Non-Native Tables.
-                    if (!hmsMirrorConfig.isMigratedNonNative()) {
+                    if (!hmsMirrorConfig.isMigrateNonNative()) {
                         tableMirror.setRemove(Boolean.TRUE);
                         tableMirror.setRemoveReason("This is a Non-Native hive table and non-native process wasn't " +
                                 "selected.");

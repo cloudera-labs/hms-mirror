@@ -68,6 +68,7 @@ public interface MirrorConf {
     String RENAME_TABLE = "ALTER TABLE {0} RENAME TO {1}";
     String SET_TABLE_OWNER_DESC = "Set table owner";
     String SET_TABLE_OWNER = "ALTER TABLE {0} SET OWNER USER {1}";
+    String SET_DB_OWNER_W_USER_TYPE = "ALTER DATABASE {0} SET OWNER USER {1}";
     String SET_DB_OWNER = "ALTER DATABASE {0} SET OWNER {1}";
     String SET_DB_OWNER_DESC = "Set database owner";
 

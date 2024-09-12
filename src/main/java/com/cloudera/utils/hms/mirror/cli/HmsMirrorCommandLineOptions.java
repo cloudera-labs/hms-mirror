@@ -757,7 +757,7 @@ public class HmsMirrorCommandLineOptions {
     CommandLineRunner configMigrateNonNativeTrue(HmsMirrorConfig hmsMirrorConfig) {
         return args -> {
             log.info("migrate-non-native: {}", Boolean.TRUE);
-            hmsMirrorConfig.setMigratedNonNative(Boolean.TRUE);
+            hmsMirrorConfig.setMigrateNonNative(Boolean.TRUE);
         };
     }
 
@@ -769,7 +769,7 @@ public class HmsMirrorCommandLineOptions {
     CommandLineRunner configMigrateNonNativeFalse(HmsMirrorConfig hmsMirrorConfig) {
         return args -> {
             log.info("migrate-non-native: {}", Boolean.FALSE);
-            hmsMirrorConfig.setMigratedNonNative(Boolean.FALSE);
+            hmsMirrorConfig.setMigrateNonNative(Boolean.FALSE);
         };
     }
 
@@ -781,7 +781,7 @@ public class HmsMirrorCommandLineOptions {
     CommandLineRunner configMigrateNonNativeOnlyTrue(HmsMirrorConfig hmsMirrorConfig) {
         return args -> {
             log.info("migrate-non-native-only: {}", Boolean.TRUE);
-            hmsMirrorConfig.setMigratedNonNative(Boolean.TRUE);
+            hmsMirrorConfig.setMigrateNonNative(Boolean.TRUE);
         };
     }
 
@@ -793,7 +793,7 @@ public class HmsMirrorCommandLineOptions {
     CommandLineRunner configMigrateNonNativeOnlyFalse(HmsMirrorConfig hmsMirrorConfig) {
         return args -> {
             log.info("migrate-non-native-only: {}", Boolean.FALSE);
-            hmsMirrorConfig.setMigratedNonNative(Boolean.FALSE);
+            hmsMirrorConfig.setMigrateNonNative(Boolean.FALSE);
         };
     }
 

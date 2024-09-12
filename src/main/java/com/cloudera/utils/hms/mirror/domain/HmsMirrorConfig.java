@@ -105,7 +105,7 @@ public class HmsMirrorConfig implements Cloneable {
     private IcebergConfig icebergConfig = new IcebergConfig();
     private MigrateACID migrateACID = new MigrateACID();
     private MigrateVIEW migrateVIEW = new MigrateVIEW();
-    private boolean migratedNonNative = Boolean.FALSE;
+    private boolean migrateNonNative = Boolean.FALSE;
     private Optimization optimization = new Optimization();
     private String outputDirectory = System.getProperty("user.home") + System.getProperty("file.separator")
             + ".hms-mirror/reports/";
@@ -542,7 +542,7 @@ public class HmsMirrorConfig implements Cloneable {
             if (this.dataStrategy == DataStrategyEnum.DUMP) {
                 this.getMigrateACID().setOn(Boolean.TRUE);
                 this.getMigrateVIEW().setOn(Boolean.TRUE);
-                this.setMigratedNonNative(Boolean.TRUE);
+                this.setMigrateNonNative(Boolean.TRUE);
             } else if (this.dataStrategy == STORAGE_MIGRATION) {
                 getMigrateACID().setOn(Boolean.TRUE);
 //                setEvaluatePartitionLocation(Boolean.TRUE);

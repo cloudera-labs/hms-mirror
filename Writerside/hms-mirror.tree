@@ -71,6 +71,8 @@
         <toc-element topic="hms-mirror-iceberg_migration.md"/>
     </toc-element>
     <toc-element topic="Index-of-Settings.md">
+        <toc-element topic="filter_settings.md"/>
+        <toc-element topic="cluster-settings.md"/>
         <toc-element topic="Transfer.md">
             <toc-element topic="Transfer-Storage-Migration.md"/>
         </toc-element>

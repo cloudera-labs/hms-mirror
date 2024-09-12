@@ -13,6 +13,42 @@ found [here](https://github.com/cloudera-labs/hms-mirror/issues?q=is%3Aissue+is%
 If there is
 something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 2.2.0.10
+
+**What's New**
+
+### [Hive 4 DB OWNER DDL syntax for ALTERing DB ONWER requires 'USER'](https://github.com/cloudera-labs/hms-mirror/issues/139)
+
+This changed resulted in a simplification of how we determine what the cluster platform is. Previously we used two attributes (`legacyHive` and `hdpHive3`) to determine the platform.  This information would direct logic around translations and other features.  
+
+Unfortunately, this isn't enough for us to determine all the scenarios we're encountering.  These attributes have been replaced with a new attribute call `platformType`. A list of the platform types can be found [here]().
+
+We will make automatic translations of legacy configurations to the new `platformType` attribute.  The translation will be pretty basic and result in either the platform type being defined as `HDP2` or `CDP_7.1`. If you have a more complex configuration, you'll need to adjust the `platformType` attribute manually.  Future persisted configurations will use the new `platformType` attribute and drop the `legacyHive` and `hdpHive3` attributes.
+
+### [Add "Property Overrides" to Web Interface](https://github.com/cloudera-labs/hms-mirror/issues/111)
+
+A feature that was late in making it into the Web UI is now here.
+
+### [For Web UI Service, default to prefer IPV4](https://github.com/cloudera-labs/hms-mirror/issues/134)
+
+To ensure the right IP stack is used when the Web UI starts up, we're forcing this JDK configuration with the Web UI.
+
+### [Forcibly set Java Home via -Duser.home](https://github.com/cloudera-labs/hms-mirror/issues/136)
+
+We had a few requests and issues with implementations were the target environment isn't always setup with normal user 'home' standards that we can rely on.  This change allows us to set the 'home' directory for the user running the application and ensure its translated correctly in hms-mirror for storing and reading configurations, reports, and logs.
+
+If you are in an environment that doesn't follow user `$HOME` standards, you can set the `HOME` environment variable to a custom directory **BEFORE** starting `hms-mirror` to alter the default behavior.
+
+### Cleanup SQL has been added to Web Reporting UI
+
+We've added a 'Cleanup SQL' tab to the Web Reporting UI.  This will show you the SQL that was generated to clean up the source cluster after the migration.  This is useful to see what will be done before you execute the migration.
+
+**Bugs (Fixed)**
+
+- [DATABASE set OWNER ALTER statement is incorrect](https://github.com/cloudera-labs/hms-mirror/issues/135)
+- [SQL ACID Migrations from HDPHive3 cluster Ordering](https://github.com/cloudera-labs/hms-mirror/issues/138)
+- [DB Location for HDP3 migrations is flipped](https://github.com/cloudera-labs/hms-mirror/issues/140)
+
 ## 2.2.0.9
 
 **Bugs (Fixed)**
