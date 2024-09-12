@@ -23,7 +23,9 @@ transfer:
 clusters:
   LEFT:
     # Set for Hive 1/2 environments
-    legacyHive:    true
+    # Remove, see 'platformType' legacyHive:    true
+    # platform type
+    platformType: 'HDP2'
     # Is the 'Hadoop COMPATIBLE File System' used to prefix data locations for this cluster.
     # It is mainly used as the transfer location for metadata (export)
     # If the primary storage for this cluster is 'hdfs' than use 'hdfs://...'
@@ -58,7 +60,8 @@ clusters:
         min: 3
         max: 5
   RIGHT:
-    legacyHive:    false
+    # Removed, see platformType. ...legacyHive:    false
+    platformType: 'CDP_7_1'
     # Is the 'Hadoop COMPATIBLE File System' used to prefix data locations for this cluster.
     # It is mainly used to as a baseline for where "DATA" will be transfered in the
     # STORAGE stage.  The data location in the source location will be move to this

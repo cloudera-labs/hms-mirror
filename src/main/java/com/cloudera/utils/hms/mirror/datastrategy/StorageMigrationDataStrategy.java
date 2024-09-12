@@ -246,7 +246,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                 String origLocation = TableUtils.getLocation(tableMirror.getName(), tableMirror.getTableDefinition(Environment.LEFT));
                 try {
                     String newLocation = getTranslatorService().
-                            translateLocation(tableMirror, origLocation, 0, null);
+                            translateLocation(tableMirror, origLocation, 1, null);
 
                     // Build Alter Statement for Table to change location.
                     String alterTable = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, tableMirror.getEnvironmentTable(Environment.LEFT).getName(), newLocation);

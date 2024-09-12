@@ -347,7 +347,7 @@ public class ConfigMVController implements ControllerReferences {
 
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
         model.addAttribute(ACTION, "view");
-        model.addAttribute(READ_ONLY, Boolean.TRUE);
+//        model.addAttribute(READ_ONLY, Boolean.TRUE);
 
         ModelUtils.allEnumsForMap(currentConfig.getDataStrategy(), model.asMap());
 
