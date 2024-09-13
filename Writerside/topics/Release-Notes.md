@@ -13,6 +13,19 @@ found [here](https://github.com/cloudera-labs/hms-mirror/issues?q=is%3Aissue+is%
 If there is
 something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 2.2.0.12
+
+**What's New**
+
+- [For STORAGE_MIGRATION to Ozone, ensure valid Volume/Bucket names](https://github.com/cloudera-labs/hms-mirror/issues/142)
+
+**Bugs (Fixed)**
+
+- [Expose Stats in Web UI Reports](https://github.com/cloudera-labs/hms-mirror/issues/141)
+- Fixed the ability to Encrypt/Decrypt password in the UI.
+- [Execute run for Strategies without RIGHT cluster definition fail to write reports](https://github.com/cloudera-labs/hms-mirror/issues/144)
+- [STORAGE_MIGRATION distcp efficiency option](https://github.com/cloudera-labs/hms-mirror/issues/143)
+
 ## 2.2.0.10
 
 **What's New**
