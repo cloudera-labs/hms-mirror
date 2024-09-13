@@ -391,8 +391,27 @@ public class TableUtils {
         return rtn;
     }
 
+    public static SerdeType getInputFormat(EnvironmentTable envTable) {
+        log.trace("Getting table INPUTFORMAT for: {}", envTable.getName());
+        String inputFormat = null;
+        SerdeType rtn = SerdeType.UNKNOWN;
+        int locIdx = envTable.getDefinition().indexOf(STORED_AS_INPUTFORMAT);
+        if (locIdx > 0) {
+            inputFormat = envTable.getDefinition().get(locIdx + 1).trim().replace("'", "");
+        }
+        if (!isBlank(inputFormat)) {
+            for (SerdeType serdeType : SerdeType.values()) {
+                if (serdeType.isType(inputFormat)) {
+                    rtn = serdeType;
+                    break;
+                }
+            }
+        }
+        return rtn;
+    }
+
     public static SerdeType getSerdeType(EnvironmentTable envTable) {
-        log.trace("Getting table location data for: {}", envTable.getName());
+        log.trace("Getting table serde data for: {}", envTable.getName());
         String serdeClass = null;
         SerdeType rtn = SerdeType.UNKNOWN;
         int locIdx = envTable.getDefinition().indexOf(ROW_FORMAT_SERDE);
@@ -407,6 +426,14 @@ public class TableUtils {
                 }
             }
         }
+        // Look at the INPUTFORMAT, if available for detail.
+        if (rtn == SerdeType.BINARY) {
+            SerdeType inputFormat = TableUtils.getInputFormat(envTable);
+            if (inputFormat != SerdeType.UNKNOWN) {
+                rtn = inputFormat;
+            }
+        }
+
         envTable.getStatistics().put(MirrorConf.FILE_FORMAT, rtn);
         return rtn;
     }

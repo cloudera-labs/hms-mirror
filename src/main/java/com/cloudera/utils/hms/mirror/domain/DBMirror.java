@@ -51,6 +51,8 @@ public class DBMirror {
 //    private List<String> definition = new ArrayList<>();
     private Map<String, TableMirror> tableMirrors = null;
 
+    private Map<Environment, Map<String, Number>> environmentStatistics = new TreeMap<>();
+
     @JsonIgnore
     public List<PhaseState> getPhasesFromAvailableTables() {
         List<PhaseState> rtn = new ArrayList<>();

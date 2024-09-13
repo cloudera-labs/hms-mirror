@@ -112,14 +112,17 @@ public class EnvironmentTable implements Cloneable {
     @Override
     public EnvironmentTable clone() throws CloneNotSupportedException {
         EnvironmentTable clone = (EnvironmentTable) super.clone();
-        clone.setSql(new ArrayList<>(sql));
-        clone.setCleanUpSql(new ArrayList<>(cleanUpSql));
+        // /Clean up/detach the lists.
+        clone.setSql(new ArrayList<>());
+        clone.setCleanUpSql(new ArrayList<>());
+        clone.setAddProperties(new TreeMap<>());
+//         We don't want these to be cloned.
+        clone.setStatistics(new HashMap<>());
+        clone.setIssues(new ArrayList<>());
+        // detach the definition with new objects.
         clone.setDefinition(new ArrayList<>(definition));
         clone.setPartitions(new HashMap<>(partitions));
-        clone.setAddProperties(new TreeMap<>(addProperties));
-        clone.setStatistics(new HashMap<>(statistics));
-        clone.setIssues(new ArrayList<>(issues));
-        clone.setParent(parent);
+
         return clone;
     }
 }

@@ -223,6 +223,10 @@ public class TableService {
                             log.warn("Stats collection is disabled because the CLI Interface has been disabled. " +
                                     " Skipping stats collection for table: {}", et.getName());
 //                            throw new RuntimeException(e);
+                        } catch (RuntimeException rte) {
+                            log.error("Issue loading table stats for {}.{}", et.getName(), et.getParent().getName());
+                            tableMirror.addIssue(environment, rte.getMessage());
+                            log.error(rte.getMessage(), rte);
                         }
                     }
                     break;
@@ -748,12 +752,6 @@ public class TableService {
             case SCHEMA_ONLY:
                 // We don't need stats for these.
                 return;
-            case STORAGE_MIGRATION:
-                if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
-                    // We don't need stats for this.
-                    return;
-                }
-                break;
             default:
                 break;
         }
@@ -768,6 +766,9 @@ public class TableService {
         // Only run checks against hdfs and ozone namespaces.
         String[] locationParts = location.split(":");
         String protocol = locationParts[0];
+        // Determine Table File Format
+        TableUtils.getSerdeType(et);
+
         if (hmsMirrorConfig.getSupportFileSystems().contains(protocol)) {
             CliEnvironment cli = executeSessionService.getCliEnvironment();
 
@@ -796,8 +797,6 @@ public class TableService {
 
             }
         }
-        // Determine Table File Format
-        TableUtils.getSerdeType(et);
     }
 
     /**

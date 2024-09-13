@@ -56,6 +56,7 @@ public class ReportWriterService {
     private ConfigService configService;
     private ExecuteSessionService executeSessionService;
     private TranslatorService translatorService;
+    private DatabaseService databaseService;
 
     @Autowired
     public void setDistCpService(DistCpService distCpService) {
@@ -80,6 +81,11 @@ public class ReportWriterService {
     @Autowired
     public void setTranslatorService(TranslatorService translatorService) {
         this.translatorService = translatorService;
+    }
+
+    @Autowired
+    public void setDatabaseService(DatabaseService databaseService) {
+        this.databaseService = databaseService;
     }
 
     public void wrapup() {
@@ -187,9 +193,10 @@ public class ReportWriterService {
         for (Map.Entry<String, DBMirror> dbEntry : conversion.getDatabases().entrySet()) {
             String database = HmsMirrorConfigUtil.getResolvedDB(dbEntry.getKey(), config);
             String originalDatabase = dbEntry.getKey();
-//            String database = dbEntry.getKey();
-//        }
-//        for (String database : hmsMirrorConfig.getDatabases()) {
+
+            Map<String, Number> leftSummaryStats = databaseService.getEnvironmentSummaryStatistics(dbEntry.getValue(), Environment.LEFT);
+
+            dbEntry.getValue().getEnvironmentStatistics().put(Environment.LEFT, leftSummaryStats);
 
             String dbReportOutputFile = reportOutputDir + File.separator + database + "_hms-mirror";
             String dbLeftExecuteFile = reportOutputDir + File.separator + database + "_LEFT_execute.sql";

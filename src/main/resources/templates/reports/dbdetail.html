@@ -55,8 +55,32 @@
         <fieldset>
             <legend th:text="#{database.details}"/>
             <!--        <h3 th:text="#{database.details}"/>-->
-            <div class="pure-u-1">
 
+            <!--            Summary Statistics for the Database-->
+            <div class="pure-u-1-2" th:unless="${DB_MIRROR.environmentStatistics.isEmpty()}">
+                <fieldset>
+                    <legend th:text="#{database.stats}"/>
+
+                    <table class="pure-table pure-table-bordered pure-table-striped">
+                        <tr>
+                            <th th:text="#{description}"/>
+                            <th th:text="#{value}"/>
+                        </tr>
+                        <th:block th:each="env: ${DB_MIRROR.environmentStatistics.keySet()}">
+                            <tr>
+                                <td th:text="${env}" colspan="2"/>
+                            </tr>
+                            <th:block th:each="stat: ${DB_MIRROR.environmentStatistics.get(env)}">
+                                <tr>
+                                    <td th:text="${stat.key}"/>
+                                    <td th:text="${stat.value}"/>
+                                </tr>
+                            </th:block>
+                        </th:block>
+                    </table>
+                </fieldset>
+            </div>
+            <div class="pure-u-1-2" th:unless="${DB_MIRROR.issues.size() == 0}">
                 <th:block th:each="env: ${DB_MIRROR.issues}">
                     <div th:if="${DB_MIRROR.issues[env.key].size() > 0}">
                         <h4 th:text="#{database.issues(${env.key})}"/>
@@ -139,7 +163,7 @@
                                 <!--                    <th th:text="#{table.stage.duration}"/>-->
                                 <!--                    <th th:text="#{table.added.properties}"/>-->
                                 <th th:text="#{table.issues.steps}"/>
-<!--                                <th th:text="#{table.steps}"/>-->
+                                <!--                                <th th:text="#{table.steps}"/>-->
                                 <th th:text="#{table.sql}"/>
                             </tr>
                             </thead>
@@ -185,8 +209,25 @@
                                                     <pre th:text="${prop.key + '=' + prop.value}"/>
                                                 </th:block>
                                             </fieldset>
+                                            <!--                                        Stats -->
+                                            <fieldset
+                                                    th:if="${('LEFT RIGHT').contains(env.toString()) && !table.value.environments.get(env).statistics.isEmpty()}">
+                                                <legend th:text="#{table.statistics(${env})}"/>
+                                                <table class="pure-table pure-table-bordered pure-table-striped">
+                                                    <tr>
+                                                        <th th:text="#{description}"/>
+                                                        <th th:text="#{value}"/>
+                                                    </tr>
+                                                    <th:block
+                                                            th:each="prop: ${table.value.environments.get(env).statistics}">
+                                                        <tr>
+                                                            <td th:text="${prop.key}"/>
+                                                            <td th:text="${prop.value}"/>
+                                                        </tr>
+                                                    </th:block>
+                                                </table>
+                                            </fieldset>
                                         </th:block>
-                                        <!--                        </td>-->
                                     </td>
                                     <td>
                                         <th:block th:each="env: ${table.value.environments.keySet()}">
@@ -198,9 +239,9 @@
                                                 </th:block>
                                             </fieldset>
                                         </th:block>
-<!--                                    </td>-->
-                                    <!--                                    Steps-->
-<!--                                    <td>-->
+                                        <!--                                    </td>-->
+                                        <!--                                    Steps-->
+                                        <!--                                    <td>-->
                                         <table class="pure-table pure-table-bordered pure-table-odd pure-table-striped">
                                             <tr>
                                                 <th th:text="#{step.mark}"/>
@@ -237,7 +278,8 @@
                                                     </th:block>
                                                 </table>
                                             </fieldset>
-                                            <th:block th:unless="${table.value.environments.get(env).cleanUpSql.isEmpty()}">
+                                            <th:block
+                                                    th:unless="${table.value.environments.get(env).cleanUpSql.isEmpty()}">
                                                 <fieldset
                                                         th:if="${('LEFT RIGHT').contains(env.toString()) && !table.value.environments.get(env).sql.isEmpty()}">
                                                     <legend th:text="${env + '(Clean Up SQL)'}"/>
