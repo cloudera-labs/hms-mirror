@@ -141,6 +141,7 @@ public enum MessageCode {
     MISSING_PROPERTY("The property ''{0}'' is missing from the configuration {1} {2}.  Please add it and try again."),
     NON_LEGACY_TO_LEGACY("`hms-mirror` does NOT support migrations from Hive 3 to Hive 1/2."),
     OPTIONAL_ARG_ISSUE("Bad optional argument"),
+    OZONE_VOLUME_NAME_TOO_SHORT("The Ozone volume name is too short.  It must be at least 3 characters."),
     PASSWORDS_ENCRYPTED("Passwords are encrypted.  Too change/add a password, you must decrypt them first."),
     PASSWORD_CFG("PasswordApp en/de crypt"),
     PKEY_PASSWORD_CFG("Passwords are encrypted.  You must supply a password key to run the process. For CLI '-pkey' with '-p'."),

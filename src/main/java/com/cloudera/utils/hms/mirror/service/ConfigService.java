@@ -20,12 +20,11 @@ package com.cloudera.utils.hms.mirror.service;
 import com.cloudera.utils.hadoop.cli.CliEnvironment;
 import com.cloudera.utils.hadoop.cli.DisabledException;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
-import com.cloudera.utils.hadoop.shell.commands.Env;
 import com.cloudera.utils.hive.config.DBStore;
 import com.cloudera.utils.hms.mirror.domain.*;
 import com.cloudera.utils.hms.mirror.domain.support.*;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
-import com.cloudera.utils.hms.mirror.exceptions.SessionException;
+import com.cloudera.utils.hms.util.NamespaceUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
@@ -816,7 +815,7 @@ public class ConfigService {
     }
 
     public Boolean validate(ExecuteSession session, CliEnvironment cli) {
-        Boolean rtn = Boolean.TRUE;
+        AtomicReference<Boolean> rtn = new AtomicReference<>(Boolean.TRUE);
 
         HmsMirrorConfig config = session.getConfig();
 
@@ -836,13 +835,13 @@ public class ConfigService {
 
         // Both of these can't be set together.
         if (!isBlank(config.getDbRename()) || !isBlank(config.getDbPrefix())) {
-            rtn = Boolean.FALSE;
+            rtn.set(Boolean.FALSE);
             session.addError(DISTCP_W_RENAME_NOT_SUPPORTED);
         }
 
         // Before Validation continues, let's make some adjustments to the configuration to
         // ensure we're in a valid state.
-        rtn = alignConfigurationSettings(session, config);
+        rtn.set(alignConfigurationSettings(session, config));
 
         switch (config.getDataStrategy()) {
             case DUMP:
@@ -851,14 +850,14 @@ public class ConfigService {
                 // This strategy not available for Legacy Hive.
                 if (config.getCluster(Environment.LEFT).isLegacyHive()) {
                     runStatus.addError(STORAGE_MIGRATION_NOT_AVAILABLE_FOR_LEGACY, Environment.LEFT);
-                    rtn = Boolean.FALSE;
+                    rtn.set(Boolean.FALSE);
                 }
 
                 // When using the Aligned movement strategy, we MUST have access to the Metastore Direct to pull
                 // All the location details for the tables.
                 if (config.getCluster(Environment.LEFT).getMetastoreDirect() == null) {
                     session.addError(METASTORE_DIRECT_NOT_DEFINED_OR_CONFIGURED, Environment.LEFT.toString());
-                    rtn = Boolean.FALSE;
+                    rtn.set(Boolean.FALSE);
                 }
 
                 // When STORAGE_MIGRATION and HDP3, we need to force external location AND
@@ -868,7 +867,7 @@ public class ConfigService {
                     if (config.getMigrateACID().isOn() &&
                             !config.getTransfer().getStorageMigration().isDistcp()) {
                         session.addError(HIVE3_ON_HDP_ACID_TRANSFERS);
-                        rtn = Boolean.FALSE;
+                        rtn.set(Boolean.FALSE);
                     }
                 }
 
@@ -880,7 +879,7 @@ public class ConfigService {
                 if (config.getMigrateACID().isOn() &&
                         config.getMigrateACID().isDowngrade()) {
                     runStatus.addError(ACID_DOWNGRADE_SCHEMA_ONLY);
-                    rtn = Boolean.FALSE;
+                    rtn.set(Boolean.FALSE);
                 }
                 if (config.getTransfer().getStorageMigration().getTranslationType() == TranslationTypeEnum.RELATIVE
                         && config.getTransfer().getStorageMigration().getDataMovementStrategy() == DataMovementStrategyEnum.DISTCP) {
@@ -903,10 +902,33 @@ public class ConfigService {
                             !config.getCluster(Environment.LEFT).isLegacyHive() &&
                             !config.isDumpTestData()) {
                         runStatus.addError(NON_LEGACY_TO_LEGACY);
-                        rtn = Boolean.FALSE;
+                        rtn.set(Boolean.FALSE);
                     }
                 }
         }
+
+        // Ozone Volume Name Check.
+        // If the target namespace is set to ofs:// and we have warehouse plans defined for movement, ensure the
+        //   volume name is at least 3 characters long.
+        if (!isBlank(config.getTransfer().getTargetNamespace()) &&
+                config.getTransfer().getTargetNamespace().startsWith("ofs://")) {
+            if (!config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().isEmpty()) {
+                RunStatus finalRunStatus = runStatus;
+                config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().forEach((k, v) -> {
+                    String externalDirectory = v.getExternalDirectory();
+                    String managedDirectory = v.getManagedDirectory();
+                    if (nonNull(externalDirectory) && Objects.requireNonNull(NamespaceUtils.getFirstDirectory(externalDirectory)).length() < 3) {
+                        finalRunStatus.addError(OZONE_VOLUME_NAME_TOO_SHORT);
+                        rtn.set(Boolean.FALSE);
+                    }
+                    if (nonNull(managedDirectory) && Objects.requireNonNull(NamespaceUtils.getFirstDirectory(managedDirectory)).length() < 3) {
+                        finalRunStatus.addError(OZONE_VOLUME_NAME_TOO_SHORT);
+                        rtn.set(Boolean.FALSE);
+                    }
+                });
+            }
+        }
+
 
         if (nonNull(config.getCluster(Environment.LEFT).getMetastoreDirect())) {
             DBStore leftMS = config.getCluster(Environment.LEFT).getMetastoreDirect();
@@ -920,7 +942,7 @@ public class ConfigService {
         if (config.getMigrateACID().isDowngradeInPlace()) {
             if (config.getDataStrategy() != DataStrategyEnum.SQL) {
                 runStatus.addError(VALID_ACID_DA_IP_STRATEGIES);
-                rtn = Boolean.FALSE;
+                rtn.set(Boolean.FALSE);
             }
         }
 
@@ -959,7 +981,7 @@ public class ConfigService {
             // We can't move forward in this condition without some warehouse plans.
             if (!doWareHousePlansExist(session)) {
                 runStatus.addError(ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS);
-                rtn = Boolean.FALSE;
+                rtn.set(Boolean.FALSE);
             }
             if (config.getFilter().isTableFiltering()) {
                 runStatus.addWarning(DISTCP_W_TABLE_FILTERS);
@@ -972,7 +994,7 @@ public class ConfigService {
                     && config.getMigrateACID().isDowngrade()
                     && (!doWareHousePlansExist(session))) {
                 runStatus.addError(SQL_ACID_DA_DISTCP_WO_EXT_WAREHOUSE);
-                rtn = Boolean.FALSE;
+                rtn.set(Boolean.FALSE);
             }
             if (config.getDataStrategy() == DataStrategyEnum.SQL) {
                 // For SQL, we can only migrate ACID tables with `distcp` if we're downgrading of them.
@@ -980,12 +1002,12 @@ public class ConfigService {
                         config.getMigrateACID().isOnly()) {
                     if (!config.getMigrateACID().isDowngrade()) {
                         runStatus.addError(SQL_DISTCP_ONLY_W_DA_ACID);
-                        rtn = Boolean.FALSE;
+                        rtn.set(Boolean.FALSE);
                     }
                 }
                 if (!isBlank(config.getTransfer().getTargetNamespace())) {
                     runStatus.addError(SQL_DISTCP_ACID_W_STORAGE_OPTS);
-                    rtn = Boolean.FALSE;
+                    rtn.set(Boolean.FALSE);
                 }
             }
 
@@ -1001,7 +1023,7 @@ public class ConfigService {
         if (config.getDataStrategy() == DataStrategyEnum.LINKED) {
             if (config.getMigrateACID().isOn()) {
                 session.addError(LINKED_NO_ACID_SUPPORT);
-                rtn = Boolean.FALSE;
+                rtn.set(Boolean.FALSE);
             }
         }
 
@@ -1009,7 +1031,7 @@ public class ConfigService {
         if (!isBlank(config.getDbRename()) &&
                 config.getDatabases().size() > 1) {
             runStatus.addError(DB_RENAME_ONLY_WITH_SINGLE_DB_OPTION);
-            rtn = Boolean.FALSE;
+            rtn.set(Boolean.FALSE);
         }
 
         if (config.isLoadingTestData()) {
@@ -1031,7 +1053,7 @@ public class ConfigService {
                 config.getDataStrategy() == DataStrategyEnum.EXPORT_IMPORT ||
                 config.getDataStrategy() == DataStrategyEnum.HYBRID)) {
             runStatus.addError(VALID_SYNC_STRATEGIES);
-            rtn = Boolean.FALSE;
+            rtn.set(Boolean.FALSE);
         }
 
         if (config.getMigrateACID().isOn()
@@ -1042,30 +1064,30 @@ public class ConfigService {
                 || config.getDataStrategy() == DataStrategyEnum.SQL
                 || config.getDataStrategy() == STORAGE_MIGRATION)) {
             runStatus.addError(VALID_ACID_STRATEGIES);
-            rtn = Boolean.FALSE;
+            rtn.set(Boolean.FALSE);
         }
 
         if (config.getMigrateACID().isOn()
                 && config.getMigrateACID().isInplace()) {
             if (!(config.getDataStrategy() == DataStrategyEnum.SQL)) {
                 runStatus.addError(VALID_ACID_DA_IP_STRATEGIES);
-                rtn = Boolean.FALSE;
+                rtn.set(Boolean.FALSE);
             }
             if (!isBlank(config.getTransfer().getTargetNamespace())) {
                 runStatus.addError(COMMON_STORAGE_WITH_DA_IP);
-                rtn = Boolean.FALSE;
+                rtn.set(Boolean.FALSE);
             }
             if (!isBlank(config.getTransfer().getIntermediateStorage())) {
                 runStatus.addError(INTERMEDIATE_STORAGE_WITH_DA_IP);
-                rtn = Boolean.FALSE;
+                rtn.set(Boolean.FALSE);
             }
             if (config.getTransfer().getStorageMigration().isDistcp()) {
                 runStatus.addError(DISTCP_W_DA_IP_ACID);
-                rtn = Boolean.FALSE;
+                rtn.set(Boolean.FALSE);
             }
             if (config.getCluster(Environment.LEFT).isLegacyHive()) {
                 runStatus.addError(DA_IP_NON_LEGACY);
-                rtn = Boolean.FALSE;
+                rtn.set(Boolean.FALSE);
             }
         }
 
@@ -1090,7 +1112,7 @@ public class ConfigService {
             }
         } catch (RequiredConfigurationException e) {
             runStatus.addError(TARGET_NAMESPACE_NOT_DEFINED);
-            rtn = Boolean.FALSE;
+            rtn.set(Boolean.FALSE);
         }
 
         // Because some just don't get that you can't do this...
@@ -1101,14 +1123,14 @@ public class ConfigService {
                 if (config.getTransfer().getWarehouse().getManagedDirectory().equals(config.getTransfer().getWarehouse().getExternalDirectory())) {
                     runStatus.addError(WAREHOUSE_DIRS_SAME_DIR, config.getTransfer().getWarehouse().getExternalDirectory()
                             , config.getTransfer().getWarehouse().getManagedDirectory());
-                    rtn = Boolean.FALSE;
+                    rtn.set(Boolean.FALSE);
                 }
             }
         }
 
         if (config.getDataStrategy() == DataStrategyEnum.ACID) {
             runStatus.addError(ACID_NOT_TOP_LEVEL_STRATEGY);
-            rtn = Boolean.FALSE;
+            rtn.set(Boolean.FALSE);
         }
 
         // Test to ensure the clusters are LINKED to support underlying functions.
@@ -1116,11 +1138,11 @@ public class ConfigService {
             case LINKED:
                 if (config.getTransfer().getTargetNamespace() != null) {
                     runStatus.addError(COMMON_STORAGE_WITH_LINKED);
-                    rtn = Boolean.FALSE;
+                    rtn.set(Boolean.FALSE);
                 }
                 if (!isBlank(config.getTransfer().getIntermediateStorage())) {
                     runStatus.addError(INTERMEDIATE_STORAGE_WITH_LINKED);
-                    rtn = Boolean.FALSE;
+                    rtn.set(Boolean.FALSE);
                 }
             case HYBRID:
             case EXPORT_IMPORT:
@@ -1136,12 +1158,12 @@ public class ConfigService {
                         try {
                             if (!config.getMigrateACID().isDowngradeInPlace() && !linkTest(session, cli)) {
                                 runStatus.addError(LINK_TEST_FAILED);
-                                rtn = Boolean.FALSE;
+                                rtn.set(Boolean.FALSE);
                             }
                         } catch (DisabledException e) {
                             log.error("Link Test Skipped because the CLI Interface is disabled.");
                             runStatus.addError(LINK_TEST_FAILED);
-                            rtn = Boolean.FALSE;
+                            rtn.set(Boolean.FALSE);
                         }
                     } else {
                         runStatus.addWarning(LINK_TEST_SKIPPED_WITH_OPTIONS);
@@ -1154,12 +1176,12 @@ public class ConfigService {
                     try {
                         if (!linkTest(session, cli)) {
                             runStatus.addError(LINK_TEST_FAILED);
-                            rtn = Boolean.FALSE;
+                            rtn.set(Boolean.FALSE);
                         }
                     } catch (DisabledException e) {
                         log.error("Link Test Skipped because the CLI Interface is disabled.");
                         runStatus.addError(LINK_TEST_FAILED);
-                        rtn = Boolean.FALSE;
+                        rtn.set(Boolean.FALSE);
                     }
                 }
                 break;
@@ -1173,7 +1195,7 @@ public class ConfigService {
                 // Check that the RIGHT cluster is NOT a legacy cluster.  No testing done in this scenario.
                 if (config.getCluster(Environment.RIGHT).isLegacyHive()) {
                     runStatus.addError(LEGACY_HIVE_RIGHT_CLUSTER);
-                    rtn = Boolean.FALSE;
+                    rtn.set(Boolean.FALSE);
                 }
                 break;
         }
@@ -1191,12 +1213,12 @@ public class ConfigService {
         if (config.isReplace()) {
             if (config.getDataStrategy() != DataStrategyEnum.SQL) {
                 runStatus.addError(REPLACE_ONLY_WITH_SQL);
-                rtn = Boolean.FALSE;
+                rtn.set(Boolean.FALSE);
             }
             if (config.getMigrateACID().isOn()) {
                 if (!config.getMigrateACID().isDowngrade()) {
                     runStatus.addError(REPLACE_ONLY_WITH_DA);
-                    rtn = Boolean.FALSE;
+                    rtn.set(Boolean.FALSE);
                 }
             }
         }
@@ -1210,7 +1232,7 @@ public class ConfigService {
                     break;
                 default:
                     runStatus.addError(RO_VALID_STRATEGIES);
-                    rtn = Boolean.FALSE;
+                    rtn.set(Boolean.FALSE);
             }
         }
 
@@ -1233,14 +1255,14 @@ public class ConfigService {
         // If the environments are mix of legacy and non-legacy, check the connections for kerberos or zk.
 
 
-        if (rtn) {
+        if (rtn.get()) {
             // Last check for errors.
             if (runStatus.hasErrors()) {
-                rtn = Boolean.FALSE;
+                rtn.set(Boolean.FALSE);
             }
         }
 //        runStatus.setConfigValidated(rtn);
-        return rtn;
+        return rtn.get();
     }
 
     public HmsMirrorConfig flipConfig(HmsMirrorConfig config) {

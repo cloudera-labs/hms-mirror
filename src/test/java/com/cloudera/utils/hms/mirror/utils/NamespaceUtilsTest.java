@@ -230,6 +230,18 @@ public class NamespaceUtilsTest {
     }
 
     @Test
+    public void testFirstDirectory() {
+        // Test with namespace
+        String location1 = "/user/hive/warehouse";
+        String firstDir1 = NamespaceUtils.getFirstDirectory(location1);
+        assertEquals("user", firstDir1);
+
+        String location2 = "user/hive/warehouse";
+        String firstDir2 = NamespaceUtils.getFirstDirectory(location2);
+        assertEquals("user", firstDir2);
+    }
+
+    @Test
     public void testLastDirectory() {
         // Test with namespace
         String locationWithNamespace = "hdfs://nameservice1/user/hive/warehouse";

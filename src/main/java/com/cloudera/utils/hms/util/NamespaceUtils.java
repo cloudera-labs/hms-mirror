@@ -30,6 +30,7 @@ public class NamespaceUtils {
 
     public static final Pattern protocolNSPattern = Pattern.compile("(^.*://)(\\w*(?:(?:[a-zA-Z0-9-@]*|(?<!-)\\.(?![-.]))*[a-zA-Z0-9]+)?)(:\\d{4})?");
     public static final Pattern lastDirPattern = Pattern.compile(".*/([^/?]+).*");
+    public static final Pattern firstDirPattern = Pattern.compile("/?([^/?]+).*");
 
     public static String getNamespace(String locationWithNamespace) {
         String rtn = null;
@@ -95,6 +96,12 @@ public class NamespaceUtils {
         Matcher matcher = lastDirPattern.matcher(location);
         return matcher.find() ? matcher.group(1) : null;
     }
+
+    public static String getFirstDirectory(String location) {
+        Matcher matcher = firstDirPattern.matcher(location);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
 
     // Get the parent directory of the location by stripping off the last directory.
     public static String getParentDirectory(String location) {
