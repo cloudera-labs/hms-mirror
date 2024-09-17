@@ -225,10 +225,31 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
                 ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
                 // Repair Partitions
                 // TODO: Handle odd partitions.
-                if (let.getPartitioned()) {
+                if (config.loadMetadataDetails()) {
+                    // TODO: Write out the SQL to build the partitions.  NOTE: We need to get the partition locations and modify them
+                    //       to the new namespace.
+                    String tableParts = getTranslatorService().buildPartitionAddStatement(let);
+                    // This will be empty when there's no data and we need to handle that.
+                    if (!isBlank(tableParts)) {
+                        String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION, set.getName(), tableParts);
+                        ret.addSql(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION_DESC, addPartSql);
+                    }
+                } else {// if (config.getCluster(Environment.RIGHT).getPartitionDiscovery().isInitMSCK()) {
                     String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
                     ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
+                    //                    String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, ret.getName());
+//                    // Add the MSCK repair to both initial and cleanup.
+//                    ret.addSql(TableUtils.REPAIR_DESC, msckStmt);
+//                    if (config.getTransfer().getStorageMigration().isDistcp()) {
+//                        ret.addCleanUpSql(TableUtils.REPAIR_DESC, msckStmt);
+//                    }
                 }
+
+
+//                if (let.getPartitioned()) {
+//                    String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
+//                    ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
+//                }
             }
         }
 

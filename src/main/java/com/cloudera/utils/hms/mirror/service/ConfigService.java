@@ -1005,10 +1005,10 @@ public class ConfigService {
                         rtn.set(Boolean.FALSE);
                     }
                 }
-                if (!isBlank(config.getTransfer().getTargetNamespace())) {
-                    runStatus.addError(SQL_DISTCP_ACID_W_STORAGE_OPTS);
-                    rtn.set(Boolean.FALSE);
-                }
+//                if (!isBlank(config.getTransfer().getTargetNamespace())) {
+//                    runStatus.addError(SQL_DISTCP_ACID_W_STORAGE_OPTS);
+//                    rtn.set(Boolean.FALSE);
+//                }
             }
 
 

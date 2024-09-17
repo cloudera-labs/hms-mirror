@@ -292,8 +292,10 @@ public class HmsMirrorConfig implements Cloneable {
     @JsonIgnore
     public Boolean loadMetadataDetails() {
         // When we're ALIGNED and asking fir DISTCP, we need to load the partition metadata.
-        if (transfer.getStorageMigration().getTranslationType() == TranslationTypeEnum.ALIGNED
-                && getTransfer().getStorageMigration().isDistcp()) {
+        if ((transfer.getStorageMigration().getTranslationType() == TranslationTypeEnum.ALIGNED
+                && getTransfer().getStorageMigration().isDistcp()) ||
+                (dataStrategy == DataStrategyEnum.SQL
+                        && getTransfer().getStorageMigration().getDataMovementStrategy() == DataMovementStrategyEnum.SQL)) {
             switch (dataStrategy) {
                 case LINKED:
                 case COMMON:
