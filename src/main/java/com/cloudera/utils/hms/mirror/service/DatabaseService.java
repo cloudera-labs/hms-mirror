@@ -484,6 +484,7 @@ public class DatabaseService {
 
         boolean buildLeft = Boolean.FALSE;
         boolean buildRight = Boolean.TRUE;
+        boolean createRight = Boolean.FALSE;
         boolean altLeftDB = Boolean.FALSE;
         boolean altRightDB = Boolean.FALSE;
         boolean skipLocation = Boolean.FALSE;
@@ -522,11 +523,11 @@ public class DatabaseService {
                 // This is a single cluster operation.
                 if (config.getMigrateACID().isDowngradeInPlace()) {
                     buildRight = Boolean.FALSE;
-                } else {
-                    buildRight = Boolean.TRUE;
                 }
                 // Build the Right Def as a Clone of the Left to Seed it.
                 if (isNull(dbDefRight)) {
+                    // No Right DB Definition.  So we're going to create it.
+                    createRight = Boolean.TRUE;
                     dbDefRight = new TreeMap<String, String>();
                     dbMirror.setProperty(Environment.RIGHT, dbDefRight);
                 }
@@ -544,6 +545,8 @@ public class DatabaseService {
                 buildRight = Boolean.TRUE;
                 // Build the Right Def as a Clone of the Left to Seed it.
                 if (isNull(dbDefRight)) {
+                    // No Right DB Definition.  So we're going to create it.
+                    createRight = Boolean.TRUE;
                     dbDefRight = new TreeMap<String, String>(dbDefLeft);
                     dbMirror.setProperty(Environment.RIGHT, dbDefRight);
                 }
@@ -791,33 +794,62 @@ public class DatabaseService {
 
                     break;
                 default:
-                    String createDbL = MessageFormat.format(CREATE_DB, targetDatabase);
-                    StringBuilder sbL = new StringBuilder();
-                    sbL.append(createDbL).append("\n");
-                    if (dbDefLeft.get(COMMENT) != null && !dbDefLeft.get(COMMENT).trim().isEmpty()) {
-                        sbL.append(COMMENT).append(" \"").append(dbDefLeft.get(COMMENT)).append("\"\n");
-                    }
-                    dbMirror.getSql(Environment.RIGHT).add(new Pair(CREATE_DB_DESC, sbL.toString()));
+                    /*
+                    Check to see if the database already exists on the RIGHT.  If it does, we need to check the [MANAGED]LOCATION values
+                    to see if they match the calculated values.  If they do, we don't need to do anything.  If they don't, we need to
+                    CREATE and ALTER the Database to set them correctly.
 
-                    if (nonNull(targetLocation) && !config.getCluster(Environment.RIGHT).isHdpHive3()) {
-                        String alterDbLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetLocation);
-                        dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbLoc));
-                        dbDefRight.put(DB_LOCATION, targetLocation);
-                    }
-                    if (nonNull(targetManagedLocation)) {
-                        if (!config.getCluster(Environment.RIGHT).isHdpHive3()) {
-                            String alterDbMngdLoc = MessageFormat.format(ALTER_DB_MNGD_LOCATION, targetDatabase, targetManagedLocation);
-                            dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
-                            dbDefRight.put(DB_MANAGED_LOCATION, targetManagedLocation);
-                        } else {
-                            String alterDbMngdLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetManagedLocation);
-                            dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
-                            dbMirror.addIssue(Environment.RIGHT, HDPHIVE3_DB_LOCATION.getDesc());
-                            dbDefRight.put(DB_LOCATION, targetManagedLocation);
+                    https://github.com/cloudera-labs/hms-mirror/issues/146
+
+                     */
+                    if (dbMirror.getProperty(Environment.RIGHT) != null) {
+                        String rightLocation = dbMirror.getProperty(Environment.RIGHT, DB_LOCATION);
+                        String rightManagedLocation = dbMirror.getProperty(Environment.RIGHT, DB_MANAGED_LOCATION);
+                        if (nonNull(rightLocation) && !rightLocation.equals(targetLocation)) {
+                            altRightDB = Boolean.TRUE;
+                        }
+                        if (nonNull(rightManagedLocation) && !rightManagedLocation.equals(targetManagedLocation)) {
+                            altRightDB = Boolean.TRUE;
                         }
                     }
 
-                    // Built the DBPROPERITES
+                    // Create the DB on the RIGHT is it doesn't exist.
+                    if (createRight) {
+                        String createDbL = MessageFormat.format(CREATE_DB, targetDatabase);
+                        StringBuilder sbL = new StringBuilder();
+                        sbL.append(createDbL).append("\n");
+                        if (dbDefLeft.get(COMMENT) != null && !dbDefLeft.get(COMMENT).trim().isEmpty()) {
+                            sbL.append(COMMENT).append(" \"").append(dbDefLeft.get(COMMENT)).append("\"\n");
+                        }
+                        dbMirror.getSql(Environment.RIGHT).add(new Pair(CREATE_DB_DESC, sbL.toString()));
+                    }
+
+                    if (nonNull(targetLocation) && !config.getCluster(Environment.RIGHT).isHdpHive3()) {
+                        String origRightLocation = dbDefRight.get(DB_LOCATION);
+                        // If the original location is null or doesn't equal the target location, set it.
+                        if (isNull(origRightLocation) || !origRightLocation.equals(targetLocation)) {
+                            String alterDbLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetLocation);
+                            dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbLoc));
+                            dbDefRight.put(DB_LOCATION, targetLocation);
+                        }
+                    }
+                    if (nonNull(targetManagedLocation)) {
+                        String origRightManagedLocation = config.getCluster(Environment.RIGHT).isHdpHive3() ? dbDefRight.get(DB_LOCATION) : dbDefRight.get(DB_MANAGED_LOCATION);
+                        if (isNull(origRightManagedLocation) || !origRightManagedLocation.equals(targetManagedLocation)) {
+                            if (!config.getCluster(Environment.RIGHT).isHdpHive3()) {
+                                String alterDbMngdLoc = MessageFormat.format(ALTER_DB_MNGD_LOCATION, targetDatabase, targetManagedLocation);
+                                dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
+                                dbDefRight.put(DB_MANAGED_LOCATION, targetManagedLocation);
+                            } else {
+                                String alterDbMngdLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetManagedLocation);
+                                dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
+                                dbMirror.addIssue(Environment.RIGHT, HDPHIVE3_DB_LOCATION.getDesc());
+                                dbDefRight.put(DB_LOCATION, targetManagedLocation);
+                            }
+                        }
+                    }
+
+                    // Build the DBPROPERITES
                     Map<String, String> dbProperties = DatabaseUtils.getParameters(dbDefRight, skipList);
                     if (!dbProperties.isEmpty()) {
                         for (Map.Entry<String, String> entry : dbProperties.entrySet()) {
@@ -1111,7 +1143,7 @@ public class DatabaseService {
                             log.error(nfe.getMessage(), nfe);
                         }
                     } else if (v instanceof Number) {
-                        tableStats.put(k, (Number)v);
+                        tableStats.put(k, (Number) v);
                     }
 
                 });
