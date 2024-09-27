@@ -662,7 +662,7 @@ public class DatabaseService {
                                 break;
                         }
                         // Check the location against the ENV warehouse location.  If they match, don't set the location.
-                        if (nonNull(envWarehouse)) {
+                        if (nonNull(targetManagedLocation) && nonNull(envWarehouse)) {
                             String reducedTargetLocation = NamespaceUtils.getParentDirectory(targetManagedLocation);
                             if (reducedTargetLocation.equals(envWarehouse.getManagedDirectory())) {
                                 // The new target location is the same as the ENV warehouse location.  So we're not

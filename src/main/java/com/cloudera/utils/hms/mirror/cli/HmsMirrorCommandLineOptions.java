@@ -1262,6 +1262,18 @@ public class HmsMirrorCommandLineOptions {
     @Bean
     @Order(1)
     @ConditionalOnProperty(
+            name = "hms-mirror.config.translation-type")
+    CommandLineRunner configTranslationType(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.translation-type}") String value) {
+        return args -> {
+            log.info("translation-type: {}", value);
+            hmsMirrorConfig.getTransfer().getStorageMigration().setTranslationType(TranslationTypeEnum.valueOf(value.toUpperCase()));
+        };
+    }
+
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
             name = "hms-mirror.config.transfer-ownership",
             havingValue = "false")
     CommandLineRunner configTransferOwnershipFalse(HmsMirrorConfig hmsMirrorConfig) {
@@ -1887,6 +1899,12 @@ public class HmsMirrorCommandLineOptions {
         tablePartitionCountFilterOption.setRequired(Boolean.FALSE);
         tablePartitionCountFilterOption.setArgName("partition-count");
         options.addOption(tablePartitionCountFilterOption);
+
+        Option translationTypeOption = new Option("tt", "translation-type", true,
+                "Translation Strategy when migrating data. (ALIGNED|RELATIVE)  Default is RELATIVE");
+        translationTypeOption.setRequired(Boolean.FALSE);
+        translationTypeOption.setArgName("translation-type");
+        options.addOption(translationTypeOption);
 
         Option cfgOption = new Option("cfg", "config", true,
                 "Config with details for the HMS-Mirror.  Default: $HOME/.hms-mirror/cfg/default.yaml");

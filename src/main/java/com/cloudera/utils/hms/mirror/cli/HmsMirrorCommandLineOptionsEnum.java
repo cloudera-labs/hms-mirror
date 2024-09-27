@@ -90,6 +90,7 @@ public enum HmsMirrorCommandLineOptionsEnum {
     TABLE_FILTER_PARTITION_COUNT_LIMIT("tfp", "table-filter-partition-count-limit", "partition-count", ""),
     TABLE_FILTER_SIZE_LIMIT("tfs", "table-filter-size-limit", "size MB", ""),
     TRANSFER_OWNERSHIP("to", "transfer-ownership", null, ""),
+    TRANSLATION_TYPE("tt", "translation-type", "type", ""),
     VIEW_ONLY("v", "views-only", null, ""),
     WAREHOUSE_DIRECTORY("wd", "warehouse-directory", "path", ""),
     WAREHOUSE_PLANS("wps", "warehouse-plans", "db=ext-dir:mngd-dir", "");
