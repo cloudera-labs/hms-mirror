@@ -13,6 +13,21 @@ found [here](https://github.com/cloudera-labs/hms-mirror/issues?q=is%3Aissue+is%
 If there is
 something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 2.2.0.15
+
+**What's New**
+
+- Add support for Oracle Metastore Direct Connection
+- [SQL Strategy only uses MSCK for partition discovery for Shadow Table](https://github.
+  com/cloudera-labs/hms-mirror/issues/145)
+
+**Bugs (Fixed)**
+
+- Output and Report Directory Consistency between CLI and Web UI.  See docs for more details.
+- Postgres Metastore Direct Connection Fixes
+- SQL Data Strategy Validation Blockers for Acid tables
+- 
+
 ## 2.2.0.12
 
 **What's New**
