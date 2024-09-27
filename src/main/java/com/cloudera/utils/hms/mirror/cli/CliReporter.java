@@ -41,7 +41,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.FileSystems;
 import java.util.*;
+
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Component
 @Getter
@@ -49,7 +52,6 @@ import java.util.*;
 @Slf4j
 public class CliReporter {
     private final Date start = new Date();
-//    private final AtomicBoolean running = new AtomicBoolean(false);
     private final int sleepInterval = 1000;
     private final List<String> reportTemplateHeader = new ArrayList<>();
     private final List<String> reportTemplateTableDetail = new ArrayList<>();
@@ -60,11 +62,6 @@ public class CliReporter {
     private Thread worker;
     private Boolean retry = Boolean.FALSE;
     private Boolean quiet = Boolean.FALSE;
-    private String reportOutputFile = null;
-    private String leftExecuteFile = null;
-    private String leftCleanUpFile = null;
-    private String rightExecuteFile = null;
-    private String rightCleanUpFile = null;
 
     private ConfigService configService;
     private ExecuteSessionService executeSessionService;
@@ -121,21 +118,6 @@ public class CliReporter {
 
             report.append(getMessages());
 
-//            Progression progression = hmsMirrorCfgService.getHmsMirrorConfig().getProgression();
-//
-//            if (progression.getErrors().getMessages().length > 0) {
-//                report.append("\n=== Errors ===\n");
-//                for (String message : progression.getErrors().getMessages()) {
-//                    report.append("\t").append(message).append("\n");
-//                }
-//            }
-//
-//            if (progression.getWarnings().getMessages().length > 0) {
-//                report.append("\n=== Warnings ===\n");
-//                for (String message : progression.getWarnings().getMessages()) {
-//                    report.append("\t").append(message).append("\n");
-//                }
-//            }
         }
 
         System.out.print(report);
@@ -217,11 +199,16 @@ public class CliReporter {
         varMap.put("os.arch", System.getProperty("os.arch"));
         varMap.put("memory", Runtime.getRuntime().totalMemory() / 1024 / 1024 + "MB");
 
-        varMap.put("report.file", this.getReportOutputFile());
-        varMap.put("left.execute.file", this.getLeftExecuteFile());
-        varMap.put("left.cleanup.file", this.getLeftCleanUpFile());
-        varMap.put("right.execute.file", this.getRightExecuteFile());
-        varMap.put("right.cleanup.file", this.getRightCleanUpFile());
+        String outputDir = executeSessionService.getSession().getConfig().getOutputDirectory();
+        if (!isBlank(executeSessionService.getSession().getConfig().getFinalOutputDirectory())) {
+            outputDir = executeSessionService.getSession().getConfig().getFinalOutputDirectory();
+        }
+
+        varMap.put("report.file", outputDir + FileSystems.getDefault().getSeparator() + "<db>_hms-mirror.md|html|yaml");
+        varMap.put("left.execute.file", outputDir + FileSystems.getDefault().getSeparator() + "<db>_LEFT_execute.sql");
+        varMap.put("left.cleanup.file", outputDir + FileSystems.getDefault().getSeparator() + "<db>_LEFT_CleanUp_execute.sql");
+        varMap.put("right.execute.file", outputDir + FileSystems.getDefault().getSeparator() + "<db>_RIGHT_execute.sql");
+        varMap.put("right.cleanup.file", outputDir + FileSystems.getDefault().getSeparator() + "<db>_RIGHT_CleanUp_execute.sql");
 
         varMap.put("total.dbs", Integer.toString(conversion.getDatabases().size()));
         // Count
@@ -292,20 +279,14 @@ public class CliReporter {
                     Thread.currentThread().interrupt();
                 }
             }
-//            getHmsMirrorCfgService().getRunning().set(true);
             while (session.isRunning()) {
                 refresh(Boolean.FALSE);
                 try {
                     Thread.sleep(sleepInterval);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-//                    e.printStackTrace();
-//                    System.out.println("Reporting thread interrupted");
                 }
             }
-            // Final Screen Report.  Write the location out to the console.
-//            refresh(Boolean.TRUE);
-
             log.info("Completed Reporting Thread");
         } catch (IOException ioe) {
             System.out.println("Missing Reporting Template");

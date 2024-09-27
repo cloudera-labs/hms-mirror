@@ -976,7 +976,7 @@ public class ConfigService {
         }
 
 
-        if (config.loadMetadataDetails()) {
+        if (config.loadMetadataDetails() && config.getTransfer().getStorageMigration().isDistcp()) {
             runStatus.addWarning(ALIGNED_DISTCP_EXECUTE);
             // We can't move forward in this condition without some warehouse plans.
             if (!doWareHousePlansExist(session)) {
@@ -1000,7 +1000,7 @@ public class ConfigService {
                 // For SQL, we can only migrate ACID tables with `distcp` if we're downgrading of them.
                 if (config.getMigrateACID().isOn() ||
                         config.getMigrateACID().isOnly()) {
-                    if (!config.getMigrateACID().isDowngrade()) {
+                    if (!config.getMigrateACID().isDowngrade() && config.getTransfer().getStorageMigration().isDistcp()) {
                         runStatus.addError(SQL_DISTCP_ONLY_W_DA_ACID);
                         rtn.set(Boolean.FALSE);
                     }

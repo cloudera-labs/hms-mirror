@@ -117,39 +117,37 @@ public class ReportWriterService {
         HmsMirrorConfig config = session.getConfig();
         RunStatus runStatus = session.getRunStatus();
         runStatus.setReportName(session.getSessionId());
-//        if (!setupError) {
+
         Conversion conversion = session.getConversion();
 
         // Remove the abstract environments from config before reporting output.
         config.getClusters().remove(Environment.TRANSFER);
         config.getClusters().remove(Environment.SHADOW);
 
-//        ObjectMapper yamlMapper;
-//        yamlMapper = new ObjectMapper(new YAMLFactory());
-//        yamlMapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
-        // Check for existing directory. If it exists, increment and check again.
-        // We don't want to overwrite existing data.
-        File outputDir = new File(config.getOutputDirectory());
-        if (!outputDir.exists()) {
-            outputDir.mkdirs();
+        String reportOutputDir = config.getOutputDirectory();
+        if (!config.isUserSetOutputDirectory()) {
+            reportOutputDir = reportOutputDir + File.separator + session.getSessionId();
         }
-        String sessionOutputDir = session.getSessionId();
-        String reportOutputDir = outputDir + File.separator + sessionOutputDir;
+
         File reportOutputDirFile = new File(reportOutputDir);
         if (!reportOutputDirFile.exists()) {
             reportOutputDirFile.mkdirs();
             runStatus.setReportName(session.getSessionId());
-//            config.setOutputDirectory(fullOutputDirFile.getPath());
         } else {
             int i = 1;
             while (true) {
+                String checkFile = reportOutputDir + File.separator + "session-config.yaml";
+                File checkConfigFile = new File(checkFile);
+                // If the config file doesn't exist (re)use this directory.
+                // NOTE: The directory may have been created by the logging system at startup, hense the check for the config file.
+                if (!checkConfigFile.exists()) {
+                    break;
+                }
                 String checkDir = reportOutputDir + "_" + i;
                 File newOutputDir = new File(checkDir);
                 if (!newOutputDir.exists()) {
                     runStatus.setReportName(session.getSessionId() + "_" + i);
                     reportOutputDir = checkDir;
-//                    config.setOutputDirectory(newOutputDir.getPath());
                     newOutputDir.mkdirs();
                     break;
                 }
@@ -158,6 +156,10 @@ public class ReportWriterService {
         }
 
         log.info("Writing CLI report and artifacts to directory: {}", reportOutputDir);
+
+        // Used by display and report writer to convey the actual output directory.  We don't modify the config object
+        //    because that is a 'base' directory and we want to keep it that way.
+        config.setFinalOutputDirectory(reportOutputDir);
 
         // Write out the config used to run this session.
         HmsMirrorConfig resolvedConfig = executeSessionService.getSession().getConfig();

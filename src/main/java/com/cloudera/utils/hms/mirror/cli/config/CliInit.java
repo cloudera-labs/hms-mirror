@@ -17,7 +17,6 @@
 
 package com.cloudera.utils.hms.mirror.cli.config;
 
-import com.cloudera.utils.hms.mirror.cli.CliReporter;
 import com.cloudera.utils.hms.mirror.domain.*;
 import com.cloudera.utils.hms.mirror.domain.support.Conversion;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
@@ -47,8 +46,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -113,12 +110,6 @@ public class CliInit {
 
             String yamlCfgFile = IOUtils.toString(cfgUrl, StandardCharsets.UTF_8);
             hmsMirrorConfig = mapper.readerFor(HmsMirrorConfig.class).readValue(yamlCfgFile);
-//            hmsMirrorConfig.setRunStatus(runStatus);
-            // Link the translator to the config
-//            hmsMirrorConfig.getTranslator().setHmsMirrorConfig(hmsMirrorConfig);
-//            for (Cluster cluster : hmsMirrorConfig.getClusters().values()) {
-//                cluster.setHmsMirrorConfig(hmsMirrorConfig);
-//            }
             hmsMirrorConfig.setConfigFilename(configFilename);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -158,16 +149,6 @@ public class CliInit {
         return new HmsMirrorConfig();
     }
 
-//    @Bean(name = "runStatus")
-//    @Order(10)
-//    @ConditionalOnProperty(
-//            name = "hms-mirror.conversion.test-filename",
-//            havingValue = "false")
-//    public RunStatus buildRunStatus() {
-//        log.info("Building Clean RunStatus Instance");
-//        return new RunStatus();
-//    }
-
     /*
 
      */
@@ -176,7 +157,6 @@ public class CliInit {
     @ConditionalOnProperty(
             name = "hms-mirror.conversion.test-filename")
     public CommandLineRunner loadTestData(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.conversion.test-filename}") String filename) throws IOException {
-//        RunStatus runStatus = new RunStatus();
         return args -> {
             // String quotes from the filename.
             String adjustedFilename = filename.replaceAll("^\"|\"$", "");
@@ -200,8 +180,6 @@ public class CliInit {
                     throw new RuntimeException("Couldn't locate test data file: " + filename);
                 configURL = conversionFile.toURI().toURL();
             }
-//            ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-//            mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
             yamlCfgFile = IOUtils.toString(configURL, StandardCharsets.UTF_8);
             Conversion conversion = yamlMapper.readerFor(Conversion.class).readValue(yamlCfgFile);
@@ -227,19 +205,8 @@ public class CliInit {
                 log.error(t2.getMessage(), t2);
                 throw t2;
             }
-//
-//            throw new RuntimeException("\nThere may have been a breaking change in the configuration since the previous " +
-//                    "release. Review the note below and remove the 'Unrecognized field' from the configuration and try " +
-//                    "again.\n\n", upe);
         } catch (Throwable t) {
-            // Look for yaml update errors.
-//            if (t.toString().contains("MismatchedInputException")) {
-////                throw new RuntimeException("The format of the 'config' yaml file MAY HAVE CHANGED from the last release.  Please make a copy and run " +
-////                        "'-su|--setup' again to recreate in the new format", t);
-//            } else {
             throw new RuntimeException(t);
-//            }
-
         }
     }
 
@@ -310,15 +277,11 @@ public class CliInit {
                 }
             }
 
-
             try {
                 executeSessionService.startSession(maxThreads);
             } catch (SessionException e) {
                 throw new RuntimeException(e);
             }
-
-//            log.info("Session transitioned to active.");
-//            builtConfig.setValidated(Boolean.TRUE);
 
             session = executeSessionService.getSession();
 
@@ -392,9 +355,8 @@ public class CliInit {
     @ConditionalOnProperty(
             name = "hms-mirror.config.output-dir")
         // Will set this when the value is set externally.
-    CommandLineRunner configOutputDir(HmsMirrorConfig hmsMirrorConfig, CliReporter
-            reporter, @Value("${hms-mirror.config.output-dir}") String value) {
-        return configOutputDirInternal(hmsMirrorConfig, reporter, value);
+    CommandLineRunner configOutputDir(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.output-dir}") String value) {
+        return configOutputDirInternal(hmsMirrorConfig, Boolean.TRUE, value);
     }
 
     @Bean
@@ -403,30 +365,32 @@ public class CliInit {
             name = "hms-mirror.config.output-dir",
             havingValue = "false")
         // Will set this when the value is NOT set and picks up the default application.yaml (false) setting.
-    CommandLineRunner configOutputDirNotSet(HmsMirrorConfig hmsMirrorConfig, CliReporter reporter) {
+    CommandLineRunner configOutputDirNotSet(HmsMirrorConfig hmsMirrorConfig) {
         String value = System.getenv("APP_OUTPUT_PATH");
         if (value != null) {
-            return configOutputDirInternal(hmsMirrorConfig, reporter, value);
+            return configOutputDirInternal(hmsMirrorConfig, Boolean.FALSE, value);
         } else {
-            return configOutputDirInternal(hmsMirrorConfig, reporter,
+            return configOutputDirInternal(hmsMirrorConfig, Boolean.FALSE,
                     System.getProperty("user.dir") + FileSystems.getDefault().getSeparator() + ".hms-mirror/reports/not-set");
         }
     }
 
-    CommandLineRunner configOutputDirInternal(HmsMirrorConfig hmsMirrorConfig, CliReporter reporter, String value) {
+    CommandLineRunner configOutputDirInternal(HmsMirrorConfig hmsMirrorConfig, boolean userSetOutputDir, String value) {
         return args -> {
             log.info("output-dir: {}", value);
             hmsMirrorConfig.setOutputDirectory(value);
+            // Identify it as being set by the user.
+            hmsMirrorConfig.setUserSetOutputDirectory(userSetOutputDir);
             executeSessionService.setReportOutputDirectory(value, false);
 //            File reportPathDir = new File(value);
 //            if (!reportPathDir.exists()) {
 //                reportPathDir.mkdirs();
 //            }
-            reporter.setReportOutputFile(value + FileSystems.getDefault().getSeparator() + "<db>_hms-mirror.md|html|yaml");
-            reporter.setLeftExecuteFile(value + FileSystems.getDefault().getSeparator() + "<db>_LEFT_execute.sql");
-            reporter.setLeftCleanUpFile(value + FileSystems.getDefault().getSeparator() + "<db>_LEFT_CleanUp_execute.sql");
-            reporter.setRightExecuteFile(value + FileSystems.getDefault().getSeparator() + "<db>_RIGHT_execute.sql");
-            reporter.setRightCleanUpFile(value + FileSystems.getDefault().getSeparator() + "<db>_RIGHT_CleanUp_execute.sql");
+//            reporter.setReportOutputFile(value + FileSystems.getDefault().getSeparator() + "<db>_hms-mirror.md|html|yaml");
+//            reporter.setLeftExecuteFile(value + FileSystems.getDefault().getSeparator() + "<db>_LEFT_execute.sql");
+//            reporter.setLeftCleanUpFile(value + FileSystems.getDefault().getSeparator() + "<db>_LEFT_CleanUp_execute.sql");
+//            reporter.setRightExecuteFile(value + FileSystems.getDefault().getSeparator() + "<db>_RIGHT_execute.sql");
+//            reporter.setRightCleanUpFile(value + FileSystems.getDefault().getSeparator() + "<db>_RIGHT_CleanUp_execute.sql");
 
             File testFile = new File(value + FileSystems.getDefault().getSeparator() + ".dir-check");
 

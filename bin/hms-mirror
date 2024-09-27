@@ -70,6 +70,7 @@ HADOOP_CLASSPATH=false
 APP_JAVA_OPTS=${JAVA_OPTS:-"-Xms4096m -Xmx8192m -XX:+UseG1GC"}
 LOGGING_THRESHOLD=${LOGGING_THRESHOLD:-"INFO"}
 LOGGING_FILE_PREFIX=${LOGGING_FILE_PREFIX:-"hms-mirror"}
+LOGGING_SERVICE_FILE_PREFIX=${LOGGING_SERVICE_FILE_PREFIX:-"hms-mirror-service"}
 
 SERVICE_MODE=false
 APP_MAIN_CLASS="com.cloudera.utils.hms.mirror.cli.Mirror"
@@ -118,7 +119,7 @@ while [[ $# -gt 0 ]]; do
     ;;
   -o|--output-dir)
     shift
-    PRG_ARGS="${PRG_ARGS} -o $1"
+#    PRG_ARGS="${PRG_ARGS} -o $1"
     APP_OUTPUT_DIR=$1
     DIR_OVERRIDE="x"
     shift
@@ -166,22 +167,25 @@ if [[ "${ACTION}" == "STOP" ]]; then
   fi
 fi
 
-if [[ "${DIR_OVERRIDE}x" == "x" ]]; then
-  # Add Date to output dir path
-  APP_OUTPUT_PATH=${APP_OUTPUT_DIR}/$(date +%y-%m-%d_%H-%M-%S)
-  # Set the application output directory.
-#  PRG_ARGS="${PRG_ARGS} -o $1"
-else
-  APP_OUTPUT_PATH=${APP_OUTPUT_DIR}
+APP_OUTPUT_PATH=${APP_OUTPUT_DIR}
+
+if [[ "${DIR_OVERRIDE}x" == "xx" ]]; then
+  #  Set the application output directory.
+  PRG_ARGS="${PRG_ARGS} -o ${APP_OUTPUT_PATH}"
 fi
 
 export APP_OUTPUT_PATH
 
 if [[ "${SERVICE_MODE}x" == "truex" ]]; then
   # Removing the logging dir setting for service mode.
-  APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dlogging.threshold=${LOGGING_THRESHOLD} -Dlogging.filename-prefix=${LOGGING_FILE_PREFIX}"
+  APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dlogging.threshold=${LOGGING_THRESHOLD} -Dlogging.filename-prefix=${LOGGING_SERVICE_FILE_PREFIX}"
 else
-  APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dlogging.dir='${APP_OUTPUT_PATH}' -Dlogging.threshold=${LOGGING_THRESHOLD} -Dlogging.filename-prefix=${LOGGING_FILE_PREFIX}"
+  # Only if the output path is overridden, then we need to set the logging.dir to the output path.
+  if [[ "${DIR_OVERRIDE}x" == "xx" ]]; then
+    APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dlogging.dir='${APP_OUTPUT_PATH}' -Dlogging.threshold=${LOGGING_THRESHOLD} -Dlogging.filename-prefix=${LOGGING_FILE_PREFIX}"
+  else
+    APP_JAVA_OPTS="${APP_JAVA_OPTS} -Dlogging.threshold=${LOGGING_THRESHOLD} -Dlogging.filename-prefix=${LOGGING_FILE_PREFIX}"
+  fi
 fi
 
 if [[ ! -d ${AUX_LIBS_DIR} ]]; then
@@ -195,6 +199,7 @@ fi
 #  fi
 #done
 
+# Loads the JDBC Drivers for the Metastore Direct Connections
 CMD_CP="${AUX_LIBS_DIR}"
 
 if [[ "${HADOOP_CLASSPATH}x" == "truex" ]]; then

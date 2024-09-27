@@ -31,7 +31,7 @@ import static org.junit.Assert.assertEquals;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Mirror.class,
         args = {
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sql_da_ip_left_only",
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sql_da_ip_np_left_only",
                 "--hms-mirror.config.downgrade-acid=true",
                 "--hms-mirror.config.in-place=true",
                 "--hms-mirror.config.migrate-acid-only=true",

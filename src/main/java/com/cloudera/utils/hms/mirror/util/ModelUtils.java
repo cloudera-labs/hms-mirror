@@ -55,7 +55,7 @@ public class ModelUtils implements ControllerReferences {
     }
 
     public static void configSupportedDBType(Map<String, Object> map) {
-        map.put("db_types", Arrays.asList(DBStore.DB_TYPE.MYSQL, DBStore.DB_TYPE.POSTGRES));
+        map.put("db_types", Arrays.asList(DBStore.DB_TYPE.MYSQL, DBStore.DB_TYPE.POSTGRES, DBStore.DB_TYPE.ORACLE));
     }
 
     public static void configEnvironmentForModel(DataStrategyEnum dataStrategy, Map<String, Object> map) {

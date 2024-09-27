@@ -31,6 +31,7 @@ import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.domain.support.TranslationTypeEnum;
 import com.cloudera.utils.hms.mirror.exceptions.MismatchException;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
@@ -100,44 +101,6 @@ public abstract class DataStrategyBase implements DataStrategy {
                 if (nonNull(leftNamespace)) {
                     log.info("{}: Namespace found: {}", let.getName(), leftNamespace);
                     rightPath = NamespaceUtils.replaceNamespace(leftPath, hmsMirrorConfig.getTargetNamespace());
-//            } else {
-//                log.info("{}: Namespace NOT found.", let.getName());
-//            }
-
-//            Matcher matcher = protocolNSPattern.matcher(leftPath);
-//            // ProtocolNS Found.
-//            String cpCmd = null;
-//            if (matcher.find()) {
-//                log.info("{} protocol Matcher found.", let.getName());
-//
-//                // Return the whole set of groups.
-//                String lns = matcher.group(0);
-//
-//                // Does it match the "LEFT" hcfsNamespace.
-//                String leftNS = hmsMirrorConfig.getCluster(Environment.LEFT).getHcfsNamespace();
-//                if (leftNS.endsWith("/")) {
-//                    leftNS = leftNS.substring(0, leftNS.length() - 1);
-//                }
-//                if (lns.startsWith(leftNS)) {
-//                    log.info("{} table namespace matches LEFT clusters namespace.", let.getName());
-//
-//                    // They match, so replace with RIGHT hcfs namespace.
-//                    String newNS = hmsMirrorConfig.getCluster(Environment.RIGHT).getHcfsNamespace();
-//                    if (newNS.endsWith("/")) {
-//                        newNS = newNS.substring(0, newNS.length() - 1);
-//                    }
-//                    rightPath = leftPath.replace(leftNS, newNS);
-//                    log.info("{} table namespace adjusted for RIGHT clusters table to {}", ret.getName(), rightPath);
-//                    TableUtils.updateAVROSchemaLocation(ret, rightPath);
-//                } else {
-//                    // Protocol found doesn't match configured hcfs namespace for LEFT.
-//                    String warning = "AVRO Schema URL was NOT adjusted. Current (LEFT) path did NOT match the " +
-//                            "LEFT hcfsnamespace. " + leftPath + " is NOT in the " + hmsMirrorConfig.getCluster(Environment.LEFT).getHcfsNamespace() +
-//                            ". Can't determine change, so we'll not do anything.";
-//                    ret.addIssue(warning);
-//                    ret.addIssue("Schema creation may fail if location isn't available to RIGHT cluster.");
-//                    log.warn(warning);
-//                }
                 } else {
                     // No Protocol defined.  So we're assuming that its a relative path to the
                     // defaultFS
@@ -156,16 +119,12 @@ public abstract class DataStrategyBase implements DataStrategy {
                         CommandReturn cr = null;
                         if (relative) {
                             // checked..
-                            // TODO: We won't have the left namespace.
-//                            leftPath = hmsMirrorConfig.getCluster(Environment.LEFT).getHcfsNamespace() + leftPath;
                             rightPath = hmsMirrorConfig.getTargetNamespace() + rightPath;
                         }
                         log.info("AVRO Schema COPY from: {} to {}", leftPath, rightPath);
                         // Ensure the path for the right exists.
                         String parentDirectory = NamespaceUtils.getParentDirectory(rightPath);
                         if (nonNull(parentDirectory)) {
-//                        String pathEnd = matcher.group(1);
-//                        String mkdir = rightPath.substring(0, rightPath.length() - pathEnd.length());
                             cr = cli.processInput("mkdir -p " + parentDirectory);
                             if (cr.isError()) {
                                 ret.addIssue("Problem creating directory " + parentDirectory + ". " + cr.getError());
@@ -182,9 +141,6 @@ public abstract class DataStrategyBase implements DataStrategy {
                         log.error("{}: AVRO file copy issue", ret.getName(), t);
                         ret.addIssue(t.getMessage());
                         rtn = Boolean.FALSE;
-//                } finally {
-//                    if (session != null)
-//                        config.getCliEnv().returnSession(session);
                     }
                 } else {
                     log.info("{}: did NOT attempt to copy AVRO schema file to target cluster.", let.getName());
@@ -408,50 +364,20 @@ public abstract class DataStrategyBase implements DataStrategy {
                             if (copySpec.isReplaceLocation() && (!TableUtils.isACID(source) || config.getMigrateACID().isDowngrade())) {
                                 String sourceLocation = TableUtils.getLocation(tableMirror.getName(), tableMirror.getTableDefinition(copySpec.getSource()));
                                 int level = 1;
-//                                if (config.getFilter().isTableFiltering()) {
-//                                    level = 0;
-//                                }
+
                                 String targetLocation = null;
                                 targetLocation = getTranslatorService().
                                         translateLocation(tableMirror, sourceLocation, level, null);
                                 if (!TableUtils.updateTableLocation(target, targetLocation)) {
                                     rtn = Boolean.FALSE;
                                 }
-                                // Check if the locations align.  If not, warn.
-//                                if (config.getTransfer().getWarehouse().getExternalDirectory() != null &&
-//                                        config.getTransfer().getWarehouse().getManagedDirectory() != null) {
-
-//     THESE CHECKS ARE DONE ALREADY in the TranslatorService.translateTableLocation method.
-//                                if (TableUtils.isExternal(target)) {
-//                                    // We store the DB LOCATION in the RIGHT dbDef so we can avoid changing the original LEFT
-//                                    String lclLoc = tableMirror.getParent().getProperty(Environment.RIGHT, DB_LOCATION);
-//                                    if (!isBlank(lclLoc) && !targetLocation.startsWith(lclLoc)) {
-//                                        // Set warning that even though you've specified to warehouse directories, the current configuration
-//                                        // will NOT place it in that directory.
-//                                        String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
-//                                                lclLoc, targetLocation);
-//                                        tableMirror.addIssue(Environment.RIGHT, msg);
-//                                    }
-//                                } else {
-//                                    String lclLoc = tableMirror.getParent().getProperty(Environment.RIGHT, DB_MANAGED_LOCATION);
-//                                    if (!isBlank(lclLoc) && !targetLocation.startsWith(lclLoc)) {
-//                                        // Set warning that even though you've specified to warehouse directories, the current configuration
-//                                        // will NOT place it in that directory.
-//                                        String msg = MessageFormat.format(LOCATION_NOT_MATCH_WAREHOUSE.getDesc(), "table",
-//                                                lclLoc, targetLocation);
-//                                        tableMirror.addIssue(Environment.RIGHT, msg);
-//                                    }
-//
-//                                }
-//                                }
-
                             }
 
                             if (tableMirror.isReMapped()) {
                                 target.addIssue(MessageCode.TABLE_LOCATION_REMAPPED.getDesc());
                             } else if (config.getTranslator().isForceExternalLocation()) {
                                 target.addIssue(MessageCode.TABLE_LOCATION_FORCED.getDesc());
-                            } else if (config.loadMetadataDetails()) {
+                            } else if (config.loadMetadataDetails() && config.getTransfer().getStorageMigration().getTranslationType() == TranslationTypeEnum.ALIGNED) {
                                 TableUtils.stripLocation(target);
                                 target.addIssue(MessageCode.ALIGN_LOCATIONS_WARNING.getDesc());
                             }
@@ -469,27 +395,11 @@ public abstract class DataStrategyBase implements DataStrategy {
                                     isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
                                     isLoc = isLoc + "/" + config.getTransfer().getRemoteWorkingDirectory() + "/" +
                                             config.getRunMarker() + "/" +
-//                                        config.getTransfer().getTransferPrefix() + this.getUnique() + "_" +
                                             tableMirror.getParent().getName() + "/" +
                                             tableMirror.getName();
                                     if (!TableUtils.updateTableLocation(target, isLoc)) {
                                         rtn = Boolean.FALSE;
                                     }
-//                                } else if (!isBlank(config.getTransfer().getTargetNamespace())) {
-//                                    String sourceLocation = TableUtils.getLocation(tableMirror.getName(), tableMirror.getTableDefinition(copySpec.getSource()));
-//                                    String targetLocation = getTranslatorService().
-//                                            translateLocation(tableMirror, sourceLocation, 1, null);
-//                                    if (!TableUtils.updateTableLocation(target, targetLocation)) {
-//                                        rtn = Boolean.FALSE;
-//                                    }
-//                                } else if (copySpec.isStripLocation()) {
-//                                    TableUtils.stripLocation(target);
-//                                } else if (config.isReplace()) {
-//                                    String sourceLocation = TableUtils.getLocation(tableMirror.getName(), tableMirror.getTableDefinition(copySpec.getSource()));
-//                                    String replacementLocation = sourceLocation + "_replacement";
-//                                    if (!TableUtils.updateTableLocation(target, replacementLocation)) {
-//                                        rtn = Boolean.FALSE;
-//                                    }
                                 } else {
                                     // Need to use export location
                                     String isLoc = config.getTransfer().getExportBaseDirPrefix();
@@ -593,120 +503,6 @@ public abstract class DataStrategyBase implements DataStrategy {
         return rtn;
     }
 
-//    public Boolean buildTransferSql(TableMirror tableMirror, Environment origEnv, Environment sourceEnv, Environment targetEnv) {
-//        Boolean rtn = Boolean.TRUE;
-//        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
-//
-//        EnvironmentTable originalTable = tableMirror.getEnvironmentTable(origEnv);
-//        EnvironmentTable sourceTable = tableMirror.getEnvironmentTable(sourceEnv);
-//        EnvironmentTable targetTable = tableMirror.getEnvironmentTable(targetEnv);
-//
-//        // Build Source->Transfer SQL
-//        rtn = buildMigrationSql(tableMirror, origEnv, sourceEnv, targetEnv);
-//
-//        // Build Shadow->Final SQL
-//        if (originalTable.getPartitioned()) {
-//            String msckTable = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, targetTable.getName());
-//            targetTable.addCleanUpSql(new Pair(MirrorConf.MSCK_REPAIR_TABLE_DESC, msckTable));
-//        }
-//        rtn = buildMigrateSql(tableMirror, origEnv, sourceEnv, targetEnv);
-//
-////        if (rtn) {
-////            if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
-////                tableMirror.getEnvironmentTable(Environment.RIGHT).addSql("distcp specified", "-- Run the Distcp output to migrate data.");
-////                if (sourceTable.getPartitioned()) {
-////                    String msckTable = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, targetTable.getName());
-////                    targetTable.addCleanUpSql(new Pair(MirrorConf.MSCK_REPAIR_TABLE_DESC, msckTable));
-////                }
-////            } else if (isBlank(hmsMirrorConfig.getTransfer().getTargetNamespace())) {
-////                rtn = buildShadowToFinalSql(tableMirror);
-////            }
-////        }
-//        return rtn;
-//    }
-
-//    protected Boolean buildShadowToFinalSql(TableMirror tableMirror) {
-//        Boolean rtn = Boolean.TRUE;
-//        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
-//
-//        // if common storage, skip
-//        // if inplace, skip
-//        EnvironmentTable source = tableMirror.getEnvironmentTable(Environment.LEFT);
-//        EnvironmentTable shadow = tableMirror.getEnvironmentTable(Environment.SHADOW);
-//        EnvironmentTable target = tableMirror.getEnvironmentTable(Environment.RIGHT);
-//        if ((!TableUtils.isACID(source) && !isBlank(hmsMirrorConfig.getTransfer().getTargetNamespace())) ||
-//                isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
-//            // Nothing to build.
-//            return rtn;
-//        } else {
-//            if (source.getPartitioned()) {
-//                // MSCK repair on Shadow
-//                String msckTable = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, shadow.getName());
-//                target.addSql(new Pair(MirrorConf.MSCK_REPAIR_TABLE_DESC, msckTable));
-//            }
-//            if (hmsMirrorConfig.getOptimization().isBuildShadowStatistics()) {
-//                // Build Shadow Stats.
-//
-//            }
-//            // Set Override Properties.
-//            if (hmsMirrorConfig.getOptimization().getOverrides() != null) {
-//                for (String key : hmsMirrorConfig.getOptimization().getOverrides().getRight().keySet()) {
-//                    target.addSql("Setting " + key, "set " + key + "=" + hmsMirrorConfig.getOptimization().getOverrides().getRight().get(key));
-//                }
-//            }
-//            // Sql from Shadow to Final
-//            statsCalculatorService.setSessionOptions(hmsMirrorConfig.getCluster(Environment.RIGHT), source, target);
-//            if (source.getPartitioned()) {
-//                if (hmsMirrorConfig.getOptimization().isSkip()) {
-//                    if (!hmsMirrorConfig.getCluster(Environment.RIGHT).isLegacyHive()) {
-//                        target.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
-//                    }
-//                    String partElement = TableUtils.getPartitionElements(source);
-//                    String shadowSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
-//                            shadow.getName(), target.getName(), partElement);
-//                    String shadowDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, source.getPartitions().size());
-//                    target.addSql(new Pair(shadowDesc, shadowSql));
-//                } else if (hmsMirrorConfig.getOptimization().isSortDynamicPartitionInserts()) {
-//                    if (!hmsMirrorConfig.getCluster(Environment.RIGHT).isLegacyHive()) {
-//                        target.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
-//                        if (!hmsMirrorConfig.getCluster(Environment.RIGHT).isHdpHive3()) {
-//                            target.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
-//                        }
-//                    }
-//                    String partElement = TableUtils.getPartitionElements(source);
-//                    String shadowSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
-//                            shadow.getName(), target.getName(), partElement);
-//                    String shadowDesc = MessageFormat.format(TableUtils.LOAD_FROM_PARTITIONED_SHADOW_DESC, source.getPartitions().size());
-//                    target.addSql(new Pair(shadowDesc, shadowSql));
-//                } else {
-//                    // Prescriptive
-//                    if (!hmsMirrorConfig.getCluster(Environment.RIGHT).isLegacyHive()) {
-//                        target.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
-//                        if (!hmsMirrorConfig.getCluster(Environment.RIGHT).isHdpHive3()) {
-//                            target.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
-//                        }
-//                    }
-//                    String partElement = TableUtils.getPartitionElements(source);
-//                    String distPartElement = statsCalculatorService.getDistributedPartitionElements(source);
-//                    String shadowSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
-//                            shadow.getName(), target.getName(), partElement, distPartElement);
-//                    String shadowDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, target.getPartitions().size());
-//                    target.addSql(new Pair(shadowDesc, shadowSql));
-//                }
-//            } else {
-//                String shadowSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_OVERWRITE,
-//                        shadow.getName(), target.getName());
-//                String shadowDesc = MessageFormat.format(TableUtils.LOAD_FROM_SHADOW_DESC, "");
-//                target.addSql(new Pair(shadowDesc, shadowSql));
-//            }
-//            // Drop Shadow Table.
-//            String dropShadowSql = MessageFormat.format(MirrorConf.DROP_TABLE, shadow.getName());
-//            target.getSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropShadowSql));
-//
-//        }
-//        return rtn;
-//    }
-
     protected Boolean buildMigrationSql(TableMirror tableMirror, Environment originalEnv, Environment sourceEnv, Environment targetEnv) {
         Boolean rtn = Boolean.TRUE;
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
@@ -736,9 +532,6 @@ public abstract class DataStrategyBase implements DataStrategy {
                 targetEnvTable = null;
         }
 
-
-//        BuildWhat buildWhat = whatToBuild(hmsMirrorConfig, tableMirror);
-
         if (TableUtils.isACID(original)) {
             if (original.getPartitions().size() > hmsMirrorConfig.getMigrateACID().getPartitionLimit() && hmsMirrorConfig.getMigrateACID().getPartitionLimit() > 0) {
                 // The partition limit has been exceeded.  The process will need to be done manually.
@@ -765,9 +558,7 @@ public abstract class DataStrategyBase implements DataStrategy {
                     original.getName());
             targetEnvTable.addCleanUpSql(MirrorConf.DROP_TABLE_DESC, dropOriginalTable);
         }
-//        if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
-//            source.addSql("distcp specified", "-- Run distcp commands");
-//        } else {
+
         // Set Override Properties.
         if (hmsMirrorConfig.getOptimization().getOverrides() != null) {
             for (String key : hmsMirrorConfig.getOptimization().getOverrides().getLeft().keySet()) {
@@ -816,7 +607,6 @@ public abstract class DataStrategyBase implements DataStrategy {
             } else {
                 String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_OVERWRITE,
                         source.getName(), target.getName());
-//                String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_DESC);
                 targetEnvTable.addSql(new Pair(TableUtils.STAGE_TRANSFER_DESC, transferSql));
             }
             // Drop Shadow or Transfer Table via the Clean Up Scripts.
@@ -842,7 +632,6 @@ public abstract class DataStrategyBase implements DataStrategy {
                 }
             }
         }
-//        }
         if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
             targetEnvTable.addSql("distcp specified", "-- Run distcp commands");
         }

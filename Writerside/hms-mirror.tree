@@ -10,6 +10,7 @@
     <toc-element topic="Release-Notes.md"/>
     <toc-element topic="Getting-Started.md">
         <toc-element topic="hms-mirror-setup.md"/>
+        <toc-element topic="Logs.md"/>
         <toc-element topic="Limits.md"/>
         <toc-element topic="Runtime-Interfaces.md">
             <toc-element topic="Concurrency.md"/>

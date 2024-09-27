@@ -109,6 +109,12 @@ public class HmsMirrorConfig implements Cloneable {
     private Optimization optimization = new Optimization();
     private String outputDirectory = System.getProperty("user.home") + System.getProperty("file.separator")
             + ".hms-mirror/reports/";
+
+    @JsonIgnore
+    private boolean userSetOutputDirectory = Boolean.FALSE;
+    @JsonIgnore
+    private String finalOutputDirectory = null;
+
     //    @JsonIgnore
 //    private String password;
     private boolean encryptedPasswords = Boolean.FALSE;
