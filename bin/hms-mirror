@@ -258,7 +258,11 @@ if [[ "${SERVICE_MODE}x" == "truex" ]]; then
   if [ -f ${APP_PID_FILE} ]; then
     PID=$(cat ${APP_PID_FILE})
     if ps -p ${PID} > /dev/null; then
+      echo ""
+      echo "=====  WARNING: STARTUP ABORTED  ====="
       echo "Process is already running with PID: ${PID}"
+      echo "Please stop the process (hms-mirror --stop) before starting a new instance."
+      echo "======================================"
       exit 1
     fi
   fi

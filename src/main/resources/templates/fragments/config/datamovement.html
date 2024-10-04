@@ -83,6 +83,18 @@
             <span class="pure-form-message-inline"
                   th:text="#{config.transfer.storageMigration.dataMovementStrategy.use}"/>
         </div>
+        <!-- Skip Database Location Adjustments (For STORAGE_MIGRATION only) -->
+        <div class="pure-control-group">
+            <label for="skipDatabaseLocationAdjustments">
+                <a th:text="#{config.transfer.storageMigration.skipDatabaseLocationAdjustments}"
+                   th:href="#{docs.link('transfer-storage-migration.html#consolidate-source-tables')}" target="_blank"/>
+            </label>
+            <input type="checkbox" id="skipDatabaseLocationAdjustments"
+                   th:field="*{transfer.storageMigration.skipDatabaseLocationAdjustments}"
+                   th:checked="${CONFIG.transfer.storageMigration.skipDatabaseLocationAdjustments}"/>
+            <span class="pure-form-message-inline"
+                  th:text="#{config.transfer.storageMigration.skipDatabaseLocationAdjustments.use}"/>
+        </div>
         <!-- Consolidate Source Tables -->
         <div class="pure-control-group">
             <label for="consolidateSourceTables">

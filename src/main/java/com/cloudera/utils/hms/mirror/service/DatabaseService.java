@@ -770,28 +770,33 @@ public class DatabaseService {
 
                     break;
                 case STORAGE_MIGRATION:
-                    if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
-                        String alterDbLoc = MessageFormat.format(ALTER_DB_LOCATION, originalDatabase, targetLocation);
-                        dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbLoc));
-                        dbDefRight.put(DB_LOCATION, targetLocation);
-                    }
-                    if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
-                        String alterDbMngdLoc = MessageFormat.format(ALTER_DB_MNGD_LOCATION, originalDatabase, targetManagedLocation);
-                        dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
-                        dbDefRight.put(DB_MANAGED_LOCATION, targetManagedLocation);
+                    if (config.getTransfer().getStorageMigration().isSkipDatabaseLocationAdjustments()) {
+                        dbMirror.addIssue(Environment.LEFT, "Database Location Adjustments are being skipped. " +
+                                "Only tables locations will be adjusted.  New tables will continue to goto the original " +
+                                "database locations.");
                     } else {
-                        String alterDbMngdLoc = MessageFormat.format(ALTER_DB_LOCATION, originalDatabase, targetManagedLocation);
-                        dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
-                        dbMirror.addIssue(Environment.LEFT, HDPHIVE3_DB_LOCATION.getDesc());
-                        dbDefRight.put(DB_LOCATION, targetManagedLocation);
+                        if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
+                            String alterDbLoc = MessageFormat.format(ALTER_DB_LOCATION, originalDatabase, targetLocation);
+                            dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbLoc));
+                            dbDefRight.put(DB_LOCATION, targetLocation);
+                        }
+                        if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
+                            String alterDbMngdLoc = MessageFormat.format(ALTER_DB_MNGD_LOCATION, originalDatabase, targetManagedLocation);
+                            dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
+                            dbDefRight.put(DB_MANAGED_LOCATION, targetManagedLocation);
+                        } else {
+                            String alterDbMngdLoc = MessageFormat.format(ALTER_DB_LOCATION, originalDatabase, targetManagedLocation);
+                            dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
+                            dbMirror.addIssue(Environment.LEFT, HDPHIVE3_DB_LOCATION.getDesc());
+                            dbDefRight.put(DB_LOCATION, targetManagedLocation);
+                        }
+
+                        dbMirror.addIssue(Environment.LEFT, "This process, when 'executed' will leave the original tables intact in their renamed " +
+                                "version.  They are NOT automatically cleaned up.  Run the produced '" +
+                                dbMirror.getName() + "_LEFT_CleanUp_execute.sql' " +
+                                "file to permanently remove them.  Managed and External/Purge table data will be " +
+                                "removed when dropping these tables.  External non-purge table data will remain in storage.");
                     }
-
-                    dbMirror.addIssue(Environment.LEFT, "This process, when 'executed' will leave the original tables intact in their renamed " +
-                            "version.  They are NOT automatically cleaned up.  Run the produced '" +
-                            dbMirror.getName() + "_LEFT_CleanUp_execute.sql' " +
-                            "file to permanently remove them.  Managed and External/Purge table data will be " +
-                            "removed when dropping these tables.  External non-purge table data will remain in storage.");
-
                     break;
                 default:
                     /*

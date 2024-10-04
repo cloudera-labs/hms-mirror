@@ -37,6 +37,11 @@ public class StorageMigration implements Cloneable {
     @Schema(description = "Data flow direction for distcp. This control from where the 'distcp' jobs should be run.")
     private DistcpFlowEnum dataFlow = DistcpFlowEnum.PULL;
 
+    @Schema(description = "When true, the database location will NOT be adjusted to match the table locations that are migrated. " +
+            "This is useful in the case of an 'archive' strategy where you only want to migrate the table(s) but are not yet " +
+            "ready to migration or stage future tables at the new location.")
+    private boolean skipDatabaseLocationAdjustments = Boolean.FALSE;
+
     @Schema(description = "When true, the tables will be consolidated into a single directory for distcp. " +
             "This is useful when the source tables are spread across multiple directories.")
     private boolean consolidateTablesForDistcp = Boolean.FALSE;
