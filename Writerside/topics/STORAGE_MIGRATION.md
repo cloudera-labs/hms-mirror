@@ -55,6 +55,10 @@ in the Warehouse Plan for the database.
 
 DISTCP or SQL.  This will direct `hms-mirror` to build a `distcp` plan/scripts or construct `SQL` to move the data.
 
+**Skip Database Location Adjustments**
+
+Defaults to 'false'.  If you want to skip the location adjustments, set this to 'true'. This is useful if you're trying to archive tables in a database to another storage system, but want to leave the database location as is for new tables in the database.
+
 ## Demo
 
 Here's how the Warehouse Plans would look for the above example:

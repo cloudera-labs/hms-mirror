@@ -10,6 +10,14 @@ The latest set of enhancement requests can be found [here](https://github.com/cl
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 2.2.0.15.1
+
+**What's New**
+
+Feature that allows you to 'skip' modifying the database location during a storage migration.  This is useful if you're trying to archive tables in a database to another storage system, but want to leave the database location as is for new tables in the database. [For STORAGE_MIGRATION, add option that would skip any Database Location Adjustments](https://github.com/cloudera-labs/hms-mirror/issues/147)
+
+![sm_skip_dblocs.png](sm_skip_dblocs.png)
+
 ## 2.2.0.15
 
 **What's New**
