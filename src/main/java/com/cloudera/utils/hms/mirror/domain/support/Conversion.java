@@ -117,6 +117,8 @@ public class Conversion {
                     if (!pair.getAction().trim().startsWith("--")) {
                         sb.append(";\n");
                         found = Boolean.TRUE;
+                    } else {
+                        sb.append("\n");
                     }
                 }
             } else {
