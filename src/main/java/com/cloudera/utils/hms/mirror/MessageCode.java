@@ -81,6 +81,7 @@ public enum MessageCode {
             "built will be at the database level only.  Any tables or partitions not following standard schema locations may not " +
             "get translated correctly, resulting in potential data loss."),
     DISTCP_W_RENAME_NOT_SUPPORTED("DISTCP with Rename is NOT supported. Change Data Movement or remove 'rename' option (dbPrefix or deRename)"),
+    CONFLICTING_PROPERTIES("Conflicting properties. ''{0}'' and ''{1}'' can''t be used together."),
     DISTCP_W_TABLE_FILTERS("`distcp` workbooks will include the current table directories and build separate " +
             "`distcp` plans for each table to contain/manage the data transferred to the tables directory (and possible non-standard " +
             "directories caught by partition locations)"),

@@ -47,6 +47,13 @@ public class WarehouseMVController {
     private DatabaseService databaseService;
     private ConnectionPoolService connectionPoolService;
     private UIModelService uiModelService;
+    private WarehouseService warehouseService;
+
+    @Autowired
+    public void setWarehouseService(WarehouseService warehouseService) {
+        this.warehouseService = warehouseService;
+    }
+
 
     @Autowired
     public void setConfigService(ConfigService configService) {
@@ -105,7 +112,7 @@ public class WarehouseMVController {
 
         log.info("Adding Warehouse Plan: {} E:{} M:{}", database, externalDirectory, managedDirectory);
 
-        databaseService.addWarehousePlan(database, externalDirectory, managedDirectory);
+        warehouseService.addWarehousePlan(database, externalDirectory, managedDirectory);
 
         configService.validate(executeSessionService.getSession(), null);
 //        model.addAttribute(ACTION, "view");
@@ -126,7 +133,7 @@ public class WarehouseMVController {
 
         log.info("Adding Warehouse Plan: {} E:{} M:{}", database, externalDirectory, managedDirectory);
 
-        databaseService.addWarehousePlan(database, externalDirectory, managedDirectory);
+        warehouseService.addWarehousePlan(database, externalDirectory, managedDirectory);
 
         configService.validate(executeSessionService.getSession(), null);
 
@@ -145,7 +152,7 @@ public class WarehouseMVController {
                                       @PathVariable @NotNull String database) throws SessionException {
         executeSessionService.closeSession();
 
-        databaseService.removeWarehousePlan(database);
+        warehouseService.removeWarehousePlan(database);
 
         configService.validate(executeSessionService.getSession(), null);
 

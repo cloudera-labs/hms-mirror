@@ -51,6 +51,12 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
     private ConfigService configService;
     private DatabaseService databaseService;
     private TableService tableService;
+    private WarehouseService warehouseService;
+
+    @Autowired
+    public void setWarehouseService(WarehouseService warehouseService) {
+        this.warehouseService = warehouseService;
+    }
 
     @Autowired
     public void setConfigService(ConfigService configService) {
@@ -130,7 +136,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
 
         log.debug("Database: {} buildout EXPORT_IMPORT SQL", tableMirror.getName());
 
-        Warehouse dbWarehouse = databaseService.getWarehousePlan(tableMirror.getParent().getName());
+        Warehouse dbWarehouse = warehouseService.getWarehousePlan(tableMirror.getParent().getName());
 
         String database = null;
         database = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
@@ -199,7 +205,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
 //            }
 
             String sourceLocation = TableUtils.getLocation(let.getName(), let.getDefinition());
-            String targetLocation = getTranslatorService().translateLocation(tableMirror, sourceLocation, 1, null);
+            String targetLocation = getTranslatorService().translateTableLocation(tableMirror, sourceLocation, 1, null);
             String importSql;
             if (TableUtils.isACID(let)) {
                 if (!config.getMigrateACID().isDowngrade()) {

@@ -26,6 +26,7 @@ import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.Warehouse;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.domain.support.HmsMirrorConfigUtil;
 import com.cloudera.utils.hms.mirror.exceptions.MismatchException;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
@@ -61,6 +62,12 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
     private TableService tableService;
     //    private TranslatorService translatorService;
     private StatsCalculatorService statsCalculatorService;
+    private WarehouseService warehouseService;
+
+    @Autowired
+    public void setWarehouseService(WarehouseService warehouseService) {
+        this.warehouseService = warehouseService;
+    }
 
     @Autowired
     public void setDatabaseService(DatabaseService databaseService) {
@@ -94,7 +101,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
         // Get the Warehouse for the database
         Warehouse dbWarehouse = null;
         try {
-            dbWarehouse = databaseService.getWarehousePlan(tableMirror.getParent().getName());
+            dbWarehouse = warehouseService.getWarehousePlan(tableMirror.getParent().getName());
             assert dbWarehouse != null;
         } catch (MissingDataPointException e) {
             log.error(MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS.getDesc(), e);
@@ -184,7 +191,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         String useDb = null;
-        String database = null;
+//        String database = null;
         String createTbl = null;
 
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
@@ -192,7 +199,10 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
         let.getSql().clear();
         ret.getSql().clear();
 
-        database = tableMirror.getParent().getName();
+        String database = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
+        String originalDatabase = tableMirror.getParent().getName();
+
+//        database = tableMirror.getParent().getName();
         useDb = MessageFormat.format(MirrorConf.USE, database);
 
         let.addSql(TableUtils.USE_DESC, useDb);
@@ -202,10 +212,12 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
             String unSetSql = MessageFormat.format(MirrorConf.REMOVE_TABLE_PROP, ret.getName(), TRANSLATED_TO_EXTERNAL);
             let.addSql(MirrorConf.REMOVE_TABLE_PROP_DESC, unSetSql);
         }
-        // Set unique name for old target to rename.
-        let.setName(let.getName() + "_" + tableMirror.getUnique() + config.getTransfer().getStorageMigrationPostfix());
-        String origAlterRename = MessageFormat.format(MirrorConf.RENAME_TABLE, ret.getName(), let.getName());
-        let.addSql(MirrorConf.RENAME_TABLE_DESC, origAlterRename);
+        // Set unique name for old target to rename, IF the table is remaining in the same database.
+        if (database.equals(originalDatabase)) {
+            let.setName(let.getName() + "_" + tableMirror.getUnique() + config.getTransfer().getStorageMigrationPostfix());
+            String origAlterRename = MessageFormat.format(MirrorConf.RENAME_TABLE, ret.getName(), let.getName());
+            let.addSql(MirrorConf.RENAME_TABLE_DESC, origAlterRename);
+        }
 
         // Create table with New Location
         String createStmt2 = tableService.getCreateStatement(tableMirror, Environment.RIGHT);
@@ -215,9 +227,11 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
             let.addSql(MirrorConf.SET_TABLE_OWNER_DESC, ownerSql);
         }
 
-        // Drop Renamed Table.
-        String dropOriginalTable = MessageFormat.format(MirrorConf.DROP_TABLE, let.getName());
-        let.addCleanUpSql(MirrorConf.DROP_TABLE_DESC, dropOriginalTable);
+        // Drop Renamed Table, if we are working within the same database.
+        if (database.equals(originalDatabase)) {
+            String dropOriginalTable = MessageFormat.format(MirrorConf.DROP_TABLE, let.getName());
+            let.addCleanUpSql(MirrorConf.DROP_TABLE_DESC, dropOriginalTable);
+        }
 
         rtn = Boolean.TRUE;
         return rtn;
@@ -226,7 +240,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
     @Override
     public Boolean execute(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
         EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT, tableMirror);
@@ -235,7 +249,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
         If using distcp, we don't need to go through and rename/recreate the tables.  We just need to change the
         location of the current tables and partitions.
          */
-            if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
+            if (config.getTransfer().getStorageMigration().isDistcp()) {
 
                 String database = tableMirror.getParent().getName();
                 String useDb = MessageFormat.format(MirrorConf.USE, database);
@@ -246,7 +260,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                 String origLocation = TableUtils.getLocation(tableMirror.getName(), tableMirror.getTableDefinition(Environment.LEFT));
                 try {
                     String newLocation = getTranslatorService().
-                            translateLocation(tableMirror, origLocation, 1, null);
+                            translateTableLocation(tableMirror, origLocation, 1, null);
 
                     // Build Alter Statement for Table to change location.
                     String alterTable = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, tableMirror.getEnvironmentTable(Environment.LEFT).getName(), newLocation);
@@ -269,7 +283,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                     } else {
                         String location = null;
                         // Need to make adjustments for hdp3 hive 3.
-                        if (hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
+                        if (config.getCluster(Environment.LEFT).isHdpHive3()) {
                             location = tableMirror.getParent().getProperty(Environment.RIGHT, DB_LOCATION);
                         } else {
                             location = tableMirror.getParent().getProperty(Environment.RIGHT, DB_MANAGED_LOCATION);
@@ -307,7 +321,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                         // If they are doing distcp, the partition location must match the partition spec in order to
                         // make a valid translation.
                         String normalizedPartSpecLocation = TableUtils.getDirectoryFromPartitionSpec(partSpec);
-                        if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
+                        if (config.getTransfer().getStorageMigration().isDistcp()) {
                             if (!partLocation.endsWith(normalizedPartSpecLocation)) {
                                 // The partition location does not match the partition spec.  This is required for distcp to work properly.
                                 // (i.e. /user/hive/warehouse/db/table/odd does NOT match partition spec partition=1)
@@ -334,7 +348,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                         }
                         try {
                             String newPartLocation = getTranslatorService().
-                                    translateLocation(tableMirror, partLocation, ++level, entry.getKey());
+                                    translateTableLocation(tableMirror, partLocation, ++level, entry.getKey());
                             String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_LOCATION, let.getName(), partSpec, newPartLocation);
                             String partSpecDesc = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_LOCATION_DESC, partSpec);
                             let.addSql(partSpecDesc, addPartSql);
@@ -355,7 +369,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                             } else {
                                 String location = null;
                                 // Need to make adjustments for hdp3 hive 3.
-                                if (hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
+                                if (config.getCluster(Environment.LEFT).isHdpHive3()) {
                                     location = tableMirror.getParent().getProperty(Environment.RIGHT, DB_LOCATION);
                                 } else {
                                     location = tableMirror.getParent().getProperty(Environment.RIGHT, DB_MANAGED_LOCATION);
@@ -385,7 +399,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                     if (rtn)
                         rtn = AVROCheck(tableMirror);
 
-                } else if (hmsMirrorConfig.getTransfer().getStorageMigration().isStrict()) {
+                } else if (config.getTransfer().getStorageMigration().isStrict()) {
                     log.warn("Cleaning up SQL due to issues for table: {}", tableMirror.getName());
                     let.addIssue(MessageCode.STORAGE_MIGRATION_STRICT.getDesc());
                     let.getSql().clear();
@@ -403,74 +417,85 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
 
                 if (rtn) {
                     // Construct Transfer SQL
-                    if (hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
+                    if (config.getCluster(Environment.LEFT).isLegacyHive()) {
                         // We need to ensure that 'tez' is the execution engine.
                         let.addSql(new Pair(TEZ_EXECUTION_DESC, SET_TEZ_AS_EXECUTION_ENGINE));
                     }
                     // Set Override Properties.
-                    if (hmsMirrorConfig.getOptimization().getOverrides() != null) {
-                        for (String key : hmsMirrorConfig.getOptimization().getOverrides().getLeft().keySet()) {
-                            let.addSql("Setting " + key, "set " + key + "=" + hmsMirrorConfig.getOptimization().getOverrides().getLeft().get(key));
+                    if (config.getOptimization().getOverrides() != null) {
+                        for (String key : config.getOptimization().getOverrides().getLeft().keySet()) {
+                            let.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
                         }
                     }
 
-                    statsCalculatorService.setSessionOptions(hmsMirrorConfig.getCluster(Environment.LEFT), let, let);
+                    statsCalculatorService.setSessionOptions(config.getCluster(Environment.LEFT), let, let);
+
+                    // Set the LEFT and RIGHT table names.  When the table migration is NOT to the same database, we need to
+                    //  prefix the table name with the database name.
+                    String database = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
+                    String originalDatabase = tableMirror.getParent().getName();
+                    String leftTable = let.getName();
+                    String rightTable = ret.getName();
+                    if (!database.equals(originalDatabase)) {
+                        leftTable = "`" + originalDatabase + "`.`" + let.getName() + "`";
+                        rightTable = "`" + database + "`.`" + ret.getName() + "`";
+                    }
 
                     // Need to see if the table has partitions.
                     if (let.getPartitioned()) {
                         // Check that the partition count doesn't exceed the configuration limit.
                         // Build Partition Elements.
-                        if (hmsMirrorConfig.getOptimization().isSkip()) {
-                            if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
+                        if (config.getOptimization().isSkip()) {
+                            if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
                                 let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
                             }
                             String partElement = TableUtils.getPartitionElements(let);
                             String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
-                                    let.getName(), ret.getName(), partElement);
+                                    leftTable, rightTable, partElement);
                             String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
                             let.addSql(new Pair(transferDesc, transferSql));
-                        } else if (hmsMirrorConfig.getOptimization().isSortDynamicPartitionInserts()) {
+                        } else if (config.getOptimization().isSortDynamicPartitionInserts()) {
                             // Declarative
-                            if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
+                            if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
                                 let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
-                                if (!hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
+                                if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
                                     let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
                                 }
                             }
                             String partElement = TableUtils.getPartitionElements(let);
                             String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
-                                    let.getName(), ret.getName(), partElement);
+                                    leftTable, rightTable, partElement);
                             String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
                             let.addSql(new Pair(transferDesc, transferSql));
                         } else {
                             // Prescriptive
-                            if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
+                            if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
                                 let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
-                                if (!hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
+                                if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
                                     let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
                                 }
                             }
                             String partElement = TableUtils.getPartitionElements(let);
                             String distPartElement = statsCalculatorService.getDistributedPartitionElements(let);
                             String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
-                                    let.getName(), ret.getName(), partElement, distPartElement);
+                                    leftTable, rightTable, partElement, distPartElement);
                             String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
                             let.addSql(new Pair(transferDesc, transferSql));
                         }
                         if (TableUtils.isACID(let)) {
-                            if (let.getPartitions().size() > hmsMirrorConfig.getMigrateACID().getPartitionLimit() && hmsMirrorConfig.getMigrateACID().getPartitionLimit() > 0) {
+                            if (let.getPartitions().size() > config.getMigrateACID().getPartitionLimit() && config.getMigrateACID().getPartitionLimit() > 0) {
                                 // The partition limit has been exceeded.  The process will need to be done manually.
                                 let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
-                                        "limit (migrateACID->partitionLimit) of " + hmsMirrorConfig.getMigrateACID().getPartitionLimit() +
+                                        "limit (migrateACID->partitionLimit) of " + config.getMigrateACID().getPartitionLimit() +
                                         ".  This value is used to abort migrations that have a high potential for failure.  " +
                                         "The migration will need to be done manually OR try increasing the limit. Review commandline option '-ap'.");
                                 rtn = Boolean.FALSE;
                             }
                         } else {
-                            if (let.getPartitions().size() > hmsMirrorConfig.getHybrid().getSqlPartitionLimit() && hmsMirrorConfig.getHybrid().getSqlPartitionLimit() > 0) {
+                            if (let.getPartitions().size() > config.getHybrid().getSqlPartitionLimit() && config.getHybrid().getSqlPartitionLimit() > 0) {
                                 // The partition limit has been exceeded.  The process will need to be done manually.
                                 let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
-                                        "limit (hybrid->sqlPartitionLimit) of " + hmsMirrorConfig.getHybrid().getSqlPartitionLimit() +
+                                        "limit (hybrid->sqlPartitionLimit) of " + config.getHybrid().getSqlPartitionLimit() +
                                         ".  This value is used to abort migrations that have a high potential for failure.  " +
                                         "The migration will need to be done manually OR try increasing the limit. Review commandline option '-sp'.");
                                 rtn = Boolean.FALSE;
@@ -478,7 +503,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                         }
                     } else {
                         // No Partitions
-                        String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_OVERWRITE, let.getName(), ret.getName());
+                        String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_OVERWRITE, leftTable, rightTable);
                         let.addSql(new Pair(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, transferSql));
                     }
                 }

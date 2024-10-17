@@ -104,10 +104,10 @@ public class ConfigService {
 
         if (config.getTransfer().getStorageMigration().isDistcp()) {
             rtn = Boolean.TRUE;
-            if (!isBlank(config.getDbRename()) || !isBlank(config.getDbPrefix())) {
-                rtn = Boolean.FALSE;
-                session.addError(DISTCP_W_RENAME_NOT_SUPPORTED);
-            }
+//            if (!isBlank(config.getDbRename()) || !isBlank(config.getDbPrefix())) {
+//                rtn = Boolean.FALSE;
+//                session.addError(DISTCP_W_RENAME_NOT_SUPPORTED);
+//            }
         }
         return rtn;
     }
@@ -834,9 +834,9 @@ public class ConfigService {
         canDeriveDistcpPlan(session);
 
         // Both of these can't be set together.
-        if (!isBlank(config.getDbRename()) || !isBlank(config.getDbPrefix())) {
+        if (!isBlank(config.getDbRename()) && !isBlank(config.getDbPrefix())) {
             rtn.set(Boolean.FALSE);
-            session.addError(DISTCP_W_RENAME_NOT_SUPPORTED);
+            session.addError(CONFLICTING_PROPERTIES, "dbRename", "dbPrefix");
         }
 
         // Before Validation continues, let's make some adjustments to the configuration to

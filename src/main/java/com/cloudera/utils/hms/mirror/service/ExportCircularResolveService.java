@@ -49,6 +49,12 @@ public class ExportCircularResolveService extends DataStrategyBase {
     private DatabaseService databaseService;
     private TableService tableService;
     private TranslatorService translatorService;
+    private WarehouseService warehouseService;
+
+    @Autowired
+    public void setWarehouseService(WarehouseService warehouseService) {
+        this.warehouseService = warehouseService;
+    }
 
     @Autowired
     public void setConfigService(ConfigService configService) {
@@ -82,7 +88,7 @@ public class ExportCircularResolveService extends DataStrategyBase {
         String leftNamespace = TableUtils.getLocation(let.getName(), let.getDefinition());
         EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT, tableMirror);
 
-        Warehouse warehouse = databaseService.getWarehousePlan(tableMirror.getParent().getName());
+        Warehouse warehouse = warehouseService.getWarehousePlan(tableMirror.getParent().getName());
 
         try {
             // LEFT Export to directory
@@ -148,7 +154,7 @@ public class ExportCircularResolveService extends DataStrategyBase {
             }
 
             String sourceLocation = TableUtils.getLocation(let.getName(), let.getDefinition());
-            String targetLocation = getTranslatorService().translateLocation(tableMirror, sourceLocation, 1, null);
+            String targetLocation = getTranslatorService().translateTableLocation(tableMirror, sourceLocation, 1, null);
             String importSql;
             if (TableUtils.isACID(let)) {
                 if (!config.getMigrateACID().isDowngrade()) {

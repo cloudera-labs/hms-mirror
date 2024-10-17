@@ -112,7 +112,7 @@
                     </div>
                 </th:block>
                 <th:block
-                        th:if="${('DUMP HYBRID SQL EXPORT_IMPORT SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
+                        th:if="${('DUMP HYBRID SQL EXPORT_IMPORT SCHEMA_ONLY STORAGE_MIGRATION').contains(CONFIG.dataStrategy.toString())}">
                     <h4 th:text="#{config.db.redirect}"/>
                     <div class="pure-control-group">
                         <label for="dbprefix" th:text="#{config.db.prefix}"></label>

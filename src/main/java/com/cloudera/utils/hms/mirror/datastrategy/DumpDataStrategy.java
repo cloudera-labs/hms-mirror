@@ -23,6 +23,7 @@ import com.cloudera.utils.hms.mirror.MirrorConf;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.domain.support.HmsMirrorConfigUtil;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.TableService;
@@ -75,41 +76,42 @@ public class DumpDataStrategy extends DataStrategyBase implements DataStrategy {
     @Override
     public Boolean buildOutSql(TableMirror tableMirror) throws MissingDataPointException {
         Boolean rtn = Boolean.FALSE;
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         log.debug("Table: {} buildout DUMP SQL", tableMirror.getName());
 
         String useDb = null;
-        String database = null;
+//        String database = null;
         String createTbl = null;
 
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
         EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT, tableMirror);
 
         let.getSql().clear();
-        useDb = MessageFormat.format(MirrorConf.USE, tableMirror.getParent().getName());
+        String database = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
+        useDb = MessageFormat.format(MirrorConf.USE, database);
         let.addSql(TableUtils.USE_DESC, useDb);
 
         createTbl = tableService.getCreateStatement(tableMirror, Environment.LEFT);
         let.addSql(TableUtils.CREATE_DESC, createTbl);
-        if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()
-                && hmsMirrorConfig.isTransferOwnership() && let.getOwner() != null) {
+        if (!config.getCluster(Environment.LEFT).isLegacyHive()
+                && config.isTransferOwnership() && let.getOwner() != null) {
             String ownerSql = MessageFormat.format(MirrorConf.SET_TABLE_OWNER, let.getName(), let.getOwner());
             let.addSql(MirrorConf.SET_TABLE_OWNER_DESC, ownerSql);
         }
 
         // If partitioned, !ACID, repair
         if (let.getPartitioned() && !TableUtils.isACID(let)) {
-            if (hmsMirrorConfig.loadMetadataDetails()) {
+            if (config.loadMetadataDetails()) {
                 String tableParts = getTranslatorService().buildPartitionAddStatement(let);
                 // This will be empty when there's no data and we need to handle that.
                 if (!isBlank(tableParts)) {
                     String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION, let.getName(), tableParts);
                     let.addSql(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION_DESC, addPartSql);
                 }
-            } else if (hmsMirrorConfig.getCluster(Environment.LEFT).getPartitionDiscovery().isInitMSCK()) {
+            } else if (config.getCluster(Environment.LEFT).getPartitionDiscovery().isInitMSCK()) {
                 String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, let.getName());
-                if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
+                if (config.getTransfer().getStorageMigration().isDistcp()) {
                     let.addCleanUpSql(TableUtils.REPAIR_DESC, msckStmt);
                 } else {
                     let.addSql(TableUtils.REPAIR_DESC, msckStmt);

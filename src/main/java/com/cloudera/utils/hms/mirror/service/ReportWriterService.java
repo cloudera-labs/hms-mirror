@@ -200,12 +200,12 @@ public class ReportWriterService {
 
             dbEntry.getValue().getEnvironmentStatistics().put(Environment.LEFT, leftSummaryStats);
 
-            String dbReportOutputFile = reportOutputDir + File.separator + database + "_hms-mirror";
-            String dbLeftExecuteFile = reportOutputDir + File.separator + database + "_LEFT_execute.sql";
-            String dbLeftCleanUpFile = reportOutputDir + File.separator + database + "_LEFT_CleanUp_execute.sql";
-            String dbRightExecuteFile = reportOutputDir + File.separator + database + "_RIGHT_execute.sql";
-            String dbRightCleanUpFile = reportOutputDir + File.separator + database + "_RIGHT_CleanUp_execute.sql";
-            String dbRunbookFile = reportOutputDir + File.separator + database + "_runbook.md";
+            String dbReportOutputFile = reportOutputDir + File.separator + originalDatabase + "_hms-mirror";
+            String dbLeftExecuteFile = reportOutputDir + File.separator + originalDatabase + "_LEFT_execute.sql";
+            String dbLeftCleanUpFile = reportOutputDir + File.separator + originalDatabase + "_LEFT_CleanUp_execute.sql";
+            String dbRightExecuteFile = reportOutputDir + File.separator + originalDatabase + "_RIGHT_execute.sql";
+            String dbRightCleanUpFile = reportOutputDir + File.separator + originalDatabase + "_RIGHT_CleanUp_execute.sql";
+            String dbRunbookFile = reportOutputDir + File.separator + originalDatabase + "_runbook.md";
 
             try {
                 // Output directory maps
@@ -218,7 +218,7 @@ public class ReportWriterService {
 
 
                 FileWriter runbookFile = new FileWriter(dbRunbookFile);
-                runbookFile.write("# Runbook for database: " + database);
+                runbookFile.write("# Runbook for database: " + originalDatabase);
                 runbookFile.write("\n\nYou'll find the **run report** in the file:\n\n`" + dbReportOutputFile + ".md|html` " +
                         "\n\nThis file includes details about the configuration at the time this was run and the " +
                         "output/actions on each table in the database that was included.\n\n");
@@ -242,7 +242,7 @@ public class ReportWriterService {
                 File dbYamlFile = new File(dbReportOutputFile + ".yaml");
                 FileWriter dbYamlFileWriter = new FileWriter(dbYamlFile);
 
-                DBMirror yamlDb = conversion.getDatabase(database);
+                DBMirror yamlDb = conversion.getDatabase(originalDatabase);
                 Map<PhaseState, Integer> phaseSummaryMap = yamlDb.getPhaseSummary();
                 if (phaseSummaryMap.containsKey(PhaseState.ERROR)) {
                     Integer errCount = phaseSummaryMap.get(PhaseState.ERROR);
@@ -253,7 +253,7 @@ public class ReportWriterService {
                 String dbYamlStr = yamlMapper.writeValueAsString(yamlDb);
                 try {
                     dbYamlFileWriter.write(dbYamlStr);
-                    log.info("Database ({}) yaml 'saved' to: {}", database, dbYamlFile.getPath());
+                    log.info("Database ({}) yaml 'saved' to: {}", originalDatabase, dbYamlFile.getPath());
                 } catch (IOException ioe) {
                     log.error("Problem 'writing' database yaml", ioe);
                 } finally {
@@ -276,7 +276,7 @@ public class ReportWriterService {
 
                 log.info("Status Report of 'hms-mirror' is here: {}.md|html", dbReportOutputFile);
 
-                String les = conversion.executeSql(Environment.LEFT, database);
+                String les = conversion.executeSql(Environment.LEFT, originalDatabase);
                 if (les != null) {
                     FileWriter leftExecOutput = new FileWriter(dbLeftExecuteFile);
                     leftExecOutput.write(les);
@@ -296,7 +296,7 @@ public class ReportWriterService {
                     runbookFile.write("\n");
                 }
 
-                String res = conversion.executeSql(Environment.RIGHT, database);
+                String res = conversion.executeSql(Environment.RIGHT, originalDatabase);
                 if (res != null) {
                     FileWriter rightExecOutput = new FileWriter(dbRightExecuteFile);
                     rightExecOutput.write(res);
@@ -320,7 +320,7 @@ public class ReportWriterService {
                     runbookFile.write("\n");
                 }
 
-                String lcu = conversion.executeCleanUpSql(Environment.LEFT, database, HmsMirrorConfigUtil.getResolvedDB(database, config));
+                String lcu = conversion.executeCleanUpSql(Environment.LEFT, originalDatabase, database);
                 if (lcu != null) {
                     FileWriter leftCleanUpOutput = new FileWriter(dbLeftCleanUpFile);
                     leftCleanUpOutput.write(lcu);
@@ -331,7 +331,7 @@ public class ReportWriterService {
                     runbookFile.write("\n");
                 }
 
-                String rcu = conversion.executeCleanUpSql(Environment.RIGHT, database, HmsMirrorConfigUtil.getResolvedDB(database, config));
+                String rcu = conversion.executeCleanUpSql(Environment.RIGHT, originalDatabase, database);
                 if (rcu != null) {
                     FileWriter rightCleanUpOutput = new FileWriter(dbRightCleanUpFile);
                     rightCleanUpOutput.write(rcu);
@@ -344,7 +344,7 @@ public class ReportWriterService {
                 log.info("Runbook here: {}", dbRunbookFile);
                 runbookFile.close();
             } catch (IOException ioe) {
-                log.error("Issue writing report for: {}", database, ioe);
+                log.error("Issue writing report for: {}", originalDatabase, ioe);
             }
         }
 //        }

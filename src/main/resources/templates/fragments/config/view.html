@@ -71,12 +71,12 @@
                                    onclick="openSection(event, 'regex')"/>
                             </li>
                             <li class="pure-menu-item"
-                                th:if="${('DUMP HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">
+                                th:if="${('DUMP HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION').contains(CONFIG.dataStrategy.toString())}">
                                 <a th:text="#{config.filter.limits}" href="#" class="pure-menu-link"
                                    onclick="openSection(event, 'limits')"/>
                             </li>
                             <li class="pure-menu-item"
-                                th:if="${('DUMP HYBRID SQL EXPORT_IMPORT SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
+                                th:if="${('DUMP HYBRID SQL EXPORT_IMPORT SCHEMA_ONLY STORAGE_MIGRATION').contains(CONFIG.dataStrategy.toString())}">
                                 <a th:text="#{config.filter.redirects}" href="#" class="pure-menu-link"
                                    onclick="openSection(event, 'redirects')"/>
                             </li>
@@ -87,7 +87,7 @@
                         <a th:text="#{attributes}" href="#" class="pure-menu-link"/>
                         <ul class="pure-menu-children">
                             <li class="pure-menu-item"
-                                th:if="${('HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY COMMON').contains(CONFIG.dataStrategy.toString())}">
+                                th:if="${('DUMP HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY COMMON').contains(CONFIG.dataStrategy.toString())}">
                                 <a th:text="#{config.data.movement}" href="#" class="pure-menu-link"
                                    onclick="openSection(event, 'datamovement')"/>
                             </li>

@@ -111,7 +111,7 @@ public class DistCpService {
 
                     FileWriter distcpSourceFW = null;
 
-                    Map<String, Map<String, Set<String>>> distcpPlans = buildDistcpListForDatabase(config, database, distcpEnv, 1, config.getTransfer().getStorageMigration().isConsolidateTablesForDistcp());
+                    Map<String, Map<String, Set<String>>> distcpPlans = buildDistcpListForDatabase(config, originalDatabase, distcpEnv, 1, config.getTransfer().getStorageMigration().isConsolidateTablesForDistcp());
                     if (!distcpPlans.isEmpty()) {
                         String distcpPlansFile = outputDir + File.separator + originalDatabase + "_" + distcpEnv.toString() + "_distcp_plans.yaml";
                         FileWriter distcpPlansFW = new FileWriter(distcpPlansFile);
@@ -217,9 +217,9 @@ public class DistCpService {
 //                                break;
 //                        }
 
-                        String distcpWorkbookFile = outputDir + File.separator + database +
+                        String distcpWorkbookFile = outputDir + File.separator + originalDatabase +
                                 "_" + distcpEnv + "_distcp_workbook.md";
-                        String distcpScriptFile = outputDir + File.separator + database +
+                        String distcpScriptFile = outputDir + File.separator + originalDatabase +
                                 "_" + distcpEnv + "_distcp_script.sh";
 
                         FileWriter distcpWorkbookFW = new FileWriter(distcpWorkbookFile);

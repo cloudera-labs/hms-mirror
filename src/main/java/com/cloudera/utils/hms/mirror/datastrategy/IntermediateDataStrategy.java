@@ -191,8 +191,9 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
         ret.getSql().clear();
 
         // LEFT Transfer Table
-        database = tableMirror.getParent().getName();
-        useDb = MessageFormat.format(MirrorConf.USE, database);
+//        database = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
+        String originalDatabase = tableMirror.getParent().getName();
+        useDb = MessageFormat.format(MirrorConf.USE, originalDatabase);
 
 
         // Manage Transfer Table.  Should only make this if the TRANSFER table is defined.

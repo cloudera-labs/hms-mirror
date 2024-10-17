@@ -30,8 +30,6 @@
 
 <div th:fragment="view">
     <!--    <div class="pure-form pure-form-aligned">-->
-    <th:block
-            th:if="${('DUMP HYBRID SQL EXPORT_IMPORT SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
         <fieldset>
             <legend th:text="#{config.db.redirect}"/>
             <div class="pure-control-group">
@@ -40,14 +38,13 @@
                        th:field="*{dbPrefix}"
                        placeholder="Set Database Name Prefix"/>
             </div>
-            <div class="pure-control-group">
+            <div class="pure-control-group" th:unless="${('STORAGE_MIGRATION').contains(CONFIG.dataStrategy.toString())}">
                 <label for="dbrename" th:text="#{config.db.rename}"></label>
                 <input id="dbrename" type="text"
                        th:field="*{dbRename}"
                        placeholder="Set Database Rename"/>
             </div>
         </fieldset>
-    </th:block>
     <!--    </div>-->
 </div>
 </body>

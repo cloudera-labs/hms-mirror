@@ -30,64 +30,66 @@
 
 <div th:fragment="view">
     <div class="pure-form pure-form-aligned pure-g">
-        <th:block
-                th:if="${('DUMP HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">
-            <div class="pure-u-1-2">
-                <fieldset>
-                    <legend th:text="#{config.filter.movement.limits}"/>
-                    <div class="pure-control-group"
-                         th:if="${('COMMON HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">
-                        <label for="tblSizeLimit" th:text="#{config.filter.tblSizeLimit}"></label>
-                        <input id="tblSizeLimit" type="number"
-                               th:field="*{filter.tblSizeLimit}"
-                               placeholder="Set Table Size Limit"/>
-                    </div>
-                    <div class="pure-control-group"
-                         th:if="${('COMMON HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">
-                        <label for="tblPartitionLimit" th:text="#{config.filter.tblPartitionLimit}"></label>
-                        <input id="tblPartitionLimit" type="number"
-                               th:field="*{filter.tblPartitionLimit}"
-                               placeholder="Set Partition Limit"/>
-                    </div>
-                </fieldset>
-            </div>
-        </th:block>
-        <th:block
-                th:if="${('HYBRID SQL').contains(CONFIG.dataStrategy.toString())}">
-            <div class="pure-u-1-2">
-                <fieldset>
-                    <legend th:text="#{config.filter.tbl.limits}"/>
+        <!--        <th:block-->
+        <!--                th:if="${('DUMP HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">-->
+        <div class="pure-u-1-2">
+            <fieldset>
+                <legend th:text="#{config.filter.movement.limits}"/>
+                <!--                    <div class="pure-control-group"-->
+                <!--                         th:if="${('COMMON HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">-->
+                <div class="pure-control-group">
+                    <label for="tblSizeLimit" th:text="#{config.filter.tblSizeLimit}"></label>
+                    <input id="tblSizeLimit" type="number"
+                           th:field="*{filter.tblSizeLimit}"
+                           placeholder="Set Table Size Limit"/>
+                </div>
+                <!--                    <div class="pure-control-group"-->
+                <!--                         th:if="${('COMMON HYBRID SQL EXPORT_IMPORT').contains(CONFIG.dataStrategy.toString())}">-->
+                <div class="pure-control-group">
+                    <label for="tblPartitionLimit" th:text="#{config.filter.tblPartitionLimit}"></label>
+                    <input id="tblPartitionLimit" type="number"
+                           th:field="*{filter.tblPartitionLimit}"
+                           placeholder="Set Partition Limit"/>
+                </div>
+            </fieldset>
+        </div>
+        <!--        </th:block>-->
+        <!--        <th:block-->
+        <!--                th:if="${('HYBRID SQL').contains(CONFIG.dataStrategy.toString())}">-->
+        <div class="pure-u-1-2">
+            <fieldset>
+                <legend th:text="#{config.filter.tbl.limits}"/>
 
-                    <div class="pure-control-group">
-                        <label for="acidpartitionLimit" th:text="#{config.migrateACID.partitionLimit}"></label>
-                        <input type="number" name="acidpartitionLimit"
-                               th:field="*{migrateACID.partitionLimit}"/>
-                    </div>
-                    <!--                        sqlPartitionLimit: 3000-->
-                    <div class="pure-control-group">
-                        <label for="sqlPartitionLimit" th:text="#{config.hybrid.sqlPartitionLimit}"></label>
-                        <input id="sqlPartitionLimit" type="number"
-                               th:field="*{hybrid.sqlPartitionLimit}"
-                               placeholder="Set SQL Partition Limit"/>
-                    </div>
-                    <!--                        exportImportPartitionLimit: 100-->
-                    <div class="pure-control-group">
-                        <label for="exportImportPartitionLimit"
-                               th:text="#{config.hybrid.exportImportPartitionLimit}"></label>
-                        <input id="exportImportPartitionLimit" type="number"
-                               th:field="*{hybrid.exportImportPartitionLimit}"
-                               placeholder="Set Export Import Partition Limit"/>
-                    </div>
-                    <!--                        sqlSizeLimit: 1073741824-->
-                    <div class="pure-control-group">
-                        <label for="sqlSizeLimit" th:text="#{config.hybrid.sqlSizeLimit}"></label>
-                        <input id="sqlSizeLimit" type="number"
-                               th:field="*{hybrid.sqlSizeLimit}"
-                               placeholder="Set SQL Size Limit"/>
-                    </div>
-                </fieldset>
-            </div>
-        </th:block>
+                <div class="pure-control-group">
+                    <label for="acidpartitionLimit" th:text="#{config.migrateACID.partitionLimit}"></label>
+                    <input type="number" name="acidpartitionLimit"
+                           th:field="*{migrateACID.partitionLimit}"/>
+                </div>
+                <!--                        sqlPartitionLimit: 3000-->
+                <div class="pure-control-group">
+                    <label for="sqlPartitionLimit" th:text="#{config.hybrid.sqlPartitionLimit}"></label>
+                    <input id="sqlPartitionLimit" type="number"
+                           th:field="*{hybrid.sqlPartitionLimit}"
+                           placeholder="Set SQL Partition Limit"/>
+                </div>
+                <!--                        exportImportPartitionLimit: 100-->
+                <div class="pure-control-group">
+                    <label for="exportImportPartitionLimit"
+                           th:text="#{config.hybrid.exportImportPartitionLimit}"></label>
+                    <input id="exportImportPartitionLimit" type="number"
+                           th:field="*{hybrid.exportImportPartitionLimit}"
+                           placeholder="Set Export Import Partition Limit"/>
+                </div>
+                <!--                        sqlSizeLimit: 1073741824-->
+                <div class="pure-control-group">
+                    <label for="sqlSizeLimit" th:text="#{config.hybrid.sqlSizeLimit}"></label>
+                    <input id="sqlSizeLimit" type="number"
+                           th:field="*{hybrid.sqlSizeLimit}"
+                           placeholder="Set SQL Size Limit"/>
+                </div>
+            </fieldset>
+        </div>
+        <!--        </th:block>-->
     </div>
 </div>
 

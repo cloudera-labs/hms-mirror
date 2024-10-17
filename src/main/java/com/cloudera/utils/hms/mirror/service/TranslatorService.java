@@ -29,7 +29,6 @@ import com.cloudera.utils.hms.util.TableUtils;
 import com.cloudera.utils.hms.util.UrlUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -48,7 +47,19 @@ public class TranslatorService {
 
     @Getter
     private ExecuteSessionService executeSessionService = null;
-    private DatabaseService databaseService;
+    private WarehouseService warehouseService;
+
+    @Autowired
+    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
+        this.executeSessionService = executeSessionService;
+    }
+
+    @Autowired
+    public void setWarehouseService(WarehouseService warehouseService) {
+        this.warehouseService = warehouseService;
+    }
+
+//    private DatabaseService databaseService;
 
     public String buildPartitionAddStatement(EnvironmentTable environmentTable) {
         StringBuilder sbPartitionDetails = new StringBuilder();
@@ -96,16 +107,6 @@ public class TranslatorService {
         return newLocation;
     }
 
-    @Autowired
-    public void setDatabaseService(DatabaseService databaseService) {
-        this.databaseService = databaseService;
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
-        this.executeSessionService = executeSessionService;
-    }
-
     public Boolean translatePartitionLocations(TableMirror tblMirror) throws RequiredConfigurationException, MissingDataPointException, MismatchException {
         Boolean rtn = Boolean.TRUE;
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
@@ -142,7 +143,7 @@ public class TranslatorService {
                         continue;
                     }
 
-                    String newPartitionLocation = translateLocation(tblMirror, partitionLocation, level, partSpec);
+                    String newPartitionLocation = translateTableLocation(tblMirror, partitionLocation, level, partSpec);
 
                     entry.setValue(newPartitionLocation);
                 }
@@ -152,8 +153,8 @@ public class TranslatorService {
         return rtn;
     }
 
-    public String translateLocation(TableMirror tableMirror, String originalLocation,
-                                    int level, String partitionSpec)
+    public String translateTableLocation(TableMirror tableMirror, String originalLocation,
+                                         int level, String partitionSpec)
             throws MismatchException, MissingDataPointException, RequiredConfigurationException {
         String rtn = originalLocation;
 
@@ -212,7 +213,7 @@ public class TranslatorService {
 
         sbDir.append(targetNamespace);
 
-        Warehouse warehouse = databaseService.getWarehousePlan(originalDatabase);
+        Warehouse warehouse = warehouseService.getWarehousePlan(originalDatabase);
         EnvironmentTable checkEnvTbl = tableMirror.getEnvironmentTable(Environment.RIGHT);
 
         if (reMapped) {

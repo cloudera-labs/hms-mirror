@@ -26,6 +26,7 @@ import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import com.cloudera.utils.hms.mirror.service.DatabaseService;
+import com.cloudera.utils.hms.mirror.service.WarehouseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -48,6 +49,13 @@ import static java.util.Objects.isNull;
 public class DatabaseController {
 
     private DatabaseService databaseService;
+    private WarehouseService warehouseService;
+
+    @Autowired
+    public void setWarehouseService(WarehouseService warehouseService) {
+        this.warehouseService = warehouseService;
+    }
+
 
     @Autowired
     public void setDatabaseService(DatabaseService databaseService) {
@@ -87,7 +95,7 @@ public class DatabaseController {
                                       @RequestParam(name = "externalLocation", required = true) String externalLocation,
                                       @RequestParam(name = "managedLocation", required = true) String managedLocation)
             throws RequiredConfigurationException {
-        return databaseService.addWarehousePlan(database, externalLocation, managedLocation);
+        return warehouseService.addWarehousePlan(database, externalLocation, managedLocation);
     }
 
     // Remove a Warehouse Plan
@@ -99,7 +107,7 @@ public class DatabaseController {
     @ResponseBody
     @RequestMapping(method = RequestMethod.DELETE, value = "/{database}/warehousePlan")
     public Warehouse removeWarehousePlan(@PathVariable @NotNull String database) {
-        return databaseService.removeWarehousePlan(database);
+        return warehouseService.removeWarehousePlan(database);
     }
 
     // Get a Warehouse Plan
@@ -112,7 +120,7 @@ public class DatabaseController {
     @RequestMapping(method = RequestMethod.GET, value = "/{database}/warehousePlan")
     public Warehouse getWarehousePlan(@PathVariable @NotNull String database) {
         try {
-            return databaseService.getWarehousePlan(database);
+            return warehouseService.getWarehousePlan(database);
         } catch (MissingDataPointException e) {
             log.error("Error getting Warehouse Plan for database: " + database, e);
             return null;
@@ -128,7 +136,7 @@ public class DatabaseController {
     @ResponseBody
     @RequestMapping(method = RequestMethod.GET, value = "/warehousePlan/list")
     public Map<String, Warehouse> getWarehousePlans() {
-        return databaseService.getWarehousePlans();
+        return warehouseService.getWarehousePlans();
     }
 
     // Build Source Locations from Warehouse Plans

@@ -31,6 +31,7 @@ import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.domain.support.HmsMirrorConfigUtil;
 import com.cloudera.utils.hms.mirror.domain.support.TranslationTypeEnum;
 import com.cloudera.utils.hms.mirror.exceptions.MismatchException;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
@@ -43,7 +44,6 @@ import com.cloudera.utils.hms.mirror.service.TranslatorService;
 import com.cloudera.utils.hms.util.NamespaceUtils;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -367,7 +367,7 @@ public abstract class DataStrategyBase implements DataStrategy {
 
                                 String targetLocation = null;
                                 targetLocation = getTranslatorService().
-                                        translateLocation(tableMirror, sourceLocation, level, null);
+                                        translateTableLocation(tableMirror, sourceLocation, level, null);
                                 if (!TableUtils.updateTableLocation(target, targetLocation)) {
                                     rtn = Boolean.FALSE;
                                 }
@@ -505,7 +505,7 @@ public abstract class DataStrategyBase implements DataStrategy {
 
     protected Boolean buildMigrationSql(TableMirror tableMirror, Environment originalEnv, Environment sourceEnv, Environment targetEnv) {
         Boolean rtn = Boolean.TRUE;
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         EnvironmentTable original, source, target;
         original = tableMirror.getEnvironmentTable(originalEnv);
@@ -533,20 +533,20 @@ public abstract class DataStrategyBase implements DataStrategy {
         }
 
         if (TableUtils.isACID(original)) {
-            if (original.getPartitions().size() > hmsMirrorConfig.getMigrateACID().getPartitionLimit() && hmsMirrorConfig.getMigrateACID().getPartitionLimit() > 0) {
+            if (original.getPartitions().size() > config.getMigrateACID().getPartitionLimit() && config.getMigrateACID().getPartitionLimit() > 0) {
                 // The partition limit has been exceeded.  The process will need to be done manually.
                 original.addIssue("The number of partitions: " + original.getPartitions().size() + " exceeds the configuration " +
-                        "limit (migrateACID->partitionLimit) of " + hmsMirrorConfig.getMigrateACID().getPartitionLimit() +
+                        "limit (migrateACID->partitionLimit) of " + config.getMigrateACID().getPartitionLimit() +
                         ".  This value is used to abort migrations that have a high potential for failure.  " +
                         "The migration will need to be done manually OR try increasing the limit. Review commandline option '-ap'.");
                 rtn = Boolean.FALSE;
             }
         } else {
-            if (original.getPartitions().size() > hmsMirrorConfig.getHybrid().getSqlPartitionLimit() &&
-                    hmsMirrorConfig.getHybrid().getSqlPartitionLimit() > 0) {
+            if (original.getPartitions().size() > config.getHybrid().getSqlPartitionLimit() &&
+                    config.getHybrid().getSqlPartitionLimit() > 0) {
                 // The partition limit has been exceeded.  The process will need to be done manually.
                 original.addIssue("The number of partitions: " + original.getPartitions().size() + " exceeds the configuration " +
-                        "limit (hybrid->sqlPartitionLimit) of " + hmsMirrorConfig.getHybrid().getSqlPartitionLimit() +
+                        "limit (hybrid->sqlPartitionLimit) of " + config.getHybrid().getSqlPartitionLimit() +
                         ".  This value is used to abort migrations that have a high potential for failure.  " +
                         "The migration will need to be done manually OR try increasing the limit. Review commandline option '-sp'.");
                 rtn = Boolean.FALSE;
@@ -560,17 +560,17 @@ public abstract class DataStrategyBase implements DataStrategy {
         }
 
         // Set Override Properties.
-        if (hmsMirrorConfig.getOptimization().getOverrides() != null) {
-            for (String key : hmsMirrorConfig.getOptimization().getOverrides().getLeft().keySet()) {
-                targetEnvTable.addSql("Setting " + key, "set " + key + "=" + hmsMirrorConfig.getOptimization().getOverrides().getLeft().get(key));
+        if (config.getOptimization().getOverrides() != null) {
+            for (String key : config.getOptimization().getOverrides().getLeft().keySet()) {
+                targetEnvTable.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
             }
         }
 
         if (source.isDefined()) {
-            statsCalculatorService.setSessionOptions(hmsMirrorConfig.getCluster(targetEnv2), original, targetEnvTable);
+            statsCalculatorService.setSessionOptions(config.getCluster(targetEnv2), original, targetEnvTable);
             if (original.getPartitioned()) {
-                if (hmsMirrorConfig.getOptimization().isSkip()) {
-                    if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
+                if (config.getOptimization().isSkip()) {
+                    if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
                         targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
                     }
                     String partElement = TableUtils.getPartitionElements(original);
@@ -578,10 +578,10 @@ public abstract class DataStrategyBase implements DataStrategy {
                             source.getName(), target.getName(), partElement);
                     String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, original.getPartitions().size());
                     targetEnvTable.addSql(new Pair(transferDesc, transferSql));
-                } else if (hmsMirrorConfig.getOptimization().isSortDynamicPartitionInserts()) {
-                    if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
+                } else if (config.getOptimization().isSortDynamicPartitionInserts()) {
+                    if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
                         targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
-                        if (!hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
+                        if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
                             targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
                         }
                     }
@@ -591,9 +591,9 @@ public abstract class DataStrategyBase implements DataStrategy {
                     String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, original.getPartitions().size());
                     targetEnvTable.addSql(new Pair(transferDesc, transferSql));
                 } else {
-                    if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
+                    if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
                         targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
-                        if (!hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
+                        if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
                             targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
                         }
                     }
@@ -622,7 +622,9 @@ public abstract class DataStrategyBase implements DataStrategy {
                     Pair cleanUp = new Pair("Post Migration Cleanup", "-- To be run AFTER final RIGHT SQL statements.");
                     targetEnvTable.addCleanUpSql(cleanUp);
 
-                    String useRightDb = MessageFormat.format(MirrorConf.USE, tableMirror.getParent().getName());
+                    String rightDatabase = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
+
+                    String useRightDb = MessageFormat.format(MirrorConf.USE, rightDatabase);
                     Pair leftRightPair = new Pair(TableUtils.USE_DESC, useRightDb);
                     targetEnvTable.addCleanUpSql(leftRightPair);
 
@@ -632,7 +634,7 @@ public abstract class DataStrategyBase implements DataStrategy {
                 }
             }
         }
-        if (hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp()) {
+        if (config.getTransfer().getStorageMigration().isDistcp()) {
             targetEnvTable.addSql("distcp specified", "-- Run distcp commands");
         }
         return rtn;

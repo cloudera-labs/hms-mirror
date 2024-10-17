@@ -112,7 +112,7 @@ public class ConvertLinkedDataStrategy extends DataStrategyBase implements DataS
                         // - LOCATION
                         String sourceLocation = TableUtils.getLocation(ret.getName(), ret.getDefinition());
                         String targetLocation = getTranslatorService().
-                                translateLocation(tableMirror, sourceLocation, 1, null);
+                                translateTableLocation(tableMirror, sourceLocation, 1, null);
                         String alterLocSql = MessageFormat.format(MirrorConf.ALTER_TABLE_LOCATION, ret.getName(), targetLocation);
                         ret.addSql(MirrorConf.ALTER_TABLE_LOCATION_DESC, alterLocSql);
                         // TableUtils.updateTableLocation(ret, targetLocation)

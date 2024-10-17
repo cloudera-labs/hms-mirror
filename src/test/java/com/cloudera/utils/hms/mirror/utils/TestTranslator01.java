@@ -61,13 +61,13 @@ public class TestTranslator01 extends TranslatorTestBase {
             throw new RuntimeException(e);
         }
 
-        databaseService = new DatabaseService();
-        databaseService.setExecuteSessionService(executeSessionService);
+        warehouseService = new WarehouseService();
+        warehouseService.setExecuteSessionService(executeSessionService);
 
 //        configService.setExecuteSessionService(executeSessionService);
         translatorService = new TranslatorService();
         translatorService.setExecuteSessionService(executeSessionService);
-        translatorService.setDatabaseService(databaseService);
+        translatorService.setWarehouseService(warehouseService);
 
 //        translatorService.setConfigService(configService);
     }
@@ -144,7 +144,7 @@ public class TestTranslator01 extends TranslatorTestBase {
         String expectedLoc = "hdfs://RIGHT/apps/hive/warehouse/tpcds_09.db";
         try {
             String translatedLocation =
-                    translatorService.translateLocation(tableMirror, originalLoc, 1, null);
+                    translatorService.translateTableLocation(tableMirror, originalLoc, 1, null);
             Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                     translatedLocation, expectedLoc, translatedLocation);
         } catch (Throwable t) {
@@ -175,7 +175,7 @@ public class TestTranslator01 extends TranslatorTestBase {
         String expectedLoc = "hdfs://RIGHT/alt/ext/location/new_location";
         try {
             String translatedLocation =
-                    translatorService.translateLocation(tableMirror, originalLoc, 1, null);
+                    translatorService.translateTableLocation(tableMirror, originalLoc, 1, null);
             Assert.assertEquals("Table Location Assertion Failed: " + originalLoc + " : " + expectedLoc + " : " +
                     translatedLocation, expectedLoc, translatedLocation);
         } catch (Throwable t) {
@@ -199,7 +199,7 @@ public class TestTranslator01 extends TranslatorTestBase {
         String expectedLoc = "hdfs://RIGHT/myspace/alt/ext/call_center";
         try {
             String translatedLocation =
-                    translatorService.translateLocation(tableMirror, originalLoc, 1, null);
+                    translatorService.translateTableLocation(tableMirror, originalLoc, 1, null);
             Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                     translatedLocation, expectedLoc, translatedLocation);
         } catch (Throwable t) {
@@ -226,7 +226,7 @@ public class TestTranslator01 extends TranslatorTestBase {
         String expectedLoc = "hdfs://RIGHT/alt/ext/location/web_sales";
         try {
             String translatedLocation =
-                    translatorService.translateLocation(tableMirror, originalLoc, 1, null);
+                    translatorService.translateTableLocation(tableMirror, originalLoc, 1, null);
             Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                     translatedLocation, expectedLoc, translatedLocation);
         } catch (Throwable t) {
@@ -249,7 +249,7 @@ public class TestTranslator01 extends TranslatorTestBase {
         String expectedLoc = "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_10.db/web_sales";
         try {
             String translatedLocation =
-                    translatorService.translateLocation(tableMirror, originalLoc, 1, null);
+                    translatorService.translateTableLocation(tableMirror, originalLoc, 1, null);
             Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                     translatedLocation, expectedLoc, translatedLocation);
         } catch (Throwable t) {
@@ -265,7 +265,7 @@ public class TestTranslator01 extends TranslatorTestBase {
         expectedLoc = "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_10.db/call_center2";
         try {
             String translatedLocation =
-                    translatorService.translateLocation(tableMirror1, originalLoc, 1, null);
+                    translatorService.translateTableLocation(tableMirror1, originalLoc, 1, null);
             Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                     translatedLocation, expectedLoc, translatedLocation);
         } catch (Throwable t) {
@@ -281,7 +281,7 @@ public class TestTranslator01 extends TranslatorTestBase {
         expectedLoc = "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_10.db/web_returns";
         try {
             String translatedLocation =
-                    translatorService.translateLocation(tableMirror2, originalLoc, 1, null);
+                    translatorService.translateTableLocation(tableMirror2, originalLoc, 1, null);
             Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                     translatedLocation, expectedLoc, translatedLocation);
         } catch (Throwable t) {
@@ -296,7 +296,7 @@ public class TestTranslator01 extends TranslatorTestBase {
         expectedLoc = "hdfs://RIGHT/user/dstreev/datasets/tpcds_11.db/web_returns";
         try {
             String translatedLocation =
-                    translatorService.translateLocation(tableMirror3, originalLoc, 1, null);
+                    translatorService.translateTableLocation(tableMirror3, originalLoc, 1, null);
             Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                     translatedLocation, expectedLoc, translatedLocation);
         } catch (Throwable t) {
@@ -311,7 +311,7 @@ public class TestTranslator01 extends TranslatorTestBase {
         expectedLoc = "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_11.db/call_center";
         try {
             String translatedLocation =
-                    translatorService.translateLocation(tableMirror4, originalLoc, 1, null);
+                    translatorService.translateTableLocation(tableMirror4, originalLoc, 1, null);
             Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
                     translatedLocation, expectedLoc, translatedLocation);
         } catch (Throwable t) {

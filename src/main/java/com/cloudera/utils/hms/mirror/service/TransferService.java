@@ -65,6 +65,7 @@ public class TransferService {
     private ExecuteSessionService executeSessionService;
     private TableService tableService;
     private DatabaseService databaseService;
+    private WarehouseService warehouseService;
     private DataStrategyService dataStrategyService;
     private HybridDataStrategy hybridDataStrategy;
     private HybridAcidDowngradeInPlaceDataStrategy hybridAcidDowngradeInPlaceDataStrategy;
@@ -87,6 +88,11 @@ public class TransferService {
     @Autowired
     public void setDatabaseService(DatabaseService databaseService) {
         this.databaseService = databaseService;
+    }
+
+    @Autowired
+    public void setWarehouseService(WarehouseService warehouseService) {
+        this.warehouseService = warehouseService;
     }
 
     @Autowired
@@ -163,7 +169,7 @@ public class TransferService {
                 boolean consolidateSourceTables = config.getTransfer().getStorageMigration().isConsolidateTablesForDistcp();
 
                 if (rtn.getStatus() == ReturnStatus.Status.SUCCESS && config.getTransfer().getStorageMigration().isDistcp()) {
-                    warehouse = databaseService.getWarehousePlan(tableMirror.getParent().getName());
+                    warehouse = warehouseService.getWarehousePlan(tableMirror.getParent().getName());
                     // Build distcp reports.
                     // Build when intermediate and NOT ACID with isDowngrade.
                     if (!isBlank(config.getTransfer().getIntermediateStorage())) {
