@@ -568,7 +568,9 @@ public class DatabaseService {
                         // Add the Namespace.
                         // Tweak the db location incase the database name is different. But only if the original followed
                         //  some standard naming convention in hive.
-                        targetLocation = targetLocation.replace(originalDatabase, targetDatabase);
+                        if (!targetLocation.contains( targetDatabase )) {
+                            targetLocation = targetLocation.replace(originalDatabase, targetDatabase);
+                        }
                         targetLocation = targetNamespace + targetLocation;
                     }
                 }
@@ -599,7 +601,9 @@ public class DatabaseService {
                     }
                     if (nonNull(targetManagedLocation)) {
                         // Add the Namespace.
-                        targetManagedLocation = targetManagedLocation.replace(originalDatabase, targetDatabase);
+                        if (!targetLocation.contains( targetDatabase )) {
+                            targetManagedLocation = targetManagedLocation.replace(originalDatabase, targetDatabase);
+                        }
                         targetManagedLocation = targetNamespace + targetManagedLocation;
                     }
                 }
