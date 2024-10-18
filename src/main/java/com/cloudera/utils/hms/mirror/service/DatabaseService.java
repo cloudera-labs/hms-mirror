@@ -568,7 +568,7 @@ public class DatabaseService {
                         // Add the Namespace.
                         // Tweak the db location incase the database name is different. But only if the original followed
                         //  some standard naming convention in hive.
-                        if (!targetLocation.contains( targetDatabase )) {
+                        if (!targetLocation.contains(targetDatabase)) {
                             targetLocation = targetLocation.replace(originalDatabase, targetDatabase);
                         }
                         targetLocation = targetNamespace + targetLocation;
@@ -601,7 +601,7 @@ public class DatabaseService {
                     }
                     if (nonNull(targetManagedLocation)) {
                         // Add the Namespace.
-                        if (!targetLocation.contains( targetDatabase )) {
+                        if (!targetLocation.contains(targetDatabase)) {
                             targetManagedLocation = targetManagedLocation.replace(originalDatabase, targetDatabase);
                         }
                         targetManagedLocation = targetNamespace + targetManagedLocation;
@@ -982,45 +982,41 @@ public class DatabaseService {
     public Boolean runDatabaseSql(DBMirror dbMirror, Environment environment) {
         List<Pair> dbPairs = dbMirror.getSql(environment);
         Boolean rtn = Boolean.TRUE;
-        for (Pair pair : dbPairs) {
-            if (!runDatabaseSql(dbMirror, pair, environment)) {
-                rtn = Boolean.FALSE;
-                // don't continue
-                break;
-            }
+//        for (Pair pair : dbPairs) {
+//            String action = pair.getAction();
+        if (!runDatabaseSql(dbMirror, dbPairs, environment)) {
+            rtn = Boolean.FALSE;
+            // don't continue
+//                break;
         }
+//        }
         return rtn;
     }
 
-    public Boolean runDatabaseSql(DBMirror dbMirror, Pair dbSqlPair, Environment environment) {
+    public Boolean runDatabaseSql(DBMirror dbMirror, List<Pair> pairs, Environment environment) {
         // Open the connections and ensure we are running this on the "RIGHT" cluster.
         Connection conn = null;
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         Boolean rtn = Boolean.TRUE;
         // Skip when running test data.
-        if (!hmsMirrorConfig.isLoadingTestData()) {
+        if (!config.isLoadingTestData()) {
             try {
                 conn = connectionPoolService.getHS2EnvironmentConnection(environment);
 
-                if (isNull(conn) && hmsMirrorConfig.isExecute()
-                        && !hmsMirrorConfig.getCluster(environment).getHiveServer2().isDisconnected()) {
+                if (isNull(conn) && config.isExecute()
+                        && !config.getCluster(environment).getHiveServer2().isDisconnected()) {
                     // this is a problem.
                     rtn = Boolean.FALSE;
                     dbMirror.addIssue(environment, "Connection missing. This is a bug.");
                 }
 
-                if (isNull(conn) && hmsMirrorConfig.getCluster(environment).getHiveServer2().isDisconnected()) {
+                if (isNull(conn) && config.getCluster(environment).getHiveServer2().isDisconnected()) {
                     dbMirror.addIssue(environment, "Running in 'disconnected' mode.  NO RIGHT operations will be done.  " +
                             "The scripts will need to be run 'manually'.");
                 }
 
-                if (!isNull(conn)) {
-                    if (dbMirror != null)
-                        log.debug("{} - {}: {}", environment, dbSqlPair.getDescription(), dbMirror.getName());
-                    else
-                        log.debug("{} - {}:{}", environment, dbSqlPair.getDescription(), dbSqlPair.getAction());
-
+                if (!isNull(conn) && config.isExecute()) {
                     Statement stmt = null;
                     try {
                         try {
@@ -1030,15 +1026,21 @@ public class DatabaseService {
                             rtn = Boolean.FALSE;
                         }
 
-                        try {
-                            log.debug("{}:{}:{}", environment, dbSqlPair.getDescription(), dbSqlPair.getAction());
-                            if (hmsMirrorConfig.isExecute()) // on dry-run, without db, hard to get through the rest of the steps.
-                                stmt.execute(dbSqlPair.getAction());
-                        } catch (SQLException throwables) {
-                            log.error("{}:{}:", environment, dbSqlPair.getDescription(), throwables);
-                            dbMirror.addIssue(environment, throwables.getMessage() + " " + dbSqlPair.getDescription() +
-                                    " " + dbSqlPair.getAction());
-                            rtn = Boolean.FALSE;
+                        for (Pair dbSqlPair : pairs) {
+                            try {
+                                String action = dbSqlPair.getAction();
+                                if (action.trim().isEmpty() || action.trim().startsWith("--")) {
+                                    continue;
+                                } else {
+                                    log.info("{}:{}:{}", environment, dbSqlPair.getDescription(), dbSqlPair.getAction());
+                                    stmt.execute(dbSqlPair.getAction());
+                                }
+                            } catch (SQLException throwables) {
+                                log.error("{}:{}:", environment, dbSqlPair.getDescription(), throwables);
+                                dbMirror.addIssue(environment, throwables.getMessage() + " " + dbSqlPair.getDescription() +
+                                        " " + dbSqlPair.getAction());
+                                rtn = Boolean.FALSE;
+                            }
                         }
 
                     } finally {
@@ -1049,6 +1051,11 @@ public class DatabaseService {
                                 // ignore
                             }
                         }
+                    }
+                } else {
+                    log.info("DRY-RUN: {} - {}", environment, dbMirror.getName());
+                    for (Pair dbSqlPair : pairs) {
+                        log.info("{}:{}:{}", environment, dbSqlPair.getDescription(), dbSqlPair.getAction());
                     }
                 }
             } catch (SQLException throwables) {
@@ -1061,6 +1068,11 @@ public class DatabaseService {
                 } catch (SQLException throwables) {
                     //
                 }
+            }
+        } else {
+            log.info("TEST DATA RUN: {} - {}", environment, dbMirror.getName());
+            for (Pair dbSqlPair : pairs) {
+                log.info("{}:{}:{}", environment, dbSqlPair.getDescription(), dbSqlPair.getAction());
             }
         }
         return rtn;

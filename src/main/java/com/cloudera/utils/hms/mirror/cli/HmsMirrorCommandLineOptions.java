@@ -1435,6 +1435,13 @@ public class HmsMirrorCommandLineOptions {
         metadataStage.setRequired(Boolean.FALSE);
         options.addOption(metadataStage);
 
+        Option dataMovementStategy = new Option("dms", "data-movement-strategy", true,
+                "Specify how the data will follow the schema. " + Arrays.deepToString(DataMovementStrategyEnum.visibleValues()));
+        dataMovementStategy.setOptionalArg(Boolean.TRUE);
+        dataMovementStategy.setArgName("data-movement-strategy");
+        dataMovementStategy.setRequired(Boolean.FALSE);
+        options.addOption(dataMovementStategy);
+
         Option dumpSource = new Option("ds", "dump-source", true,
                 "Specify which 'cluster' is the source for the DUMP strategy (LEFT|RIGHT). ");
         dumpSource.setOptionalArg(Boolean.TRUE);

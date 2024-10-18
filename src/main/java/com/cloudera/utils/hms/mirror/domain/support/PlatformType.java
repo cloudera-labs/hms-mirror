@@ -24,30 +24,32 @@ import static com.cloudera.utils.hms.mirror.domain.support.HiveVersion.*;
 @Getter
 public enum PlatformType {
 
-    CDH5("CDH5", HIVE_1, Boolean.FALSE),
-    CDH6("CDH6", HIVE_2, Boolean.FALSE),
-    CDP7_0("CDP", HIVE_3, Boolean.FALSE),
-    CDP7_1("CDP", HIVE_3, Boolean.FALSE),
-    CDP7_1_9_SP1("CDP", HIVE_3, Boolean.TRUE),
-    CDP7_2("CDP", HIVE_3, Boolean.TRUE),
-    CDP7_3("CDP", HIVE_4, Boolean.TRUE),
-    HDP2("HDP2", HIVE_1, Boolean.FALSE),
-    HDP3("HDP3", HIVE_3, Boolean.FALSE),
-    MAPR("MAPR", HIVE_1, Boolean.FALSE),
-    EMR("EMR", HIVE_1, Boolean.FALSE),
-    APACHE_HIVE1("APACHE_HIVE1", HIVE_1, Boolean.FALSE),
-    APACHE_HIVE2("APACHE_HIVE2", HIVE_2, Boolean.FALSE),
-    APACHE_HIVE3("APACHE_HIVE3", HIVE_3, Boolean.FALSE),
-    APACHE_HIVE4("APACHE_HIVE4", HIVE_4, Boolean.TRUE);
+    CDH5("CDH5", HIVE_1, Boolean.FALSE, Boolean.FALSE),
+    CDH6("CDH6", HIVE_2, Boolean.FALSE, Boolean.FALSE),
+    CDP7_0("CDP", HIVE_3, Boolean.FALSE, Boolean.FALSE),
+    CDP7_1("CDP", HIVE_3, Boolean.FALSE, Boolean.FALSE),
+    CDP7_1_9_SP1("CDP", HIVE_3, Boolean.TRUE, Boolean.FALSE),
+    CDP7_2("CDP", HIVE_3, Boolean.TRUE, Boolean.TRUE),
+    CDP7_3("CDP", HIVE_4, Boolean.TRUE, Boolean.TRUE),
+    HDP2("HDP2", HIVE_1, Boolean.FALSE, Boolean.FALSE),
+    HDP3("HDP3", HIVE_3, Boolean.FALSE, Boolean.FALSE),
+    MAPR("MAPR", HIVE_1, Boolean.FALSE, Boolean.FALSE),
+    EMR("EMR", HIVE_1, Boolean.FALSE, Boolean.FALSE),
+    APACHE_HIVE1("APACHE_HIVE1", HIVE_1, Boolean.FALSE, Boolean.FALSE),
+    APACHE_HIVE2("APACHE_HIVE2", HIVE_2, Boolean.FALSE, Boolean.FALSE),
+    APACHE_HIVE3("APACHE_HIVE3", HIVE_3, Boolean.FALSE, Boolean.FALSE),
+    APACHE_HIVE4("APACHE_HIVE4", HIVE_4, Boolean.TRUE, Boolean.TRUE);
 
     private final String platform;
     private final HiveVersion hiveVersion;
     private final boolean dbOwnerType;
+    private final boolean icebergSupport;
 
-    PlatformType(String platform, HiveVersion hiveVersion, boolean dbOwnerType) {
+    PlatformType(String platform, HiveVersion hiveVersion, boolean dbOwnerType, boolean icebergSupport) {
         this.platform = platform;
         this.hiveVersion = hiveVersion;
         this.dbOwnerType = dbOwnerType;
+        this.icebergSupport = icebergSupport;
     }
 
 }

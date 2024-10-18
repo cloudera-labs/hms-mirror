@@ -17,11 +17,32 @@
 
 package com.cloudera.utils.hms.mirror.domain.support;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public enum DataMovementStrategyEnum {
-    SQL,
-    EXPORT_IMPORT,
-    HYBRID,
-    DISTCP,
-    MANUAL,
-    NA;
+    SQL(Boolean.FALSE),
+    EXPORT_IMPORT(Boolean.TRUE),
+    HYBRID(Boolean.TRUE),
+    DISTCP(Boolean.FALSE),
+    MANUAL(Boolean.FALSE),
+    NA(Boolean.TRUE);
+
+    private boolean hidden = false;
+
+    DataMovementStrategyEnum(boolean hidden) {
+        this.hidden = hidden;
+    }
+
+    public static DataMovementStrategyEnum[] visibleValues() {
+        List<DataMovementStrategyEnum> dsList = new ArrayList<>();
+        for (DataMovementStrategyEnum dataStrategy : values()) {
+            if (!dataStrategy.hidden) {
+                dsList.add(dataStrategy);
+            }
+        }
+        DataMovementStrategyEnum[] rtn = dsList.toArray(new DataMovementStrategyEnum[0]);
+        return rtn;
+    }
+
 }
