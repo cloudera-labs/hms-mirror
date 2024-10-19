@@ -712,19 +712,25 @@ public class DatabaseService {
                                 "database locations.");
                     } else {
                         if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
-                            String alterDbLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetLocation);
-                            dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbLoc));
-                            dbDefRight.put(DB_LOCATION, targetLocation);
+                            if (!isBlank(targetLocation)) {
+                                String alterDbLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetLocation);
+                                dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbLoc));
+                                dbDefRight.put(DB_LOCATION, targetLocation);
+                            }
                         }
                         if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
-                            String alterDbMngdLoc = MessageFormat.format(ALTER_DB_MNGD_LOCATION, targetDatabase, targetManagedLocation);
-                            dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
-                            dbDefRight.put(DB_MANAGED_LOCATION, targetManagedLocation);
+                            if (!isBlank(targetManagedLocation)) {
+                                String alterDbMngdLoc = MessageFormat.format(ALTER_DB_MNGD_LOCATION, targetDatabase, targetManagedLocation);
+                                dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
+                                dbDefRight.put(DB_MANAGED_LOCATION, targetManagedLocation);
+                            }
                         } else {
-                            String alterDbMngdLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetManagedLocation);
-                            dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
-                            dbMirror.addIssue(Environment.LEFT, HDPHIVE3_DB_LOCATION.getDesc());
-                            dbDefRight.put(DB_LOCATION, targetManagedLocation);
+                            if (!isBlank(targetManagedLocation)) {
+                                String alterDbMngdLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetManagedLocation);
+                                dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
+                                dbMirror.addIssue(Environment.LEFT, HDPHIVE3_DB_LOCATION.getDesc());
+                                dbDefRight.put(DB_LOCATION, targetManagedLocation);
+                            }
                         }
 
                         dbMirror.addIssue(Environment.LEFT, "This process, when 'executed' will leave the original tables intact in their renamed " +
