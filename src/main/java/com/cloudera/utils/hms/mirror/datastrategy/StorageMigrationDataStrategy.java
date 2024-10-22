@@ -214,7 +214,10 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
         }
         // Set unique name for old target to rename, IF the table is remaining in the same database.
         if (database.equals(originalDatabase)) {
-            let.setName(let.getName() + "_" + tableMirror.getUnique() + config.getTransfer().getStorageMigrationPostfix());
+//            let.setName(let.getName() + "_" + tableMirror.getUnique() + config.getTransfer().getStorageMigrationPostfix());
+            // Removed the unique name from the table name. This was causing issues with
+            //  users that wanted to script some comparison SQL since the name wasn't consistent.
+            let.setName(let.getName() + config.getTransfer().getStorageMigrationPostfix());
             String origAlterRename = MessageFormat.format(MirrorConf.RENAME_TABLE, ret.getName(), let.getName());
             let.addSql(MirrorConf.RENAME_TABLE_DESC, origAlterRename);
         }

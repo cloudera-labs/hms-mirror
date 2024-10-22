@@ -374,12 +374,12 @@ public class TableService {
                                 log.info("{}.{} was NOT added to list.  " +
                                         "The name matches the transfer prefix and is most likely a remnant of a previous " +
                                         "event. If this is a mistake, change the 'transferPrefix' to something more unique.", database, tableName);
-                            } else if (tableName.endsWith("storage_migration")) {
+                            } else if (tableName.endsWith(config.getTransfer().getStorageMigrationPostfix())) {
                                 TableMirror tableMirror = dbMirror.addTable(tableName);
                                 tableMirror.setRemove(Boolean.TRUE);
-                                tableMirror.setRemoveReason("Table name matches the storage_migration suffix.  " +
+                                tableMirror.setRemoveReason("Table name matches the 'storage migration' suffix.  " +
                                         "This is most likely a remnant of a previous event.  If this is a mistake, " +
-                                        "change the 'transferPrefix' to something more unique.");
+                                        "change the 'StorageMigrationPostfix' to something more unique.");
                                 log.info("{}.{} was NOT added to list.  " +
                                         "The name is the result of a previous STORAGE_MIGRATION attempt that has not been " +
                                         "cleaned up.", database, tableName);
