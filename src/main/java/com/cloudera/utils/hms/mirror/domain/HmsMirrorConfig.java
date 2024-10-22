@@ -354,20 +354,19 @@ public class HmsMirrorConfig implements Cloneable {
                 Cluster cluster = new Cluster();
                 hmsMirrorConfig.getClusters().put(env, cluster);
 
+                System.out.print("What is the 'namespace' for the " + env + " cluster? (EG: hdfs://myclusterHA or hdfs://host07:8020)\n");
+                String response = scanner.next();
+                hmsMirrorConfig.getCluster(env).setHcfsNamespace(response);
+
                 // get their input as a String
                 // Legacy?
-                System.out.print("Is the " + env + " hive instance Hive 1 or Hive 2? (Y/N)");
-                String response = scanner.next();
-                if (response.equalsIgnoreCase("y")) {
-                    hmsMirrorConfig.getCluster(env).setLegacyHive(Boolean.TRUE);
-                } else {
-                    hmsMirrorConfig.getCluster(env).setLegacyHive(Boolean.FALSE);
-                }
-
-                // hcfsNamespace
-//                System.out.print("What is the namespace for the " + env + " cluster? ");
-//                response = scanner.next();
-//                hmsMirrorConfig.getCluster(env).setHcfsNamespace(response);
+                System.out.print("What is the platform type for the " + env + " cluster? (" + Arrays.deepToString(PlatformType.values()));
+                response = scanner.next();
+//                if (response.equalsIgnoreCase("y")) {
+                    hmsMirrorConfig.getCluster(env).setPlatformType(PlatformType.valueOf(response.toUpperCase()));
+//                } else {
+//                    hmsMirrorConfig.getCluster(env).setLegacyHive(Boolean.FALSE);
+//                }
 
                 // HS2 URI
                 System.out.print("What is the JDBC URI for the " + env + " cluster? ");
@@ -434,7 +433,7 @@ public class HmsMirrorConfig implements Cloneable {
             }
         }
 
-        save(hmsMirrorConfig, configFile, Boolean.FALSE);
+        save(hmsMirrorConfig, configFile, Boolean.TRUE);
 
     }
 

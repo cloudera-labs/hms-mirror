@@ -17,6 +17,9 @@
 
 package com.cloudera.utils.hms.util;
 
+import com.cloudera.utils.hadoop.cli.CliEnvironment;
+import com.cloudera.utils.hadoop.cli.DisabledException;
+import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.regex.Matcher;
@@ -115,5 +118,17 @@ public class NamespaceUtils {
         parentDirectory = location.trim().substring(0, location.trim().length() - (lastDirectory.length() + extra));
 
         return parentDirectory;// != null? location.substring(0, location.length() - (lastDirectory.length() + 1)): null;
+    }
+
+    public static boolean isNamespaceAvailable(CliEnvironment cli, String namespace) throws DisabledException {
+
+        String namespaceTestLine = namespace.endsWith("/") ? namespace : namespace + "/";
+
+        CommandReturn lcr = cli.processInput("ls " + namespaceTestLine);
+        if (lcr.isError()) {
+            return false;
+        }
+
+        return true;
     }
 }

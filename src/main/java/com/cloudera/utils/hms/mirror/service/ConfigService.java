@@ -351,7 +351,7 @@ public class ConfigService {
     }
 
     protected Boolean linkTest(ExecuteSession session, CliEnvironment cli) throws DisabledException {
-        Boolean rtn = Boolean.FALSE;
+        Boolean rtn = Boolean.TRUE;
         HmsMirrorConfig config = session.getConfig();
 
         if (isNull(cli)) {
@@ -362,32 +362,37 @@ public class ConfigService {
             log.warn("Skipping Link Check.");
             rtn = Boolean.TRUE;
         } else {
-//            CliEnvironment cli = executeSessionService.getCliEnvironment();
 
             log.info("Performing Cluster Link Test to validate cluster 'hcfsNamespace' availability.");
-            // TODO: develop a test to copy data between clusters.
-            String leftHCFSNamespace = config.getCluster(Environment.LEFT).getHcfsNamespace();
-            String rightHCFSNamespace = config.getCluster(Environment.RIGHT).getHcfsNamespace();
 
-            // List User Directories on LEFT
-            String leftlsTestLine = "ls " + leftHCFSNamespace + "/user";
-            String rightlsTestLine = "ls " + rightHCFSNamespace + "/user";
-            log.info("LEFT ls testline: {}", leftlsTestLine);
-            log.info("RIGHT ls testline: {}", rightlsTestLine);
+            // We need to gather and test the configured hcfs namespaces defined in the config.
+            // LEFT, RIGHT, and TargetNamespace.
+            // If a namespace is NOT defined, record an issue and move on.  Only 'fail' when a defined namespace fails.
+            List<String> namespaces= new ArrayList<>();
 
-            CommandReturn lcr = cli.processInput(leftlsTestLine);
-            if (lcr.isError()) {
-                throw new RuntimeException("Link to RIGHT cluster FAILED.\n " + lcr.getError() +
-                        "\nCheck configuration and hcfsNamespace value.  " +
-                        "Check the documentation about Linking clusters: https://github.com/cloudera-labs/hms-mirror#linking-clusters-storage-layers");
+            if (nonNull(config.getCluster(Environment.LEFT)) && !isBlank(config.getCluster(Environment.LEFT).getHcfsNamespace())) {
+                namespaces.add(config.getCluster(Environment.LEFT).getHcfsNamespace());
             }
-            CommandReturn rcr = cli.processInput(rightlsTestLine);
-            if (rcr.isError()) {
-                throw new RuntimeException("Link to LEFT cluster FAILED.\n " + rcr.getError() +
-                        "\nCheck configuration and hcfsNamespace value.  " +
-                        "Check the documentation about Linking clusters: https://github.com/cloudera-labs/hms-mirror#linking-clusters-storage-layers");
+            if (nonNull(config.getCluster(Environment.RIGHT)) && !isBlank(config.getCluster(Environment.RIGHT).getHcfsNamespace())) {
+                namespaces.add(config.getCluster(Environment.RIGHT).getHcfsNamespace());
             }
-            rtn = Boolean.TRUE;
+            if (!isBlank(config.getTransfer().getTargetNamespace())) {
+                namespaces.add(config.getTransfer().getTargetNamespace());
+            }
+
+            for (String namespace : namespaces) {
+                try {
+                    if (NamespaceUtils.isNamespaceAvailable(cli, namespace)) {
+                        log.info("Namespace: {} is available.", namespace);
+                    } else {
+                        log.warn("Namespace: {} is not available.", namespace);
+                        rtn = Boolean.FALSE;
+                    }
+                } catch (DisabledException de) {
+                    log.warn("Namespace: {} is not available because the hcfs client has been disabled.", namespace);
+                }
+            }
+
         }
         return rtn;
     }
