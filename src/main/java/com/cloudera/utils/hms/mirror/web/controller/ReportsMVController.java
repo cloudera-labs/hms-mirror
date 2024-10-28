@@ -211,8 +211,8 @@ public class ReportsMVController implements ControllerReferences {
             org.apache.commons.io.IOUtils.copy(is, response.getOutputStream());
             response.flushBuffer();
         } catch (IOException ex) {
-            log.info("Error writing file to output stream. Filename was '{}.zip'", report_id, ex);
-            throw new RuntimeException("IOError writing file to output stream");
+            log.info("Error writing file to output stream. Filename was ''{}.zip''", report_id, ex);
+//            throw new RuntimeException("IOError writing file to output stream");
         }
 
     }

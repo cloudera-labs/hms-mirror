@@ -91,10 +91,12 @@ public class ConnectionPoolsHybridImpl extends ConnectionPoolsBase implements Co
                             try {
                                 conn.close();
                             } catch (SQLException e) {
+                                log.error("Issue closing HS2 connection for the {}", environment, e);
                                 throw new RuntimeException(e);
                             }
                         } else {
-                            throw new RuntimeException(t);
+                            log.error("Connection null");
+//                            throw new RuntimeException(t);
                         }
                     }
                 } else {
@@ -153,7 +155,8 @@ public class ConnectionPoolsHybridImpl extends ConnectionPoolsBase implements Co
                                 throw new RuntimeException(e);
                             }
                         } else {
-                            throw new RuntimeException(t);
+                            log.error("Connection null");
+//                            throw new RuntimeException(t);
                         }
                     }
                 }

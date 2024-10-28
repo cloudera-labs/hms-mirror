@@ -133,7 +133,7 @@ public class ReportService {
             Files.move(new File(reportDirectoryName).toPath(), new File(archiveReportDirectoryName).toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             log.error("Error moving report to archive: {}", e.getMessage(), e);
-            throw new RuntimeException(e);
+//            throw new RuntimeException(e);
         }
     }
 

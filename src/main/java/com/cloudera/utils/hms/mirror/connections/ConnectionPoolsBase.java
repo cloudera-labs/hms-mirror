@@ -86,6 +86,7 @@ public abstract class ConnectionPoolsBase implements ConnectionPools {
                 try {
                     ((PoolingDataSource<?>)metastoreDirectDataSources.get(Environment.LEFT)).close();
                 } catch (SQLException e) {
+                    log.error("Issue closing connection for: {}", "LEFT Metastore", e);
                     throw new RuntimeException(e);
                 }
             }
@@ -97,6 +98,7 @@ public abstract class ConnectionPoolsBase implements ConnectionPools {
                 try {
                     ((PoolingDataSource<?>)metastoreDirectDataSources.get(Environment.RIGHT)).close();
                 } catch (SQLException e) {
+                    log.error("Issue closing connection for: {}", "RIGHT Metastore Direct", e);
                     throw new RuntimeException(e);
                 }
             }
@@ -230,6 +232,7 @@ public abstract class ConnectionPoolsBase implements ConnectionPools {
                         try {
                             conn.close();
                         } catch (SQLException e) {
+                            log.error("Issue closing Metastore Direct connection for the {}", environment, e);
                             throw new RuntimeException(e);
                         }
                     } else {

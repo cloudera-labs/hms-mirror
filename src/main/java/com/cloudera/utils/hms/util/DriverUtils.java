@@ -52,7 +52,8 @@ public class DriverUtils {
                 for (int i = 0; i < files.length; i++) {
                     jarFiles[i] = new File(files[i]);
                     if (!jarFiles[i].exists()) {
-                        throw new RuntimeException("Jarfile: " + files[i] + " can't be located.");
+                        log.error("Jarfile: " + files[i] + " can't be located.");
+//                        throw new RuntimeException("Jarfile: " + files[i] + " can't be located.");
                     }
                     urls[i] = jarFiles[i].toURI().toURL();
                 }
@@ -83,7 +84,8 @@ public class DriverUtils {
                  IllegalAccessException throwables) {
             log.error(throwables.getMessage(), throwables);
         } catch (InvocationTargetException | NoSuchMethodException e) {
-            throw new RuntimeException(e);
+            log.error("Issue getting Driver", e);
+//            throw new RuntimeException(e);
         }
         return hiveShim;
     }

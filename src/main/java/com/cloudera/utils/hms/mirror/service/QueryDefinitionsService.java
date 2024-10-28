@@ -75,6 +75,7 @@ public class QueryDefinitionsService {
                         queryDefinitions = mapper.readerFor(QueryDefinitions.class).readValue(yamlConfigDefinition);
                         queryDefinitionsMap.put(environment, queryDefinitions);
                     } catch (Exception e) {
+                        log.error("Missing resource file: {}", dbQueryDefReference, e);
                         throw new RuntimeException("Missing resource file: " +
                                 dbQueryDefReference, e);
                     }

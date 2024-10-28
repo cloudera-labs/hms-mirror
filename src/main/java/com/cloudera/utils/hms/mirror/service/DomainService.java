@@ -55,7 +55,8 @@ public class DomainService {
         try {
             dbMirror = yamlMapper.readerFor(DBMirror.class).readValue(dbMirrorAsString);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            log.error("Parsing issue", e);
+//            throw new RuntimeException(e);
         }
         return dbMirror;
     }
@@ -66,7 +67,8 @@ public class DomainService {
         try {
             conversion = yamlMapper.readerFor(Conversion.class).readValue(conversionAsString);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            log.error("Issue deserializing DomainService object", e);
+//            throw new RuntimeException(e);
         }
         return conversion;
     }
@@ -98,7 +100,8 @@ public class DomainService {
                 // Try loading from resource (classpath).  Mostly for testing.
                 cfgUrl = yamlMapper.getClass().getResource(configFilename);
                 if (isNull(cfgUrl)) {
-                    throw new RuntimeException("Couldn't locate configuration file: " + configFilename);
+                    log.error("Couldn't locate configuration file: " + configFilename);
+                    return null;
                 }
                 log.info("Using 'classpath' config: {}", configFilename);
             } else {
@@ -106,8 +109,9 @@ public class DomainService {
                 try {
                     cfgUrl = cfgFile.toURI().toURL();
                 } catch (MalformedURLException mfu) {
-                    throw new RuntimeException("Couldn't locate configuration file: "
+                    log.error("Couldn't locate configuration file: "
                             + configFilename, mfu);
+                    return null;
                 }
             }
 
@@ -116,7 +120,9 @@ public class DomainService {
 
 //            config.setConfigFilename(configFilename);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            log.error("IO Exception", e);
+            return null;
+//            throw new RuntimeException(e);
         }
         return fileAsString;
     }
@@ -128,7 +134,9 @@ public class DomainService {
         try {
             config = yamlMapper.readerFor(HmsMirrorConfig.class).readValue(yamlCfgFile);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            log.error("Issue deserializing Config object", e);
+            return null;
+//            throw new RuntimeException(e);
         }
         config.setConfigFilename(configFilename);
         return config;
@@ -141,7 +149,9 @@ public class DomainService {
             distcpWorkbook = yamlMapper.readerFor(new TypeReference<Map<String, Map<String, Set<String>>>>() {
             }).readValue(distcpWorkbookAsString);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            log.error("Issue deserializing DistCP Workbook object", e);
+            return null;
+//            throw new RuntimeException(e);
         }
         return distcpWorkbook;
     }

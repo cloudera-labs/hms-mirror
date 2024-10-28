@@ -575,7 +575,7 @@ public class TableUtils {
         Boolean rtn = Boolean.FALSE;
         log.trace("Checking if table '{}' is 'native' (not a connector [HBase, Kafka, etc])", envTable.getName());
         if (isNull(envTable.getDefinition())) {
-            throw new RuntimeException("Table definition for " + envTable.getName() + " is null.");
+            log.error("Table definition for " + envTable.getName() + " is null.");
         }
         for (String line : envTable.getDefinition()) {
             if (!isBlank(line) && line.trim().startsWith(LOCATION)) {
@@ -610,7 +610,8 @@ public class TableUtils {
         Boolean rtn = Boolean.FALSE;
         log.trace("Checking if table '{}' was converted by 'hms-mirror'", envTable.getName());
         if (isNull(envTable.getDefinition())) {
-            throw new RuntimeException("Table definition for " + envTable.getName() + " is null.");
+            log.error("Table definition for " + envTable.getName() + " is null.");
+//            throw new RuntimeException("Table definition for " + envTable.getName() + " is null.");
         }
         for (String line : envTable.getDefinition()) {
             if (nonNull(line)) {
@@ -638,7 +639,7 @@ public class TableUtils {
     public static Boolean isView(EnvironmentTable envTable) {
         Boolean rtn = Boolean.FALSE;
         if (isNull(envTable.getDefinition())) {
-            throw new RuntimeException("Definition for " + envTable.getName() + " is null.");
+            log.error("Definition for " + envTable.getName() + " is null.");
         }
 
         for (String line : envTable.getDefinition()) {
@@ -654,7 +655,7 @@ public class TableUtils {
         Boolean rtn = Boolean.FALSE;
         log.trace("Checking if table '{}' is 'transactional(ACID)'", envTable.getName());
         if (isNull(envTable.getDefinition())) {
-            throw new RuntimeException("Table definition for " + envTable.getName() + " is null.");
+            log.error("Table definition for " + envTable.getName() + " is null.");
         }
         if (isManaged(envTable)) {
             for (String line : envTable.getDefinition()) {
@@ -686,7 +687,7 @@ public class TableUtils {
         Boolean rtn = Boolean.FALSE;
         log.trace("Checking if table '{}' is an 'External' Purge table", envTable.getName());
         if (isNull(envTable.getDefinition())) {
-            throw new RuntimeException("Table definition for " + envTable.getName() + " is null.");
+            log.error("Table definition for " + envTable.getName() + " is null.");
         }
         if (isExternal(envTable)) {
             for (String line : envTable.getDefinition()) {
@@ -760,7 +761,7 @@ public class TableUtils {
         Boolean rtn = Boolean.FALSE;
         log.trace("Checking if table '{}' is an AVRO table using a schema file in hcfs.", envTable.getName());
         if (isNull(envTable.getDefinition())) {
-            throw new RuntimeException("Table definition for " + envTable.getName() + " is null.");
+            log.error("Table definition for " + envTable.getName() + " is null.");
         }
         for (String line : envTable.getDefinition()) {
             if (!isBlank(line) && line.contains(TablePropertyVars.AVRO_SCHEMA_URL_KEY)) {

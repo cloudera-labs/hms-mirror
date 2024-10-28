@@ -347,7 +347,9 @@ public class HMSMirrorAppService {
                             }
                         }
                     } catch (InterruptedException | ExecutionException e) {
-                        throw new RuntimeException(e);
+                        log.error("Interrupted Table collection", e);
+                        rtn = Boolean.FALSE;
+//                        throw new RuntimeException(e);
                     }
                 }
                 if (check)
@@ -432,7 +434,7 @@ public class HMSMirrorAppService {
                                     runStatus.getOperationStatistics().getFailures().incrementTables();
                                     rtn = Boolean.FALSE;
                                     sf.get().setStatus(ReturnStatus.Status.NEXTSTEP);
-                                    throw new RuntimeException(sf.get().getException());
+                                    log.error("FATAL: ", sf.get().getException());
                                 case NEXTSTEP:
                                     break;
                                 case SKIP:
@@ -444,7 +446,8 @@ public class HMSMirrorAppService {
                             }
                         }
                     } catch (InterruptedException | ExecutionException e) {
-                        throw new RuntimeException(e);
+                        rtn = Boolean.FALSE;
+                        log.error("Interrupted", e);
                     }
                 }
                 if (check)
@@ -502,7 +505,9 @@ public class HMSMirrorAppService {
                             }
                         }
                     } catch (InterruptedException | ExecutionException e) {
-                        throw new RuntimeException(e);
+                        log.error("Interrupted", e);
+                        rtn = Boolean.FALSE;
+//                        throw new RuntimeException(e);
                     }
                 }
                 if (check)

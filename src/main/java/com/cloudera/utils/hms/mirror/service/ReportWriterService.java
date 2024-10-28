@@ -99,7 +99,7 @@ public class ReportWriterService {
         try {
             Thread.sleep(200);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+//            throw new RuntimeException(e);
         }
         log.info("Writing out report(s)");
         writeReport();

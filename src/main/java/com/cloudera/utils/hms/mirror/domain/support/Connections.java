@@ -19,12 +19,14 @@ package com.cloudera.utils.hms.mirror.domain.support;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 import java.util.TreeMap;
 
 @Getter
 @Setter
+@Slf4j
 public class Connections implements Cloneable {
 
     private Map<Environment, Connection> hiveServer2Connections = new TreeMap<>();
@@ -53,6 +55,7 @@ public class Connections implements Cloneable {
             Connections connections = (Connections) super.clone();
             return connections;
         } catch (CloneNotSupportedException e) {
+            log.error("Clone not supported", e);
             throw new RuntimeException(e);
         }
     }

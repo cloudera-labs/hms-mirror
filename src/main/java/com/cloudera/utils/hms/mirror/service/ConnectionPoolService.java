@@ -77,7 +77,9 @@ public class ConnectionPoolService {
         HmsMirrorConfig config = executeSession.getConfig();
 
         if (isNull(config)) {
-            throw new RuntimeException("Configuration not set.  Connections can't be established.");
+            log.error("Configuration not set.  Connection can't be established");
+            return Boolean.FALSE;
+//            throw new RuntimeException("Configuration not set.  Connections can't be established.");
         }
 
         Set<Environment> envs = new HashSet<>();
@@ -151,7 +153,7 @@ public class ConnectionPoolService {
                 connectionPools = getConnectionPoolsImpl();
             } catch (SQLException e) {
                 log.error("Error creating connections pools", e);
-                throw new RuntimeException(e);
+//                throw new RuntimeException(e);
             }
         }
         return connectionPools;
@@ -162,7 +164,9 @@ public class ConnectionPoolService {
         HmsMirrorConfig config = executeSession.getConfig();
 
         if (isNull(config)) {
-            throw new RuntimeException("Configuration not set.  Connections can't be established.");
+            log.error("Configuration not set.  Connections can't be established.");
+            return null;
+//            throw new RuntimeException("Configuration not set.  Connections can't be established.");
         }
         ConnectionPoolType cpt = config.getConnectionPoolLib();
         if (isNull(cpt)) {
@@ -358,7 +362,7 @@ public class ConnectionPoolService {
             if (config.isConnectionKerberized()) {
                 log.error("Check Kerberos configuration if GSS issues are encountered.  See the running.md docs for details.");
             }
-            throw new RuntimeException("Check Hive Connections Failed.  Check Logs.");
+//            throw new RuntimeException("Check Hive Connections Failed.  Check Logs.");
         }
         // Set state of connections.
         connected = true;

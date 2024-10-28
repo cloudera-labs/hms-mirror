@@ -19,9 +19,11 @@ package com.cloudera.utils.hms.mirror.domain.support;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 @Getter
 @Setter
+@Slf4j
 public class Connection implements Cloneable {
 
     private ConnectionStatus status = ConnectionStatus.NOT_CONFIGURED;
@@ -37,6 +39,7 @@ public class Connection implements Cloneable {
         try {
             return (Connection) super.clone();
         } catch (CloneNotSupportedException e) {
+            log.error("Clone not supported", e);
             throw new RuntimeException(e);
         }
     }

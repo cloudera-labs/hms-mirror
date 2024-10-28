@@ -121,7 +121,7 @@ public class ModelUtils implements ControllerReferences {
                 }
                 map.put(clazz.getSimpleName().toLowerCase() + "s", enumNames);
             } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                throw new RuntimeException(e);
+//                throw new RuntimeException(e);
             }
         }
     }

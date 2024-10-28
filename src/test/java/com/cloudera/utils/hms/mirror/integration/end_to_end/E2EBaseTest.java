@@ -137,8 +137,10 @@ public class E2EBaseTest {
                 String resultsFileStr = outputDirBase + "/" + database + "_hms-mirror.yaml";
                 URL resultURL = null;
                 File resultsFile = new File(resultsFileStr);
-                if (!resultsFile.exists())
-                    throw new RuntimeException("Couldn't locate results file: " + resultsFileStr);
+                if (!resultsFile.exists()) {
+                    log.error("Couldn't locate results file: " + resultsFileStr);
+                    continue;
+                }
                 resultURL = resultsFile.toURI().toURL();
                 ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
                 mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -147,17 +149,17 @@ public class E2EBaseTest {
                 DBMirror dbMirror = mapper.readerFor(DBMirror.class).readValue(yamlCfgFile);
                 dbMirrorList.add(dbMirror);
             } catch (UnrecognizedPropertyException upe) {
-                throw new RuntimeException("\nThere may have been a breaking change in the configuration since the previous " +
+                log.error("\nThere may have been a breaking change in the configuration since the previous " +
                         "release. Review the note below and remove the 'Unrecognized field' from the configuration and try " +
                         "again.\n\n", upe);
             } catch (Throwable t) {
                 // Look for yaml update errors.
                 if (t.toString().contains("MismatchedInputException")) {
-                    throw new RuntimeException("The format of the 'config' yaml file MAY HAVE CHANGED from the last release.  Please make a copy and run " +
+                    log.error("The format of the 'config' yaml file MAY HAVE CHANGED from the last release.  Please make a copy and run " +
                             "'-su|--setup' again to recreate in the new format", t);
                 } else {
 //                log.error(t);
-                    throw new RuntimeException("A configuration element is no longer valid, progress.  Please remove the element from the configuration yaml and try again.", t);
+                    log.error("A configuration element is no longer valid, progress.  Please remove the element from the configuration yaml and try again.", t);
                 }
             }
         }

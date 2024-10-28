@@ -106,10 +106,11 @@ public class ConnectionPoolsHikariImpl extends ConnectionPoolsBase implements Co
                         try {
                             conn.close();
                         } catch (SQLException e) {
-                            throw new RuntimeException(e);
+                            log.error("Issue closing HS2 connection for the {}", environment, e);
+//                            throw new RuntimeException(e);
                         }
-                    } else {
-                        throw new RuntimeException(t);
+//                    } else {
+//                        throw new RuntimeException(t);
                     }
                 }
             }

@@ -120,7 +120,8 @@ public class ConfigService {
             rtn = rtn.replaceAll("user:\\s\".*\"", "user: \"*****\"");
             rtn = rtn.replaceAll("password:\\s\".*\"", "password: \"*****\"");
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            log.error("Parsing issue", e);
+//            throw new RuntimeException(e);
         }
         return rtn;
     }

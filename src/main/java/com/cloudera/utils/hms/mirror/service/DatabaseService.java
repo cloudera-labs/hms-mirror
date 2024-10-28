@@ -109,7 +109,8 @@ public class DatabaseService {
                 try {
                     connectionPoolService.init();
                 } catch (SQLException e) {
-                    throw new RuntimeException(e);
+                    log.error("SQL Exception", e);
+                    throw new SessionException(e.getMessage());
                 }
             }
 
@@ -282,7 +283,7 @@ public class DatabaseService {
         } catch (SQLException throwables) {
             log.error("Issue loading Table/Partition Locations from Metastore Direct Connection. {}:{}", environment, database);
             log.error(throwables.getMessage(), throwables);
-            throw new RuntimeException(throwables);
+//            throw new RuntimeException(throwables);
         } finally {
             try {
                 if (nonNull(conn))
@@ -354,7 +355,7 @@ public class DatabaseService {
                     }
                 } catch (SQLException sql) {
                     log.error("Issue getting database list", sql);
-                    throw new RuntimeException(sql);
+//                    throw new RuntimeException(sql);
                 } finally {
                     if (resultSet != null) {
                         try {
@@ -374,7 +375,7 @@ public class DatabaseService {
             }
         } catch (SQLException se) {
             log.error("Issue getting database connections", se);
-            throw new RuntimeException(se);
+//            throw new RuntimeException(se);
         } finally {
             try {
                 if (conn != null)
@@ -636,8 +637,8 @@ public class DatabaseService {
                         // Can't determine location.
                         // TODO: What to do here.
                         log.error("{}: Couldn't determine DB directory on RIGHT cluster.  Can't CREATE database in 'read-only' mode without knowing where it should go and validating existance.", targetDatabase);
-                        throw new RuntimeException(targetDatabase + ": Couldn't determine DB directory on RIGHT cluster.  Can't CREATE database in " +
-                                "'read-only' mode without knowing where it should go and validating existence.");
+//                        throw new RuntimeException(targetDatabase + ": Couldn't determine DB directory on RIGHT cluster.  Can't CREATE database in " +
+//                                "'read-only' mode without knowing where it should go and validating existence.");
                     }
 
                 }
@@ -1066,7 +1067,7 @@ public class DatabaseService {
                 }
             } catch (SQLException throwables) {
                 log.error(environment.toString(), throwables);
-                throw new RuntimeException(throwables);
+//                throw new RuntimeException(throwables);
             } finally {
                 try {
                     if (conn != null)

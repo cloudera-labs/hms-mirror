@@ -52,7 +52,8 @@ public class IcebergConfig implements Cloneable {
         if (version == 1 || version == 2) {
             this.version = version;
         } else {
-            throw new RuntimeException("Invalid Iceberg Version: " + version);
+            log.error("Invalid Iceberg Version {}", version);
+//            throw new RuntimeException("Invalid Iceberg Version: " + version);
         }
     }
 

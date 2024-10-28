@@ -95,6 +95,7 @@ public class CliInit {
                 // Try loading from resource (classpath).  Mostly for testing.
                 cfgUrl = this.getClass().getResource(configFilename);
                 if (isNull(cfgUrl)) {
+                    log.error("Couldn't locate configuration file: {}", configFilename);
                     throw new RuntimeException("Couldn't locate configuration file: " + configFilename);
                 }
                 log.info("Using 'classpath' config: {}", configFilename);
@@ -103,6 +104,7 @@ public class CliInit {
                 try {
                     cfgUrl = cfgFile.toURI().toURL();
                 } catch (MalformedURLException mfu) {
+                    log.error("Couldn't location configuration file: {}", configFilename);
                     throw new RuntimeException("Couldn't locate configuration file: "
                             + configFilename, mfu);
                 }
@@ -112,6 +114,7 @@ public class CliInit {
             hmsMirrorConfig = mapper.readerFor(HmsMirrorConfig.class).readValue(yamlCfgFile);
             hmsMirrorConfig.setConfigFilename(configFilename);
         } catch (IOException e) {
+            log.error("IO Exception", e);
             throw new RuntimeException(e);
         }
         log.info("Config loaded.");
@@ -176,8 +179,10 @@ public class CliInit {
             if (isNull(configURL)) {
                 log.info("Checking filesystem for test data file: {}", filename);
                 File conversionFile = new File(filename);
-                if (!conversionFile.exists())
+                if (!conversionFile.exists()) {
+                    log.error("Couldn't locate test data file: {}", filename);
                     throw new RuntimeException("Couldn't locate test data file: " + filename);
+                }
                 configURL = conversionFile.toURI().toURL();
             }
 
@@ -206,6 +211,7 @@ public class CliInit {
                 throw t2;
             }
         } catch (Throwable t) {
+            log.error("Issue loading test data", t);
             throw new RuntimeException(t);
         }
     }
@@ -219,19 +225,26 @@ public class CliInit {
             if (isNull(configURL)) {
                 log.info("Checking filesystem for DBMirror file: {}", filename);
                 File conversionFile = new File(filename);
-                if (!conversionFile.exists())
+                if (!conversionFile.exists()) {
+                    log.error("Couldn't locate DBMirror file: {}", filename);
                     throw new RuntimeException("Couldn't locate DBMirror file: " + filename);
+                }
                 configURL = conversionFile.toURI().toURL();
             }
             String yamlCfgFile = IOUtils.toString(configURL, StandardCharsets.UTF_8);
             dbMirror = yamlMapper.readerFor(DBMirror.class).readValue(yamlCfgFile);
         } catch (UnrecognizedPropertyException upe) {
+            log.error("There may have been a breaking change in the configuration since the previous " +
+                    "release. Review the note below and remove the 'Unrecognized field' from the configuration and try " +
+                    "again.", upe);
             throw new RuntimeException("\nThere may have been a breaking change in the configuration since the previous " +
                     "release. Review the note below and remove the 'Unrecognized field' from the configuration and try " +
                     "again.\n\n", upe);
         } catch (Throwable t) {
             // Look for yaml update errors.
             if (t.toString().contains("MismatchedInputException")) {
+                log.error("The format of the 'config' yaml file MAY HAVE CHANGED from the last release.  Please make a copy and run " +
+                        "'-su|--setup' again to recreate in the new format", t);
                 throw new RuntimeException("The format of the 'config' yaml file MAY HAVE CHANGED from the last release.  Please make a copy and run " +
                         "'-su|--setup' again to recreate in the new format", t);
             } else {
@@ -280,6 +293,7 @@ public class CliInit {
             try {
                 executeSessionService.startSession(maxThreads);
             } catch (SessionException e) {
+                log.error("Issue creating ");
                 throw new RuntimeException(e);
             }
 

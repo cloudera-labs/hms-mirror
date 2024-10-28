@@ -223,14 +223,17 @@ public class ExecuteSessionService {
     public ExecuteSession getSession(String sessionId) {
         if (isBlank(sessionId)) {
             if (isNull(session)) {
-                throw new RuntimeException("No session loaded.");
+                log.error("No session loaded");
+                return null;
+//                throw new RuntimeException("No session loaded.");
             }
             return session;
         } else {
             if (sessionHistory.containsKey(sessionId)) {
                 return sessionHistory.get(sessionId);
             } else {
-                throw new RuntimeException("Session not found: " + sessionId);
+                log.error("Session not found: " + sessionId);
+                return null;
             }
         }
     }

@@ -342,6 +342,7 @@ public class HmsMirrorCommandLineOptions {
                         DistcpFlowEnum flow = DistcpFlowEnum.valueOf(flowStr.toUpperCase(Locale.ROOT));
                         hmsMirrorConfig.getTransfer().getStorageMigration().setDataFlow(flow);
                     } catch (IllegalArgumentException iae) {
+                        log.error("Optional argument for `distcp` is invalid. Valid values: {}", Arrays.toString(DistcpFlowEnum.values()));
                         throw new RuntimeException("Optional argument for `distcp` is invalid. Valid values: " +
                                 Arrays.toString(DistcpFlowEnum.values()), iae);
                     }

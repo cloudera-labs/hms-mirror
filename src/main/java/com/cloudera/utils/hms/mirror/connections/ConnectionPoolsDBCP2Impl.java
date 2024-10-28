@@ -91,10 +91,12 @@ public class ConnectionPoolsDBCP2Impl extends ConnectionPoolsBase implements Con
                         try {
                             conn.close();
                         } catch (SQLException e) {
+                            log.error("Issue closing HS2 connection for the {}", environment, e);
                             throw new RuntimeException(e);
                         }
                     } else {
-                        throw new RuntimeException(t);
+                        log.error("Connection null");
+//                        throw new RuntimeException(t);
                     }
                 }
             }
@@ -157,10 +159,12 @@ public class ConnectionPoolsDBCP2Impl extends ConnectionPoolsBase implements Con
                         try {
                             conn.close();
                         } catch (SQLException e) {
+                            log.error("Issue closing metastore connection for {}", environment, e);
                             throw new RuntimeException(e);
                         }
                     } else {
-                        throw new RuntimeException(t);
+                        log.error("Connection null");
+//                        throw new RuntimeException(t);
                     }
                 }
             }

@@ -55,7 +55,7 @@ public class ClasspathToZip {
         try {
             createZipFromListofFiles(zipFileName, files);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            log.error("IO issue", e);
         }
     }
 

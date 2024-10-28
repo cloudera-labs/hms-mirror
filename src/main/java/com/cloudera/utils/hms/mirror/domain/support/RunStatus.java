@@ -340,6 +340,7 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
                 // Try loading from resource (classpath).  Mostly for testing.
                 cfgUrl = mapper.getClass().getResource(configFilename);
                 if (isNull(cfgUrl)) {
+                    log.error("Couldn't locate configuration file: {}", configFilename);
                     throw new RuntimeException("Couldn't locate configuration file: " + configFilename);
                 }
                 log.info("Using 'classpath' config: {}", configFilename);
@@ -348,6 +349,7 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
                 try {
                     cfgUrl = cfgFile.toURI().toURL();
                 } catch (MalformedURLException mfu) {
+                    log.error("Malformed configuration file: {}", configFilename, mfu);
                     throw new RuntimeException("Couldn't locate configuration file: "
                             + configFilename, mfu);
                 }
@@ -357,7 +359,9 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
             status = mapper.readerFor(RunStatus.class).readValue(yamlCfgFile);
 
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            log.error("IO issue loading config file", e);
+            return null;
+//            throw new RuntimeException(e);
         }
         log.info("Status loaded.");
         return status;

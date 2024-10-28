@@ -177,8 +177,9 @@ public class TableService {
                     }
                 }
             } else {
-                throw new RuntimeException("Couldn't location definition for table: " + tableMirror.getName() +
-                        " in environment: " + environment.toString());
+                log.error("Couldn't location definition for table: {} in environment: {}", tableMirror.getName(), environment.toString());
+//                throw new RuntimeException("Couldn't location definition for table: " + tableMirror.getName() +
+//                        " in environment: " + environment.toString());
             }
             return createStatement.toString();
         } else {
@@ -281,7 +282,8 @@ public class TableService {
                         try {
                             tableMirror.getEnvironments().put(Environment.RIGHT, tableMirror.getEnvironmentTable(Environment.LEFT).clone());
                         } catch (CloneNotSupportedException e) {
-                            throw new RuntimeException(e);
+                            log.error("Clone not supported for table: {}.{}", tableMirror.getParent().getName(), tableMirror.getName());
+//                            throw new RuntimeException(e);
                         }
                         rtn.setStatus(ReturnStatus.Status.SUCCESS);//successful = Boolean.TRUE;
                         break;

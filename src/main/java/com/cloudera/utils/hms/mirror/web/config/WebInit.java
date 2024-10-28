@@ -109,7 +109,7 @@ public class WebInit {
             try {
                 new FileOutputStream(testFile).close();
             } catch (IOException e) {
-                throw new RuntimeException("Can't write to report output directory: " + value, e);
+                log.error("Can't write to report output directory: " + value, e);
             }
         };
     }
