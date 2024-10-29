@@ -42,18 +42,18 @@ import java.util.concurrent.Future;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
-@Slf4j
 @Getter
 @Setter
+@Slf4j
 public class RunStatus implements Comparable<RunStatus>, Cloneable {
     private Date start = null;
     private Date end = null;
 
     @Schema(description = "This identifies the sessionId that is running/ran for this status.")
     private String sessionId;
-        @JsonIgnore
+    @JsonIgnore
     private Messages errors = null;//new Messages(150);
-        @JsonIgnore
+    @JsonIgnore
     private Messages warnings = null;//new Messages(150);
     //    @JsonIgnore
     Integer concurrency;
@@ -225,7 +225,12 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
     }
 
     public void setStage(StageEnum stage, CollectionEnum collection) {
+        log.info("Setting stage: {} to {}", stage, collection);
         stages.put(stage, collection);
+    }
+
+    public CollectionEnum getStage(StageEnum stage) {
+        return stages.get(stage);
     }
 
     public void addError(MessageCode code) {
@@ -272,7 +277,7 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
         if (nonNull(errors) && errors.getReturnCode() != 0) {
             return Boolean.TRUE;
         } else {
-            return errorMessages.isEmpty()? Boolean.FALSE: Boolean.TRUE;
+            return errorMessages.isEmpty() ? Boolean.FALSE : Boolean.TRUE;
         }
     }
 
@@ -280,7 +285,7 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
         if (nonNull(warnings) && warnings.getReturnCode() != 0) {
             return Boolean.TRUE;
         } else {
-            return warningMessages.isEmpty()? Boolean.FALSE: Boolean.TRUE;
+            return warningMessages.isEmpty() ? Boolean.FALSE : Boolean.TRUE;
         }
     }
 
@@ -312,9 +317,8 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
         return Objects.hashCode(start);
     }
 
-    public static RunStatus loadConfig(String configFilename) {
+    public static RunStatus loadConfig(String configFilename) throws IOException {
         RunStatus status;
-        log.info("Initializing Status.");
         // Check if absolute path.
         if (!configFilename.startsWith("/")) {
             // If filename contain a file.separator, assume the location is
@@ -329,41 +333,29 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
                         + File.separator + configFilename;
             }
         }
-        log.info("Loading Status: {}", configFilename);
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
         URL cfgUrl = null;
-        try {
-            // Load file from classpath and convert to string
-            File cfgFile = new File(configFilename);
-            if (!cfgFile.exists()) {
-                // Try loading from resource (classpath).  Mostly for testing.
-                cfgUrl = mapper.getClass().getResource(configFilename);
-                if (isNull(cfgUrl)) {
-                    log.error("Couldn't locate configuration file: {}", configFilename);
-                    throw new RuntimeException("Couldn't locate configuration file: " + configFilename);
-                }
-                log.info("Using 'classpath' config: {}", configFilename);
-            } else {
-                log.info("Using filesystem config: {}", configFilename);
-                try {
-                    cfgUrl = cfgFile.toURI().toURL();
-                } catch (MalformedURLException mfu) {
-                    log.error("Malformed configuration file: {}", configFilename, mfu);
-                    throw new RuntimeException("Couldn't locate configuration file: "
-                            + configFilename, mfu);
-                }
+        // Load file from classpath and convert to string
+        File cfgFile = new File(configFilename);
+        if (!cfgFile.exists()) {
+            // Try loading from resource (classpath).  Mostly for testing.
+            cfgUrl = mapper.getClass().getResource(configFilename);
+            if (isNull(cfgUrl)) {
+                throw new IOException("Couldn't locate configuration file: " + configFilename);
             }
-
-            String yamlCfgFile = IOUtils.toString(cfgUrl, StandardCharsets.UTF_8);
-            status = mapper.readerFor(RunStatus.class).readValue(yamlCfgFile);
-
-        } catch (IOException e) {
-            log.error("IO issue loading config file", e);
-            return null;
-//            throw new RuntimeException(e);
+        } else {
+            try {
+                cfgUrl = cfgFile.toURI().toURL();
+            } catch (MalformedURLException mfu) {
+                throw new IOException("Couldn't locate configuration file: "
+                        + configFilename, mfu);
+            }
         }
-        log.info("Status loaded.");
+
+        String yamlCfgFile = IOUtils.toString(cfgUrl, StandardCharsets.UTF_8);
+        status = mapper.readerFor(RunStatus.class).readValue(yamlCfgFile);
+
         return status;
 
     }

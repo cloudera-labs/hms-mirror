@@ -112,7 +112,7 @@ public class HMSMirrorAppService {
         // Reset Start time to the actual 'execution' start time.
         runStatus.setStart(new Date());
         OperationStatistics stats = runStatus.getOperationStatistics();
-
+        log.info("Starting HMSMirrorAppService.run()");
         runStatus.setStage(StageEnum.VALIDATING_CONFIG, CollectionEnum.IN_PROGRESS);
         if (configService.validate(session, executeSessionService.getCliEnvironment())) {
             runStatus.setStage(StageEnum.VALIDATING_CONFIG, CollectionEnum.COMPLETED);
@@ -185,6 +185,7 @@ public class HMSMirrorAppService {
         if (config.isLoadingTestData() &&
                 (!config.loadMetadataDetails() && config.getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION)) {
             // Remove Partition Data to ensure we don't use it.  Sets up a clean run like we're starting from scratch.
+            log.info("Resetting Partition Data for Test Data Load");
             for (DBMirror dbMirror : conversion.getDatabases().values()) {
                 runStatus.getOperationStatistics().getCounts().incrementDatabases();
                 for (TableMirror tableMirror : dbMirror.getTableMirrors().values()) {
@@ -211,9 +212,8 @@ public class HMSMirrorAppService {
         Date startTime = new Date();
         runStatus.setStage(StageEnum.GATHERING_DATABASES, CollectionEnum.IN_PROGRESS);
 
-        log.info("GATHERING METADATA: Start Processing for databases: {}", String.join(",", config.getDatabases()));
-
         if (config.isLoadingTestData()) {
+            log.info("Loading Test Data.  Skipping Database Collection.");
             Set<String> databases = new TreeSet<>();
             for (DBMirror dbMirror : conversion.getDatabases().values()) {
                 stats.getCounts().incrementDatabases();
@@ -223,10 +223,12 @@ public class HMSMirrorAppService {
             config.setDatabases(databases);
         } else if (!isBlank(config.getFilter().getDbRegEx())) {
             // Look for the dbRegEx.
+            log.info("Using dbRegEx: {}", config.getFilter().getDbRegEx());
             Connection conn = null;
             Statement stmt = null;
             Set<String> databases = new TreeSet<>();
             try {
+                log.info("Getting LEFT Cluster Connection");
                 conn = connectionPoolService.getHS2EnvironmentConnection(Environment.LEFT);
                 //getConfig().getCluster(Environment.LEFT).getConnection();
                 if (nonNull(conn)) {
@@ -263,6 +265,7 @@ public class HMSMirrorAppService {
             }
         }
         runStatus.setStage(StageEnum.GATHERING_DATABASES, CollectionEnum.COMPLETED);
+        log.info("Start Processing for databases: {}", String.join(",", config.getDatabases()));
 
         if (!config.isLoadingTestData()) {
             runStatus.setStage(StageEnum.ENVIRONMENT_VARS, CollectionEnum.IN_PROGRESS);
@@ -288,6 +291,7 @@ public class HMSMirrorAppService {
         // ========================================
         // Get the Database definitions for the LEFT and RIGHT clusters.
         // ========================================
+        log.info("RunStatus Stage: {} is {}", StageEnum.DATABASES, runStatus.getStage(StageEnum.DATABASES));
         if (!config.isLoadingTestData()) {
             runStatus.setStage(StageEnum.DATABASES, CollectionEnum.IN_PROGRESS);
             for (String database : config.getDatabases()) {
@@ -295,7 +299,6 @@ public class HMSMirrorAppService {
                 DBMirror dbMirror = conversion.addDatabase(database);
                 try {
                     // Get the Database definitions for the LEFT and RIGHT clusters.
-
                     if (getDatabaseService().getDatabase(dbMirror, Environment.LEFT)) { //getConfig().getCluster(Environment.LEFT).getDatabase(config, dbMirror)) {
                         getDatabaseService().getDatabase(dbMirror, Environment.RIGHT);
 //                        runStatus.getOperationStatistics().getSuccesses().incrementDatabases();
@@ -386,7 +389,6 @@ public class HMSMirrorAppService {
             // Get the table METADATA for the tables collected in the databases.
             // ========================================
             runStatus.setStage(StageEnum.LOAD_TABLE_METADATA, CollectionEnum.IN_PROGRESS);
-            log.info(">>>>>>>>>>> Getting Table Metadata");
             Set<String> collectedDbs = conversion.getDatabases().keySet();
             for (String database : collectedDbs) {
                 DBMirror dbMirror = conversion.getDatabase(database);
@@ -518,6 +520,7 @@ public class HMSMirrorAppService {
             } else {
                 runStatus.setStage(StageEnum.MIGRATE_TABLES, CollectionEnum.ERRORED);
             }
+
         }
 
         switch (config.getDataStrategy()) {

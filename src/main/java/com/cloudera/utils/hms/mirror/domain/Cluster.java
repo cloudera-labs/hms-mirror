@@ -130,7 +130,7 @@ public class Cluster implements Comparable<Cluster>, Cloneable {
         } else {
             value = "";
         }
-        log.debug("{}: Adding Environment Variable: {}={}", getEnvironment(), key, value);
+        log.trace("{}: Adding Environment Variable: {}={}", getEnvironment(), key, value);
         this.envVars.put(key, value);
     }
 

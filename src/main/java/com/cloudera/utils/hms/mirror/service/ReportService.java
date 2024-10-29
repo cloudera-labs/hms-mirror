@@ -216,10 +216,16 @@ public class ReportService {
         return distcpPlan;
     }
 
-    public RunStatus getRunStatus(String sessionId) {
+    public RunStatus getRunStatus(String sessionId) throws IOException {
         String runStatusFile = getSessionRunStatusFile(sessionId);
         log.info("Loading RunStatus File: {}", runStatusFile);
-        RunStatus status = RunStatus.loadConfig(runStatusFile);
+        RunStatus status = null;
+        try {
+            status = RunStatus.loadConfig(runStatusFile);
+        } catch (IOException e) {
+            log.error("Error loading RunStatus file: {}", runStatusFile, e);
+            throw e;
+        }
         return status;
     }
 

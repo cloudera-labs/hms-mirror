@@ -893,13 +893,11 @@ public class DatabaseService {
 
                 String database = (environment == Environment.LEFT ? dbMirror.getName() : HmsMirrorConfigUtil.getResolvedDB(dbMirror.getName(), config));
 
-                log.debug("{}:{}: Loading database definition.", environment, database);
-
                 Statement stmt = null;
                 ResultSet resultSet = null;
                 try {
                     stmt = conn.createStatement();
-                    log.debug("{}:{}: Getting Database Definition", environment, database);
+                    log.info("{}:{}: Loading Database Definition", environment, database);
                     resultSet = stmt.executeQuery(MessageFormat.format(DESCRIBE_DB, database));
                     //Retrieving the ResultSetMetaData object
                     ResultSetMetaData rsmd = resultSet.getMetaData();
@@ -955,7 +953,7 @@ public class DatabaseService {
                     rtn = Boolean.TRUE;
                 } catch (SQLException sql) {
                     // DB Doesn't Exists.
-                    log.error("Issue with collecting DB Definition.", sql);
+                    log.error("{}:{}: Failed to loading Database Definition", environment, database);
                 } finally {
                     if (resultSet != null) {
                         try {

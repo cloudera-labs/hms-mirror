@@ -69,7 +69,7 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
     @Override
     public Boolean buildOutDefinition(TableMirror tableMirror) throws RequiredConfigurationException {
         Boolean rtn = Boolean.FALSE;
-        log.debug("Table: {} buildout SQL Definition", tableMirror.getName());
+        log.debug("Table: {}.{} buildout SQL Definition", tableMirror.getParent().getName(), tableMirror.getName());
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         EnvironmentTable let = null;

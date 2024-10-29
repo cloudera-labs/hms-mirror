@@ -324,6 +324,10 @@ public class TableService {
         } catch (SQLException throwables) {
             rtn.setStatus(ReturnStatus.Status.ERROR);
             rtn.setException(throwables);
+        } catch (RuntimeException rte) {
+            log.error("Runtime Issue getting tables for Database: {}", dbMirror.getName(), rte);
+            rtn.setStatus(ReturnStatus.Status.ERROR);
+            rtn.setException(rte);
         }
         return new AsyncResult<>(rtn);
     }
@@ -365,8 +369,10 @@ public class TableService {
                     }
                     for (String show : shows) {
                         resultSet = stmt.executeQuery(show);
+                        log.debug("Running show statement: {} to collect objects", show);
                         while (resultSet.next()) {
                             String tableName = resultSet.getString(1);
+                            log.trace("Table: {}", tableName);
                             if (tableName.startsWith(config.getTransfer().getTransferPrefix())) {
                                 TableMirror tableMirror = dbMirror.addTable(tableName);
                                 tableMirror.setRemove(Boolean.TRUE);
@@ -387,6 +393,7 @@ public class TableService {
                                         "cleaned up.", database, tableName);
                             } else {
                                 if (isBlank(config.getFilter().getTblRegEx()) && isBlank(config.getFilter().getTblExcludeRegEx())) {
+                                    log.info("{}.{} added to processing list.", database, tableName);
                                     TableMirror tableMirror = dbMirror.addTable(tableName);
 //                                    stats.getCounts().incrementTables();
                                     tableMirror.setUnique(df.format(config.getInitDate()));
@@ -398,6 +405,7 @@ public class TableService {
                                     Matcher matcher = config.getFilter().getTblFilterPattern().matcher(tableName);
 //                                    stats.getCounts().incrementTables();
                                     if (matcher.matches()) {
+                                        log.info("{}.{} added to processing list.", database, tableName);
                                         TableMirror tableMirror = dbMirror.addTable(tableName);
                                         tableMirror.setUnique(df.format(config.getInitDate()));
                                         tableMirror.setMigrationStageMessage("Added to evaluation inventory");
@@ -411,6 +419,7 @@ public class TableService {
                                     Matcher matcher = config.getFilter().getTblExcludeFilterPattern().matcher(tableName);
 //                                    stats.getCounts().incrementTables();
                                     if (!matcher.matches()) { // ANTI-MATCH
+                                        log.info("{}.{} added to processing list.", database, tableName);
                                         TableMirror tableMirror = dbMirror.addTable(tableName);
                                         tableMirror.setUnique(df.format(config.getInitDate()));
                                         tableMirror.setMigrationStageMessage("Added to evaluation inventory");

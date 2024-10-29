@@ -50,77 +50,47 @@
     </appender>
 
     <!-- LOG everything at INFO level -->
-<!--    <root level="${logging.threshold:-info}">-->
+    <root level="info">
+        <appender-ref ref="RollingFile"/>
+<!--        <appender-ref ref="Console"/>-->
+    </root>
+<!--    <root level="debug">-->
 <!--        <appender-ref ref="RollingFile"/>-->
 <!--        <appender-ref ref="Console"/>-->
 <!--    </root>-->
-    <root level="debug">
-        <appender-ref ref="RollingFile"/>
-        <appender-ref ref="Console"/>
-    </root>
 
     <logger name="org.springframework" level="warn" additivity="false">
         <appender-ref ref="RollingFile"/>
         <appender-ref ref="Console"/>
     </logger>
-    <logger name="com.cloudera.utils" level="debug" additivity="false">
+    <logger name="com.cloudera.utils.hms.mirror" level="${logging.threshold:-debug}" additivity="false">
         <appender-ref ref="RollingFile"/>
     </logger>
-<!--    <logger name="com.cloudera.utils.hadoop.cli" level="warn" additivity="false">-->
-<!--        <appender-ref ref="RollingFile"/>-->
-<!--    </logger>-->
-<!--    <logger name="com.cloudera.utils.hms.mirror.cli.HmsMirrorCommandLineOptions" level="debug" additivity="false">-->
-<!--        <appender-ref ref="RollingFile"/>-->
-<!--    </logger>-->
-<!--    <logger name="com.cloudera.utils.hms.mirror.domain.DBMirror" level="debug" additivity="false">-->
-<!--        <appender-ref ref="RollingFile"/>-->
-<!--    </logger>-->
-<!--    <logger name="com.cloudera.utils.hms.mirror.domain.Cluster" level="debug" additivity="false">-->
-<!--        <appender-ref ref="RollingFile"/>-->
-<!--    </logger>-->
-<!--    <logger name="com.cloudera.utils.hms.mirror.service.TableService" level="debug" additivity="false">-->
-<!--        <appender-ref ref="RollingFile"/>-->
-<!--    </logger>-->
-<!--    <logger name="com.cloudera.utils.hms.mirror.service.TransferService" level="debug" additivity="false">-->
-<!--        <appender-ref ref="RollingFile"/>-->
-<!--    </logger>-->
+    <logger name="com.cloudera.utils.hadoop.cli" level="warn" additivity="false">
+        <appender-ref ref="RollingFile"/>
+    </logger>
 
-<!--    <logger name="com.cloudera.utils.hms.mirror.connections" level="info" additivity="false">-->
-<!--        <appender-ref ref="RollingFile"/>-->
-<!--        <appender-ref ref="Console"/>-->
-<!--    </logger>-->
-    <logger name="com.cloudera.utils.hms.mirror.cli.HmsMirrorCommandLineOptions" level="info" additivity="false">
+    <logger name="com.cloudera.utils.hms.mirror.cli.HmsMirrorCommandLineOptions" level="info" additivity="true">
         <appender-ref ref="Console"/>
     </logger>
-    <logger name="com.cloudera.utils.hms.mirror.service.ReportWriterService" level="info" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="RollingFile"/>
-    </logger>
-    <logger name="com.cloudera.utils.hms.mirror.service.DatabaseService" level="debug" additivity="false">
-        <appender-ref ref="RollingFile"/>
-    </logger>
-    <logger name="com.cloudera.utils.hms.mirror.service.TableService" level="debug" additivity="false">
-        <appender-ref ref="RollingFile"/>
-    </logger>
-    <logger name="com.cloudera.utils.hms.mirror.domain.DBMirror" level="info" additivity="false">
+    <logger name="com.cloudera.utils.hms.mirror.service.ReportWriterService" level="info" additivity="true">
         <appender-ref ref="Console"/>
     </logger>
-    <logger name="com.cloudera.utils.hms.mirror.domain" level="warn" additivity="false">
+
+    <logger name="com.cloudera.utils.hms.mirror.domain.DBMirror" level="info" additivity="true">
         <appender-ref ref="Console"/>
     </logger>
-    <logger name="com.cloudera.utils.hms.mirror.domain.Cluster" level="info" additivity="false">
+
+    <logger name="com.cloudera.utils.hms.mirror.password" level="info" additivity="true">
         <appender-ref ref="Console"/>
     </logger>
-    <logger name="com.cloudera.utils.hms.mirror.password" level="info" additivity="false">
+    <logger name="com.cloudera.utils.hms.mirror.service.TableService" level="info" additivity="true">
         <appender-ref ref="Console"/>
     </logger>
-    <logger name="com.cloudera.utils.hms.mirror.service.TableService" level="info" additivity="false">
+    <logger name="com.cloudera.utils.hms.mirror.web" level="debug" additivity="true">
         <appender-ref ref="Console"/>
     </logger>
-    <logger name="com.cloudera.utils.hms.mirror.web" level="debug" additivity="false">
-        <appender-ref ref="Console"/>
-    </logger>
-    <logger name="com.cloudera.utils.hms.mirror.service.TransferService" level="warn" additivity="false">
+    <logger name="com.cloudera.utils.hms.mirror.service.TransferService" level="warn" additivity="true">
         <appender-ref ref="Console"/>
     </logger>
     <logger name="com.zaxxer.hikari" level="warn" additivity="false">
@@ -131,10 +101,6 @@
         <appender-ref ref="RollingFile"/>
         <appender-ref ref="Console"/>
     </logger>
-<!--    <logger name="org.apache.hive" level="warn" additivity="false">-->
-<!--        <appender-ref ref="RollingFile"/>-->
-<!--        <appender-ref ref="Console"/>-->
-<!--    </logger>-->
 
     <logger name="com.jcabi" level="warn" additivity="false">
         <appender-ref ref="RollingFile"/>

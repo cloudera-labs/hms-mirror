@@ -135,7 +135,7 @@ public class ReportsMVController implements ControllerReferences {
         RunStatus runStatus = null;
         try {
             runStatus = reportService.getRunStatus(report_id);
-        } catch (RuntimeException e) {
+        } catch (IOException e) {
             runStatus = new RunStatus();
             log.error("Run Status not available for report: {}", report_id, e);
         }
@@ -156,7 +156,7 @@ public class ReportsMVController implements ControllerReferences {
         RunStatus runStatus = null;
         try {
             runStatus = reportService.getRunStatus(report_id);
-        } catch (RuntimeException e) {
+        } catch (IOException e) {
             runStatus = new RunStatus();
             log.error("Run Status not available for report: {}", report_id, e);
         }
