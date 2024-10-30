@@ -84,4 +84,13 @@ public class Warehouse implements Cloneable {
     protected Warehouse clone() throws CloneNotSupportedException {
         return (Warehouse)super.clone();
     }
+
+    @Override
+    public String toString() {
+        return "Warehouse{" +
+                "source=" + source +
+                ", externalDirectory='" + externalDirectory + '\'' +
+                ", managedDirectory='" + managedDirectory + '\'' +
+                '}';
+    }
 }

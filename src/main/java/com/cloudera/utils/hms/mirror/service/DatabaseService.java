@@ -401,6 +401,7 @@ public class DatabaseService {
      */
     public boolean buildDBStatements(DBMirror dbMirror) {
 //        Config config = Context.getInstance().getConfig();
+        log.info("Building DB Statements for {}", dbMirror.getName());
         boolean rtn = Boolean.TRUE; // assume all good till we find otherwise.
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
         RunStatus runStatus = executeSessionService.getSession().getRunStatus();
@@ -496,7 +497,7 @@ public class DatabaseService {
 //            Map<String, String> dbDefRight = dbMirror.getDBDefinition(Environment.RIGHT);
             String originalDatabase = dbMirror.getName();
             String targetDatabase = HmsMirrorConfigUtil.getResolvedDB(dbMirror.getName(), config);
-
+            log.info("Original Database: {} Target Database: {}", originalDatabase, targetDatabase);
 
             String originalLocation = null;
             String originalManagedLocation = null;
@@ -504,6 +505,7 @@ public class DatabaseService {
             // The LOCATION element in HDP3 (Early Hive 3) is actually the MANAGEDLOCATION.
             //   all other versions, LOCATION is for EXTERNAL tables and Legacy Managed Tables (Hive 1/2)
             if (config.getCluster(Environment.LEFT).isHdpHive3()) {
+                log.info("HDP Hive 3 Detected.  Adjusting LOCATION to MANAGEDLOCATION.");
                 originalManagedLocation = dbMirror.getProperty(Environment.LEFT, DB_LOCATION);
             } else {
                 originalLocation = dbMirror.getProperty(Environment.LEFT, DB_LOCATION);
@@ -523,24 +525,31 @@ public class DatabaseService {
             }
             // One of three type of warehouses: Plan, Global, or Environment.
             Warehouse warehouse = warehouseService.getWarehousePlan(dbMirror.getName());
+            log.debug("Warehouse Plan for {}: {}", dbMirror.getName(), warehouse);
+
             Warehouse envWarehouse = null;
             if (config.getDataStrategy() != DataStrategyEnum.DUMP) {
                 envWarehouse = config.getCluster(Environment.RIGHT).getEnvironmentWarehouse();
             } else {
                 envWarehouse = config.getCluster(Environment.LEFT).getEnvironmentWarehouse();
             }
+            log.debug("Environment Warehouse for {}: {}", dbMirror.getName(), envWarehouse);
 
             String targetLocation = null;
             String targetManagedLocation = null;
 
             if (buildRight) {
+                log.debug("Building RIGHT DB Definition for {}", dbMirror.getName());
                 // Configure the DB 'LOCATION'
                 if (!isBlank(originalLocation) || forceLocations) {
+                    log.debug("Original Location: {}", originalLocation);
                     // Get the base location without the original namespace.
                     targetLocation = NamespaceUtils.stripNamespace(originalLocation);
+                    log.debug("Target Location from Original Location: {}", targetLocation);
                     // Only set to warehouse location if the translation type is 'ALIGNED',
                     //   otherwise we want to keep the same relative location.
                     if (nonNull(warehouse) && config.getTransfer().getStorageMigration().getTranslationType() == TranslationTypeEnum.ALIGNED) {
+                        log.debug("Aligned Translation Type.  Adjusting Target Location to include Warehouse Location.");
                         switch (warehouse.getSource()) {
                             case PLAN:
                             case GLOBAL:
@@ -553,10 +562,14 @@ public class DatabaseService {
                                 targetLocation = targetLocation + "/" + targetDatabase + ".db";
                                 break;
                         }
+                        log.debug("Target Location after Warehouse Adjustment: {}", targetLocation);
+
                         // Check the location against the ENV warehouse location.  If they match, don't set the location.
                         if (nonNull(envWarehouse)) {
                             String reducedTargetLocation = NamespaceUtils.getParentDirectory(targetLocation);
                             if (reducedTargetLocation.equals(envWarehouse.getExternalDirectory())) {
+                                log.debug("The new target location: {} is the same as the ENV warehouse location.  " +
+                                        "So we're not going to set it and let it default to the ENV warehouse location: {}.", targetLocation, envWarehouse.getExternalDirectory());
                                 // The new target location is the same as the ENV warehouse location.  So we're not
                                 // going to set it and let it default to the ENV warehouse location.
                                 dbDefRight.put(DB_LOCATION, targetNamespace + targetLocation);
@@ -570,6 +583,7 @@ public class DatabaseService {
                         // Tweak the db location incase the database name is different. But only if the original followed
                         //  some standard naming convention in hive.
                         if (!targetLocation.contains(targetDatabase)) {
+                            log.debug("Target Location doesn't contain the target database name.  Adjusting.");
                             targetLocation = targetLocation.replace(originalDatabase, targetDatabase);
                         }
                         targetLocation = targetNamespace + targetLocation;
@@ -578,22 +592,29 @@ public class DatabaseService {
                 // Configure the DB 'MANAGEDLOCATION'
                 if (!isBlank(originalManagedLocation) || forceLocations) {
                     // Get the base location without the original namespace.
+                    log.debug("Original Managed Location: {}", originalManagedLocation);
                     targetManagedLocation = NamespaceUtils.stripNamespace(originalManagedLocation);
+                    log.debug("Target Managed Location from Original Managed Location: {}", targetManagedLocation);
                     // Only set to warehouse location if the translation type is 'ALIGNED',
                     //   otherwise we want to keep the same relative location.
                     if (nonNull(warehouse) && config.getTransfer().getStorageMigration().getTranslationType() == TranslationTypeEnum.ALIGNED) {
+                        log.debug("Aligned Translation Type.  Adjusting Target Managed Location to include Warehouse Location.");
                         switch (warehouse.getSource()) {
                             case PLAN:
                             case GLOBAL:
                                 targetManagedLocation = warehouse.getManagedDirectory() + "/" + targetDatabase + ".db";
                                 break;
                         }
+                        log.debug("Target Managed Location after Warehouse Adjustment: {}", targetManagedLocation);
                         // Check the location against the ENV warehouse location.  If they match, don't set the location.
                         if (nonNull(targetManagedLocation) && nonNull(envWarehouse)) {
                             String reducedTargetLocation = NamespaceUtils.getParentDirectory(targetManagedLocation);
                             if (reducedTargetLocation.equals(envWarehouse.getManagedDirectory())) {
                                 // The new target location is the same as the ENV warehouse location.  So we're not
                                 // going to set it and let it default to the ENV warehouse location.
+                                log.debug("The new target managed location: {} is the same as the ENV warehouse managed location.  " +
+                                        "So we're not going to set it and let it default to the ENV warehouse managed location: {}.",
+                                        targetManagedLocation, envWarehouse.getManagedDirectory());
                                 dbDefRight.put(DB_MANAGED_LOCATION, targetNamespace + targetManagedLocation);
                                 dbMirror.addIssue(Environment.RIGHT, "The database 'Managed' location is the same as the ENV warehouse Managed location.  The database location will NOT be set and will depend on the ENV warehouse location.");
                                 targetManagedLocation = null;
@@ -602,10 +623,13 @@ public class DatabaseService {
                     }
                     if (nonNull(targetManagedLocation)) {
                         // Add the Namespace.
-                        if (!targetLocation.contains(targetDatabase)) {
+                        if (!targetManagedLocation.contains(targetDatabase)) {
+                            log.debug("Target Managed Location: {} doesn't contain the target database name: {}.  Adjusting.",
+                                    targetManagedLocation, targetDatabase);
                             targetManagedLocation = targetManagedLocation.replace(originalDatabase, targetDatabase);
                         }
                         targetManagedLocation = targetNamespace + targetManagedLocation;
+                        log.debug("Target Managed Location after Namespace Adjustment: {}", targetManagedLocation);
                     }
                 }
 
@@ -615,6 +639,7 @@ public class DatabaseService {
                 // Deal with ReadOnly.
                 if (config.isReadOnly()) {
                     if (nonNull(targetLocation)) {
+                        log.debug("Checking if the target location: {} exists on the RIGHT cluster.", targetLocation);
                         // TODO: This check doesn't happen if targetLocation is null, which means it's the default location.
                         //       Still need to check that.
                         try {
@@ -679,6 +704,7 @@ public class DatabaseService {
                     break;
                 case DUMP:
                     // Build LEFT DB SQL.
+                    log.debug("Building LEFT DB SQL for {}", dbMirror.getName());
                     String createDb = MessageFormat.format(CREATE_DB, targetDatabase);
                     StringBuilder sb = new StringBuilder();
                     sb.append(createDb).append("\n");
@@ -701,6 +727,7 @@ public class DatabaseService {
                     break;
                 case STORAGE_MIGRATION:
                     // Handle a situation where the database name is/is not the same as the original.
+                    log.debug("Building RIGHT DB SQL for {} -> STORAGE_MIGRATION", dbMirror.getName());
                     if (targetDatabase.equals(originalDatabase)) {
                         dbMirror.addIssue(Environment.LEFT, "Database Name is the same as the original.  No changes will be made to the database name.");
                     } else {
@@ -763,6 +790,7 @@ public class DatabaseService {
 
                     // Create the DB on the RIGHT is it doesn't exist.
                     if (createRight) {
+                        log.debug("Building RIGHT DB SQL for {} -> CREATE", dbMirror.getName());
                         String createDbL = MessageFormat.format(CREATE_DB, targetDatabase);
                         StringBuilder sbL = new StringBuilder();
                         sbL.append(createDbL).append("\n");
@@ -770,6 +798,7 @@ public class DatabaseService {
                             sbL.append(COMMENT).append(" \"").append(dbDefLeft.get(COMMENT)).append("\"\n");
                         }
                         dbMirror.getSql(Environment.RIGHT).add(new Pair(CREATE_DB_DESC, sbL.toString()));
+                        log.trace("RIGHT DB Create SQL: {}", sbL.toString());
                     }
 
                     if (nonNull(targetLocation) && !config.getCluster(Environment.RIGHT).isHdpHive3()) {
@@ -779,6 +808,7 @@ public class DatabaseService {
                             String alterDbLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetLocation);
                             dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbLoc));
                             dbDefRight.put(DB_LOCATION, targetLocation);
+                            log.trace("RIGHT DB Location SQL: {}", alterDbLoc);
                         }
                     }
                     if (nonNull(targetManagedLocation)) {
@@ -788,11 +818,13 @@ public class DatabaseService {
                                 String alterDbMngdLoc = MessageFormat.format(ALTER_DB_MNGD_LOCATION, targetDatabase, targetManagedLocation);
                                 dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
                                 dbDefRight.put(DB_MANAGED_LOCATION, targetManagedLocation);
+                                log.trace("RIGHT DB Managed Location SQL: {}", alterDbMngdLoc);
                             } else {
                                 String alterDbMngdLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetManagedLocation);
                                 dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
                                 dbMirror.addIssue(Environment.RIGHT, HDPHIVE3_DB_LOCATION.getDesc());
                                 dbDefRight.put(DB_LOCATION, targetManagedLocation);
+                                log.trace("RIGHT DB Managed Location SQL: {}", alterDbMngdLoc);
                             }
                         }
                     }
@@ -803,6 +835,7 @@ public class DatabaseService {
                         for (Map.Entry<String, String> entry : dbProperties.entrySet()) {
                             String alterDbProps = MessageFormat.format(ALTER_DB_PROPERTIES, targetDatabase, entry.getKey(), entry.getValue());
                             dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_PROPERTIES_DESC, alterDbProps));
+                            log.trace("RIGHT DB Properties SQL: {}", alterDbProps);
                         }
                     }
 
@@ -820,6 +853,7 @@ public class DatabaseService {
                                     alterOwner = MessageFormat.format(SET_DB_OWNER, targetDatabase, ownerFromLeft);
                                 }
                                 dbMirror.getSql(Environment.RIGHT).add(new Pair(SET_DB_OWNER_DESC, alterOwner));
+                                log.trace("RIGHT DB Owner SQL: {}", alterOwner);
                             }
                         }
                     }
@@ -848,7 +882,7 @@ public class DatabaseService {
         boolean rtn = true;
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();
-
+        log.info("Creating Databases");
         if (config.getMigrateACID().isDowngradeInPlace() && config.getDataStrategy() == DataStrategyEnum.SQL) {
             log.info("Downgrade in place.  Skipping database creation.");
             return true;
@@ -858,8 +892,15 @@ public class DatabaseService {
         RunStatus runStatus = session.getRunStatus();
         OperationStatistics stats = runStatus.getOperationStatistics();
         for (String database : config.getDatabases()) {
+            log.info("Creating Database: {}", database);
             DBMirror dbMirror = conversion.getDatabase(database);
-            rtn = buildDBStatements(dbMirror);
+            try {
+                rtn = buildDBStatements(dbMirror);
+            } catch (RuntimeException rte) {
+                log.error("Issue building DB Statements for {}", database, rte);
+                runStatus.addError(MISC_ERROR, database + ":Issue building DB Statements");
+                rtn = false;
+            }
 
             if (rtn) {
                 if (!runDatabaseSql(dbMirror, Environment.LEFT)) {
