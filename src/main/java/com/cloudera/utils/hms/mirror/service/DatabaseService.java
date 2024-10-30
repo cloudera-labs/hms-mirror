@@ -839,7 +839,7 @@ public class DatabaseService {
                         }
                     }
 
-                    if (config.isTransferOwnership()) {
+                    if (config.getOwnershipTransfer().isDatabase()) {
                         String ownerFromLeft = dbDefLeft.get(OWNER_NAME);
                         String ownerTypeFromLeft = dbDefLeft.get(OWNER_TYPE);
                         if (nonNull(ownerFromLeft) && nonNull(ownerTypeFromLeft)) {

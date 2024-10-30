@@ -110,10 +110,16 @@
                        th:checked="${CONFIG.sync}"/>
             </div>
             <div class="pure-control-group">
-                <label for="transferOwnership" th:text="#{config.transferOwnership}"></label>
-                <input type="checkbox" name="transferOwnership"
-                       th:field="*{transferOwnership}"
-                       th:checked="${CONFIG.transferOwnership}"/>
+                <label for="transferOwnershipDb" th:text="#{config.ownershipTransfer.database}"></label>
+                <input type="checkbox" name="transferOwnershipDb"
+                       th:field="*{ownershipTransfer.database}"
+                       th:checked="${CONFIG.ownershipTransfer.database}"/>
+            </div>
+            <div class="pure-control-group">
+                <label for="transferOwnershipTbl" th:text="#{config.ownershipTransfer.table}"></label>
+                <input type="checkbox" name="transferOwnershipTbl"
+                       th:field="*{ownershipTransfer.table}"
+                       th:checked="${CONFIG.ownershipTransfer.table}"/>
             </div>
         </fieldset>
     </div>

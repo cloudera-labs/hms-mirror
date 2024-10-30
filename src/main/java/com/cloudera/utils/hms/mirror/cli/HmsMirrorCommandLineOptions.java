@@ -1249,6 +1249,30 @@ public class HmsMirrorCommandLineOptions {
     }
 
     @Bean
+    @Order(2)
+    @ConditionalOnProperty(
+            name = "hms-mirror.config.transfer-ownership-database",
+            havingValue = "true")
+    CommandLineRunner configTransferOwnershipDbTrue(HmsMirrorConfig hmsMirrorConfig) {
+        return args -> {
+            log.info("transfer-ownership-database: {}", Boolean.TRUE);
+            hmsMirrorConfig.getOwnershipTransfer().setDatabase(Boolean.TRUE);
+        };
+    }
+
+    @Bean
+    @Order(2)
+    @ConditionalOnProperty(
+            name = "hms-mirror.config.transfer-ownership-table",
+            havingValue = "true")
+    CommandLineRunner configTransferOwnershipTblTrue(HmsMirrorConfig hmsMirrorConfig) {
+        return args -> {
+            log.info("transfer-ownership-table: {}", Boolean.TRUE);
+            hmsMirrorConfig.getOwnershipTransfer().setTable(Boolean.TRUE);
+        };
+    }
+
+    @Bean
     @Order(1)
     @ConditionalOnProperty(
             name = "hms-mirror.config.transfer-ownership",
@@ -1256,7 +1280,8 @@ public class HmsMirrorCommandLineOptions {
     CommandLineRunner configTransferOwnershipTrue(HmsMirrorConfig hmsMirrorConfig) {
         return args -> {
             log.info("transfer-ownership: {}", Boolean.TRUE);
-            hmsMirrorConfig.setTransferOwnership(Boolean.TRUE);
+            hmsMirrorConfig.getOwnershipTransfer().setDatabase(Boolean.TRUE);
+            hmsMirrorConfig.getOwnershipTransfer().setTable(Boolean.TRUE);
         };
     }
 
@@ -1272,6 +1297,9 @@ public class HmsMirrorCommandLineOptions {
     }
 
 
+    /*
+    Set this first (false or not set).  Individual settings will override.
+     */
     @Bean
     @Order(1)
     @ConditionalOnProperty(
@@ -1280,7 +1308,8 @@ public class HmsMirrorCommandLineOptions {
     CommandLineRunner configTransferOwnershipFalse(HmsMirrorConfig hmsMirrorConfig) {
         return args -> {
             log.info("transfer-ownership: {}", Boolean.FALSE);
-            hmsMirrorConfig.setTransferOwnership(Boolean.FALSE);
+            hmsMirrorConfig.getOwnershipTransfer().setDatabase(Boolean.FALSE);
+            hmsMirrorConfig.getOwnershipTransfer().setTable(Boolean.FALSE);
         };
     }
 
@@ -1768,6 +1797,8 @@ public class HmsMirrorCommandLineOptions {
         asmOption.setRequired(Boolean.FALSE);
         options.addOption(asmOption);
 
+        OptionGroup transferOwnershipGroup = new OptionGroup();
+
         Option transferOwnershipOption = new Option("to", "transfer-ownership", false,
                 "If available (supported) on LEFT cluster, extract and transfer the tables owner to the " +
                         "RIGHT cluster. Note: This will make an 'exta' SQL call on the LEFT cluster to determine " +
@@ -1775,7 +1806,25 @@ public class HmsMirrorCommandLineOptions {
                         "Beware the cost of this extra call for EVERY table, as it may slow down the process for " +
                         "a large volume of tables.");
         transferOwnershipOption.setRequired(Boolean.FALSE);
-        options.addOption(transferOwnershipOption);
+        transferOwnershipGroup.addOption(transferOwnershipOption);
+
+        Option transferOwnershipDbOption = new Option("todb", "transfer-ownership-database", false,
+                "If available (supported) on LEFT cluster, extract and transfer the DB owner to the " +
+                        "RIGHT cluster. Note: This will make an 'exta' SQL call on the LEFT cluster to determine " +
+                        "the ownership.  This won't be supported on CDH 5 and some other legacy Hive platforms. ");
+        transferOwnershipDbOption.setRequired(Boolean.FALSE);
+        transferOwnershipGroup.addOption(transferOwnershipDbOption);
+
+        Option transferOwnershipTblOption = new Option("totbl", "transfer-ownership-table", false,
+                "If available (supported) on LEFT cluster, extract and transfer the tables owner to the " +
+                        "RIGHT cluster. Note: This will make an 'exta' SQL call on the LEFT cluster to determine " +
+                        "the ownership.  This won't be supported on CDH 5 and some other legacy Hive platforms. " +
+                        "Beware the cost of this extra call for EVERY table, as it may slow down the process for " +
+                        "a large volume of tables.");
+        transferOwnershipTblOption.setRequired(Boolean.FALSE);
+        transferOwnershipGroup.addOption(transferOwnershipTblOption);
+
+        options.addOptionGroup(transferOwnershipGroup);
 
         OptionGroup dbAdjustOptionGroup = new OptionGroup();
 

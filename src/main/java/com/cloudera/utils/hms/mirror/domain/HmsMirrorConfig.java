@@ -173,7 +173,8 @@ public class HmsMirrorConfig implements Cloneable {
     //    @Autowired
     private TransferConfig transfer = new TransferConfig();
 
-    private boolean transferOwnership = Boolean.FALSE;
+//    private boolean ownershipTransfer = Boolean.FALSE;
+    private TransferOwnership ownershipTransfer = new TransferOwnership();
     //    @JsonIgnore
 //    private ScheduledExecutorService transferThreadPool;
 //    @JsonIgnore

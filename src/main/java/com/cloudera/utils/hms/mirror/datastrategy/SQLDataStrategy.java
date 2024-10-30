@@ -219,7 +219,7 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
                     String createStmt2 = tableService.getCreateStatement(tableMirror, Environment.RIGHT);
                     //tableMirror.getCreateStatement(Environment.RIGHT);
                     ret.addSql(TableUtils.CREATE_DESC, createStmt2);
-                    if (!config.getCluster(Environment.RIGHT).isLegacyHive() && config.isTransferOwnership() && let.getOwner() != null) {
+                    if (!config.getCluster(Environment.RIGHT).isLegacyHive() && config.getOwnershipTransfer().isTable() && let.getOwner() != null) {
                         String ownerSql = MessageFormat.format(MirrorConf.SET_TABLE_OWNER, ret.getName(), let.getOwner());
                         ret.addSql(MirrorConf.SET_TABLE_OWNER_DESC, ownerSql);
                     }

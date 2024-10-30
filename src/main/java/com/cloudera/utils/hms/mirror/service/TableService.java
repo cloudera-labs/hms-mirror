@@ -512,7 +512,7 @@ public class TableService {
                 tableMirror.addStep(environment.toString(), "Fetched Schema");
 
                 // TODO: Don't do this is table removed from list.
-                if (config.isTransferOwnership()) {
+                if (config.getOwnershipTransfer().isTable()) {
                     try {
                         String ownerStatement = MessageFormat.format(MirrorConf.SHOW_TABLE_EXTENDED, tableMirror.getName());
                         resultSet = stmt.executeQuery(ownerStatement);
@@ -581,7 +581,7 @@ public class TableService {
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
-        if (hmsMirrorConfig.isTransferOwnership()) {
+        if (hmsMirrorConfig.getOwnershipTransfer().isTable()) {
             try {
                 conn = getConnectionPoolService().getHS2EnvironmentConnection(environment);
                 if (conn != null) {

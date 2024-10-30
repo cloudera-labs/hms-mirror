@@ -178,7 +178,8 @@ public class HmsMirrorConfigCloneFullTest_01 {
         assertEquals(clone.getTransfer().getWarehouse().getManagedDirectory(), hmsMirrorConfig.getTransfer().getWarehouse().getManagedDirectory());
         assertEquals(clone.getTransfer().getWarehouse().getExternalDirectory(), hmsMirrorConfig.getTransfer().getWarehouse().getExternalDirectory());
 
-        assertEquals(clone.isTransferOwnership(), hmsMirrorConfig.isTransferOwnership());
+        assertEquals(clone.getOwnershipTransfer().isDatabase(), hmsMirrorConfig.getOwnershipTransfer().isDatabase());
+        assertEquals(clone.getOwnershipTransfer().isTable(), hmsMirrorConfig.getOwnershipTransfer().isTable());
 
         // Translator
         assertEquals(clone.getTranslator().isForceExternalLocation(), hmsMirrorConfig.getTranslator().isForceExternalLocation());

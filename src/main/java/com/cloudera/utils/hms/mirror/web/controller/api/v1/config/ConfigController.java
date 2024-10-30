@@ -277,7 +277,8 @@ public class ConfigController {
             @RequestParam(value = "skipFeatures", required = false) Boolean skipFeatures,
             @RequestParam(value = "skipLegacyTranslation", required = false) Boolean skipLegacyTranslation,
             @RequestParam(value = "sync", required = false) Boolean sync,
-            @RequestParam(value = "transferOwnership", required = false) Boolean transferOwnership
+            @RequestParam(value = "transferOwnershipDb", required = false) Boolean transferOwnershipDb,
+            @RequestParam(value = "transferOwnershipTbl", required = false) Boolean transferOwnershipTbl
     ) throws SessionException {
         // Don't reload if running.
         executeSessionService.closeSession();
@@ -352,9 +353,13 @@ public class ConfigController {
             log.info("{}: Setting Sync to: {}", sessionId, sync);
             hmsMirrorConfig.setSync(sync);
         }
-        if (transferOwnership != null) {
-            log.info("{}: Setting Transfer Ownership to: {}", sessionId, transferOwnership);
-            hmsMirrorConfig.setTransferOwnership(transferOwnership);
+        if (transferOwnershipDb != null) {
+            log.info("{}: Setting Transfer Database Ownership to: {}", sessionId, transferOwnershipDb);
+            hmsMirrorConfig.getOwnershipTransfer().setDatabase(transferOwnershipDb);
+        }
+        if (transferOwnershipTbl != null) {
+            log.info("{}: Setting Transfer Table Ownership to: {}", sessionId, transferOwnershipTbl);
+            hmsMirrorConfig.getOwnershipTransfer().setTable(transferOwnershipTbl);
         }
         return hmsMirrorConfig;
     }

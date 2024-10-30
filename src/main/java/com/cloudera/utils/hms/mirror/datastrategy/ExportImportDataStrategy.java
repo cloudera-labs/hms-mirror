@@ -253,7 +253,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
             } else {
                 ret.addSql(TableUtils.IMPORT_TABLE, importSql);
                 if (!config.getCluster(Environment.RIGHT).isLegacyHive()
-                        && config.isTransferOwnership() && let.getOwner() != null) {
+                        && config.getOwnershipTransfer().isTable() && let.getOwner() != null) {
                     String ownerSql = MessageFormat.format(MirrorConf.SET_TABLE_OWNER, let.getName(), let.getOwner());
                     ret.addSql(MirrorConf.SET_TABLE_OWNER_DESC, ownerSql);
                 }
