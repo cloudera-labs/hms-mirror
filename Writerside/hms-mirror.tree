@@ -9,7 +9,6 @@
     <toc-element topic="hms-mirror-Introduction.md"/>
     <toc-element topic="Release-Notes.md"/>
     <toc-element topic="Getting-Started.md">
-        <toc-element topic="hms-mirror-setup.md"/>
         <toc-element topic="Logs.md"/>
         <toc-element topic="Limits.md"/>
         <toc-element topic="Runtime-Interfaces.md">
@@ -30,6 +29,7 @@
         <toc-element topic="Linking-Cluster-Storage-Layers.md"/>
     </toc-element>
     <toc-element topic="hms-mirror-cfg.md">
+        <toc-element topic="hms-mirror-setup.md"/>
         <toc-element topic="JDBC-Drivers-and-Configuration.md">
             <toc-element topic="Example-URL-s.md"/>
         </toc-element>
@@ -72,6 +72,7 @@
         <toc-element topic="hms-mirror-iceberg_migration.md"/>
     </toc-element>
     <toc-element topic="Index-of-Settings.md">
+        <toc-element topic="MIgrate-Tables.md"/>
         <toc-element topic="filter_settings.md"/>
         <toc-element topic="cluster-settings.md"/>
         <toc-element topic="Transfer.md">

@@ -10,6 +10,20 @@ The latest set of enhancement requests can be found [here](https://github.com/cl
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 2.2.0.17.1
+
+**What's New**
+
+- [Extend / Split 'transfer-ownership' to apply to database and/or table](https://github.com/cloudera-labs/hms-mirror/issues/151)
+- Improved Logging output
+- [Support alternate db name for STORAGE_MIGRATION](https://github.com/cloudera-labs/hms-mirror/issues/149)
+- CLI Option to control `data-movement-strategy`
+
+**Bugs (Fixed)**
+- [DB Prefix and DB Rename not working](https://github.com/cloudera-labs/hms-mirror/issues/150)
+- [When Metastore isn't configured for ALIGNED/DISTCP, it's not writing MSCK](https://github.com/cloudera-labs/hms-mirror/issues/131)
+- Fixed missing CR/LF is clean up scripts.
+
 ## 2.2.0.15.1
 
 **What's New**
