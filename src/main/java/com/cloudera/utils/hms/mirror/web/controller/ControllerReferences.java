@@ -22,6 +22,7 @@ public interface ControllerReferences {
     String ENVIRONMENT = "ENVIRONMENT";
     String ENVIRONMENTS = "ENVIRONMENTS";
     String BOOLEANS = "BOOLEANS";
+    String BETA = "BETA";
     String ACTION = "ACTION";
     String DEFAULT_CONFIG = "default.yaml";
     String NEW_CONFIG = "CHANGE_ME.yaml";

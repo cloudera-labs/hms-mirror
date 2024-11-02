@@ -101,10 +101,6 @@ public class ConfigMVController implements ControllerReferences {
     public String home(Model model,
                        @Value("${hms-mirror.config.testing}") Boolean testing,
                        @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) {
-//        model.addAttribute(ACTION, "home");
-
-//        ExecuteSession executeSession = executeSessionService.getSession();
-
         // Get list of available configs
         Set<String> configs = webConfigService.getConfigList();
         model.addAttribute(CONFIG_LIST, configs);
@@ -121,16 +117,6 @@ public class ConfigMVController implements ControllerReferences {
     public String init(Model model,
                        @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
         model.addAttribute(ACTION, "init");
-        // Clear the loaded and active session.
-//        executeSessionService.clearLoadedSession();
-        // Create new Session (with blank config)
-//        HmsMirrorConfig config = configService.createForDataStrategy(DataStrategyEnum.valueOf(dataStrategy));
-//        ExecuteSession session = executeSessionService.createSession(NEW_CONFIG, config);
-        // Set the Loaded Session
-//        executeSessionService.setSession(session);
-//        // Setup Model for MVC
-//        model.addAttribute(CONFIG, session.getConfig());
-//        model.addAttribute(SESSION_ID, session.getSessionId());
 
         // Get list of available configs
         Set<String> configs = webConfigService.getConfigList();
@@ -144,18 +130,21 @@ public class ConfigMVController implements ControllerReferences {
     @RequestMapping(value = "/doCreate", method = RequestMethod.POST)
     public String doCreate(Model model,
                            @RequestParam(value = DATA_STRATEGY, required = true) String dataStrategy,
-                           @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
+                           @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads,
+                           @Value("${hms-mirror.config.beta}") boolean beta) throws SessionException {
         model.addAttribute(READ_ONLY, Boolean.FALSE);
         // Clear the loaded and active session.
         executeSessionService.closeSession();
         // Create new Session (with blank config)
         HmsMirrorConfig config = configService.createForDataStrategy(DataStrategyEnum.valueOf(dataStrategy));
+
+        // Control Beta Features
+        config.setBeta(beta);
+
         ExecuteSession session = executeSessionService.createSession(NEW_CONFIG, config);
         // Set the Loaded Session
         executeSessionService.setSession(session);
-//        // Setup Model for MVC
-//        model.addAttribute(CONFIG, session.getConfig());
-//        model.addAttribute(SESSION_ID, session.getSessionId());
+
         model.addAttribute(READ_ONLY, Boolean.FALSE);
 
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
@@ -167,8 +156,6 @@ public class ConfigMVController implements ControllerReferences {
     @RequestMapping(value = "/edit", method = RequestMethod.GET)
     public String edit(Model model,
                        @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
-//        executeSessionService.clearActiveSession();
-//        model.addAttribute(ACTION, "edit");
         configService.validate(executeSessionService.getSession(), null);
         model.addAttribute(READ_ONLY, Boolean.FALSE);
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
@@ -178,9 +165,6 @@ public class ConfigMVController implements ControllerReferences {
     @RequestMapping(value = "/summary", method = RequestMethod.GET)
     public String summary(Model model,
                        @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
-//        executeSessionService.clearActiveSession();
-//        model.addAttribute(ACTION, "edit");
-
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();
 
@@ -199,9 +183,12 @@ public class ConfigMVController implements ControllerReferences {
     @RequestMapping(value = "/doSave", method = RequestMethod.POST)
     public String doSave(Model model,
                          @ModelAttribute(CONFIG) HmsMirrorConfig config,
-//                         @PathVariable @NotNull ConfigSection section,
-                         @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
+                         @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads,
+                         @Value("${hms-mirror.config.beta}") boolean beta) throws SessionException {
         executeSessionService.closeSession();
+
+        // Set beta capabilities. This is driven by the startup of the application.
+        config.setBeta(beta);
 
         if (!executeSessionService.save(config, maxThreads)) {
             return "error";
@@ -209,89 +196,10 @@ public class ConfigMVController implements ControllerReferences {
 
         ExecuteSession session = executeSessionService.getSession();
 
-//        AtomicReference<Boolean> passwordCheck = new AtomicReference<>(Boolean.FALSE);
-//
-//        ExecuteSession session = executeSessionService.getSession();
-//
-//        if (session.isRunning()) {
-//            throw new SessionException("Can't save while running.");
-//        } else {
-//            session.getRunStatus().reset();
-//        }
-//
-//        HmsMirrorConfig currentConfig = session.getConfig();
-//
-//        // Reload Databases
-//        config.getDatabases().addAll(currentConfig.getDatabases());
-//
-//        // Merge Passwords
-//        config.getClusters().forEach((env, cluster) -> {
-//            // HS2
-//            if (nonNull(cluster.getHiveServer2())) {
-//                String currentPassword = (String) currentConfig.getClusters().get(env).getHiveServer2().getConnectionProperties().get("password");
-//                String newPassword = (String) cluster.getHiveServer2().getConnectionProperties().get("password");
-//                if (newPassword != null && !newPassword.isEmpty()) {
-//                    // Set new Password, IF the current passwords aren't ENCRYPTED...  set warning if they attempted.
-//                    if (config.isEncryptedPasswords()) {
-//                        // Restore original password
-//                        cluster.getHiveServer2().getConnectionProperties().put("password", currentPassword);
-//                        passwordCheck.set(Boolean.TRUE);
-//                    } else {
-//                        cluster.getHiveServer2().getConnectionProperties().put("password", newPassword);
-//                    }
-//                } else if (currentPassword != null) {
-//                    // Restore original password
-//                    cluster.getHiveServer2().getConnectionProperties().put("password", currentPassword);
-//                } else {
-//                    cluster.getHiveServer2().getConnectionProperties().remove("password");
-//                }
-//            }
-//
-//            // Metastore
-//            if (nonNull(cluster.getMetastoreDirect())) {
-//                String currentPassword = (String) currentConfig.getClusters().get(env).getMetastoreDirect().getConnectionProperties().get("password");
-//                String newPassword = (String) cluster.getMetastoreDirect().getConnectionProperties().get("password");
-//                if (newPassword != null && !newPassword.isEmpty()) {
-//                    // Set new password
-//                    if (config.isEncryptedPasswords()) {
-//                        // Restore original password
-//                        cluster.getHiveServer2().getConnectionProperties().put("password", currentPassword);
-//                        passwordCheck.set(Boolean.TRUE);
-//                    } else {
-//                        cluster.getMetastoreDirect().getConnectionProperties().put("password", newPassword);
-//                    }
-//                } else if (currentPassword != null) {
-//                    // Restore Original password
-//                    cluster.getMetastoreDirect().getConnectionProperties().put("password", currentPassword);
-//                } else {
-//                    cluster.getMetastoreDirect().getConnectionProperties().remove("password");
-//                }
-//            }
-//        });
-//
-//        // Merge Translator
-//        config.setTranslator(currentConfig.getTranslator());
-//
-//        // Apply rules for the DataStrategy that are not in the config.
-//        configService.alignConfigurationSettings(session, config);
-//
-//        // Reset to the merged config.
-//        session.setConfig(config);
-//
-//        model.addAttribute(READ_ONLY, Boolean.TRUE);
-//        configService.validate(session, null);
-
-//        executeSessionService.transitionLoadedSessionToActive(maxThreads);
         // After a 'save', the session connections statuses should be reset.
         session.resetConnectionStatuses();
 
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
-
-//        if (passwordCheck.get()) {
-//            ExecuteSession session1 = executeSessionService.getSession();
-//            session1.getRunStatus().addError(ENCRYPTED_PASSWORD_CHANGE_ATTEMPT);
-//            return "error";
-//        }
 
         return "config/view";
     }
@@ -357,7 +265,8 @@ public class ConfigMVController implements ControllerReferences {
     @RequestMapping(value = "/doReload", method = RequestMethod.POST)
     public String doReload(Model model,
                            @RequestParam(value = SESSION_ID, required = true) String sessionId,
-                           @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
+                           @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads,
+                           @Value("${hms-mirror.config.beta}") boolean beta) throws SessionException {
         // Don't reload if running.
         executeSessionService.closeSession();
 
@@ -366,6 +275,10 @@ public class ConfigMVController implements ControllerReferences {
         // Remove the old session
 //        executeSessionService.getSessionHistory().remove(sessionId);
         // Create a new session
+
+        // Control Beta Features.
+        config.setBeta(beta);
+
         ExecuteSession session = executeSessionService.createSession(sessionId, config);
         executeSessionService.setSession(session);
 
@@ -389,7 +302,8 @@ public class ConfigMVController implements ControllerReferences {
     public String doClone(Model model,
                           @RequestParam(value = SESSION_ID_CLONE, required = true) String sessionId,
                           @RequestParam(value = DATA_STRATEGY_CLONE, required = true) String dataStrategy,
-                          @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
+                          @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads,
+                          @Value("${hms-mirror.config.beta}") boolean beta) throws SessionException {
         // Don't reload if running.
         executeSessionService.closeSession();
 
@@ -399,6 +313,9 @@ public class ConfigMVController implements ControllerReferences {
         HmsMirrorConfig newConfig = configService.createForDataStrategy(DataStrategyEnum.valueOf(dataStrategy));
 
         configService.overlayConfig(newConfig, config);
+
+        // Control Beta Features.
+        newConfig.setBeta(beta);
 
         // Remove the old session
 //        executeSessionService.getSessionHistory().remove(sessionId);

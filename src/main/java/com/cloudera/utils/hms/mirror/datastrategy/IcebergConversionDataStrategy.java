@@ -105,7 +105,7 @@ public class IcebergConversionDataStrategy extends DataStrategyBase implements D
             String useLeftDb = MessageFormat.format(MirrorConf.USE, tableMirror.getParent().getName());
             let.addSql(TableUtils.USE_DESC, useLeftDb);
             FileFormatType fileFormat = TableUtils.getFileFormatType(let.getDefinition());
-            Map<String, String> tableProperties = new HashMap<>(hmsMirrorConfig.getIcebergConfig().getTableProperties());
+            Map<String, String> tableProperties = new HashMap<>(hmsMirrorConfig.getIcebergConversion().getTableProperties());
 
             StringBuilder icebergProperties = new StringBuilder();
             if (fileFormat != FileFormatType.PARQUET) {
@@ -113,7 +113,7 @@ public class IcebergConversionDataStrategy extends DataStrategyBase implements D
             }
             tableProperties.put("storage_handler", "org.apache.iceberg.mr.hive.HiveIcebergStorageHandler");
 
-            if (hmsMirrorConfig.getIcebergConfig().getVersion() == 2) {
+            if (hmsMirrorConfig.getIcebergConversion().getVersion() == 2) {
                 tableProperties.put("format-version", "2");
             }
             // Concatenate the table properties into a comma separated list.  Don't add the last comma
@@ -125,7 +125,7 @@ public class IcebergConversionDataStrategy extends DataStrategyBase implements D
             String convertToIceberg =
                     MessageFormat.format(MirrorConf.CONVERT_TO_ICEBERG, let.getName(), icebergProperties.toString());
             String convertToIcebergDesc =
-                    MessageFormat.format(MirrorConf.CONVERT_TO_ICEBERG_DESC, hmsMirrorConfig.getIcebergConfig().getVersion());
+                    MessageFormat.format(MirrorConf.CONVERT_TO_ICEBERG_DESC, hmsMirrorConfig.getIcebergConversion().getVersion());
             let.addSql(convertToIcebergDesc, convertToIceberg);
             return Boolean.TRUE;
         } catch (Exception e) {

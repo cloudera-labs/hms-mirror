@@ -61,6 +61,9 @@ public class HmsMirrorConfig implements Cloneable {
     private Date initDate = new Date();
     private Acceptance acceptance = new Acceptance();
 
+    // Flag used to 'turn-on' beta features.
+    private boolean beta = Boolean.FALSE;
+
     @Setter
     private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
     private String commandLineOptions = null;
@@ -102,7 +105,10 @@ public class HmsMirrorConfig implements Cloneable {
     private boolean flip = Boolean.FALSE;
 
     private HybridConfig hybrid = new HybridConfig();
-    private IcebergConfig icebergConfig = new IcebergConfig();
+
+    // Property moved to IcebergConversion object.
+//    private IcebergConfig icebergConfig = new IcebergConfig();
+    private IcebergConversion icebergConversion = new IcebergConversion();
     private MigrateACID migrateACID = new MigrateACID();
     private MigrateVIEW migrateVIEW = new MigrateVIEW();
     private boolean migrateNonNative = Boolean.FALSE;
@@ -173,7 +179,7 @@ public class HmsMirrorConfig implements Cloneable {
     //    @Autowired
     private TransferConfig transfer = new TransferConfig();
 
-//    private boolean ownershipTransfer = Boolean.FALSE;
+    //    private boolean ownershipTransfer = Boolean.FALSE;
     private TransferOwnership ownershipTransfer = new TransferOwnership();
     //    @JsonIgnore
 //    private ScheduledExecutorService transferThreadPool;
@@ -359,33 +365,19 @@ public class HmsMirrorConfig implements Cloneable {
                 String response = scanner.next();
                 hmsMirrorConfig.getCluster(env).setHcfsNamespace(response);
 
-                // get their input as a String
-                // Legacy?
                 System.out.print("What is the platform type for the " + env + " cluster? (" + Arrays.deepToString(PlatformType.values()));
                 response = scanner.next();
-//                if (response.equalsIgnoreCase("y")) {
-                    hmsMirrorConfig.getCluster(env).setPlatformType(PlatformType.valueOf(response.toUpperCase()));
-//                } else {
-//                    hmsMirrorConfig.getCluster(env).setLegacyHive(Boolean.FALSE);
-//                }
+
+                hmsMirrorConfig.getCluster(env).setPlatformType(PlatformType.valueOf(response.toUpperCase()));
 
                 // HS2 URI
                 System.out.print("What is the JDBC URI for the " + env + " cluster? ");
-                response = scanner.next();
+                String jdbcUrlresponse = scanner.next();
                 HiveServer2Config hs2Cfg = new HiveServer2Config();
                 hmsMirrorConfig.getCluster(env).setHiveServer2(hs2Cfg);
-                hs2Cfg.setUri(response);
+                hs2Cfg.setUri(jdbcUrlresponse);
 
-                // If Kerberized, notify to include hive jar in 'aux_libs'
-                if (!kerb && response.contains("principal")) {
-                    // appears the connections is kerberized.
-                    System.out.println("----------------------------------------------------------------------------------------");
-                    System.out.println("The connections appears to be Kerberized.\n\t\tPlace the 'hive standalone' driver in '$HOME/.hms-mirror/aux_libs'");
-                    System.out.println("\tSPECIAL RUN INSTRUCTIONS for Legacy Kerberos Connections.");
-                    System.out.println("\thttps://github.com/cloudera-labs/hms-mirror#running-against-a-legacy-non-cdp-kerberized-hiveServer2");
-                    System.out.println("----------------------------------------------------------------------------------------");
-                    kerb = Boolean.TRUE;
-                } else if (response.contains("principal")) {
+                if (jdbcUrlresponse.contains("principal")) {
                     System.out.println("----------------------------------------------------------------------------------------");
                     System.out.println("The connections ALSO appears to be Kerberized.\n");
                     System.out.println(" >> Will your Kerberos Ticket be TRUSTED for BOTH JDBC Kerberos Connections? (Y/N)");
@@ -398,14 +390,12 @@ public class HmsMirrorConfig implements Cloneable {
                     if (!response.equalsIgnoreCase("y")) {
                         throw new RuntimeException("Both JDBC connections must be running the same version.");
                     }
-                } else {
-                    //    get jarFile location.
-                    //    get username
-                    //    get password
-                    System.out.println("----------------------------------------------------------------------------------------");
-                    System.out.println("What is the location (local) of the 'hive standalone' jar file?");
-                    response = scanner.next();
-                    hs2Cfg.setJarFile(response);
+                }
+                System.out.println("----------------------------------------------------------------------------------------");
+                System.out.println("What is the location (local) of the 'hive standalone' jar file?");
+                response = scanner.next();
+                hs2Cfg.setJarFile(response);
+                if (!jdbcUrlresponse.contains("principal")) {
                     System.out.println("Connection username?");
                     response = scanner.next();
                     hs2Cfg.getConnectionProperties().put("user", response);
@@ -686,5 +676,6 @@ public class HmsMirrorConfig implements Cloneable {
 //        return hmsMirrorConfig;
 //
 //    }
+
 
 }

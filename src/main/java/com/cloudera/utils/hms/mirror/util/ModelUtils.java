@@ -43,6 +43,7 @@ public class ModelUtils implements ControllerReferences {
         enumForMap(com.cloudera.utils.hms.mirror.domain.support.TranslationTypeEnum.class, map);
 //        enumForMap(DBStore.DB_TYPE.class, map);
         configSupportedDBType(map);
+        configIcebergVersions(map);
         configSupportDataMovementStrategyForModel(dataStrategy, map);
         configEnvironmentForModel(dataStrategy, map);
         configSupportDataStrategyForModel(map);
@@ -50,12 +51,17 @@ public class ModelUtils implements ControllerReferences {
         enumForMap(ConnectionPoolType.class, map);
         map.put("FALSE", "false");
         map.put("TRUE", "true");
+
         booleanForModel(map);
 
     }
 
     public static void configSupportedDBType(Map<String, Object> map) {
         map.put("db_types", Arrays.asList(DBStore.DB_TYPE.MYSQL, DBStore.DB_TYPE.POSTGRES, DBStore.DB_TYPE.ORACLE));
+    }
+
+    public static void configIcebergVersions(Map<String, Object> map) {
+        map.put("iceberg_versions", Arrays.asList(1,2));
     }
 
     public static void configEnvironmentForModel(DataStrategyEnum dataStrategy, Map<String, Object> map) {

@@ -34,6 +34,34 @@
     <fieldset>
         <legend th:text="#{migrate.options}"/>
         <div class="pure-g">
+            <div class="pure-u-1-1" th:if="${CONFIG.beta}">
+                <fieldset>
+                    <legend th:text="#{migrate.to.iceberg}"/>
+                    <div class="pure-control-group">
+                        <label for="icebergenable" th:text="#{config.migrate.iceberg.on}"></label>
+                        <input type="checkbox" name="icebergenable"
+                               th:field="*{icebergConversion.enable}"
+                               th:checked="${CONFIG.icebergConversion.enable}"/>
+                    </div>
+                    <div class="pure-control-group">
+                        <label th:text="#{config.migrate.iceberg.version}"></label>
+                        <select th:field="*{icebergConversion.version}">
+                            <option th:each="iv: ${iceberg_versions}"
+                                    th:value="${iv}"
+                                    th:text="${iv}"
+                                    th:selected="${iv.equals(CONFIG.icebergConversion?.version)}"/>
+                        </select>
+                    </div>
+                    <div class="pure-control-group">
+                        <label th:text="#{config.migrate.iceberg.file.translation.type}"></label>
+                        <select name="icebergfiletranslationtype" th:field="*{icebergConversion.fileTypeTranslation}">
+                            <option th:each="fileTranslationType : ${T(com.cloudera.utils.hms.mirror.domain.support.IcebergFileTypeTranslationEnum).values()}"
+                                    th:value="${fileTranslationType}" th:text="${fileTranslationType}"></option>
+                        </select>
+                    </div>
+<!--                     TODO: Table Properties -->
+                </fieldset>
+            </div>
             <div class="pure-u-1-2">
                 <fieldset>
                     <legend th:text="#{acid.options}"/>
@@ -88,7 +116,6 @@
             </div>
         </div>
     </fieldset>
-</div>
 </div>
 </body>
 </html>

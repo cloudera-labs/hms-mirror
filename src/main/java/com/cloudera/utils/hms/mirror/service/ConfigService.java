@@ -836,6 +836,20 @@ public class ConfigService {
             runStatus.clearErrors();
             runStatus.clearWarnings();
         }
+
+        // ==============================================================================================================
+        // BETA FEATURES
+        // ALL NEW BETA FEATURES will have an option to enable/disable.
+        // When they are considered BETA, we will automatically disable them if the BETA flag is not set.
+        // ==============================================================================================================
+        // Iceberg Conversions is a beta feature.
+        if (config.getIcebergConversion().isEnable() && !config.isBeta()) {
+            session.addWarning(BETA_FEATURE, "Iceberg Conversion");
+            config.getIcebergConversion().setEnable(Boolean.FALSE);
+        }
+
+        // ==============================================================================================================
+
         // Set distcp options.
         canDeriveDistcpPlan(session);
 

@@ -25,25 +25,27 @@ import java.util.List;
 
 @Getter
 public enum SerdeType {
-    ORC(134217728, "org.apache.hadoop.hive.ql.io.orc.OrcSerde"),
-    PARQUET(134217728, "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
+    ORC(134217728, Boolean.TRUE, "org.apache.hadoop.hive.ql.io.orc.OrcSerde"),
+    PARQUET(134217728, Boolean.TRUE, "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
             "parquet.hive.serde.ParquetHiveSerDe"),
-    TEXT(268435456, "org.apache.hadoop.hive.serde2.OpenCSVSerde",
+    TEXT(268435456, Boolean.FALSE, "org.apache.hadoop.hive.serde2.OpenCSVSerde",
             "org.apache.hadoop.mapred.TextInputFormat"),
-    AVRO(134217728,
+    AVRO(134217728, Boolean.TRUE,
             "org.apache.hadoop.hive.serde2.avro.AvroSerDe"),
-    JSON(134217728, "org.apache.hadoop.hive.serde2.JsonSerDe"),
-    SEQUENCE_FILE(134217728, "org.apache.hadoop.mapred.SequenceFileInputFormat"),
-    BINARY(134217728, "org.apache.hadoop.hive.serde2.columnar.LazyBinaryColumnarSerDe",
+    JSON(134217728, Boolean.FALSE, "org.apache.hadoop.hive.serde2.JsonSerDe"),
+    SEQUENCE_FILE(134217728, Boolean.FALSE, "org.apache.hadoop.mapred.SequenceFileInputFormat"),
+    BINARY(134217728, Boolean.FALSE, "org.apache.hadoop.hive.serde2.columnar.LazyBinaryColumnarSerDe",
             "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe"),
-    UNKNOWN(268435456);
+    UNKNOWN(268435456, Boolean.FALSE);
 
     Integer targetSize = null;
     final List<String> serdeClasses = new ArrayList<String>();
+    final boolean icebergSupport = Boolean.FALSE;
 
-    SerdeType(Integer targetSize, String... serdeClasses) {
+    SerdeType(Integer targetSize, boolean icebergSupport, String... serdeClasses) {
         this.targetSize = targetSize;
         Collections.addAll(this.serdeClasses, serdeClasses);
+
     }
 
     public Boolean isType(String serdeClass) {

@@ -140,6 +140,31 @@ public class HmsMirrorCommandLineOptions {
     @Bean
     @Order(1)
     @ConditionalOnProperty(
+            name = "hms-mirror.config.beta",
+            havingValue = "true")
+    CommandLineRunner configBetaTrue(HmsMirrorConfig config) {
+        return args -> {
+            log.info("beta: {}", Boolean.TRUE);
+            config.setBeta(Boolean.TRUE);
+        };
+    }
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
+            name = "hms-mirror.config.beta",
+            havingValue = "false")
+    CommandLineRunner configBetaFalse(HmsMirrorConfig config) {
+        return args -> {
+            log.info("beta: {}", Boolean.TRUE);
+            config.setBeta(Boolean.FALSE);
+        };
+    }
+
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
             name = "hms-mirror.config.create-if-not-exist",
             havingValue = "true")
     CommandLineRunner configCineTrue(HmsMirrorConfig hmsMirrorConfig) {
@@ -585,7 +610,7 @@ public class HmsMirrorCommandLineOptions {
             log.info("iceberg-table-property-overrides: {}", value);
             String[] overrides = value.split(",");
             if (nonNull(overrides))
-                config.getIcebergConfig().setPropertyOverridesStr(overrides);
+                config.getIcebergConversion().setPropertyOverridesStr(overrides);
         };
     }
 
@@ -596,7 +621,7 @@ public class HmsMirrorCommandLineOptions {
     CommandLineRunner configIcebergVersion(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.iceberg-version}") String value) {
         return args -> {
             log.info("iceberg-version: {}", value);
-            hmsMirrorConfig.getIcebergConfig().setVersion(Integer.parseInt(value));
+            hmsMirrorConfig.getIcebergConversion().setVersion(Integer.parseInt(value));
         };
     }
 

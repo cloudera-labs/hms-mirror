@@ -15,6 +15,7 @@ hadoop:
     api: "true"
 hms-mirror:
   config:
+    beta: "false"
     testing: "false"
     output-dir: "false"
     path: ${HOME}/.hms-mirror/cfg

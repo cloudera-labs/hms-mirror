@@ -24,6 +24,7 @@ public enum HmsMirrorCommandLineOptionsEnum {
     ACID_PARTITION_COUNT("ap", "acid-partition-count", "count", ""),
     AVRO_SCHEMA_MIGRATION("asm", "avro-schema-migration", null, ""),
     AUTO_TUNE("at", "auto-tune", null, ""),
+    BETA("b", "beta", null, ""),
     CFG("cfg", "config", "filename", ""),
     CONCURRENCY("c", "concurrency", "threads", ""),
     CONSOLIDATE_TABLES_FOR_DISTCP("ctfd", "consolidate-tables-for-distcp", null, ""),

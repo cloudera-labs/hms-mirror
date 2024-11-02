@@ -29,10 +29,7 @@ import com.cloudera.utils.hms.mirror.domain.Cluster;
 import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
-import com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum;
-import com.cloudera.utils.hms.mirror.domain.support.Environment;
-import com.cloudera.utils.hms.mirror.domain.support.HmsMirrorConfigUtil;
-import com.cloudera.utils.hms.mirror.domain.support.TranslationTypeEnum;
+import com.cloudera.utils.hms.mirror.domain.support.*;
 import com.cloudera.utils.hms.mirror.exceptions.MismatchException;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
@@ -277,8 +274,10 @@ public abstract class DataStrategyBase implements DataStrategy {
                             TableUtils.removeTblProperty(BUCKETING_VERSION, target);
                         }
 
-                        if (copySpec.isMakeExternal())
+                        // We should also convert to external if we've enabled the conversion to Iceberg.
+                        if (copySpec.isMakeExternal() || config.getIcebergConversion().isEnable()) {
                             converted = TableUtils.makeExternal(target);
+                        }
 
                         if (copySpec.isTakeOwnership()) {
                             if (TableUtils.isACID(source)) {
@@ -372,6 +371,15 @@ public abstract class DataStrategyBase implements DataStrategy {
                                     rtn = Boolean.FALSE;
                                 }
                             }
+
+                            // Check if current table is Iceberg, and if it is NOT and the conversion to Iceberg is enabled, then
+                            // Convert is over.  But we need to understand which fileformat to use.
+                            if (!TableUtils.isIceberg(source) && config.getIcebergConversion().isEnable()) {
+                                // TODO: Get SerdeType.
+                                SerdeType serdeType = TableUtils.getSerdeType(source);
+
+                            }
+
 
                             if (tableMirror.isReMapped()) {
                                 target.addIssue(MessageCode.TABLE_LOCATION_REMAPPED.getDesc());

@@ -33,158 +33,158 @@ import static org.junit.Assert.*;
 @Slf4j
 public class HmsMirrorConfigCloneFullTest_01 {
 
-    private HmsMirrorConfig hmsMirrorConfig;
+    private HmsMirrorConfig config;
 
     @Before
     public void setUp() throws IOException {
         log.info("Setting up HmsMirrorConfigCloneTest");
-        hmsMirrorConfig = ConfigTest.deserializeResource("/config/clone/full_test_01.yaml");
+        config = ConfigTest.deserializeResource("/config/clone/full_test_01.yaml");
     }
 
     @Test
     public void cloneTest_01() {
         log.info("Test 01");
-        HmsMirrorConfig clone = hmsMirrorConfig.clone();
+        HmsMirrorConfig clone = config.clone();
 
         // Acceptance Criteria:
-        assertEquals(clone.getAcceptance().isSilentOverride(), hmsMirrorConfig.getAcceptance().isSilentOverride());
-        assertEquals(clone.getAcceptance().isBackedUpHDFS(), hmsMirrorConfig.getAcceptance().isBackedUpHDFS());
-        assertEquals(clone.getAcceptance().isBackedUpMetastore(), hmsMirrorConfig.getAcceptance().isBackedUpMetastore());
-        assertEquals(clone.getAcceptance().isTrashConfigured(), hmsMirrorConfig.getAcceptance().isTrashConfigured());
-        assertEquals(clone.getAcceptance().isPotentialDataLoss(), hmsMirrorConfig.getAcceptance().isPotentialDataLoss());
+        assertEquals(clone.getAcceptance().isSilentOverride(), config.getAcceptance().isSilentOverride());
+        assertEquals(clone.getAcceptance().isBackedUpHDFS(), config.getAcceptance().isBackedUpHDFS());
+        assertEquals(clone.getAcceptance().isBackedUpMetastore(), config.getAcceptance().isBackedUpMetastore());
+        assertEquals(clone.getAcceptance().isTrashConfigured(), config.getAcceptance().isTrashConfigured());
+        assertEquals(clone.getAcceptance().isPotentialDataLoss(), config.getAcceptance().isPotentialDataLoss());
 
         // Clusters
         List<Environment> environments = Arrays.asList(Environment.LEFT, Environment.RIGHT);
         for (Environment environment : environments) {
             //
-            assertEquals(clone.getCluster(environment).getHcfsNamespace(), hmsMirrorConfig.getCluster(environment).getHcfsNamespace());
-            assertEquals(clone.getCluster(environment).isLegacyHive(), hmsMirrorConfig.getCluster(environment).isLegacyHive());
-            assertEquals(clone.getCluster(environment).isCreateIfNotExists(), hmsMirrorConfig.getCluster(environment).isCreateIfNotExists());
-            assertEquals(clone.getCluster(environment).isHdpHive3(), hmsMirrorConfig.getCluster(environment).isHdpHive3());
-            assertEquals(clone.getCluster(environment).isCreateIfNotExists(), hmsMirrorConfig.getCluster(environment).isCreateIfNotExists());
-            assertEquals(clone.getCluster(environment).isEnableAutoColumnStats(), hmsMirrorConfig.getCluster(environment).isEnableAutoColumnStats());
-            assertEquals(clone.getCluster(environment).isEnableAutoTableStats(), hmsMirrorConfig.getCluster(environment).isEnableAutoTableStats());
+            assertEquals(clone.getCluster(environment).getHcfsNamespace(), config.getCluster(environment).getHcfsNamespace());
+            assertEquals(clone.getCluster(environment).isLegacyHive(), config.getCluster(environment).isLegacyHive());
+            assertEquals(clone.getCluster(environment).isCreateIfNotExists(), config.getCluster(environment).isCreateIfNotExists());
+            assertEquals(clone.getCluster(environment).isHdpHive3(), config.getCluster(environment).isHdpHive3());
+            assertEquals(clone.getCluster(environment).isCreateIfNotExists(), config.getCluster(environment).isCreateIfNotExists());
+            assertEquals(clone.getCluster(environment).isEnableAutoColumnStats(), config.getCluster(environment).isEnableAutoColumnStats());
+            assertEquals(clone.getCluster(environment).isEnableAutoTableStats(), config.getCluster(environment).isEnableAutoTableStats());
             // Hive Server 2
-            if (isNull(hmsMirrorConfig.getCluster(environment).getHiveServer2())) {
+            if (isNull(config.getCluster(environment).getHiveServer2())) {
                 assertNull(clone.getCluster(environment).getHiveServer2());
             } else {
-                assertEquals(clone.getCluster(environment).getHiveServer2().getUri(), hmsMirrorConfig.getCluster(environment).getHiveServer2().getUri());
-                assertEquals(clone.getCluster(environment).getHiveServer2().isDisconnected(), hmsMirrorConfig.getCluster(environment).getHiveServer2().isDisconnected());
-                assertEquals(clone.getCluster(environment).getHiveServer2().getDriverClassName(), hmsMirrorConfig.getCluster(environment).getHiveServer2().getDriverClassName());
-                assertEquals(clone.getCluster(environment).getHiveServer2().getJarFile(), hmsMirrorConfig.getCluster(environment).getHiveServer2().getJarFile());
+                assertEquals(clone.getCluster(environment).getHiveServer2().getUri(), config.getCluster(environment).getHiveServer2().getUri());
+                assertEquals(clone.getCluster(environment).getHiveServer2().isDisconnected(), config.getCluster(environment).getHiveServer2().isDisconnected());
+                assertEquals(clone.getCluster(environment).getHiveServer2().getDriverClassName(), config.getCluster(environment).getHiveServer2().getDriverClassName());
+                assertEquals(clone.getCluster(environment).getHiveServer2().getJarFile(), config.getCluster(environment).getHiveServer2().getJarFile());
                 // Connection Properties
-                assertEquals(clone.getCluster(environment).getHiveServer2().getConnectionProperties().get("user"), hmsMirrorConfig.getCluster(environment).getHiveServer2().getConnectionProperties().get("user"));
-                assertEquals(clone.getCluster(environment).getHiveServer2().getConnectionProperties().get("password"), hmsMirrorConfig.getCluster(environment).getHiveServer2().getConnectionProperties().get("password"));
+                assertEquals(clone.getCluster(environment).getHiveServer2().getConnectionProperties().get("user"), config.getCluster(environment).getHiveServer2().getConnectionProperties().get("user"));
+                assertEquals(clone.getCluster(environment).getHiveServer2().getConnectionProperties().get("password"), config.getCluster(environment).getHiveServer2().getConnectionProperties().get("password"));
 
             }
 
             // Metastore
-            if (isNull(hmsMirrorConfig.getCluster(environment).getMetastoreDirect())) {
+            if (isNull(config.getCluster(environment).getMetastoreDirect())) {
                 assertNull(clone.getCluster(environment).getMetastoreDirect());
             } else {
-                assertEquals(clone.getCluster(environment).getMetastoreDirect().getUri(), hmsMirrorConfig.getCluster(environment).getMetastoreDirect().getUri());
-                assertEquals(clone.getCluster(environment).getMetastoreDirect().getType(), hmsMirrorConfig.getCluster(environment).getMetastoreDirect().getType());
-                assertEquals(clone.getCluster(environment).getMetastoreDirect().getInitSql(), hmsMirrorConfig.getCluster(environment).getMetastoreDirect().getInitSql());
+                assertEquals(clone.getCluster(environment).getMetastoreDirect().getUri(), config.getCluster(environment).getMetastoreDirect().getUri());
+                assertEquals(clone.getCluster(environment).getMetastoreDirect().getType(), config.getCluster(environment).getMetastoreDirect().getType());
+                assertEquals(clone.getCluster(environment).getMetastoreDirect().getInitSql(), config.getCluster(environment).getMetastoreDirect().getInitSql());
                 // Connection Properties
-                assertEquals(clone.getCluster(environment).getMetastoreDirect().getConnectionProperties().get("user"), hmsMirrorConfig.getCluster(environment).getMetastoreDirect().getConnectionProperties().get("user"));
-                assertEquals(clone.getCluster(environment).getMetastoreDirect().getConnectionProperties().get("password"), hmsMirrorConfig.getCluster(environment).getMetastoreDirect().getConnectionProperties().get("password"));
+                assertEquals(clone.getCluster(environment).getMetastoreDirect().getConnectionProperties().get("user"), config.getCluster(environment).getMetastoreDirect().getConnectionProperties().get("user"));
+                assertEquals(clone.getCluster(environment).getMetastoreDirect().getConnectionProperties().get("password"), config.getCluster(environment).getMetastoreDirect().getConnectionProperties().get("password"));
             }
 
-            assertEquals(clone.getCluster(environment).getPartitionDiscovery().isAuto(), hmsMirrorConfig.getCluster(environment).getPartitionDiscovery().isAuto());
-            assertEquals(clone.getCluster(environment).getPartitionDiscovery().isInitMSCK(), hmsMirrorConfig.getCluster(environment).getPartitionDiscovery().isInitMSCK());
+            assertEquals(clone.getCluster(environment).getPartitionDiscovery().isAuto(), config.getCluster(environment).getPartitionDiscovery().isAuto());
+            assertEquals(clone.getCluster(environment).getPartitionDiscovery().isInitMSCK(), config.getCluster(environment).getPartitionDiscovery().isInitMSCK());
         }
 
-        assertEquals(clone.getCommandLineOptions(), hmsMirrorConfig.getCommandLineOptions());
-        assertEquals(clone.isCopyAvroSchemaUrls(), hmsMirrorConfig.isCopyAvroSchemaUrls());
-        assertEquals(clone.getConnectionPoolLib(), hmsMirrorConfig.getConnectionPoolLib());
-        assertEquals(clone.getDataStrategy(), hmsMirrorConfig.getDataStrategy());
-        assertEquals(clone.isDatabaseOnly(), hmsMirrorConfig.isDatabaseOnly());
-        assertEquals(clone.isDumpTestData(), hmsMirrorConfig.isDumpTestData());
-        assertEquals(clone.getLoadTestDataFile(), hmsMirrorConfig.getLoadTestDataFile());
-//        assertEquals(clone.isEvaluatePartitionLocation(), hmsMirrorConfig.isEvaluatePartitionLocation());
+        assertEquals(clone.getCommandLineOptions(), config.getCommandLineOptions());
+        assertEquals(clone.isCopyAvroSchemaUrls(), config.isCopyAvroSchemaUrls());
+        assertEquals(clone.getConnectionPoolLib(), config.getConnectionPoolLib());
+        assertEquals(clone.getDataStrategy(), config.getDataStrategy());
+        assertEquals(clone.isDatabaseOnly(), config.isDatabaseOnly());
+        assertEquals(clone.isDumpTestData(), config.isDumpTestData());
+        assertEquals(clone.getLoadTestDataFile(), config.getLoadTestDataFile());
+//        assertEquals(clone.isEvaluatePartitionLocation(), config.isEvaluatePartitionLocation());
 
         // Filter
-        assertEquals(clone.getFilter().getTblExcludeFilterPattern(), hmsMirrorConfig.getFilter().getTblExcludeFilterPattern());
-        assertEquals(clone.getFilter().getTblRegEx(), hmsMirrorConfig.getFilter().getTblRegEx());
-        assertEquals(clone.getFilter().getTblSizeLimit(), hmsMirrorConfig.getFilter().getTblSizeLimit());
-        assertEquals(clone.getFilter().getTblPartitionLimit(), hmsMirrorConfig.getFilter().getTblPartitionLimit());
+        assertEquals(clone.getFilter().getTblExcludeFilterPattern(), config.getFilter().getTblExcludeFilterPattern());
+        assertEquals(clone.getFilter().getTblRegEx(), config.getFilter().getTblRegEx());
+        assertEquals(clone.getFilter().getTblSizeLimit(), config.getFilter().getTblSizeLimit());
+        assertEquals(clone.getFilter().getTblPartitionLimit(), config.getFilter().getTblPartitionLimit());
 
-        assertEquals(clone.getDatabases(), hmsMirrorConfig.getDatabases());
+        assertEquals(clone.getDatabases(), config.getDatabases());
 
         // Legacy Translations
-        assertEquals(clone.getLegacyTranslations().getRowSerde(), hmsMirrorConfig.getLegacyTranslations().getRowSerde());
+        assertEquals(clone.getLegacyTranslations().getRowSerde(), config.getLegacyTranslations().getRowSerde());
 
-        assertEquals(clone.getDbPrefix(), hmsMirrorConfig.getDbPrefix());
-        assertEquals(clone.getDbRename(), hmsMirrorConfig.getDbRename());
-        assertEquals(clone.getDumpSource(), hmsMirrorConfig.getDumpSource());
-        assertEquals(clone.isExecute(), hmsMirrorConfig.isExecute());
+        assertEquals(clone.getDbPrefix(), config.getDbPrefix());
+        assertEquals(clone.getDbRename(), config.getDbRename());
+        assertEquals(clone.getDumpSource(), config.getDumpSource());
+        assertEquals(clone.isExecute(), config.isExecute());
 
         // Hybrid
-        assertEquals(clone.getHybrid().getSqlPartitionLimit(), hmsMirrorConfig.getHybrid().getSqlPartitionLimit());
-        assertEquals(clone.getHybrid().getSqlSizeLimit(), hmsMirrorConfig.getHybrid().getSqlSizeLimit());
-        assertEquals(clone.getHybrid().getExportImportPartitionLimit(), hmsMirrorConfig.getHybrid().getExportImportPartitionLimit());
+        assertEquals(clone.getHybrid().getSqlPartitionLimit(), config.getHybrid().getSqlPartitionLimit());
+        assertEquals(clone.getHybrid().getSqlSizeLimit(), config.getHybrid().getSqlSizeLimit());
+        assertEquals(clone.getHybrid().getExportImportPartitionLimit(), config.getHybrid().getExportImportPartitionLimit());
 
         // Iceberg
-        assertEquals(clone.getIcebergConfig().getVersion(), hmsMirrorConfig.getIcebergConfig().getVersion());
-        assertEquals(clone.getIcebergConfig().getTableProperties(), hmsMirrorConfig.getIcebergConfig().getTableProperties());
+        assertEquals(clone.getIcebergConversion().getVersion(), config.getIcebergConversion().getVersion());
+        assertEquals(clone.getIcebergConversion().getTableProperties(), config.getIcebergConversion().getTableProperties());
 
         // Migrate ACID
-        assertEquals(clone.getMigrateACID().isOn(), hmsMirrorConfig.getMigrateACID().isOn());
-        assertEquals(clone.getMigrateACID().isOnly(), hmsMirrorConfig.getMigrateACID().isOnly());
-        assertEquals(clone.getMigrateACID().getArtificialBucketThreshold(), hmsMirrorConfig.getMigrateACID().getArtificialBucketThreshold());
-        assertEquals(clone.getMigrateACID().getPartitionLimit(), hmsMirrorConfig.getMigrateACID().getPartitionLimit());
-        assertEquals(clone.getMigrateACID().isDowngrade(), hmsMirrorConfig.getMigrateACID().isDowngrade());
-        assertEquals(clone.getMigrateACID().isInplace(), hmsMirrorConfig.getMigrateACID().isInplace());
+        assertEquals(clone.getMigrateACID().isOn(), config.getMigrateACID().isOn());
+        assertEquals(clone.getMigrateACID().isOnly(), config.getMigrateACID().isOnly());
+        assertEquals(clone.getMigrateACID().getArtificialBucketThreshold(), config.getMigrateACID().getArtificialBucketThreshold());
+        assertEquals(clone.getMigrateACID().getPartitionLimit(), config.getMigrateACID().getPartitionLimit());
+        assertEquals(clone.getMigrateACID().isDowngrade(), config.getMigrateACID().isDowngrade());
+        assertEquals(clone.getMigrateACID().isInplace(), config.getMigrateACID().isInplace());
 
         // Migrate View
-        assertEquals(clone.getMigrateVIEW().isOn(), hmsMirrorConfig.getMigrateVIEW().isOn());
+        assertEquals(clone.getMigrateVIEW().isOn(), config.getMigrateVIEW().isOn());
 
-        assertEquals(clone.isMigrateNonNative(), hmsMirrorConfig.isMigrateNonNative());
+        assertEquals(clone.isMigrateNonNative(), config.isMigrateNonNative());
 
         // Optimizations
-        assertEquals(clone.getOptimization().isSortDynamicPartitionInserts(), hmsMirrorConfig.getOptimization().isSortDynamicPartitionInserts());
-        assertEquals(clone.getOptimization().isSkip(), hmsMirrorConfig.getOptimization().isSkip());
-        assertEquals(clone.getOptimization().isAutoTune(), hmsMirrorConfig.getOptimization().isAutoTune());
-        assertEquals(clone.getOptimization().isCompressTextOutput(), hmsMirrorConfig.getOptimization().isCompressTextOutput());
-        assertEquals(clone.getOptimization().isSkipStatsCollection(), hmsMirrorConfig.getOptimization().isSkipStatsCollection());
-        assertEquals(clone.getOptimization().getOverrides().getLeft(), hmsMirrorConfig.getOptimization().getOverrides().getLeft());
-        assertEquals(clone.getOptimization().getOverrides().getRight(), hmsMirrorConfig.getOptimization().getOverrides().getRight());
-        assertEquals(clone.getOptimization().isBuildShadowStatistics(), hmsMirrorConfig.getOptimization().isBuildShadowStatistics());
+        assertEquals(clone.getOptimization().isSortDynamicPartitionInserts(), config.getOptimization().isSortDynamicPartitionInserts());
+        assertEquals(clone.getOptimization().isSkip(), config.getOptimization().isSkip());
+        assertEquals(clone.getOptimization().isAutoTune(), config.getOptimization().isAutoTune());
+        assertEquals(clone.getOptimization().isCompressTextOutput(), config.getOptimization().isCompressTextOutput());
+        assertEquals(clone.getOptimization().isSkipStatsCollection(), config.getOptimization().isSkipStatsCollection());
+        assertEquals(clone.getOptimization().getOverrides().getLeft(), config.getOptimization().getOverrides().getLeft());
+        assertEquals(clone.getOptimization().getOverrides().getRight(), config.getOptimization().getOverrides().getRight());
+        assertEquals(clone.getOptimization().isBuildShadowStatistics(), config.getOptimization().isBuildShadowStatistics());
 
-        assertEquals(clone.getOutputDirectory(), hmsMirrorConfig.getOutputDirectory());
-        assertEquals(clone.isQuiet(), hmsMirrorConfig.isQuiet());
-        assertEquals(clone.isReadOnly(), hmsMirrorConfig.isReadOnly());
-        assertEquals(clone.isNoPurge(), hmsMirrorConfig.isNoPurge());
-        assertEquals(clone.isReplace(), hmsMirrorConfig.isReplace());
-        assertEquals(clone.isResetRight(), hmsMirrorConfig.isResetRight());
-//        assertEquals(clone.isResetToDefaultLocation(), hmsMirrorConfig.isResetToDefaultLocation());
-        assertEquals(clone.isSkipFeatures(), hmsMirrorConfig.isSkipFeatures());
-        assertEquals(clone.isSkipLegacyTranslation(), hmsMirrorConfig.isSkipLegacyTranslation());
-//        assertEquals(clone.isSqlOutput(), hmsMirrorConfig.isSqlOutput());
-        assertEquals(clone.isSync(), hmsMirrorConfig.isSync());
+        assertEquals(clone.getOutputDirectory(), config.getOutputDirectory());
+        assertEquals(clone.isQuiet(), config.isQuiet());
+        assertEquals(clone.isReadOnly(), config.isReadOnly());
+        assertEquals(clone.isNoPurge(), config.isNoPurge());
+        assertEquals(clone.isReplace(), config.isReplace());
+        assertEquals(clone.isResetRight(), config.isResetRight());
+//        assertEquals(clone.isResetToDefaultLocation(), config.isResetToDefaultLocation());
+        assertEquals(clone.isSkipFeatures(), config.isSkipFeatures());
+        assertEquals(clone.isSkipLegacyTranslation(), config.isSkipLegacyTranslation());
+//        assertEquals(clone.isSqlOutput(), config.isSqlOutput());
+        assertEquals(clone.isSync(), config.isSync());
 
         // Transfer
-        assertEquals(clone.getTransfer().getTransferPrefix(), hmsMirrorConfig.getTransfer().getTransferPrefix());
-        assertEquals(clone.getTransfer().getShadowPrefix(), hmsMirrorConfig.getTransfer().getShadowPrefix());
-        assertEquals(clone.getTransfer().getExportBaseDirPrefix(), hmsMirrorConfig.getTransfer().getExportBaseDirPrefix());
-        assertEquals(clone.getTransfer().getRemoteWorkingDirectory(), hmsMirrorConfig.getTransfer().getRemoteWorkingDirectory());
-        assertEquals(clone.getTransfer().getIntermediateStorage(), hmsMirrorConfig.getTransfer().getIntermediateStorage());
-        assertEquals(clone.getTransfer().getTargetNamespace(), hmsMirrorConfig.getTransfer().getTargetNamespace());
+        assertEquals(clone.getTransfer().getTransferPrefix(), config.getTransfer().getTransferPrefix());
+        assertEquals(clone.getTransfer().getShadowPrefix(), config.getTransfer().getShadowPrefix());
+        assertEquals(clone.getTransfer().getExportBaseDirPrefix(), config.getTransfer().getExportBaseDirPrefix());
+        assertEquals(clone.getTransfer().getRemoteWorkingDirectory(), config.getTransfer().getRemoteWorkingDirectory());
+        assertEquals(clone.getTransfer().getIntermediateStorage(), config.getTransfer().getIntermediateStorage());
+        assertEquals(clone.getTransfer().getTargetNamespace(), config.getTransfer().getTargetNamespace());
         // Transfer Storage Migration
-        assertEquals(clone.getTransfer().getStorageMigration().getDataMovementStrategy(), hmsMirrorConfig.getTransfer().getStorageMigration().getDataMovementStrategy());
-        assertEquals(clone.getTransfer().getStorageMigration().isDistcp(), hmsMirrorConfig.getTransfer().getStorageMigration().isDistcp());
-        assertEquals(clone.getTransfer().getStorageMigration().getDataFlow(), hmsMirrorConfig.getTransfer().getStorageMigration().getDataFlow());
+        assertEquals(clone.getTransfer().getStorageMigration().getDataMovementStrategy(), config.getTransfer().getStorageMigration().getDataMovementStrategy());
+        assertEquals(clone.getTransfer().getStorageMigration().isDistcp(), config.getTransfer().getStorageMigration().isDistcp());
+        assertEquals(clone.getTransfer().getStorageMigration().getDataFlow(), config.getTransfer().getStorageMigration().getDataFlow());
         // Transfer Warehouse
-        assertEquals(clone.getTransfer().getWarehouse().getManagedDirectory(), hmsMirrorConfig.getTransfer().getWarehouse().getManagedDirectory());
-        assertEquals(clone.getTransfer().getWarehouse().getExternalDirectory(), hmsMirrorConfig.getTransfer().getWarehouse().getExternalDirectory());
+        assertEquals(clone.getTransfer().getWarehouse().getManagedDirectory(), config.getTransfer().getWarehouse().getManagedDirectory());
+        assertEquals(clone.getTransfer().getWarehouse().getExternalDirectory(), config.getTransfer().getWarehouse().getExternalDirectory());
 
-        assertEquals(clone.getOwnershipTransfer().isDatabase(), hmsMirrorConfig.getOwnershipTransfer().isDatabase());
-        assertEquals(clone.getOwnershipTransfer().isTable(), hmsMirrorConfig.getOwnershipTransfer().isTable());
+        assertEquals(clone.getOwnershipTransfer().isDatabase(), config.getOwnershipTransfer().isDatabase());
+        assertEquals(clone.getOwnershipTransfer().isTable(), config.getOwnershipTransfer().isTable());
 
         // Translator
-        assertEquals(clone.getTranslator().isForceExternalLocation(), hmsMirrorConfig.getTranslator().isForceExternalLocation());
+        assertEquals(clone.getTranslator().isForceExternalLocation(), config.getTranslator().isForceExternalLocation());
         // TODO: Need to Test the GLM's
-//        assertEquals(clone.getTranslator().getGlobalLocationMap(), hmsMirrorConfig.getTranslator().getGlobalLocationMap());
+//        assertEquals(clone.getTranslator().getGlobalLocationMap(), config.getTranslator().getGlobalLocationMap());
 
     }
 
@@ -192,10 +192,10 @@ public class HmsMirrorConfigCloneFullTest_01 {
     @Test
     public void equalsTest_101() {
         log.info("Test 01");
-        HmsMirrorConfig clone = hmsMirrorConfig.clone();
+        HmsMirrorConfig clone = config.clone();
 
         // Add your assertions here
-        assertEquals(hmsMirrorConfig, clone);
+        assertEquals(config, clone);
 
     }
 

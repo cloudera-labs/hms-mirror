@@ -26,6 +26,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
 import org.springframework.web.servlet.ModelAndView;
@@ -40,6 +41,9 @@ import static java.util.Objects.nonNull;
 @Setter
 @Slf4j
 public class UIModelService implements ControllerReferences {
+
+    @Value("${hms-mirror.config.beta}")
+    private boolean beta = Boolean.FALSE;
 
     private ExecuteSessionService executeSessionService;
 
@@ -58,6 +62,9 @@ public class UIModelService implements ControllerReferences {
 
     public void sessionToModel(Map<String, Object> map, Integer concurrency, Boolean testing) {
         boolean lclTesting = testing != null && testing;
+
+        // Set the Beta Flag
+        map.put(BETA, beta);
 
         map.put(CONCURRENCY, concurrency);
 

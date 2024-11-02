@@ -33,6 +33,7 @@ public enum MessageCode {
     ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS("When using `ALIGNED`, you will need specify " +
             "warehouse locations (-wd,-ewd) OR have a Warehouse Plan created for the 'database' to enable the `distcp` workbooks and/or resetting locations.  Without them, we can NOT know the " +
             "default locations to build a plan."),
+    BETA_FEATURE("Beta Feature: {0} isn't available unless you set the 'beta' flag to TRUE in the configuration. The feature will be DISABLED."),
     CINE_WITH_DATASTRATEGY("The `-cine` (createIfNotExist) option is only applied while using the `SCHEMA_ONLY` data strategy " +
             "OR with SQL and the `-sync` option."),
     CINE_WITH_EXIST("Schema exists already.  But you've specified 'createIfNotExist', which will attempt to create " +
@@ -100,6 +101,7 @@ public enum MessageCode {
     EXPORT_IMPORT_SYNC("Schema EXISTS in target.  Table will be 'dropped' before IMPORT attempt.  If the table " +
             "isn't ACID or EXTERNAL/PURGE, existing data may prevent the RE-CREATION of the table when script is executed."),
     FLIP_WITHOUT_RIGHT("You can use the 'flip' option if there isn't a RIGHT cluster defined in the configuration."),
+    FEATURE_IN_DEVELOPMENT("Feature ''{0}'' in development.  Settings will be ignored."),
     HDP3_HIVE("You've specified the cluster as an HDP3 Hive cluster.  This version of Hive has some issues regarding locations.  " +
             "We will need to specifically set the location for tables.  This will be done automatically by applying the `-fel` flag " +
             "for the cluster."),

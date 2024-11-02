@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024. Cloudera, Inc. All Rights Reserved
+ * Copyright (c) 2024. Cloudera, Inc. All Rights Reserved
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,7 +17,9 @@
 
 package com.cloudera.utils.hms.mirror.domain;
 
+import com.cloudera.utils.hms.mirror.domain.support.IcebergFileTypeTranslationEnum;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -28,34 +30,14 @@ import java.util.Map;
 @Getter
 @Setter
 @Slf4j
-public class IcebergConfig implements Cloneable {
-
+@Schema(description = "Conversion is where you define how tables might be converted from one type to another.  This works " +
+        "for strategies that process data through the SQL engine.  It can also be applied to the SCHEMA_ONLY strategy, as " +
+        "long as the user does NOT select 'distcp' as the data movement strategy.")
+public class IcebergConversion implements Cloneable {
+    private boolean enable = Boolean.FALSE;
+    private IcebergFileTypeTranslationEnum fileTypeTranslation = IcebergFileTypeTranslationEnum.STANDARD;
     private int version = 2;
     private Map<String, String> tableProperties = new HashMap<String, String>();
-
-    private void addTableProperty(String key, String value) {
-        tableProperties.put(key, value);
-    }
-
-    @Override
-    public IcebergConfig clone() {
-        try {
-            IcebergConfig clone = (IcebergConfig) super.clone();
-            // TODO: copy mutable state here, so the clone can't change the internals of the original
-            return clone;
-        } catch (CloneNotSupportedException e) {
-            throw new AssertionError();
-        }
-    }
-
-    public void setVersion(int version) {
-        if (version == 1 || version == 2) {
-            this.version = version;
-        } else {
-            log.error("Invalid Iceberg Version {}", version);
-//            throw new RuntimeException("Invalid Iceberg Version: " + version);
-        }
-    }
 
     @JsonIgnore
     public void setPropertyOverridesStr(String[] overrides) {
