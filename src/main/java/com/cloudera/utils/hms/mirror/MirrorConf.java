@@ -97,6 +97,10 @@ public interface MirrorConf {
     String ALTER_TABLE_PARTITION_LOCATION =
             "ALTER TABLE {0} PARTITION ({1}) SET LOCATION \"{2}\"";
 
+    String ALTER_TABLE_ADD_PARTITION_LOCATION_DESC = "Alter Table ADD Partition Spec {0} Location ";
+    String ALTER_TABLE_ADD_PARTITION_LOCATION =
+            "ALTER TABLE {0} ADD PARTITION ({1}) LOCATION \"{2}\"";
+
     String ARCHIVE = "archive";
     String SQL_DATA_TRANSFER = "FROM {0} INSERT INTO TABLE {1} SELECT *";
     String SQL_DATA_TRANSFER_OVERWRITE = "FROM {0} INSERT OVERWRITE TABLE {1} SELECT *";

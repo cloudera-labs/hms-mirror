@@ -153,34 +153,6 @@ public class HMSMirrorAppService {
             return new AsyncResult<>(Boolean.FALSE);
         }
 
-        if (config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().isEmpty()) {
-            runStatus.setStage(StageEnum.GLM_BUILD, CollectionEnum.SKIPPED);
-        } else {
-            try {
-                int defaultConsolidationLevel = 1;
-                runStatus.setStage(StageEnum.GLM_BUILD, CollectionEnum.IN_PROGRESS);
-
-                if (config.loadMetadataDetails()) {
-                    databaseService.buildDatabaseSources(defaultConsolidationLevel, false);
-                    translatorService.buildGlobalLocationMapFromWarehousePlansAndSources(false, defaultConsolidationLevel);
-                    runStatus.setStage(StageEnum.GLM_BUILD, CollectionEnum.COMPLETED);
-                } else {
-                    runStatus.setStage(StageEnum.GLM_BUILD, CollectionEnum.SKIPPED);
-                }
-
-            } catch (EncryptionException | SessionException | RequiredConfigurationException | MismatchException e) {
-                log.error("Issue validating configuration", e);
-                runStatus.addError(RUNTIME_EXCEPTION, e.getMessage());
-                log.error("Configuration is not valid.  Exiting.");
-
-                runStatus.setStage(StageEnum.GLM_BUILD, CollectionEnum.ERRORED);
-                runStatus.setStage(StageEnum.VALIDATING_CONFIG, CollectionEnum.ERRORED);
-
-                reportWriterService.wrapup();
-                return new AsyncResult<>(Boolean.FALSE);
-            }
-        }
-
         // Correct the load data issue ordering.
         if (config.isLoadingTestData() &&
                 (!config.loadMetadataDetails() && config.getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION)) {
@@ -369,6 +341,35 @@ public class HMSMirrorAppService {
                 return new AsyncResult<>(Boolean.FALSE);
             }
         }
+
+        if (config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().isEmpty()) {
+            runStatus.setStage(StageEnum.GLM_BUILD, CollectionEnum.SKIPPED);
+        } else {
+            try {
+                int defaultConsolidationLevel = 1;
+                runStatus.setStage(StageEnum.GLM_BUILD, CollectionEnum.IN_PROGRESS);
+
+                if (config.loadMetadataDetails()) {
+                    databaseService.buildDatabaseSources(defaultConsolidationLevel, false);
+                    translatorService.buildGlobalLocationMapFromWarehousePlansAndSources(false, defaultConsolidationLevel);
+                    runStatus.setStage(StageEnum.GLM_BUILD, CollectionEnum.COMPLETED);
+                } else {
+                    runStatus.setStage(StageEnum.GLM_BUILD, CollectionEnum.SKIPPED);
+                }
+
+            } catch (EncryptionException | SessionException | RequiredConfigurationException | MismatchException e) {
+                log.error("Issue validating configuration", e);
+                runStatus.addError(RUNTIME_EXCEPTION, e.getMessage());
+                log.error("Configuration is not valid.  Exiting.");
+
+                runStatus.setStage(StageEnum.GLM_BUILD, CollectionEnum.ERRORED);
+                runStatus.setStage(StageEnum.VALIDATING_CONFIG, CollectionEnum.ERRORED);
+
+                reportWriterService.wrapup();
+                return new AsyncResult<>(Boolean.FALSE);
+            }
+        }
+
 
         runStatus.setStage(StageEnum.CREATE_DATABASES, CollectionEnum.IN_PROGRESS);
         if (!getDatabaseService().createDatabases()) {

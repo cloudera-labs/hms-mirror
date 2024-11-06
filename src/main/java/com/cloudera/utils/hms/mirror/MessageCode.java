@@ -206,6 +206,8 @@ public enum MessageCode {
             "Please build or create GLM's and try again."),
     STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL_GLM("You're using the same namespace in STORAGE_MIGRATION, without `-rdl` you'll need to " +
             "ensure you have `-glm` set to map locations."),
+    STORAGE_MIGRATION_ACID_ARCHIVE_DISTCP("STORAGE_MIGRATION with 'distcp' can't support the direct transfer of ACID tables when an 'archive' has " +
+            "been requested.  Use the SQL data movement strategy to handle the ACID tables if you'd like to create an archive."),
     STORAGE_MIGRATION_NOT_AVAILABLE_FOR_LEGACY("Storage Migration is NOT available for Legacy Hive."),
     STORAGE_MIGRATION_REQUIRED_NAMESPACE("STORAGE_MIGRATION requires -smn or -cs to define the new namespace."),
     STORAGE_MIGRATION_REQUIRED_STRATEGY("STORAGE_MIGRATION requires -sms to set the Data Strategy.  Applicable options " +

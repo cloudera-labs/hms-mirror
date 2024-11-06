@@ -84,16 +84,27 @@
                   th:text="#{config.transfer.storageMigration.dataMovementStrategy.use}"/>
         </div>
         <!-- Skip Database Location Adjustments (For STORAGE_MIGRATION only) -->
-        <div class="pure-control-group">
+        <div class="pure-control-group" th:if="${('STORAGE_MIGRATION').contains(CONFIG.dataStrategy.toString())}">
             <label for="skipDatabaseLocationAdjustments">
                 <a th:text="#{config.transfer.storageMigration.skipDatabaseLocationAdjustments}"
-                   th:href="#{docs.link('transfer-storage-migration.html#consolidate-source-tables')}" target="_blank"/>
+                   th:href="#{docs.link('transfer-storage-migration.html#skip-database-location-adjustments')}" target="_blank"/>
             </label>
             <input type="checkbox" id="skipDatabaseLocationAdjustments"
                    th:field="*{transfer.storageMigration.skipDatabaseLocationAdjustments}"
                    th:checked="${CONFIG.transfer.storageMigration.skipDatabaseLocationAdjustments}"/>
             <span class="pure-form-message-inline"
-                  th:text="#{config.transfer.storageMigration.skipDatabaseLocationAdjustments.use}"/>
+                  th:text="#{config.transfer.storageMigration.only.use}"/>
+        </div>
+        <div class="pure-control-group" th:if="${('STORAGE_MIGRATION').contains(CONFIG.dataStrategy.toString())}">
+            <label for="createArchive">
+                <a th:text="#{config.transfer.storageMigration.createArchive}"
+                   th:href="#{docs.link('transfer-storage-migration.html#create-archive')}" target="_blank"/>
+            </label>
+            <input type="checkbox" id="createArchive"
+                   th:field="*{transfer.storageMigration.createArchive}"
+                   th:checked="${CONFIG.transfer.storageMigration.createArchive}"/>
+            <span class="pure-form-message-inline"
+                  th:text="#{config.transfer.storageMigration.only.use}"/>
         </div>
         <!-- Consolidate Source Tables -->
         <div class="pure-control-group">

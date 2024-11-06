@@ -20,6 +20,7 @@ package com.cloudera.utils.hms.mirror.domain;
 import com.cloudera.utils.hms.mirror.Pair;
 import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.util.NamespaceUtils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
@@ -28,6 +29,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 
+import static com.cloudera.utils.hms.mirror.MirrorConf.DB_LOCATION;
+import static com.cloudera.utils.hms.mirror.MirrorConf.DB_MANAGED_LOCATION;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
@@ -75,28 +78,6 @@ public class DBMirror {
         return rtn;
     }
 
-    /*
-    Load a DBMirror instance from a yaml file using the Jackson YAML parser.
-     */
-//    public static DBMirror load(String fileName) {
-//        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-//        mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-//        File dbMirrorFile = new File(fileName);
-//        DBMirror dbMirror = null;
-//        String yamlDBMirrorFile = null;
-//        try {
-//            yamlDBMirrorFile = IOUtils.toString(dbMirrorFile.toURI(), StandardCharsets.UTF_8);
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-//        try {
-//            dbMirror = mapper.readerFor(DBMirror.class).readValue(yamlDBMirrorFile);
-//        } catch (JsonProcessingException e) {
-//            throw new RuntimeException(e);
-//        }
-//        return dbMirror;
-//    }
-//
     public void addIssue(Environment environment, String issue) {
         String scrubbedIssue = issue.replace("\n", "<br/>");
         List<String> issuesList = issues.get(environment);
@@ -137,6 +118,30 @@ public class DBMirror {
             rtn = getProperty(environment).get(dbProperty);
         }
         return rtn;
+    }
+
+    @JsonIgnore
+    public String getLocationDirectory() {
+        String location = null;
+        location = getProperty(Environment.LEFT, DB_LOCATION);
+        if (nonNull(location)) {
+            location = NamespaceUtils.getLastDirectory(location);
+        } else {
+            location = getName() + ".db"; // Set to the database name.
+        }
+        return location;
+    }
+
+    @JsonIgnore
+    public String getManagedLocationDirectory() {
+        String location = null;
+        location = getProperty(Environment.LEFT, DB_MANAGED_LOCATION);
+        if (nonNull(location)) {
+            location = NamespaceUtils.getLastDirectory(location);
+        } else {
+            location = getName() + ".db"; // Set to the database name.
+        }
+        return location;
     }
 
     public Map<String, String> getProperty(Environment environment) {

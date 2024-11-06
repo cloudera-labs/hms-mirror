@@ -97,8 +97,13 @@ optimization:
   compressTextOutput: true
   skipStatsCollection: true
   overrides:
-    left: {}
-    right: {}
+    properties:
+      hive.exec.orc.split.strategy:
+        RIGHT: "BI"
+        LEFT: "HYBRID"
+      tez.queue.name:
+        RIGHT: "alpha"
+        LEFT: "omega"
   buildShadowStatistics: true
 outputDirectory: "/Users/dstreev/.hms-mirror/test-output/config/sm_ma_dc"
 quiet: false

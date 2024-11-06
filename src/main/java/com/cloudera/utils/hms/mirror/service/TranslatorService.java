@@ -164,11 +164,20 @@ public class TranslatorService {
 
         String originalDatabase = tableMirror.getParent().getName();
         String targetDatabase = HmsMirrorConfigUtil.getResolvedDB(originalDatabase, config);
+        String targetDatabaseDir = nonNull(tableMirror.getParent().getLocationDirectory())?
+                tableMirror.getParent().getLocationDirectory() : targetDatabase + ".db";
+        String targetDatabaseManagedDir = nonNull(tableMirror.getParent().getManagedLocationDirectory())?
+                tableMirror.getParent().getManagedLocationDirectory() : targetDatabase + ".db";
         String originalTableLocation = TableUtils.getLocation(tableName, tableMirror.getEnvironmentTable(Environment.LEFT).getDefinition());
 
         String targetNamespace = config.getTargetNamespace();
 
         String relativeDir = NamespaceUtils.stripNamespace(rtn);
+
+        // Get the target database location db directory.  It's usually the same as the database name + ".db"
+        // But if this has been redefined, we need to use that.
+        // This is the default setting.  We'll override it later if needed.
+//        String targetDatabaseDir = targetDatabase + ".db";
 
         // Check the Global Location Map for a match.
         String mappedDir = processGlobalLocationMap(relativeDir, TableUtils.isExternal(ret));
@@ -223,18 +232,29 @@ public class TranslatorService {
                 checkEnvTbl = tableMirror.getEnvironmentTable(Environment.LEFT);
             }
             if (TableUtils.isManaged(checkEnvTbl)) {
-                sbDir.append(warehouse.getManagedDirectory()).append("/");
-                sbDir.append(targetDatabase).append(".db").append("/").append(tableName);
-                if (partitionSpec != null)
-                    sbDir.append("/").append(partitionSpec);
+                if (tableMirror.getParent().getProperty(Environment.RIGHT, DB_MANAGED_LOCATION) != null) {
+                    sbDir.append(tableMirror.getParent().getProperty(Environment.RIGHT, DB_MANAGED_LOCATION));
+                } else {
+                    sbDir.append(warehouse.getManagedDirectory());
+                    sbDir.append("/");
+                    sbDir.append(targetDatabaseManagedDir);
+                }
             } else if (TableUtils.isExternal(checkEnvTbl)) {
-                sbDir.append(warehouse.getExternalDirectory()).append("/");
-                sbDir.append(targetDatabase).append(".db").append("/").append(tableName);
-                if (partitionSpec != null)
-                    sbDir.append("/").append(partitionSpec);
+                if (tableMirror.getParent().getProperty(Environment.RIGHT, DB_LOCATION) != null) {
+                    sbDir.append(tableMirror.getParent().getProperty(Environment.RIGHT, DB_LOCATION));
+                } else {
+                    sbDir.append(warehouse.getExternalDirectory());
+                    sbDir.append("/");
+                    sbDir.append(targetDatabaseManagedDir);
+                }
             } else {
                 // TODO: Shouldn't happen.
             }
+            sbDir.append("/");
+            sbDir.append(tableName);
+            if (partitionSpec != null)
+                sbDir.append("/").append(partitionSpec);
+
         } else {
             switch (config.getDataStrategy()) {
                 case EXPORT_IMPORT:
@@ -322,9 +342,15 @@ public class TranslatorService {
         return hmsMirrorConfig.getTranslator().getOrderedGlobalLocationMap();
     }
 
+    /*
+    This has to run after the Database details have been collected so we can look at the database location details and
+    construct the proper locations for the databases.
+     */
     public Map<String, Map<TableType, String>> buildGlobalLocationMapFromWarehousePlansAndSources(boolean dryrun, int consolidationLevel) throws MismatchException, SessionException {
 
-        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
+        ExecuteSession session = executeSessionService.getSession();
+        HmsMirrorConfig config = session.getConfig();
+        Conversion conversion = session.getConversion();
 
         // We need to know if we are dealing with potential conversions (IE: Legacy Hive Managed to External)
         // If we are, we need to ensure that there are GLM's built for Managed Tables into External Locations.
@@ -372,11 +398,12 @@ public class TranslatorService {
             String externalBaseLocation = warehouse.getExternalDirectory();
             String managedBaseLocation = warehouse.getManagedDirectory();
             SourceLocationMap sourceLocationMap = sources.get(database);
+            DBMirror dbMirror = conversion.getDatabase(warehouseEntry.getKey());
             if (sourceLocationMap != null) {
                 for (Map.Entry<TableType, Map<String, Set<String>>> sourceLocationEntry : sourceLocationMap.getLocations().entrySet()) {
                     String typeTargetLocation = null;
-                    String extTargetLocation = new String(externalBaseLocation + "/" + database + ".db");
-                    String mngdTargetLocation = new String(managedBaseLocation + "/" + database + ".db");
+                    String extTargetLocation = new String(externalBaseLocation + "/" + dbMirror.getLocationDirectory());
+                    String mngdTargetLocation = new String(managedBaseLocation + "/" + dbMirror.getManagedLocationDirectory());
 
                     // Locations and the tables that are in that location.
                     for (Map.Entry<String, Set<String>> sourceLocationSet : sourceLocationEntry.getValue().entrySet()) {

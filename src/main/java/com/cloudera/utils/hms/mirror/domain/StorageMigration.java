@@ -42,6 +42,12 @@ public class StorageMigration implements Cloneable {
             "ready to migration or stage future tables at the new location.")
     private boolean skipDatabaseLocationAdjustments = Boolean.FALSE;
 
+    @Schema(description = "When true (default is false), the tables being migrated will be archived vs. simply changing the location details " +
+            "of the tables metadata.  This is relevant only for STORAGE_MIGRATION when using the 'DISTCP' data movement " +
+            "strategy. When the data movement strategy is 'SQL' for STORAGE_MIGRATION, this flag is ignored because the default " +
+            "behavior is to create an archive table anyhow.")
+    private boolean createArchive = Boolean.FALSE;
+
     @Schema(description = "When true, the tables will be consolidated into a single directory for distcp. " +
             "This is useful when the source tables are spread across multiple directories.")
     private boolean consolidateTablesForDistcp = Boolean.FALSE;

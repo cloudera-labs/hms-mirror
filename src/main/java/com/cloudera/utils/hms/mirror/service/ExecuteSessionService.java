@@ -161,6 +161,9 @@ public class ExecuteSessionService {
         // Merge Translator
         config.setTranslator(currentConfig.getTranslator());
 
+        // Merge the Property Overrides
+        config.getOptimization().setOverrides(currentConfig.getOptimization().getOverrides());
+
         // Apply rules for the DataStrategy that are not in the config.
         configService.alignConfigurationSettings(session, config);
 

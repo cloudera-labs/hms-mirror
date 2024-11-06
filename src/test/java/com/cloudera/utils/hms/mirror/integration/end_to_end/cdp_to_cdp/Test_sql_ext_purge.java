@@ -18,6 +18,7 @@
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp_to_cdp;
 
 import com.cloudera.utils.hms.mirror.cli.Mirror;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -25,7 +26,9 @@ import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import static com.cloudera.utils.hms.util.TableUtils.REPAIR_DESC;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Mirror.class,
@@ -43,6 +46,7 @@ import static org.junit.Assert.assertEquals;
 //                "--hms-mirror.config.target-namespace=s3a://my_cs_bucket",
 //                "--hms-mirror.config.reset-to-default-location=true",
 //                "--hms-mirror.config.distcp=true",
+                "--hms-mirror.config.property-overrides=hive.exec.orc.split.strategy=BI",
                 "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts.yaml",
                 "--hms-mirror.config.filename=/config/default.yaml.cdp-cdp",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp_cdp/sql_ext_purge"
@@ -69,5 +73,11 @@ public class Test_sql_ext_purge extends E2EBaseTest {
         assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 
+    @Test
+    public void checkForPropertyOverride() {
+        assertTrue("Couldn't validate Property Override",validateTableSqlPair("ext_purge_odd_parts",
+                Environment.RIGHT, "web_sales", "Setting hive.exec.orc.split.strategy",
+                "set hive.exec.orc.split.strategy=BI"));
+    }
 
 }

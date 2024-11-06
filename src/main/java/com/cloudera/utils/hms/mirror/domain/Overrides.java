@@ -27,6 +27,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static org.apache.commons.lang3.StringUtils.isBlank;
+
 @Slf4j
 @Getter
 @Setter
@@ -35,10 +37,13 @@ public class Overrides {
     private Map<String, Map<SideType, String>> properties = new TreeMap<String, Map<SideType, String>>();
 
     public void addProperty(String key, String value, SideType side) {
-        if (!properties.containsKey(key)) {
-            properties.put(key, new TreeMap<SideType, String>());
+        // Don't save unless both key and value are present and not blank.
+        if (!isBlank(key) && !isBlank(value)) {
+            if (!properties.containsKey(key)) {
+                properties.put(key, new TreeMap<SideType, String>());
+            }
+            properties.get(key).put(side, value);
         }
-        properties.get(key).put(side, value);
     }
 
     @JsonIgnore
@@ -77,14 +82,13 @@ public class Overrides {
                     if (keyValue.length == 2) {
                         switch (side) {
                             case BOTH:
-                                getLeft().put(keyValue[0], keyValue[1]);
-                                getRight().put(keyValue[0], keyValue[1]);
+                                addProperty(keyValue[0],keyValue[1],SideType.BOTH);
                                 break;
                             case LEFT:
-                                getLeft().put(keyValue[0], keyValue[1]);
+                                addProperty(keyValue[0],keyValue[1],SideType.LEFT);
                                 break;
                             case RIGHT:
-                                getRight().put(keyValue[0], keyValue[1]);
+                                addProperty(keyValue[0],keyValue[1],SideType.RIGHT);
                                 break;
                         }
                     }

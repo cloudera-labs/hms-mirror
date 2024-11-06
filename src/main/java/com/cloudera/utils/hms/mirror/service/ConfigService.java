@@ -853,6 +853,20 @@ public class ConfigService {
         // Set distcp options.
         canDeriveDistcpPlan(session);
 
+        // When doing STORARE_MIGRATION using DISTCP, we can alter the table location of an ACID table and 'distcp' the
+        // data to the new location without any other changes because the filesystem directory names will still match the
+        // metastores internal transactional values.
+        // BUT, if you've asked to save an ARCHIVE of the table and use 'distcp', we need to 'create' the new table, which
+        // will not maintain the ACID properties. This is an invalid state.
+        if (config.getDataStrategy() == STORAGE_MIGRATION) {
+            if (config.getTransfer().getStorageMigration().isDistcp() &&
+                    config.getMigrateACID().isOn() &&
+                    config.getTransfer().getStorageMigration().isCreateArchive()) {
+                session.addError(STORAGE_MIGRATION_ACID_ARCHIVE_DISTCP);
+                rtn.set(Boolean.FALSE);
+            }
+        }
+
         // Both of these can't be set together.
         if (!isBlank(config.getDbRename()) && !isBlank(config.getDbPrefix())) {
             rtn.set(Boolean.FALSE);

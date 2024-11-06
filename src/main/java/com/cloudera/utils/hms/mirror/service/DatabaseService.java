@@ -58,7 +58,7 @@ public class DatabaseService {
     private ConnectionPoolService connectionPoolService;
     private ExecuteSessionService executeSessionService;
     private QueryDefinitionsService queryDefinitionsService;
-    private TranslatorService translatorService;
+//    private TranslatorService translatorService;
     private WarehouseService warehouseService;
     private ConfigService configService;
 
@@ -84,10 +84,10 @@ public class DatabaseService {
         this.queryDefinitionsService = queryDefinitionsService;
     }
 
-    @Autowired
-    public void setTranslatorService(TranslatorService translatorService) {
-        this.translatorService = translatorService;
-    }
+//    @Autowired
+//    public void setTranslatorService(TranslatorService translatorService) {
+//        this.translatorService = translatorService;
+//    }
 
     @Autowired
     public void setWarehouseService(WarehouseService warehouseService) {
@@ -544,22 +544,26 @@ public class DatabaseService {
                 if (!isBlank(originalLocation) || forceLocations) {
                     log.debug("Original Location: {}", originalLocation);
                     // Get the base location without the original namespace.
+                    // TODO: Need to address NULL here!!!!
                     targetLocation = NamespaceUtils.stripNamespace(originalLocation);
                     log.debug("Target Location from Original Location: {}", targetLocation);
                     // Only set to warehouse location if the translation type is 'ALIGNED',
                     //   otherwise we want to keep the same relative location.
                     if (nonNull(warehouse) && config.getTransfer().getStorageMigration().getTranslationType() == TranslationTypeEnum.ALIGNED) {
                         log.debug("Aligned Translation Type.  Adjusting Target Location to include Warehouse Location.");
+                        String dbDirectory = NamespaceUtils.getLastDirectory(targetLocation);
                         switch (warehouse.getSource()) {
                             case PLAN:
                             case GLOBAL:
-                                targetLocation = warehouse.getExternalDirectory() + "/" + targetDatabase + ".db";
+//                                targetLocation = warehouse.getExternalDirectory() + "/" + targetDatabase + ".db";
+                                targetLocation = warehouse.getExternalDirectory() + "/" + dbDirectory;
                                 break;
                             default:
                                 // Didn't find an explicit location. So we're going to leave it as 'relative'.
                                 // This handles any DB rename process.
                                 targetLocation = NamespaceUtils.getParentDirectory(targetLocation);
-                                targetLocation = targetLocation + "/" + targetDatabase + ".db";
+//                                targetLocation = targetLocation + "/" + targetDatabase + ".db";
+                                targetLocation = targetLocation + "/" + dbDirectory;
                                 break;
                         }
                         log.debug("Target Location after Warehouse Adjustment: {}", targetLocation);
@@ -595,6 +599,9 @@ public class DatabaseService {
                     log.debug("Original Managed Location: {}", originalManagedLocation);
                     targetManagedLocation = NamespaceUtils.stripNamespace(originalManagedLocation);
                     log.debug("Target Managed Location from Original Managed Location: {}", targetManagedLocation);
+                    String dbDirectory = nonNull(targetManagedLocation)?NamespaceUtils.getLastDirectory(targetManagedLocation):
+                            nonNull(dbMirror.getLocationDirectory())?dbMirror.getLocationDirectory():targetDatabase + ".db";
+
                     // Only set to warehouse location if the translation type is 'ALIGNED',
                     //   otherwise we want to keep the same relative location.
                     if (nonNull(warehouse) && config.getTransfer().getStorageMigration().getTranslationType() == TranslationTypeEnum.ALIGNED) {
@@ -602,7 +609,15 @@ public class DatabaseService {
                         switch (warehouse.getSource()) {
                             case PLAN:
                             case GLOBAL:
-                                targetManagedLocation = warehouse.getManagedDirectory() + "/" + targetDatabase + ".db";
+//                                targetManagedLocation = warehouse.getManagedDirectory() + "/" + targetDatabase + ".db";
+                                targetManagedLocation = warehouse.getManagedDirectory() + "/" + dbDirectory;
+                                break;
+                            default:
+                                // Didn't find an explicit location. So we're going to leave it as 'relative'.
+                                // This handles any DB rename process.
+                                targetManagedLocation = NamespaceUtils.getParentDirectory(targetManagedLocation);
+//                                targetManagedLocation = targetManagedLocation + "/" + targetDatabase + ".db";
+                                targetManagedLocation = targetManagedLocation + "/" + dbDirectory;
                                 break;
                         }
                         log.debug("Target Managed Location after Warehouse Adjustment: {}", targetManagedLocation);

@@ -50,6 +50,7 @@ import static com.cloudera.utils.hms.mirror.MessageCode.METASTORE_PARTITION_LOCA
 import static com.cloudera.utils.hms.mirror.MirrorConf.*;
 import static com.cloudera.utils.hms.mirror.TablePropertyVars.HMS_STORAGE_MIGRATION_FLAG;
 import static com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.DUMP;
+import static com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.STORAGE_MIGRATION;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -81,12 +82,12 @@ public class TableService {
     protected void checkTableFilter(TableMirror tableMirror, Environment environment) {
         EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
         ExecuteSession session = executeSessionService.getSession();
-        HmsMirrorConfig hmsMirrorConfig = session.getConfig();
+        HmsMirrorConfig config = session.getConfig();
         RunStatus runStatus = session.getRunStatus();
         OperationStatistics stats = runStatus.getOperationStatistics();
 
         if (environment == Environment.LEFT) {
-            if (hmsMirrorConfig.getMigrateVIEW().isOn() && hmsMirrorConfig.getDataStrategy() != DUMP) {
+            if (config.getMigrateVIEW().isOn() && config.getDataStrategy() != DUMP) {
                 if (!TableUtils.isView(et)) {
                     tableMirror.setRemove(Boolean.TRUE);
                     tableMirror.setRemoveReason("VIEW's only processing selected.");
@@ -98,31 +99,31 @@ public class TableService {
                         && environment == Environment.LEFT) {
                     if (TableUtils.isACID(et)) {
                         // For ACID tables, check that Migrate is ON.
-                        if (hmsMirrorConfig.getMigrateACID().isOn()) {
+                        if (config.getMigrateACID().isOn()) {
                             tableMirror.addStep("TRANSACTIONAL", Boolean.TRUE);
                         } else {
                             tableMirror.setRemove(Boolean.TRUE);
                             tableMirror.setRemoveReason("ACID table and ACID processing not selected (-ma|-mao).");
                         }
-                    } else if (hmsMirrorConfig.getMigrateACID().isOnly()) {
+                    } else if (config.getMigrateACID().isOnly()) {
                         // Non ACID Tables should NOT be process if 'isOnly' is set.
                         tableMirror.setRemove(Boolean.TRUE);
                         tableMirror.setRemoveReason("Non-ACID table and ACID only processing selected `-mao`");
                     }
                 } else if (TableUtils.isHiveNative(et)) {
                     // Non ACID Tables should NOT be process if 'isOnly' is set.
-                    if (hmsMirrorConfig.getMigrateACID().isOnly()) {
+                    if (config.getMigrateACID().isOnly()) {
                         tableMirror.setRemove(Boolean.TRUE);
                         tableMirror.setRemoveReason("Non-ACID table and ACID only processing selected `-mao`");
                     }
                 } else if (TableUtils.isView(et)) {
-                    if (hmsMirrorConfig.getDataStrategy() != DUMP) {
+                    if (config.getDataStrategy() != DUMP) {
                         tableMirror.setRemove(Boolean.TRUE);
                         tableMirror.setRemoveReason("This is a VIEW and VIEW processing wasn't selected.");
                     }
                 } else {
                     // Non-Native Tables.
-                    if (!hmsMirrorConfig.isMigrateNonNative()) {
+                    if (!config.isMigrateNonNative()) {
                         tableMirror.setRemove(Boolean.TRUE);
                         tableMirror.setRemoveReason("This is a Non-Native hive table and non-native process wasn't " +
                                 "selected.");
@@ -132,22 +133,24 @@ public class TableService {
         }
 
         // Check for tables migration flag, to avoid 're-migration'.
-        String smFlag = TableUtils.getTblProperty(HMS_STORAGE_MIGRATION_FLAG, et);
-        if (smFlag != null) {
-            tableMirror.setRemove(Boolean.TRUE);
-            tableMirror.setRemoveReason("The table has already gone through the STORAGE_MIGRATION process on " +
-                    smFlag + " If this isn't correct, remove the TBLPROPERTY '" + HMS_STORAGE_MIGRATION_FLAG + "' " +
-                    "from the table and try again.");
+        if (config.getDataStrategy() == STORAGE_MIGRATION) {
+            String smFlag = TableUtils.getTblProperty(HMS_STORAGE_MIGRATION_FLAG, et);
+            if (smFlag != null) {
+                tableMirror.setRemove(Boolean.TRUE);
+                tableMirror.setRemoveReason("The table has already gone through the STORAGE_MIGRATION process on " +
+                        smFlag + " If this isn't correct, remove the TBLPROPERTY '" + HMS_STORAGE_MIGRATION_FLAG + "' " +
+                        "from the table and try again.");
+            }
         }
 
         // Check for table size filter
-        if (hmsMirrorConfig.getFilter().getTblSizeLimit() != null && hmsMirrorConfig.getFilter().getTblSizeLimit() > 0) {
+        if (config.getFilter().getTblSizeLimit() != null && config.getFilter().getTblSizeLimit() > 0) {
             Long dataSize = (Long) et.getStatistics().get(DATA_SIZE);
             if (dataSize != null) {
-                if (hmsMirrorConfig.getFilter().getTblSizeLimit() * (1024 * 1024) < dataSize) {
+                if (config.getFilter().getTblSizeLimit() * (1024 * 1024) < dataSize) {
                     tableMirror.setRemove(Boolean.TRUE);
                     tableMirror.setRemoveReason("The table dataset size exceeds the specified table filter size limit: " +
-                            hmsMirrorConfig.getFilter().getTblSizeLimit() + "Mb < " + dataSize);
+                            config.getFilter().getTblSizeLimit() + "Mb < " + dataSize);
                 }
             }
         }
@@ -382,6 +385,15 @@ public class TableService {
                                 log.info("{}.{} was NOT added to list.  " +
                                         "The name matches the transfer prefix and is most likely a remnant of a previous " +
                                         "event. If this is a mistake, change the 'transferPrefix' to something more unique.", database, tableName);
+                            } else if (tableName.startsWith(config.getTransfer().getShadowPrefix())) {
+                                    TableMirror tableMirror = dbMirror.addTable(tableName);
+                                    tableMirror.setRemove(Boolean.TRUE);
+                                    tableMirror.setRemoveReason("Table name matches the shadow prefix.  " +
+                                            "This is most likely a remnant of a previous event.  If this is a mistake, " +
+                                            "change the 'shadowPrefix' to something more unique.");
+                                    log.info("{}.{} was NOT added to list.  " +
+                                            "The name matches the shadow prefix and is most likely a remnant of a previous " +
+                                            "event. If this is a mistake, change the 'shadowPrefix' to something more unique.", database, tableName);
                             } else if (tableName.endsWith(config.getTransfer().getStorageMigrationPostfix())) {
                                 TableMirror tableMirror = dbMirror.addTable(tableName);
                                 tableMirror.setRemove(Boolean.TRUE);

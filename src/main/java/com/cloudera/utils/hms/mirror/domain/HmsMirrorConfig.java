@@ -17,6 +17,7 @@
 
 package com.cloudera.utils.hms.mirror.domain;
 
+import com.cloudera.utils.hive.config.DBStore;
 import com.cloudera.utils.hms.mirror.domain.support.*;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.feature.LegacyTranslations;
@@ -413,12 +414,50 @@ public class HmsMirrorConfig implements Cloneable {
                         response = scanner.next();
                         if (response.equalsIgnoreCase("y")) {
                             pd.setAuto(Boolean.TRUE);
+                        } else {
+                            pd.setAuto(Boolean.FALSE);
                         }
                     }
                     System.out.println("Run 'MSCK' after table creation?(Y/N)");
                     response = scanner.next();
                     if (response.equalsIgnoreCase("y")) {
                         pd.setInitMSCK(Boolean.TRUE);
+                    } else {
+                        pd.setInitMSCK(Boolean.FALSE);
+                    }
+                }
+                // Ask if they'd like to define the metastore direct link.
+                // Only on the LEFT cluster.
+                if (env == Environment.LEFT) {
+                    System.out.println("----------------------------------------------------------------------------------------");
+                    System.out.println("** A direct link to the metastore database allows for efficient collection of ");
+                    System.out.println("   partition location metadata, which is a vital part of some migration strategies ");
+                    System.out.println("   that need to work on partition movements.  Without this, you may not have all ");
+                    System.out.println("   the information needed to complete the migration under certain conditions and ");
+                    System.out.println("   the functionality will be limited. **");
+                    System.out.println("----------------------------------------------------------------------------------------");
+                    System.out.println("Would you like to define the 'metastore direct' link? (Y/N)");
+                    response = scanner.next();
+                    if (response.equalsIgnoreCase("y")) {
+                        DBStore metastoreDirect = new DBStore();
+                        hmsMirrorConfig.getCluster(env).setMetastoreDirect(metastoreDirect);
+                        System.out.println("What is the JDBC URI for the metastore database? ");
+                        response = scanner.next();
+                        metastoreDirect.setUri(response);
+                        System.out.println("========================================================================================");
+                        System.out.println("** NOTE: The metastore JDBC driver needs to be place in the 'aux_libs' directory before startup.");
+                        System.out.println("========================================================================================");
+                        // Get the driver type
+                        System.out.print("What is the Metastore DB type for the " + env + " cluster? (" + Arrays.deepToString(DBStore.DB_TYPE.values()));
+                        response = scanner.next();
+                        metastoreDirect.setType(DBStore.DB_TYPE.valueOf(response.toUpperCase()));
+
+                        System.out.println("Connection username?");
+                        response = scanner.next();
+                        metastoreDirect.getConnectionProperties().setProperty("user",response);
+                        System.out.println("Connection password?");
+                        response = scanner.next();
+                        metastoreDirect.getConnectionProperties().setProperty("password",response);
                     }
                 }
             }
@@ -433,6 +472,7 @@ public class HmsMirrorConfig implements Cloneable {
         try {
             HmsMirrorConfig clone = (HmsMirrorConfig) super.clone();
             // TODO: copy mutable state here, so the clone can't change the internals of the original
+
             return clone;
         } catch (CloneNotSupportedException e) {
             throw new AssertionError();

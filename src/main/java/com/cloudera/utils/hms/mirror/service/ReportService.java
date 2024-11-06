@@ -275,8 +275,11 @@ public class ReportService {
             // Descending order.
             @Override
             public int compare(String o1, String o2) {
-                String l1 = NamespaceUtils.getLastDirectory(o1);
-                String l2 = NamespaceUtils.getLastDirectory(o2);
+                String l1 = o1;
+                String l2 = o2;
+//                String l1 = NamespaceUtils.getLastDirectory(o1);
+//                String l2 = NamespaceUtils.getLastDirectory(o2);
+                // Sort decending order.
                 if (nonNull(l1) && nonNull(l2)) {
                     return l2.compareTo(l1);
                 } else {
