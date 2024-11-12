@@ -17,6 +17,7 @@
 
 package com.cloudera.utils.hms.mirror.domain;
 
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.SideType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -47,31 +48,28 @@ public class Overrides {
     }
 
     @JsonIgnore
-    public Map<String, String> getLeft() {
-        Map<String, String> left = new TreeMap<String, String>();
-        for (Map.Entry<String, Map<SideType, String>> entry : properties.entrySet()) {
-            if (entry.getValue().containsKey(SideType.LEFT)) {
-                left.put(entry.getKey(), entry.getValue().get(SideType.LEFT));
-            }
-            if (entry.getValue().containsKey(SideType.BOTH)) {
-                left.put(entry.getKey(), entry.getValue().get(SideType.BOTH));
-            }
-        }
-        return left;
-    }
+    public Map<String, String> getFor(Environment environment) {
 
-    @JsonIgnore
-    public Map<String, String> getRight() {
-        Map<String, String> right = new TreeMap<String, String>();
+        Map<String, String> rtn = new TreeMap<String, String>();
         for (Map.Entry<String, Map<SideType, String>> entry : properties.entrySet()) {
-            if (entry.getValue().containsKey(SideType.RIGHT)) {
-                right.put(entry.getKey(), entry.getValue().get(SideType.RIGHT));
+            switch (environment) {
+                case LEFT:
+                    if (entry.getValue().containsKey(SideType.LEFT)) {
+                        rtn.put(entry.getKey(), entry.getValue().get(SideType.LEFT));
+                    }
+                    break;
+                case RIGHT:
+                    if (entry.getValue().containsKey(SideType.RIGHT)) {
+                        rtn.put(entry.getKey(), entry.getValue().get(SideType.RIGHT));
+                    }
+                    break;
             }
             if (entry.getValue().containsKey(SideType.BOTH)) {
-                right.put(entry.getKey(), entry.getValue().get(SideType.BOTH));
+                rtn.put(entry.getKey(), entry.getValue().get(SideType.BOTH));
             }
         }
-        return right;
+
+        return rtn;
     }
 
     public void setPropertyOverridesStr(String[] inPropsStr, SideType side) {

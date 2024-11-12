@@ -37,6 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
+import java.util.Map;
 
 import static com.cloudera.utils.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION;
 import static com.cloudera.utils.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION_THRESHOLD;
@@ -125,9 +126,11 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
 
         let.addSql(TableUtils.USE_DESC, useDb);
         // Set Override Properties.
-        if (!hmsMirrorConfig.getOptimization().getOverrides().getLeft().isEmpty()) {
-            for (String key : hmsMirrorConfig.getOptimization().getOverrides().getLeft().keySet()) {
-                let.addSql("Setting " + key, "set " + key + "=" + hmsMirrorConfig.getOptimization().getOverrides().getLeft().get(key));
+        // Get the LEFT overrides for the DOWNGRADE.
+        Map<String, String> overrides = hmsMirrorConfig.getOptimization().getOverrides().getFor(Environment.LEFT);
+        if (!overrides.isEmpty()) {
+            for (String key : overrides.keySet()) {
+                let.addSql("Setting " + key, "set " + key + "=" + overrides.get(key));
             }
         }
 

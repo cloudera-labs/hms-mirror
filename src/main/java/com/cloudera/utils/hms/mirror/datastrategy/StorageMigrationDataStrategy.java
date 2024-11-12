@@ -489,9 +489,10 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                         let.addSql(new Pair(TEZ_EXECUTION_DESC, SET_TEZ_AS_EXECUTION_ENGINE));
                     }
                     // Set Override Properties.
-                    if (config.getOptimization().getOverrides() != null) {
-                        for (String key : config.getOptimization().getOverrides().getLeft().keySet()) {
-                            let.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
+                    Map<String, String> overrides = config.getOptimization().getOverrides().getFor(Environment.LEFT);
+                    if (!overrides.isEmpty()) {
+                        for (String key : overrides.keySet()) {
+                            let.addSql("Setting " + key, "set " + key + "=" + overrides.get(key));
                         }
                     }
 

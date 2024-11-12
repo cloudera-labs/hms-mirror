@@ -43,6 +43,9 @@ import static org.junit.Assert.assertEquals;
 //                "--hms-mirror.config.target-namespace=s3a://my_cs_bucket",
 //                "--hms-mirror.config.reset-to-default-location=true",
 //                "--hms-mirror.config.distcp=true",
+                "--hms-mirror.config.property-overrides=hive.exec.orc.split.strategy=BI",
+                "--hms-mirror.config.property-overrides-left=tez.queue.name=left-side",
+                "--hms-mirror.config.property-overrides-right=tez.queue.name=right-side",
                 "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_01.yaml",
                 "--hms-mirror.config.filename=/config/default.yaml.hdp2-cdp",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/legacy_cdp/sql_is"

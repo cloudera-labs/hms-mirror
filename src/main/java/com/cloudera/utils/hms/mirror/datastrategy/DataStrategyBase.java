@@ -569,8 +569,9 @@ public abstract class DataStrategyBase implements DataStrategy {
 
         // Set Override Properties.
         if (config.getOptimization().getOverrides() != null) {
-            for (String key : config.getOptimization().getOverrides().getLeft().keySet()) {
-                targetEnvTable.addSql("Setting " + key, "set " + key + "=" + config.getOptimization().getOverrides().getLeft().get(key));
+            Map<String, String> overrides = config.getOptimization().getOverrides().getFor(targetEnv2);
+            for (String key : overrides.keySet()) {
+                targetEnvTable.addSql("Setting " + key, "set " + key + "=" + overrides.get(key));
             }
         }
 
