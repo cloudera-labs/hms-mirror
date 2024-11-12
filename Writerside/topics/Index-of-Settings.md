@@ -296,6 +296,8 @@ for some reason. These features attempt to correct those issues during the migra
 
 You can choose to transfer ownership of objects from the source to target clusters.  Ownership is defined as the `owner` of the database or table in the metastore. This is useful if you are using Ranger policies that rely on the owner of the object.
 
+<warning>The user running the migration commands will need permissions to make these settings to the table.  This would include the ability to `ALTER` the target table.  If you're using Ranger, please run some test with the user in beeline to ensure there isn't an issue when running the process.</warning>
+
 <tabs>
 <tab title="CLI">
 

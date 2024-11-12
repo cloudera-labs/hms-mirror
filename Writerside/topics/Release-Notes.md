@@ -10,6 +10,38 @@ The latest set of enhancement requests can be found [here](https://github.com/cl
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 2.2.0.18.1
+
+
+**What's New**
+
+Beta Flag to be used for future beta features.  To activate:
+
+<tabs>
+<tab title="CLI">
+
+```shell
+hms-mirror --beta
+```
+
+</tab>
+<tab title="Web UI">
+
+```shell
+hms-mirror --service --hms-mirror.config.beta=true
+```
+
+</tab>
+</tabs>
+
+**Bugs (Fixed)**
+
+- [Property overrides - po|pol|por - are not honored in v2, were working in 1.6.x](https://github.com/cloudera-labs/hms-mirror/issues/156)
+- [Partition auto-discovery config value is misconfigured during setup](https://github.com/cloudera-labs/hms-mirror/issues/155)
+- [Enhancement for hms-mirror setup](https://github.com/cloudera-labs/hms-mirror/issues/154)
+- [Remove automatic DB location as db_name.db in db location](https://github.com/cloudera-labs/hms-mirror/issues/153)
+- [Add support for Hive table backup in DISTCP mode](https://github.com/cloudera-labs/hms-mirror/issues/152)
+
 ## 2.2.0.17.1
 
 **What's New**

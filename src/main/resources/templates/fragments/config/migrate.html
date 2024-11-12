@@ -59,6 +59,12 @@
                                     th:value="${fileTranslationType}" th:text="${fileTranslationType}"></option>
                         </select>
                     </div>
+                    <div class="pure-control-group">
+                        <label for="iceberginplace" th:text="#{config.migrate.iceberg.inplace}"></label>
+                        <input type="checkbox" name="iceberginplace"
+                               th:field="*{icebergConversion.inplace}"
+                               th:checked="${CONFIG.icebergConversion.inplace}"/>
+                    </div>
 <!--                     TODO: Table Properties -->
                 </fieldset>
             </div>

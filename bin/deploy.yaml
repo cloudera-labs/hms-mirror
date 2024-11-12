@@ -41,6 +41,23 @@
         dest: /usr/local/hms-mirror/bin
         mode: 0755
 
+    - name: collect files to remove from lib
+      find:
+        paths: "/usr/local/hms-mirror/lib"
+        hidden: True
+        recurse: True
+        # file_type: any  # Added in ansible 2.3
+      register: collected_files
+
+    - name: remove collected files
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      with_items: >
+        {{
+        collected_files.files
+        }}
+
     - name: Copy lib
       copy:
         src: "{{ item }}"

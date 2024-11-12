@@ -34,10 +34,19 @@ import java.util.Map;
         "for strategies that process data through the SQL engine.  It can also be applied to the SCHEMA_ONLY strategy, as " +
         "long as the user does NOT select 'distcp' as the data movement strategy.")
 public class IcebergConversion implements Cloneable {
+    @Schema(description = "Enable the conversion of the table to Iceberg.  The default is false.")
     private boolean enable = Boolean.FALSE;
+    @Schema(description = "The type of translation to use for the migrations.  For tables that are not Iceberg and not migrated " +
+            "inplace to Iceberg, you have an opportunity to convert the file format to a supported Iceberg file format.  The default " +
+            "is 'STANDARD' (Parquet).")
     private IcebergFileTypeTranslationEnum fileTypeTranslation = IcebergFileTypeTranslationEnum.STANDARD;
+    @Schema(description = "The version of the Iceberg table to convert to.  The default is 2.")
     private int version = 2;
+
     private Map<String, String> tableProperties = new HashMap<String, String>();
+    @Schema(description = "Where possible, migrate the table in place. The migration will be done in the catalog and not " +
+            "through a transfer.")
+    private boolean inplace = Boolean.FALSE;
 
     @JsonIgnore
     public void setPropertyOverridesStr(String[] overrides) {
