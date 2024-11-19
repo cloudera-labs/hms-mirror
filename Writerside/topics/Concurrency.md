@@ -8,6 +8,9 @@ The 'concurrency' setting was previously in the configuration file, but is now o
 <tab id="WebUI" title="WebUI">
 
 To adjust the concurrency setting for the Web Service, add `hms-mirror.concurrency.max-threads=n` to the startup command.
+
+`hms-mirror --service --hms-mirror.concurrency.max-threads=n`
+
 </tab>
 <tab id="cli" title="CLI">
 

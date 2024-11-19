@@ -33,7 +33,7 @@ advantage of the multi-tenant capabilities and separate the databases into separ
 creating different 'volume/bucket' areas for each 'Owner' and then placing the databases in those areas.  To further 
 illustrate separation, look how we established the 'external' and 'managed' locations for each database.
 
-`hms-mirror` helps you build [Warehouse Plans](#warehouse-plans) to handle these types of migrations.  Each database 
+`hms-mirror` helps you build [Warehouse Plans](Database-Warehouse-Plans.md) to handle these types of migrations.  Each database 
 to migrate will have a 'Warehouse Plan' that will define how to handle the migration.
 
 ## Important Properties

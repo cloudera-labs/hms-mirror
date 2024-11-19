@@ -94,23 +94,24 @@ Feature that allows you to 'skip' modifying the database location during a stora
 
 **What's New**
 
-### [Hive 4 DB OWNER DDL syntax for ALTERing DB ONWER requires 'USER'](https://github.com/cloudera-labs/hms-mirror/issues/139)
+- [Hive 4 DB OWNER DDL syntax for ALTERing DB ONWER requires 'USER'](https://github.
+  com/cloudera-labs/hms-mirror/issues/139)
 
 This changed resulted in a simplification of how we determine what the cluster platform is. Previously we used two attributes (`legacyHive` and `hdpHive3`) to determine the platform.  This information would direct logic around translations and other features.  
 
-Unfortunately, this isn't enough for us to determine all the scenarios we're encountering.  These attributes have been replaced with a new attribute call `platformType`. A list of the platform types can be found [here]().
+Unfortunately, this isn't enough for us to determine all the scenarios we're encountering.  These attributes have been replaced with a new attribute call `platformType`. 
 
 We will make automatic translations of legacy configurations to the new `platformType` attribute.  The translation will be pretty basic and result in either the platform type being defined as `HDP2` or `CDP_7.1`. If you have a more complex configuration, you'll need to adjust the `platformType` attribute manually.  Future persisted configurations will use the new `platformType` attribute and drop the `legacyHive` and `hdpHive3` attributes.
 
-### [Add "Property Overrides" to Web Interface](https://github.com/cloudera-labs/hms-mirror/issues/111)
+- [Add "Property Overrides" to Web Interface](https://github.com/cloudera-labs/hms-mirror/issues/111)
 
 A feature that was late in making it into the Web UI is now here.
 
-### [For Web UI Service, default to prefer IPV4](https://github.com/cloudera-labs/hms-mirror/issues/134)
+- [For Web UI Service, default to prefer IPV4](https://github.com/cloudera-labs/hms-mirror/issues/134)
 
 To ensure the right IP stack is used when the Web UI starts up, we're forcing this JDK configuration with the Web UI.
 
-### [Forcibly set Java Home via -Duser.home](https://github.com/cloudera-labs/hms-mirror/issues/136)
+- [Forcibly set Java Home via -Duser.home](https://github.com/cloudera-labs/hms-mirror/issues/136)
 
 We had a few requests and issues with implementations were the target environment isn't always setup with normal user 'home' standards that we can rely on.  This change allows us to set the 'home' directory for the user running the application and ensure its translated correctly in hms-mirror for storing and reading configurations, reports, and logs.
 
@@ -222,7 +223,7 @@ Previous releases had a fairly basic implementation of 'Global Location Maps'. T
 cli option `-glm`, which is still supported, but limited in functionality. The improved implementation work from the
 concept of building 'Warehouse Plans' which are then used to build the 'Global Location Maps'.
 
-See [Warehouse Plans]() for more details.
+See [Warehouse Plans](Database-Warehouse-Plans.md) for more details.
 
 The `-glm` option can take an addition element to identify the mapping for a particular table type. As a result, any
 configuration files save with this setting will not be loaded and will need to be updated.

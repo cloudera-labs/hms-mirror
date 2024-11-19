@@ -1,11 +1,14 @@
-# REST Interface (WIP)
+# REST Interface (Technical Preview)
 
 Start `hms-mirror` with the `--service` option.
     
 ```bash
-
 hms-mirror --service
 ```
+
+<warning>
+This feature is in technical preview and is subject to change. It is not complete and may not be fully functional.
+</warning>
 
 The REST Swagger documentation is available at `http://server-host:8090/hms-mirror/swagger-ui/index.html`.
 

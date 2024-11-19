@@ -1,6 +1,6 @@
 # Reports
 
-Both the [Web](Web-Interface.md) and [CLI](CLI.md) interfaces generate reports.  By default, the reports are 
+Both the [Web](Web-Interface.md) and [CLI](CLI-Interface.md) interfaces generate reports.  By default, the reports are 
 generated in the $HOME/.hms-mirror/reports directory with the timestamp as the 'name' of the report.  The report is 
 directory of several files that include configurations, conversions, and job 'yaml' files of what was done.  Each 
 database has their own reports.  The database name prefixes the report file name for the various reports.
