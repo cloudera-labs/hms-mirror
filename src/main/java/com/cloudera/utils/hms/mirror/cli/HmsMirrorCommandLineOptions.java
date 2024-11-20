@@ -902,7 +902,7 @@ public class HmsMirrorCommandLineOptions {
     @Order(1)
     @ConditionalOnProperty(
             name = "hms-mirror.config.replay-directory")
-    CommandLineRunner configReportDirectory(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.replay-directory}") String value) {
+    CommandLineRunner configReplayDirectory(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.replay-directory}") String value) {
         return args -> {
             log.info("replay-directory: {}", value);
             // TODO: Implement Replay

@@ -114,6 +114,11 @@ public class HmsMirrorConfig implements Cloneable {
     private MigrateVIEW migrateVIEW = new MigrateVIEW();
     private boolean migrateNonNative = Boolean.FALSE;
     private Optimization optimization = new Optimization();
+
+    /*
+    Remove because we don't want this to persist in the config.  Should either use default of be set explicitly.
+     */
+    @JsonIgnore
     private String outputDirectory = System.getProperty("user.home") + System.getProperty("file.separator")
             + ".hms-mirror/reports/";
 
@@ -574,19 +579,16 @@ public class HmsMirrorConfig implements Cloneable {
         return rtn;
     }
 
-    public void setDataStrategy(DataStrategyEnum dataStrategy) {
-        this.dataStrategy = dataStrategy;
-        if (nonNull(this.dataStrategy)) {
-            if (this.dataStrategy == DataStrategyEnum.DUMP) {
-                this.getMigrateACID().setOn(Boolean.TRUE);
-                this.getMigrateVIEW().setOn(Boolean.TRUE);
-                this.setMigrateNonNative(Boolean.TRUE);
-            } else if (this.dataStrategy == STORAGE_MIGRATION) {
-                getMigrateACID().setOn(Boolean.TRUE);
-//                setEvaluatePartitionLocation(Boolean.TRUE);
-            }
-        }
-    }
+//    public void setDataStrategy(DataStrategyEnum dataStrategy) {
+//        this.dataStrategy = dataStrategy;
+//        if (nonNull(this.dataStrategy)) {
+//            if (this.dataStrategy == DataStrategyEnum.DUMP) {
+//                this.getMigrateACID().setOn(Boolean.TRUE);
+//                this.getMigrateVIEW().setOn(Boolean.TRUE);
+//                this.setMigrateNonNative(Boolean.TRUE);
+//            }
+//        }
+//    }
 
     // Deal with any clean up that changes the state of the config, leaving the original intact.
     // This allow us to 'reset' the config to the original state.

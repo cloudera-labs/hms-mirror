@@ -130,14 +130,15 @@ public class CliInit {
                                                @Value("${hms-mirror.config.filename}") String configFile) {
         String fullConfigPath;
         // If file is absolute, use it.  Otherwise, use the path.
-        // String the quotes from the string.
+        // Strip the quotes from the string.
         configFile = configFile.replaceAll("^\"|\"$", "");
         if (configFile.startsWith(File.separator)) {
             fullConfigPath = configFile;
         } else {
             fullConfigPath = configPath + File.separator + configFile;
         }
-        return domainService.deserializeConfig(fullConfigPath);
+        HmsMirrorConfig config = domainService.deserializeConfig(fullConfigPath);
+        return config;
     }
 
     @Bean

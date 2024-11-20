@@ -115,6 +115,8 @@ public enum MessageCode {
     HIVE3_ON_HDP_ACID_TRANSFERS("Hive3 on HDP does NOT honor the 'database' LOCATION element for newly created MANAGED tables. " +
             "For STORAGE_MIGRATION in the same metastore/namespace, move the data with `distcp` and ALTER the table locations by adding " +
             "`-dc` option to the commandline."),
+    HS2_DRIVER_JARS_MISSING("The Hive JDBC jar files haven't been defined for the cluster"),
+    HS2_DRIVER_JAR_NOT_FOUND("The Hive JDBC jar file `{0}` for the `{1}` environment was NOT found in the location specified.  Please check the location and try again."),
     HS2_NOT_DEFINED_OR_CONFIGURED("The {0} HiveServer2 is NOT defined or configured in the runtime configuration.  " +
             "Please check the configuration and try again."),
     IGNORING_TBL_FILTERS_W_TEST_DATA("Table filters are ignored with 'test data'"),

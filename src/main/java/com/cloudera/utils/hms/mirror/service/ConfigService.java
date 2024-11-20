@@ -19,7 +19,6 @@ package com.cloudera.utils.hms.mirror.service;
 
 import com.cloudera.utils.hadoop.cli.CliEnvironment;
 import com.cloudera.utils.hadoop.cli.DisabledException;
-import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import com.cloudera.utils.hive.config.DBStore;
 import com.cloudera.utils.hms.mirror.domain.*;
 import com.cloudera.utils.hms.mirror.domain.support.*;
@@ -32,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -135,6 +135,38 @@ public class ConfigService {
         boolean rtn = Boolean.TRUE;
         switch (config.getDataStrategy()) {
             case DUMP:
+                // Adjustments for DUMP strategy to ensure we get everything.
+                // We were setting these to ensure we got everything, but this prevents the user from filtering out
+                //   items they might want.  So we're going to remove these settings.
+//                if (!config.getMigrateACID().isOn()) {
+//                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
+//                            "MigrateACID",
+//                            Boolean.FALSE.toString(),
+//                            Boolean.TRUE.toString(), "MigrateACID automatically turned ON for DUMP strategy.");
+//                    config.getMigrateACID().setOn(Boolean.TRUE);
+//                }
+//                if (config.getMigrateACID().isOnly()) {
+//                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
+//                            "MigrateACIDOnly",
+//                            Boolean.TRUE.toString(),
+//                            Boolean.FALSE.toString(), "MigrateACIDOnly automatically turned OFF for DUMP strategy.");
+//                    config.getMigrateACID().setOnly(Boolean.FALSE);
+//                }
+//                if (!config.getMigrateVIEW().isOn()) {
+//                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
+//                            "MigrateVIEW",
+//                            Boolean.FALSE.toString(),
+//                            Boolean.TRUE.toString(), "MigrateVIEW automatically turned ON for DUMP strategy.");
+//                    config.getMigrateVIEW().setOn(Boolean.TRUE);
+//                }
+//                if (!config.isMigrateNonNative()) {
+//                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
+//                            "MigrateNonNative",
+//                            Boolean.FALSE.toString(),
+//                            Boolean.TRUE.toString(), "MigrateNonNative automatically turned ON for DUMP strategy.");
+//                    config.setMigrateNonNative(Boolean.TRUE);
+//                }
+
                 // Translation Type need to be RELATIVE.
                 if (config.getTransfer().getStorageMigration().getTranslationType() != TranslationTypeEnum.RELATIVE) {
                     session.addConfigAdjustmentMessage(config.getDataStrategy(),
@@ -369,7 +401,7 @@ public class ConfigService {
             // We need to gather and test the configured hcfs namespaces defined in the config.
             // LEFT, RIGHT, and TargetNamespace.
             // If a namespace is NOT defined, record an issue and move on.  Only 'fail' when a defined namespace fails.
-            List<String> namespaces= new ArrayList<>();
+            List<String> namespaces = new ArrayList<>();
 
             if (nonNull(config.getCluster(Environment.LEFT)) && !isBlank(config.getCluster(Environment.LEFT).getHcfsNamespace())) {
                 namespaces.add(config.getCluster(Environment.LEFT).getHcfsNamespace());
@@ -849,6 +881,30 @@ public class ConfigService {
         }
 
         // ==============================================================================================================
+
+        // Validate the jar files listed in the configs for each cluster.
+        // Visible Environment Variables:
+        Environment[] envs = Environment.getVisible();
+        for (Environment env : envs) {
+            Cluster cluster = config.getCluster(env);
+            if (nonNull(cluster)) {
+                if (nonNull(cluster.getHiveServer2())) {
+                    if (isBlank(cluster.getHiveServer2().getJarFile())) {
+                        runStatus.addError(HS2_DRIVER_JARS_MISSING, env);
+                        rtn.set(Boolean.FALSE);
+                    } else {
+                        String[] jarFiles = cluster.getHiveServer2().getJarFile().split("\\:");
+                        // Go through each jar file and validate it exists.
+                        for (String jarFile : jarFiles) {
+                            if (!new File(jarFile).exists()) {
+                                runStatus.addError(HS2_DRIVER_JAR_NOT_FOUND, jarFile, env);
+                                rtn.set(Boolean.FALSE);
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         // Set distcp options.
         canDeriveDistcpPlan(session);

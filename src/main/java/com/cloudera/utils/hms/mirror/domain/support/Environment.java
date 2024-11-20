@@ -17,6 +17,8 @@
 
 package com.cloudera.utils.hms.mirror.domain.support;
 
+import java.util.Arrays;
+
 public enum Environment {
     /*
     Table lives on RIGHT cluster and usually points to LEFT data.  Used to migrate
@@ -45,5 +47,15 @@ public enum Environment {
 
     public boolean isVisible() {
         return visible;
+    }
+
+    /*
+    Get a list of all the environments that are visible.
+     */
+    public static Environment[] getVisible() {
+        // List only the visible environments.
+        return Arrays.stream(Environment.values())
+                .filter(Environment::isVisible)
+                .toArray(Environment[]::new);
     }
 }
