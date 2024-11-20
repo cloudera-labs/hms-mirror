@@ -884,21 +884,24 @@ public class ConfigService {
 
         // Validate the jar files listed in the configs for each cluster.
         // Visible Environment Variables:
-        Environment[] envs = Environment.getVisible();
-        for (Environment env : envs) {
-            Cluster cluster = config.getCluster(env);
-            if (nonNull(cluster)) {
-                if (nonNull(cluster.getHiveServer2())) {
-                    if (isBlank(cluster.getHiveServer2().getJarFile())) {
-                        runStatus.addError(HS2_DRIVER_JARS_MISSING, env);
-                        rtn.set(Boolean.FALSE);
-                    } else {
-                        String[] jarFiles = cluster.getHiveServer2().getJarFile().split("\\:");
-                        // Go through each jar file and validate it exists.
-                        for (String jarFile : jarFiles) {
-                            if (!new File(jarFile).exists()) {
-                                runStatus.addError(HS2_DRIVER_JAR_NOT_FOUND, jarFile, env);
-                                rtn.set(Boolean.FALSE);
+        // Don't validate when using test data.
+        if (!config.isLoadingTestData()) {
+            Environment[] envs = Environment.getVisible();
+            for (Environment env : envs) {
+                Cluster cluster = config.getCluster(env);
+                if (nonNull(cluster)) {
+                    if (nonNull(cluster.getHiveServer2())) {
+                        if (isBlank(cluster.getHiveServer2().getJarFile())) {
+                            runStatus.addError(HS2_DRIVER_JARS_MISSING, env);
+                            rtn.set(Boolean.FALSE);
+                        } else {
+                            String[] jarFiles = cluster.getHiveServer2().getJarFile().split("\\:");
+                            // Go through each jar file and validate it exists.
+                            for (String jarFile : jarFiles) {
+                                if (!new File(jarFile).exists()) {
+                                    runStatus.addError(HS2_DRIVER_JAR_NOT_FOUND, jarFile, env);
+                                    rtn.set(Boolean.FALSE);
+                                }
                             }
                         }
                     }

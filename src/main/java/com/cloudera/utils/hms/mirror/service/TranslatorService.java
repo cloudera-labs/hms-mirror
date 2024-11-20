@@ -399,7 +399,7 @@ public class TranslatorService {
             String managedBaseLocation = warehouse.getManagedDirectory();
             SourceLocationMap sourceLocationMap = sources.get(database);
             DBMirror dbMirror = conversion.getDatabase(warehouseEntry.getKey());
-            if (sourceLocationMap != null) {
+            if (sourceLocationMap != null && dbMirror != null) {
                 for (Map.Entry<TableType, Map<String, Set<String>>> sourceLocationEntry : sourceLocationMap.getLocations().entrySet()) {
                     String typeTargetLocation = null;
                     String extTargetLocation = new String(externalBaseLocation + "/" + dbMirror.getLocationDirectory());

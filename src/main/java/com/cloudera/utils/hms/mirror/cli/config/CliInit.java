@@ -385,8 +385,9 @@ public class CliInit {
         if (value != null) {
             return configOutputDirInternal(hmsMirrorConfig, Boolean.FALSE, value);
         } else {
+            String reportDir = System.getProperty("user.home") + FileSystems.getDefault().getSeparator() + ".hms-mirror/reports/not-set";
             return configOutputDirInternal(hmsMirrorConfig, Boolean.FALSE,
-                    System.getProperty("user.dir") + FileSystems.getDefault().getSeparator() + ".hms-mirror/reports/not-set");
+                    reportDir);
         }
     }
 
