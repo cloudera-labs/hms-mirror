@@ -67,13 +67,11 @@ public enum MessageCode {
             "location with SCHEMA_ONLY so you can build out the movement plan."),
     DISTCP_VALID_STRATEGY("The `distcp` option is not valid for this strategy ({0}) and configuration."),
     DISTCP_WITH_MISMATCHING_LOCATIONS("You''ve specified ''distcp'' with mismatching locations for {0} {1}: " +
-            "Original Location {2}, Specification {3}. When these don''t match, a valid distcp plan can''t be created to " +
-            "correctly align the data elements.  You''ll need to use SQL to migrate the data and allow Hive to reorganize it " +
-            "according to your specs."),
+            "Original Location {2}, Specification {3}. When these don''t match, the 'distcp' plan created might not " +
+            "correctly align the data elements.  You MUST validate the plan before executing. Proceed at your own risk!"),
     DISTCP_WITH_MISMATCHING_TABLE_LOCATION("You''ve specified ''distcp'' with mismatching locations for {0} {1}: " +
-            "Original Location: {2}, Derived table name from directory: {3}. The partition directory doesn''t match the table name and we can''t " +
-            "correctly align the data elements via distcp.  You''ll need to use SQL to migrate the data and allow Hive to reorganize it " +
-            "according to your specs."),
+            "Original Location: {2}, Derived table name from directory: {3}. When these don''t match the table name and the plan might not " +
+            "correctly align the data elements via distcp.  You MUST validate the plan before executing. Proceed at your own risk!"),
     DISTCP_WO_TABLE_FILTERS("`distcp` workbooks will include the DATABASE base directory, which may include more data than is " +
             "expected at the 'db' level, especially if the root directory is used by other processes outside of the tables " +
             "defined in the database."),
@@ -214,11 +212,14 @@ public enum MessageCode {
     STORAGE_MIGRATION_REQUIRED_NAMESPACE("STORAGE_MIGRATION requires -smn or -cs to define the new namespace."),
     STORAGE_MIGRATION_REQUIRED_STRATEGY("STORAGE_MIGRATION requires -sms to set the Data Strategy.  Applicable options " +
             "are SCHEMA_ONLY, SQL, EXPORT_IMPORT, or HYBRID"),
-    STORAGE_MIGRATION_STRICT("Storage Migration is in 'strict' mode.  If the table and/or partition locations can't "
+    STORAGE_MIGRATION_STRICT("Storage Migration is in 'strict' mode.  The table and/or partition locations can't "
             + "be mapped to the warehouse locations or there are mismatches in location standards, we can't process the table "
             + "without potential data loss.  Add additional 'global-location-map' entries to cover the locations."
             + "Mismatched directories or non-standard partition locations can only be handled through the " +
             "SQL dataMovementStategy."),
+    STORAGE_MIGRATION_NOT_STRICT_ISSUE("Storage Migration is NOT in 'strict' mode.  The table and/or partition locations aren't "
+            + "standard and could lead to data loss when migrated with 'distcp'.  We strongly recommend reviewing the plans created " +
+            "and ensuring the data is correctly aligned before executing to avoid data loss and/or duplication."),
     SYNC_TBL_FILTER("'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"
             + "' ON BOTH SIDES!!!") // WARNINGS
     ,

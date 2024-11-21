@@ -18,9 +18,9 @@
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
 import com.cloudera.utils.hms.mirror.MessageCode;
-import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.cli.Mirror;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -29,7 +29,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Mirror.class,
@@ -42,9 +41,9 @@ import static org.junit.Assert.fail;
 //                "--hms-mirror.config.evaluate-partition-location=true",
                 "--hms-mirror.config.distcp=PULL",
                 "--hms-mirror.config.filename=/config/default.yaml.cdp",
-//                "--hms-mirror.config.reset-to-default-location=true",
+                "--hms-mirror.config.storage-migration-strict=true",
                 "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts_01.yaml",
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_wd_epl_rdl_dc_odd"
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_wd_epl_rdl_dc_odd_strict"
         }
 )
 @Slf4j
@@ -58,7 +57,7 @@ with -rdl, the default location is reset to the new warehouse directory.
 There should be no issue now that the default location is reset to the new warehouse directory.
 
  */
-public class Test_sm_wd_epl_rdl_dc_odd extends E2EBaseTest {
+public class Test_sm_wd_epl_rdl_dc_odd_strict extends E2EBaseTest {
 
     //        String[] args = new String[]{"-d", "STORAGE_MIGRATION",
 //                "-wd", "/finance/managed-fso",
@@ -101,7 +100,7 @@ public class Test_sm_wd_epl_rdl_dc_odd extends E2EBaseTest {
 
     @Test
     public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.ERROR);
     }
 
     @Test
@@ -113,7 +112,7 @@ public class Test_sm_wd_epl_rdl_dc_odd extends E2EBaseTest {
         // GLM entries.
 
         // Verify the return code.
-        assertEquals("Return Code Failure: " + rtn, 0L, rtn);
+        assertEquals("Return Code Failure: " + rtn, 1L, rtn);
     }
 
     @Test

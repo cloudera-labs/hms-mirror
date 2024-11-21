@@ -41,6 +41,7 @@ import static org.junit.Assert.fail;
                 "--hms-mirror.config.distcp=PULL",
                 "--hms-mirror.config.filename=/config/default.yaml.cdp",
                 "--hms-mirror.config.align-locations=true",
+                "--hms-mirror.config.storage-migration-strict=false",
                 "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts_02.yaml",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_wd_epl_rdl_dc_mmd"
         }
@@ -99,7 +100,7 @@ public class Test_sm_wd_epl_rdl_dc_mmd extends E2EBaseTest {
 
     @Test
     public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.ERROR);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
     }
 
     @Test
@@ -107,7 +108,7 @@ public class Test_sm_wd_epl_rdl_dc_mmd extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        assertEquals("Return Code Failure: " + rtn, 1L, rtn);
+        assertEquals("Return Code Failure: " + rtn, 0L, rtn);
     }
 
 //    @Test

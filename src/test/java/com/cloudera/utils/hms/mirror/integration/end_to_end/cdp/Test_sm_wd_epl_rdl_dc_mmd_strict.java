@@ -17,10 +17,9 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
-import com.cloudera.utils.hms.mirror.MessageCode;
-import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.cli.Mirror;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -29,22 +28,21 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.data-strategy=STORAGE_MIGRATION",
-                "--hms-mirror.config.target-namespace=ofs://OHOME90",
                 "--hms-mirror.config.warehouse-plans=ext_purge_odd_parts=/finance/external-fso:/finance/managed-fso",
 //                "--hms-mirror.config.warehouse-directory=/finance/managed-fso",
 //                "--hms-mirror.config.external-warehouse-directory=/finance/external-fso",
-//                "--hms-mirror.config.evaluate-partition-location=true",
+                "--hms-mirror.config.target-namespace=ofs://OHOME90",
                 "--hms-mirror.config.distcp=PULL",
                 "--hms-mirror.config.filename=/config/default.yaml.cdp",
-//                "--hms-mirror.config.reset-to-default-location=true",
-                "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts_01.yaml",
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_wd_epl_rdl_dc_odd"
+                "--hms-mirror.config.align-locations=true",
+                "--hms-mirror.config.storage-migration-strict=true",
+                "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts_02.yaml",
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_wd_epl_rdl_dc_mmd"
         }
 )
 @Slf4j
@@ -58,7 +56,7 @@ with -rdl, the default location is reset to the new warehouse directory.
 There should be no issue now that the default location is reset to the new warehouse directory.
 
  */
-public class Test_sm_wd_epl_rdl_dc_odd extends E2EBaseTest {
+public class Test_sm_wd_epl_rdl_dc_mmd_strict extends E2EBaseTest {
 
     //        String[] args = new String[]{"-d", "STORAGE_MIGRATION",
 //                "-wd", "/finance/managed-fso",
@@ -101,36 +99,33 @@ public class Test_sm_wd_epl_rdl_dc_odd extends E2EBaseTest {
 
     @Test
     public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.ERROR);
     }
 
     @Test
     public void returnCodeTest() {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
-
-        // Has non-standard partition locations which can't be translated without additional
-        // GLM entries.
-
         // Verify the return code.
-        assertEquals("Return Code Failure: " + rtn, 0L, rtn);
+        assertEquals("Return Code Failure: " + rtn, 1L, rtn);
     }
 
-    @Test
-    public void warningCodeTest() {
-        // Get Runtime Return Code.
-        long actual = getWarningCode();
-        // Verify the return code.
-        long expected = getCheckCode(
-                MessageCode.ALIGNED_DISTCP_EXECUTE,
-                MessageCode.DATASTRATEGY_FILTER_CONTROLLED_BY,
-//                MessageCode.RDL_DC_WARNING_TABLE_ALIGNMENT,
-//                MessageCode.STORAGE_MIGRATION_NAMESPACE_LEFT,
-                MessageCode.DISTCP_WO_TABLE_FILTERS
-        );
-
-        assertEquals("Warning Code Failure: ", expected, actual);
-
-    }
+//    @Test
+//    public void sqlTest() {
+//        if (!validateSqlPair("ext_purge_odd_parts", Environment.LEFT, "web_sales", "Alter Table Location",
+//                "ALTER TABLE web_sales SET LOCATION \"hdfs://HOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales\"")) {
+//            fail("Alter Table Location not found");
+//        }
+//        if (!validateSqlPair("ext_purge_odd_parts", Environment.LEFT, "web_sales",
+//                "Alter Table Partition Spec `ws_sold_date_sk`='2451180' Location",
+//                "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451180') SET LOCATION \"hdfs://HOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451180\"")) {
+//            fail("Alter Table Partition Location not found");
+//        }
+//        if (!validateSqlPair("ext_purge_odd_parts", Environment.LEFT, "web_sales",
+//                "Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location",
+//                "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451188') SET LOCATION \"hdfs://HOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451188\"")) {
+//            fail("Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location");
+//        }
+//    }
 
 }

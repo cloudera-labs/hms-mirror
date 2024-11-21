@@ -18,9 +18,9 @@
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
 
-import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.cli.Mirror;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -30,14 +30,13 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.force-external-location=true",
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_smn_wd_epl_glm_fel_dc",
-                "--hms-mirror.config.storage-migration-strict=false",
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_smn_wd_epl_glm_fel_dc_strict",
+                "--hms-mirror.config.storage-migration-strict=true",
                 "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts_01.yaml",
                 "--hms-mirror.config.global-location-map=/user/dstreev/datasets/alt-locations/load_web_sales=/finance/external-fso/load_web_sales,/warehouse/tablespace/external/hive=/finance/external-fso"
 
@@ -47,7 +46,7 @@ import static org.junit.Assert.fail;
 /*
 Issues: Need to post warning when table/partition(s) new location isn't in the -[e]wd location.
  */
-public class Test_sm_smn_wd_epl_glm_fel_dc extends E2EBaseTest {
+public class Test_sm_smn_wd_epl_glm_fel_dc_strict extends E2EBaseTest {
 
     //    @Test
 //    public void sm_smn_wd_epl_glm_fel_dc() {
@@ -108,7 +107,7 @@ public class Test_sm_smn_wd_epl_glm_fel_dc extends E2EBaseTest {
 
     @Test
     public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.ERROR);
     }
 
     @Test
@@ -119,7 +118,7 @@ public class Test_sm_smn_wd_epl_glm_fel_dc extends E2EBaseTest {
         // Non-standard locations can't be migrated without additional GLM entries.
 
         // Verify the return code.
-        long check = 0L;
+        long check = 1L;
         assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 

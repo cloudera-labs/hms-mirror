@@ -35,6 +35,7 @@ import static org.junit.Assert.assertEquals;
         args = {
                 "--hms-mirror.config.target-namespace=ofs://OHOME90",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_wd_epl_glm_dc",
+                "--hms-mirror.config.storage-migration-strict=false",
                 "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts_01.yaml"
 //                "--hms-mirror.config.global-location-map=/user/dstreev/datasets/alt-locations/load_web_sales=/finance/external-fso/load_web_sales," +
 //                        "/warehouse/tablespace/external/hive=/finance/external-fso,/user/dstreev/datasets/alt-locations=/finance/external-fso/ext_purge_odd_parts.db"
@@ -73,7 +74,7 @@ public class Test_sm_wd_epl_glm_dc extends E2EBaseTest {
 
     @Test
     public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.ERROR);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
     }
 
     @Test
@@ -81,7 +82,7 @@ public class Test_sm_wd_epl_glm_dc extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        assertEquals("Return Code Failure: " + rtn, 1L, rtn);
+        assertEquals("Return Code Failure: " + rtn, 0L, rtn);
     }
 
     @Test

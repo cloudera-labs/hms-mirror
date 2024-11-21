@@ -17,7 +17,6 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
-
 import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
@@ -34,33 +33,30 @@ import static org.junit.Assert.assertEquals;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Mirror.class,
         args = {
-                "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts_01.yaml",
-                "--hms-mirror.config.filename=/config/default.yaml.cdp",
-                "--hms-mirror.config.storage-migration-strict=false", // This would be 'false' by default.
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_smn_wd_epl_dc_mismatch",
+                "--hms-mirror.config.target-namespace=ofs://OHOME90",
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_wd_epl_glm_dc_strict",
+                "--hms-mirror.config.storage-migration-strict=true",
+                "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts_01.yaml"
+//                "--hms-mirror.config.global-location-map=/user/dstreev/datasets/alt-locations/load_web_sales=/finance/external-fso/load_web_sales," +
+//                        "/warehouse/tablespace/external/hive=/finance/external-fso,/user/dstreev/datasets/alt-locations=/finance/external-fso/ext_purge_odd_parts.db"
+
+                // /user/dstreev/datasets/alt-locations /warehouse/tablespace/external/hive/ext_purge_odd_parts.db
         })
-@ActiveProfiles("e2e-cdp-sm_smn_wd_epl_dc")
+@ActiveProfiles("e2e-cdp-sm_wd_epl_dc")
 @Slf4j
 /*
-This test uses a configuration (LEFT hcfs namespace) that doesn't match the table/partition prefixes. This should
-fail with warnings.
-
-FIXED:1. when namespace in table doesn't match the namespace specified in the hcfsNamespace, nothing is translated.
-    - This should result in an error and warnings about why this didn't work.
-
-TODO: We need to fix the return code to be negative on Errors and Positive on 'table' conversion failures
-        but success app run.
- */
-public class Test_sm_smn_wd_epl_dc_mismatch extends E2EBaseTest {
-
+Issues: Need to post warning when table/partition(s) new location isn't in the -[e]wd location.
+*/
+public class Test_sm_wd_epl_glm_dc_strict extends E2EBaseTest {
     /*
-            String[] args = new String[]{"-d", "STORAGE_MIGRATION",
+
+        String[] args = new String[]{"-d", "STORAGE_MIGRATION",
                 "-wd", "/finance/managed-fso",
                 "-ewd", "/finance/external-fso",
-                "-smn", "ofs://OHOME90",
                 "-epl",
+                "-glm", "/user/dstreev/datasets/alt-locations/load_web_sales=/finance/external-fso/load_web_sales,/warehouse/tablespace/external/hive=/finance/external-fso",
                 "-dc",
-                "-ltd", EXT_PURGE_ODD_PARTS_03, "-cfg", CDP,
+                "-ltd", EXT_PURGE_ODD_PARTS_03, "-cfg", CDP_CDP,
                 "-o", outputDir
         };
         long rtn = 0;
@@ -72,25 +68,32 @@ public class Test_sm_smn_wd_epl_dc_mismatch extends E2EBaseTest {
         DBMirror[] resultsMirrors = getResults(outputDir, EXT_PURGE_ODD_PARTS_03);
 
         validatePhase(resultsMirrors[0], "web_sales", PhaseState.ERROR);
-
+        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.LEFT, 3);
+        // One of the locations is not accounted for in the glm and isn't standard.  So we can't translate it..
      */
+
+    @Test
+    public void phaseTest() {
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.ERROR);
+    }
+
     @Test
     public void returnCodeTest() {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        long check = 0L;
-        assertEquals("Return Code Failure: " + rtn, check, rtn);
+        assertEquals("Return Code Failure: " + rtn, 1L, rtn);
     }
 
     @Test
-    public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
-    }
-
-    @Test
-    public void issueTest() {
+    public void validateTableIssueCount() {
         validateTableIssueCount("ext_purge_odd_parts", "web_sales",
                 Environment.LEFT, 2);
+
+//        assertEquals("Issue Count not as expected", 3,
+//                getConversion().getDatabase("ext_purge_odd_parts")
+//                        .getTableMirrors().get("web_sales")
+//                        .getEnvironmentTable(Environment.LEFT).getIssues().size());
     }
+
 }

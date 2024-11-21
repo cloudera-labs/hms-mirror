@@ -17,7 +17,6 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
-
 import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
@@ -26,7 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.junit.Assert.assertEquals;
@@ -34,58 +32,43 @@ import static org.junit.Assert.assertEquals;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Mirror.class,
         args = {
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_smn_wd_epl_dc_strict",
                 "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts_01.yaml",
-                "--hms-mirror.config.filename=/config/default.yaml.cdp",
-                "--hms-mirror.config.storage-migration-strict=false", // This would be 'false' by default.
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_smn_wd_epl_dc_mismatch",
+//                "--hms-mirror.config.reset-to-default-location=true",
+                "--hms-mirror.config.data-strategy=STORAGE_MIGRATION",
+                "--hms-mirror.config.storage-migration-strict=true",
+                "--hms-mirror.config.warehouse-plans=ext_purge_odd_parts=/finance/external-fso:/finance/managed-fso",
+                "--hms-mirror.config.storage-migration-namespace=ofs://OHOME90",
+//                "--hms-mirror.config.evaluate-partition-location=true",
+                "--hms-mirror.config.align-locations=true",
+                "--hms-mirror.config.distcp=PULL",
+                "--hms-mirror.config.filename=/config/default.yaml.cdp"
         })
-@ActiveProfiles("e2e-cdp-sm_smn_wd_epl_dc")
 @Slf4j
 /*
-This test uses a configuration (LEFT hcfs namespace) that doesn't match the table/partition prefixes. This should
-fail with warnings.
+STORAGE_MIGRATION test.  Defining the warehouse directories (-wd and -ewd) along with -epl (evaluation of partition locations).
+We've also added -dc to this to produce a distcp plan for this data migration.
+It should only evaluate non-acid tables.
 
-FIXED:1. when namespace in table doesn't match the namespace specified in the hcfsNamespace, nothing is translated.
-    - This should result in an error and warnings about why this didn't work.
-
-TODO: We need to fix the return code to be negative on Errors and Positive on 'table' conversion failures
-        but success app run.
+This storage migration doesn't require the creation of any new tables.  We will simply ALTER the table and partition
+locations.
  */
-public class Test_sm_smn_wd_epl_dc_mismatch extends E2EBaseTest {
+public class Test_sm_smn_wd_epl_dc_strict extends E2EBaseTest {
 
-    /*
-            String[] args = new String[]{"-d", "STORAGE_MIGRATION",
-                "-wd", "/finance/managed-fso",
-                "-ewd", "/finance/external-fso",
-                "-smn", "ofs://OHOME90",
-                "-epl",
-                "-dc",
-                "-ltd", EXT_PURGE_ODD_PARTS_03, "-cfg", CDP,
-                "-o", outputDir
-        };
-        long rtn = 0;
-        MirrorLegacy mirror = new MirrorLegacy();
-        rtn = mirror.go(args);
-        assertEquals("Return Code Failure: " + rtn, 1, rtn);
-
-        // Read the output and verify the results.
-        DBMirror[] resultsMirrors = getResults(outputDir, EXT_PURGE_ODD_PARTS_03);
-
-        validatePhase(resultsMirrors[0], "web_sales", PhaseState.ERROR);
-
-     */
     @Test
     public void returnCodeTest() {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        long check = 0L;
+
+        // A few partitions have non-standard locations and can't be migrated without addition GLM entries.
+        long check = 1L;
         assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 
     @Test
     public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.ERROR);
     }
 
     @Test
@@ -93,4 +76,5 @@ public class Test_sm_smn_wd_epl_dc_mismatch extends E2EBaseTest {
         validateTableIssueCount("ext_purge_odd_parts", "web_sales",
                 Environment.LEFT, 2);
     }
+
 }

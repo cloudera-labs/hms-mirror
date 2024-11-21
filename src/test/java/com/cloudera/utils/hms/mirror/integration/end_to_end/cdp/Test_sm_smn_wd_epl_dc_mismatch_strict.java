@@ -20,7 +20,6 @@ package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
 import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.cli.Mirror;
-import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -36,8 +35,8 @@ import static org.junit.Assert.assertEquals;
         args = {
                 "--hms-mirror.conversion.test-filename=/test_data/ext_purge_odd_parts_01.yaml",
                 "--hms-mirror.config.filename=/config/default.yaml.cdp",
-                "--hms-mirror.config.storage-migration-strict=false", // This would be 'false' by default.
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_smn_wd_epl_dc_mismatch",
+                "--hms-mirror.config.storage-migration-strict=true",
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_smn_wd_epl_dc_mismatch_strict",
         })
 @ActiveProfiles("e2e-cdp-sm_smn_wd_epl_dc")
 @Slf4j
@@ -51,7 +50,12 @@ FIXED:1. when namespace in table doesn't match the namespace specified in the hc
 TODO: We need to fix the return code to be negative on Errors and Positive on 'table' conversion failures
         but success app run.
  */
-public class Test_sm_smn_wd_epl_dc_mismatch extends E2EBaseTest {
+public class Test_sm_smn_wd_epl_dc_mismatch_strict extends E2EBaseTest {
+
+    @Test
+    public void phaseTest() {
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.ERROR);
+    }
 
     /*
             String[] args = new String[]{"-d", "STORAGE_MIGRATION",
@@ -79,18 +83,8 @@ public class Test_sm_smn_wd_epl_dc_mismatch extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        long check = 0L;
+        long check = 1L;
         assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 
-    @Test
-    public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
-    }
-
-    @Test
-    public void issueTest() {
-        validateTableIssueCount("ext_purge_odd_parts", "web_sales",
-                Environment.LEFT, 2);
-    }
 }

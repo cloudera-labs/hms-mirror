@@ -55,54 +55,25 @@ locations.
 public class Test_sm_smn_wd_epl_dc extends E2EBaseTest {
 
     @Test
-    public void issueTest() {
-        validateTableIssueCount("ext_purge_odd_parts", "web_sales",
-                Environment.LEFT, 2);
-    }
-
-    @Test
-    public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.ERROR);
-    }
-
-    @Test
     public void returnCodeTest() {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
 
         // A few partitions have non-standard locations and can't be migrated without addition GLM entries.
-        long check = 1L;
+        long check = 0L;
         assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 
-//    @Test
-//    public void sqlTest() {
-//        Boolean foundAT = Boolean.FALSE;
-//        Boolean foundOddPart = Boolean.FALSE;
-//        Boolean foundOddPart2 = Boolean.FALSE;
-//
-//        for (Pair pair : getConversion().getDatabase("ext_purge_odd_parts")
-//                .getTableMirrors().get("web_sales")
-//                .getEnvironmentTable(Environment.LEFT).getSql()) {
-//            if (pair.getDescription().trim().equals("Alter Table Location")) {
-//                assertEquals("Location doesn't match", "ALTER TABLE web_sales SET LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales\"", pair.getAction());
-//                foundAT = Boolean.TRUE;
-//            }
-//            if (pair.getDescription().trim().equals("Alter Table Partition Spec `ws_sold_date_sk`='2451180' Location")) {
-//                assertEquals("Location doesn't match", "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451180') SET " +
-//                        "LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451180\"", pair.getAction());
-//                foundOddPart = Boolean.TRUE;
-//            }
-//            if (pair.getDescription().trim().equals("Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location")) {
-//                assertEquals("Location doesn't match", "ALTER TABLE web_sales PARTITION (`ws_sold_date_sk`='2451188') SET " +
-//                        "LOCATION \"ofs://OHOME90/finance/external-fso/ext_purge_odd_parts.db/web_sales/ws_sold_date_sk=2451188\"", pair.getAction());
-//                foundOddPart2 = Boolean.TRUE;
-//            }
-//        }
-//        assertEquals("Alter Table Location not found", Boolean.TRUE, foundAT);
-//        assertEquals("Alter Odd Part Location not found", Boolean.TRUE, foundOddPart);
-//        assertEquals("Alter Odd Part 2 Location not found", Boolean.TRUE, foundOddPart2);
-//    }
+    @Test
+    public void phaseTest() {
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+    }
+
+    @Test
+    public void issueTest() {
+        validateTableIssueCount("ext_purge_odd_parts", "web_sales",
+                Environment.LEFT, 2);
+    }
 
 }

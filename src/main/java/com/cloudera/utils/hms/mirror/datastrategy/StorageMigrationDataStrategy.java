@@ -212,6 +212,9 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
 
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
         EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT, tableMirror);
+
+        Boolean strictIssues = Boolean.FALSE;
+
         try {
         /*
         If using distcp, we don't need to go through and rename/recreate the tables.  We just need to change the
@@ -284,6 +287,14 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                         for (Map.Entry<String, String> entry : let.getPartitions().entrySet()) {
                             String partSpec = entry.getKey();
                             int level = StringUtils.countMatches(partSpec, "/");
+                            // To ensure the partition location is handled correctly when it's within the table location,
+                            // we need to see if the partition location 'starts with' the table location.
+                            String tableLocation = TableUtils.getLocation(tableMirror.getName(), tableMirror.getTableDefinition(Environment.LEFT));
+                            if (entry.getValue().startsWith(tableLocation)) {
+                                // Increase the pruning back to the table location so we aren't build distcp commands for the partitions
+                                //   that would be handled by the table location.
+                                level++;
+                            }
                             // Translate to 'partition spec'.
                             partSpec = TableUtils.toPartitionSpec(partSpec);
                             String partLocation = entry.getValue();
@@ -297,8 +308,12 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                                     String msg = MessageFormat.format(MessageCode.DISTCP_WITH_MISMATCHING_LOCATIONS.getDesc(),
                                             "Partition", partSpec, partLocation, normalizedPartSpecLocation);
                                     tableMirror.addIssue(Environment.LEFT, msg);
-                                    noIssues = Boolean.FALSE;
-                                    continue;
+                                    if (config.getTransfer().getStorageMigration().isStrict()) {
+                                        noIssues = Boolean.FALSE;
+                                        continue;
+                                    } else {
+                                        strictIssues = Boolean.TRUE;
+                                    }
                                 } else {
                                     // Since the partition location matches the partition spec, we also need
                                     // to verify that the directory the partition is in, matches the table name
@@ -310,8 +325,12 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                                         String msg = MessageFormat.format(MessageCode.DISTCP_WITH_MISMATCHING_TABLE_LOCATION.getDesc(),
                                                 "Partition", partSpec, partLocation, tableDirName);
                                         tableMirror.addIssue(Environment.LEFT, msg);
-                                        noIssues = Boolean.FALSE;
-                                        continue;
+                                        if (config.getTransfer().getStorageMigration().isStrict()) {
+                                            noIssues = Boolean.FALSE;
+                                            continue;
+                                        } else {
+                                            strictIssues = Boolean.TRUE;
+                                        }
                                     }
                                 }
                             }
@@ -374,6 +393,13 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                         let.getSql().clear();
                         rtn = Boolean.FALSE;
                     }
+                    if (strictIssues) {
+                        // Strict is NOT set, but there were some issues.  We need to post a warning here.
+                        log.warn("Storage Migration is NOT strict, but there are concerns with the location mappings for {}",
+                                tableMirror.getName());
+                        let.addIssue(MessageCode.STORAGE_MIGRATION_NOT_STRICT_ISSUE.getDesc());
+                        rtn = Boolean.TRUE;
+                    }
                 } else {
                     // Distcp with Archive.  The intent is to retain an archive of the table (and data)
                     //   even under the distcp movement strategy.  This allows the user access to the original
@@ -406,8 +432,12 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                                     String msg = MessageFormat.format(MessageCode.DISTCP_WITH_MISMATCHING_LOCATIONS.getDesc(),
                                             "Partition", partSpec, partLocation, normalizedPartSpecLocation);
                                     tableMirror.addIssue(Environment.LEFT, msg);
-                                    noIssues = Boolean.FALSE;
-                                    continue;
+                                    if (config.getTransfer().getStorageMigration().isStrict()) {
+                                        noIssues = Boolean.FALSE;
+                                        continue;
+                                    } else {
+                                        strictIssues = Boolean.TRUE;
+                                    }
                                 } else {
                                     // Since the partition location matches the partition spec, we also need
                                     // to verify that the directory the partition is in, matches the table name
@@ -419,8 +449,12 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                                         String msg = MessageFormat.format(MessageCode.DISTCP_WITH_MISMATCHING_TABLE_LOCATION.getDesc(),
                                                 "Partition", partSpec, partLocation, tableDirName);
                                         tableMirror.addIssue(Environment.LEFT, msg);
-                                        noIssues = Boolean.FALSE;
-                                        continue;
+                                        if (config.getTransfer().getStorageMigration().isStrict()) {
+                                            noIssues = Boolean.FALSE;
+                                            continue;
+                                        } else {
+                                            strictIssues = Boolean.TRUE;
+                                        }
                                     }
                                 }
                             }
@@ -467,6 +501,13 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                             let.addIssue(MessageCode.STORAGE_MIGRATION_STRICT.getDesc());
                             let.getSql().clear();
                             rtn = Boolean.FALSE;
+                        }
+                        if (strictIssues) {
+                            // Strict is NOT set, but there were some issues.  We need to post a warning here.
+                            log.warn("Storage Migration is NOT strict, but there are concerns with the location mappings for {}",
+                                    tableMirror.getName());
+                            let.addIssue(MessageCode.STORAGE_MIGRATION_NOT_STRICT_ISSUE.getDesc());
+                            rtn = Boolean.TRUE;
                         }
                     }
 

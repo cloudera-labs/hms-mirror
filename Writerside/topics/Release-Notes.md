@@ -10,6 +10,22 @@ The latest set of enhancement requests can be found [here](https://github.com/cl
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 2.2.0.19.0 (pre-release)
+
+**Bug Fixes**
+
+- Doubling of mapping locations for partitions in `distcp` for STORAGE_MIGRATION.
+- [STORAGE_MIGRATION is setting ACID to ON, regardless.](https://github.com/cloudera-labs/hms-mirror/issues/158)
+
+**What's New**
+
+- [Validate JDBC Jar Files in config.](https://github.com/cloudera-labs/hms-mirror/issues/159)
+- Ability to turn-on `strict` mode for Storage Migration.  This will cause `distcp` to fail when non-standard locations are used.  To turn off, use the `-sms|--storage-migration-strict` flag via the CLI.
+
+**Behavior Changes**
+
+The default behavior for Storage Migration 'strict' has changed from `true` to `false`. The intent behind the `strict` mode was to ensure `distcp` would fail when non-standard locations are used.  The combination of `metastore_direct` and knowing the partition location details gives us a better chance on making these mappings work for `distcp`.  When the scenario arises, we do **HIGHLY** recommend that you validate the plans created.  The new default behavior will allow `distcp` to continue when non-standard locations are encountered, while throwing a warning.  This will allow the migration to continue, but you should validate the results.
+
 ## 2.2.0.18.1
 
 

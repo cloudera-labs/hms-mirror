@@ -1182,26 +1182,25 @@ public class HmsMirrorCommandLineOptions {
     @Bean
     @Order(1)
     @ConditionalOnProperty(
-            name = "hms-mirror.config.storage-migration-strict",
-            havingValue = "true")
-    CommandLineRunner configStorageMigrationStrictTrue(HmsMirrorConfig hmsMirrorConfig) {
+            name = "hms-mirror.config.storage-migration-strict")
+    CommandLineRunner configStorageMigrationStrictTrue(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.storage-migration-strict}") boolean value) {
         return args -> {
-            log.info("storage-migration-strict: {}", Boolean.TRUE);
-            hmsMirrorConfig.getTransfer().getStorageMigration().setStrict(Boolean.TRUE);
+            log.info("storage-migration-strict: {}", value);
+            hmsMirrorConfig.getTransfer().getStorageMigration().setStrict(value);
         };
     }
 
-    @Bean
-    @Order(1)
-    @ConditionalOnProperty(
-            name = "hms-mirror.config.storage-migration-strict",
-            havingValue = "false")
-    CommandLineRunner configStorageMigrationStrictFalse(HmsMirrorConfig hmsMirrorConfig) {
-        return args -> {
-            log.warn("storage-migration-strict: {} is not currently supported to ensure valid migration plans.", Boolean.FALSE);
+//    @Bean
+//    @Order(1)
+//    @ConditionalOnProperty(
+//            name = "hms-mirror.config.storage-migration-strict",
+//            havingValue = "false")
+//    CommandLineRunner configStorageMigrationStrictFalse(HmsMirrorConfig hmsMirrorConfig) {
+//        return args -> {
+//            log.warn("storage-migration-strict: {}", Boolean.FALSE);
 //            hmsMirrorConfig.getTransfer().getStorageMigration().setStrict(Boolean.FALSE);
-        };
-    }
+//        };
+//    }
 
     @Bean
     @Order(1)
@@ -1872,6 +1871,11 @@ public class HmsMirrorCommandLineOptions {
         storageMigrationNamespaceOption.setRequired(Boolean.FALSE);
         storageMigrationNamespaceOption.setArgName("namespace");
         options.addOption(storageMigrationNamespaceOption);
+
+        Option storageMigrationStrictOption = new Option("sms", "storage-migration-strict", false,
+                "Use 'strict' location translations for storage migration.");
+        storageMigrationStrictOption.setRequired(Boolean.FALSE);
+        options.addOption(storageMigrationStrictOption);
 
         Option dbOption = new Option("db", "database", true,
                 "Comma separated list of Databases (upto 100).");

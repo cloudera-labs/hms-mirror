@@ -55,3 +55,13 @@ transfer:
   storageMigration:
     consolidateTablesForDistcp: true|false
 ```
+
+## Strict Mode
+
+When true and using `distcp`, the migration will fail if the table partition locations aren't standard.  The default is `false`.  The default mode will allow you to move forward with warnings about the non-standard partition locations.  It's highly recommended that you validate the location mappings in the `distcp` plan before running the migration.
+
+```yaml
+transfer:
+  storageMigration:
+    strict: true|false
+```

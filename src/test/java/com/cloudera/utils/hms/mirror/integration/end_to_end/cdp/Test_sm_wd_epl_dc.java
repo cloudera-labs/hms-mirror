@@ -17,7 +17,9 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
+import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.cli.Mirror;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -65,7 +67,18 @@ public class Test_sm_wd_epl_dc extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        long check = 1L;
+        long check = 0L;
         assertEquals("Return Code Failure: " + rtn, check, rtn);
+    }
+
+    @Test
+    public void phaseTest() {
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+    }
+
+    @Test
+    public void issueTest() {
+        validateTableIssueCount("ext_purge_odd_parts", "web_sales",
+                Environment.LEFT, 2);
     }
 }
