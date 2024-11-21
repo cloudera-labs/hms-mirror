@@ -459,7 +459,15 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                                 }
                             }
 
-                            String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_ADD_PARTITION_LOCATION, let.getName(), partSpec, partLocation);
+                            EnvironmentTable parts = null;
+                            // If we've asked to create an archive, we need to adjust the location
+                            // for the new table, which is the right table.
+                            if (config.getTransfer().getStorageMigration().isCreateArchive()) {
+                                parts = ret;
+                            } else {
+                                parts = let;
+                            }
+                            String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_ADD_PARTITION_LOCATION, parts.getName(), partSpec, partLocation);
                             String partSpecDesc = MessageFormat.format(MirrorConf.ALTER_TABLE_ADD_PARTITION_LOCATION_DESC, partSpec);
                             let.addSql(partSpecDesc, addPartSql);
 

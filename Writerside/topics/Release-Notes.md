@@ -26,6 +26,16 @@ If there is something you'd like to see, add a new issue [here](https://github.c
 
 The default behavior for Storage Migration 'strict' has changed from `true` to `false`. The intent behind the `strict` mode was to ensure `distcp` would fail when non-standard locations are used.  The combination of `metastore_direct` and knowing the partition location details gives us a better chance on making these mappings work for `distcp`.  When the scenario arises, we do **HIGHLY** recommend that you validate the plans created.  The new default behavior will allow `distcp` to continue when non-standard locations are encountered, while throwing a warning.  This will allow the migration to continue, but you should validate the results.
 
+<warning>
+You will need to reset the `strict` mode flag in you configuration yaml.  It will be set to `true` if the configuration was created before this release.  You will need to set it to `false` to maintain this new 'preferred' behavior.
+
+```yaml
+transfer:
+  storageMigration:
+    strict: false
+```
+</warning>
+
 ## 2.2.0.18.1
 
 
