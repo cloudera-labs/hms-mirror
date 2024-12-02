@@ -36,7 +36,7 @@ import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
 
-import static com.cloudera.utils.hms.mirror.MessageCode.EXPORT_IMPORT_SYNC;
+import static com.cloudera.utils.hms.mirror.MessageCode.*;
 import static com.cloudera.utils.hms.mirror.TablePropertyVars.TRANSLATED_TO_EXTERNAL;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
@@ -288,6 +288,8 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
         if (ret.isExists()) {
             if (!hmsMirrorConfig.isSync()) {
                 let.addIssue(MessageCode.SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                log.error(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                        SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                 return Boolean.FALSE;
             }
         }

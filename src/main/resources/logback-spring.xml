@@ -110,11 +110,11 @@
         <appender-ref ref="Console"/>
     </logger>
 
-    <logger name="org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener" level="debug"
+    <logger name="org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener" level="info"
             additivity="false">
         <appender-ref ref="RollingFile"/>
     </logger>
-    <logger name="org.springframework.beans.factory" level="trace" additivity="false">
+    <logger name="org.springframework.beans.factory" level="warn" additivity="false">
         <appender-ref ref="RollingFile"/>
     </logger>
 

@@ -127,6 +127,7 @@ public class CliReporter {
     public String getMessages() {
         StringBuilder report = new StringBuilder();
         RunStatus runStatus = executeSessionService.getSession().getRunStatus();
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         if (runStatus.hasErrors()) {
             report.append("\n=== Errors ===\n");
@@ -135,7 +136,7 @@ public class CliReporter {
             }
         }
 
-        if (runStatus.hasWarnings()) {
+        if (runStatus.hasWarnings() && !config.isSuppressCliWarnings()) {
             report.append("\n=== Warnings ===\n");
             for (String message : runStatus.getWarningMessages()) {
                 report.append("\t").append(message).append("\n");

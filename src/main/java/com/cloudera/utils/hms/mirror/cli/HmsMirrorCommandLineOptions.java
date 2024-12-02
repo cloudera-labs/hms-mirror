@@ -1190,17 +1190,16 @@ public class HmsMirrorCommandLineOptions {
         };
     }
 
-//    @Bean
-//    @Order(1)
-//    @ConditionalOnProperty(
-//            name = "hms-mirror.config.storage-migration-strict",
-//            havingValue = "false")
-//    CommandLineRunner configStorageMigrationStrictFalse(HmsMirrorConfig hmsMirrorConfig) {
-//        return args -> {
-//            log.warn("storage-migration-strict: {}", Boolean.FALSE);
-//            hmsMirrorConfig.getTransfer().getStorageMigration().setStrict(Boolean.FALSE);
-//        };
-//    }
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
+            name = "hms-mirror.config.suppress-cli-warnings")
+    CommandLineRunner configSuppressCliWarnings(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.suppress-cli-warnings}") boolean value) {
+        return args -> {
+            log.warn("suppress-cli-warnings: {}", value);
+            hmsMirrorConfig.setSuppressCliWarnings(value);
+        };
+    }
 
     @Bean
     @Order(1)
@@ -1466,6 +1465,11 @@ public class HmsMirrorCommandLineOptions {
                 "Skip Schema Upgrades and Serde Translations");
         skipLegacyTranslation.setRequired(Boolean.FALSE);
         options.addOption(skipLegacyTranslation);
+
+        Option suppressCliWarnings = new Option("scw", "suppress-cli-warnings", false,
+                "Suppress CLI Warnings from the final on-screen report.");
+        suppressCliWarnings.setRequired(Boolean.FALSE);
+        options.addOption(suppressCliWarnings);
 
         Option flipOption = new Option("f", "flip", false,
                 "Flip the definitions for LEFT and RIGHT.  Allows the same config to be used in reverse.");

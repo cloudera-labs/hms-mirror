@@ -24,13 +24,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 
+import static com.cloudera.utils.hms.mirror.MessageCode.TABLE_ISSUE;
 import static java.util.Objects.nonNull;
 
 @Getter
 @Setter
+@Slf4j
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class EnvironmentTable implements Cloneable {
 

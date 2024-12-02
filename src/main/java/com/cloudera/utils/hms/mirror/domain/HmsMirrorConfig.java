@@ -165,6 +165,9 @@ public class HmsMirrorConfig implements Cloneable {
      */
     @Deprecated
     private boolean sqlOutput = Boolean.TRUE;
+
+    private boolean suppressCliWarnings = Boolean.FALSE;
+
     /*
     Sync is valid for SCHEMA_ONLY, LINKED, and COMMON data strategies.
     This will compare the tables between LEFT and RIGHT to ensure that they are in SYNC.

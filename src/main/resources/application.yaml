@@ -21,6 +21,7 @@ hms-mirror:
     path: ${HOME}/.hms-mirror/cfg
     filename: "default.yaml"
     setup: "false"
+    suppress-cli-warnings: "false"
     yaml:
       # This controls the maximum number of bytes that can be read from a YAML file.
       # The default value in SnakeYaml is 3MB.  We've reset this to 100MB.

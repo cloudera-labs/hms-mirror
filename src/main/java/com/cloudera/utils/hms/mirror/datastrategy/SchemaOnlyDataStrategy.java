@@ -39,8 +39,7 @@ import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
 
-import static com.cloudera.utils.hms.mirror.MessageCode.SCHEMA_EXISTS_NO_ACTION;
-import static com.cloudera.utils.hms.mirror.MessageCode.SCHEMA_EXISTS_SYNC_PARTS;
+import static com.cloudera.utils.hms.mirror.MessageCode.*;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Component
@@ -120,6 +119,8 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
                     } else {
                         ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
                         ret.setCreateStrategy(CreateStrategy.LEAVE);
+                        log.error(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                                SCHEMA_EXISTS_NO_ACTION.getDesc());
                     }
                 } else {
                     if (TableUtils.isExternalPurge(ret)) {

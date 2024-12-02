@@ -86,6 +86,7 @@ public enum HmsMirrorCommandLineOptionsEnum {
     SQL_OUTPUT("sql", "sql-output", null, ""),
     SKIP_STATS_COLLECTION("ssc", "skip-stats-collection", null, ""),
     SETUP("su", "setup", null, ""),
+    SUPPRESS_WARNINGS("scw", "suppress-cli-warnings", null, ""),
     TABLE_EXCLUDE_FILTER("tef", "table-exclude-filter", "regex", ""),
     TABLE_FILTER("tf", "table-filter", "regex", ""),
     TABLE_FILTER_PARTITION_COUNT_LIMIT("tfp", "table-filter-partition-count-limit", "partition-count", ""),

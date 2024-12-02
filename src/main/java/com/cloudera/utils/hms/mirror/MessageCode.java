@@ -184,6 +184,8 @@ public enum MessageCode {
     SCHEMA_EXISTS_NO_ACTION("Schema exists already and matches. No action necessary"),
     SCHEMA_EXISTS_NO_ACTION_DATA("Schema exists already. Drop it and " +
             "try again or add `--sync` to OVERWRITE current tables data."),
+    SCHEMA_EXISTS_NOT_MATCH_WITH_PURGE("Schema exists AND DOESN'T match.  But the 'RIGHT' table is has a PURGE option set. " +
+            "We can NOT safely replace the table without compromising the data. No action will be taken."),
     SCHEMA_EXISTS_SYNC_ACID("Schema already exists.  You've specified '--sync', the target table will be dropped and " +
             "re-created.  The data will be overwritten."),
     SCHEMA_EXISTS_SYNC_PARTS("Schema exists already and matches. `--sync` and `-epl` specified, adding partition sync."),
@@ -223,6 +225,7 @@ public enum MessageCode {
     SYNC_TBL_FILTER("'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"
             + "' ON BOTH SIDES!!!") // WARNINGS
     ,
+    TABLE_ISSUE("Issue migrating: {0}.{1}. Reason: {2}"),
     TABLE_LOCATION_FORCED("You've request the table location be explicitly set."),
     TABLE_LOCATION_REMAPPED("The tables location matched one of the 'global location map' directories. " +
             "The LOCATION element was adjusted and will be explicitly set during table creation."),

@@ -91,6 +91,8 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
                     // Already exists, no action.
                     ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                     ret.setCreateStrategy(CreateStrategy.NOTHING);
+                    log.error(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                            SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                     return Boolean.FALSE;
                 }
             } else {
