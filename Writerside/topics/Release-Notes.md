@@ -10,7 +10,14 @@ The latest set of enhancement requests can be found [here](https://github.com/cl
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
-## 2.2.0.19.0 (pre-release)
+## 2.2.0.19.2 (pre-release)
+
+**What's New**
+[Error event is not logged for table skipped because RIGHT already has the table](https://github.com/cloudera-labs/hms-mirror/issues/162)
+[Would be great to be able to omit warnings from the end of logs](https://github.com/cloudera-labs/hms-mirror/issues/161)
+[Be able to reduce spring framework related log entries](https://github.com/cloudera-labs/hms-mirror/issues/160)
+
+## 2.2.0.19.1
 
 **Bug Fixes**
 
