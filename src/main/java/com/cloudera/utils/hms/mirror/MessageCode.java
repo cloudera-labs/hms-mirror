@@ -223,8 +223,7 @@ public enum MessageCode {
             + "standard and could lead to data loss when migrated with 'distcp'.  We strongly recommend reviewing the plans created " +
             "and ensuring the data is correctly aligned before executing to avoid data loss and/or duplication."),
     SYNC_TBL_FILTER("'sync' with 'table filter' will be bi-directional ONLY for tables that meet the table filter '"
-            + "' ON BOTH SIDES!!!") // WARNINGS
-    ,
+            + "' ON BOTH SIDES!!!"), // WARNINGS
     TABLE_ISSUE("Issue migrating: {0}.{1}. Reason: {2}"),
     TABLE_LOCATION_FORCED("You've request the table location be explicitly set."),
     TABLE_LOCATION_REMAPPED("The tables location matched one of the 'global location map' directories. " +

@@ -93,8 +93,9 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
                 ret.setCreateStrategy(CreateStrategy.CREATE);
             } else {
                 ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
-                log.error(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                         SCHEMA_EXISTS_NO_ACTION.getDesc());
+                log.error(msg);
                 return Boolean.FALSE;
             }
         } else {

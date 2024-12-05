@@ -70,6 +70,9 @@
         <appender-ref ref="RollingFile"/>
     </logger>
 
+    <logger name="com.cloudera.utils.hms.mirror.datastrategy" level="ERROR" additivity="true">
+        <appender-ref ref="Console"/>
+    </logger>
     <logger name="com.cloudera.utils.hms.mirror.cli.HmsMirrorCommandLineOptions" level="info" additivity="true">
         <appender-ref ref="Console"/>
     </logger>

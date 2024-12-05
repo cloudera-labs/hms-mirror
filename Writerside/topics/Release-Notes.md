@@ -9,6 +9,10 @@ The latest set of known issues can be found [here](https://github.com/cloudera-l
 The latest set of enhancement requests can be found [here](https://github.com/cloudera-labs/hms-mirror/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement). 
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
+## 2.2.0.19.4 (release)
+
+**What's New**
+[BEHAVIOR CHANGE - Drop any shadow table definitions created during migration automatically](https://github.com/cloudera-labs/hms-mirror/issues/163)
 
 ## 2.2.0.19.2 (pre-release)
 

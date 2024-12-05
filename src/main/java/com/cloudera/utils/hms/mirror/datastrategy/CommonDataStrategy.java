@@ -104,14 +104,16 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
                     if (tableMirror.schemasEqual(Environment.LEFT, Environment.RIGHT)) {
                         ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                         ret.setCreateStrategy(CreateStrategy.LEAVE);
-                        log.error(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                        String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                                 SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                        log.error(msg);
                     } else {
                         if (TableUtils.isExternalPurge(ret)) {
                             ret.addIssue(SCHEMA_EXISTS_NOT_MATCH_WITH_PURGE.getDesc());
                             ret.setCreateStrategy(CreateStrategy.LEAVE);
-                            log.error(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                            String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                                     SCHEMA_EXISTS_NOT_MATCH_WITH_PURGE.getDesc());
+                            log.error(msg);
                             return Boolean.FALSE;
                         } else {
                             ret.addIssue("Schema exists AND DOESN'T match.  It will be REPLACED (DROPPED and RECREATED).");
@@ -126,8 +128,9 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
                     // Already exists, no action.
                     ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                     ret.setCreateStrategy(CreateStrategy.LEAVE);
-                    log.error(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                    String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                             SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                    log.error(msg);
                     return Boolean.FALSE;
                 } else {
                     ret.addIssue("Schema will be created");

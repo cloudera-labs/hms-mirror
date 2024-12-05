@@ -34,6 +34,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.text.MessageFormat;
+
 import static com.cloudera.utils.hms.mirror.MessageCode.SCHEMA_EXISTS_NO_ACTION;
 import static com.cloudera.utils.hms.mirror.MessageCode.TABLE_ISSUE;
 
@@ -90,8 +92,9 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
                     if (tableMirror.schemasEqual(Environment.LEFT, Environment.RIGHT)) {
                         ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
                         ret.setCreateStrategy(CreateStrategy.LEAVE);
-                        log.error(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                        String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                                 SCHEMA_EXISTS_NO_ACTION.getDesc());
+                        log.error(msg);
                     } else {
                         if (TableUtils.isExternalPurge(ret)) {
                             ret.addIssue("Schema exists AND DOESN'T match.  But the 'RIGHT' table is has a PURGE option set. " +

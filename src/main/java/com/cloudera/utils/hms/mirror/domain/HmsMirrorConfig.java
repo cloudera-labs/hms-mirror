@@ -27,6 +27,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -158,6 +159,12 @@ public class HmsMirrorConfig implements Cloneable {
     private boolean resetRight = Boolean.FALSE;
     // Removed and replaced by transfer.translationType.
 //    private boolean resetToDefaultLocation = Boolean.FALSE;
+
+    @Schema(description = "When we are migrating, some intermediate tables may be created to facilitate the migration. " +
+            "These table are removed by default. If you want to keep them, set this to true. " +
+            "Note that the implications are additional tables in the target database.")
+    private boolean saveWorkingTables = Boolean.FALSE;
+
     private boolean skipFeatures = Boolean.FALSE;
     private boolean skipLegacyTranslation = Boolean.FALSE;
     /*

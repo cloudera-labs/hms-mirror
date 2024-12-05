@@ -288,8 +288,9 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
         if (ret.isExists()) {
             if (!hmsMirrorConfig.isSync()) {
                 let.addIssue(MessageCode.SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
-                log.error(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                         SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                log.error(msg);
                 return Boolean.FALSE;
             }
         }

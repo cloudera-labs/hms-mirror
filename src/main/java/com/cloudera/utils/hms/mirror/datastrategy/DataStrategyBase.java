@@ -628,18 +628,31 @@ public abstract class DataStrategyBase implements DataStrategy {
                 } else {
                     // Otherwise, we're on the RIGHT cluster and need to cleanup the 'shadow' table.
                     // Add USE clause to the SQL
-                    Pair cleanUp = new Pair("Post Migration Cleanup", "-- To be run AFTER final RIGHT SQL statements.");
-                    targetEnvTable.addCleanUpSql(cleanUp);
+                    if (config.isSaveWorkingTables()) {
+                        Pair cleanUp = new Pair("Post Migration Cleanup", "-- To be run AFTER final RIGHT SQL statements.");
+                        targetEnvTable.addCleanUpSql(cleanUp);
 
-                    String rightDatabase = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
+                        String rightDatabase = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
 
-                    String useRightDb = MessageFormat.format(MirrorConf.USE, rightDatabase);
-                    Pair leftRightPair = new Pair(TableUtils.USE_DESC, useRightDb);
-                    targetEnvTable.addCleanUpSql(leftRightPair);
+                        String useRightDb = MessageFormat.format(MirrorConf.USE, rightDatabase);
+                        Pair leftRightPair = new Pair(TableUtils.USE_DESC, useRightDb);
+                        targetEnvTable.addCleanUpSql(leftRightPair);
 
-                    // Drop Shadow Table.
-                    String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, source.getName());
-                    targetEnvTable.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
+                        // Drop Shadow Table.
+                        String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, source.getName());
+                        targetEnvTable.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
+                    } else {
+                        // Remove Shadow table as a part of the automatic cleanup.
+                        String rightDatabase = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
+
+                        String useRightDb = MessageFormat.format(MirrorConf.USE, rightDatabase);
+                        Pair leftRightPair = new Pair(TableUtils.USE_DESC, useRightDb);
+                        targetEnvTable.addSql(leftRightPair);
+
+                        // Drop Shadow Table.
+                        String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, source.getName());
+                        targetEnvTable.getSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
+                    }
                 }
             }
         }

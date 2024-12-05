@@ -119,8 +119,10 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
                     } else {
                         ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
                         ret.setCreateStrategy(CreateStrategy.LEAVE);
-                        log.error(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                        String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                                 SCHEMA_EXISTS_NO_ACTION.getDesc());
+                        log.error(msg);
+                        return Boolean.FALSE;
                     }
                 } else {
                     if (TableUtils.isExternalPurge(ret)) {
@@ -150,6 +152,9 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
                         ret.addIssue("Schema exists already, no action. If you wish to rebuild the schema, " +
                                 "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
                         ret.setCreateStrategy(CreateStrategy.LEAVE);
+                        String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                                SCHEMA_EXISTS_NO_ACTION.getDesc());
+                        log.error(msg);
                         return Boolean.FALSE;
                     }
                 }
