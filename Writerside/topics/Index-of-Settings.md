@@ -261,12 +261,35 @@ This does NOT prevent data from being manipulated on the target cluster after th
 <tab title="Config File">
 
 ```yaml
-  readOnly: true|false
+readOnly: true|false
 ```
 
 </tab>
 </tabs>
 
+## Save Working Tables
+
+`saveWorkingTables` is a boolean value that determines if the working tables should be saved. The default value is `false`.
+
+<tabs>
+<tab title="CLI">
+
+`-swt|--save-working-tables`
+
+</tab>
+<tab title="Web UI">
+
+![save-working-tables.png](save-working-tables.png)
+
+</tab>
+<tab title="Config File">
+
+```yaml
+saveWorkingTables: true|false
+```
+
+</tab>
+</tabs>
 
 ## Skip Features
 

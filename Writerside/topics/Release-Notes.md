@@ -9,10 +9,16 @@ The latest set of known issues can be found [here](https://github.com/cloudera-l
 The latest set of enhancement requests can be found [here](https://github.com/cloudera-labs/hms-mirror/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement). 
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
-## 2.2.0.19.4 (release)
+
+## 2.2.0.19.6 (pre-release)
 
 **What's New**
 [BEHAVIOR CHANGE - Drop any shadow table definitions created during migration automatically](https://github.com/cloudera-labs/hms-mirror/issues/163)
+> This adjustment will remove shadow tables that were created during the migration process.  This will help to keep 
+> the source and target clusters clean of any artifacts created during the migration process. An option 
+> `saveWorkingTables` has been added to the configuration to allow you to keep these tables if you need them for any 
+> audits or other reasons. The default is `false`, which means that the tables will be dropped automatically. An audit 
+> 'cleanup' file with the drop commands will be created in the report directory, regardless of the setting.
 
 ## 2.2.0.19.2 (pre-release)
 

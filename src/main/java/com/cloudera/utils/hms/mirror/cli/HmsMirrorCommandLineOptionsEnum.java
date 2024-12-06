@@ -75,6 +75,7 @@ public enum HmsMirrorCommandLineOptionsEnum {
     READ_ONLY("ro", "read-only", null, ""),
     RESET_RIGHT("rr", "reset-right", null, ""),
     SYNC("s", "sync", null, ""),
+    SAVE_WORKING_TABLES("swt", "save-working-tables", null, ""),
     SORT_DYNAMIC_PARTITION_INSERTS("sdpi", "sort-dynamic-partition-inserts", null, ""),
     SKIP_FEATURES("sf", "skip-features", null, ""),
     SKIP_LINK_CHECK("slc", "skip-link-check", null, ""),

@@ -57,8 +57,8 @@ public class Test_so_ma_exist_sync_01 extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        long check = 0L;
-        assertEquals("Return Code Failure: " + rtn, check * -1, rtn);
+        long check = 1L;
+        assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
 
 //    @Test

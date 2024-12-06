@@ -988,6 +988,18 @@ public class HmsMirrorCommandLineOptions {
     @Bean
     @Order(1)
     @ConditionalOnProperty(
+            name = "hms-mirror.config.save-working-tables")
+    CommandLineRunner configSaveWorkingTables(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.save-working-tables}") boolean value) {
+        return args -> {
+            log.warn("save-working-tables: {}", value);
+            hmsMirrorConfig.setSaveWorkingTables(value);
+        };
+    }
+
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
             name = "hms-mirror.config.setup",
             havingValue = "true")
     CommandLineRunner configSetup(@Value("${hms-mirror.config.setup}") String value) {
@@ -1460,6 +1472,11 @@ public class HmsMirrorCommandLineOptions {
                         "to take over and define the location of the new datasets.");
         resetToDefaultLocation.setRequired(Boolean.FALSE);
         options.addOption(resetToDefaultLocation);
+
+        Option saveWorkingTables = new Option("swt", "save-working-tables", false,
+                "Save working tables (shadow tables) created during the migration process.");
+        saveWorkingTables.setRequired(Boolean.FALSE);
+        options.addOption(saveWorkingTables);
 
         Option skipLegacyTranslation = new Option("slt", "skip-legacy-translation", false,
                 "Skip Schema Upgrades and Serde Translations");

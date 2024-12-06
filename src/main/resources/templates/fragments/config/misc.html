@@ -85,6 +85,12 @@
             <!--        <label for="resetRight" th:text="#{config.resetRight}"></label>-->
             <!--    </div>-->
             <div class="pure-control-group">
+                <label for="saveWorkingTables" th:text="#{config.saveWorkingTables}"></label>
+                <input type="checkbox" name="saveWorkingTables"
+                       th:field="*{saveWorkingTables}"
+                       th:checked="${CONFIG.saveWorkingTables}"/>
+            </div>
+            <div class="pure-control-group">
                 <label for="skipFeatures" th:text="#{config.skipFeatures}"></label>
                 <input type="checkbox" name="skipFeatures"
                        th:field="*{skipFeatures}"
