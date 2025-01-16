@@ -46,6 +46,7 @@ import java.util.regex.Matcher;
 
 import static com.cloudera.utils.hms.mirror.MessageCode.*;
 import static com.cloudera.utils.hms.mirror.MirrorConf.*;
+import static com.cloudera.utils.hms.mirror.SessionVars.EXT_DB_LOCATION_PROP;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -544,7 +545,10 @@ public class DatabaseService {
                 if (!isBlank(originalLocation) || forceLocations) {
                     log.debug("Original Location: {}", originalLocation);
                     // Get the base location without the original namespace.
-                    // TODO: Need to address NULL here!!!!
+                    if (isNull(originalLocation)) {
+                        log.warn("Original Location is NULL.  Setting to default.");
+                        originalLocation = config.getCluster(Environment.LEFT).getEnvVars().get(EXT_DB_LOCATION_PROP);
+                    }
                     targetLocation = NamespaceUtils.stripNamespace(originalLocation);
                     log.debug("Target Location from Original Location: {}", targetLocation);
                     // Only set to warehouse location if the translation type is 'ALIGNED',
