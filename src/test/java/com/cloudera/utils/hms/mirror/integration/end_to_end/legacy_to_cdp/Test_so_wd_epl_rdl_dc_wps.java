@@ -75,7 +75,7 @@ public class Test_so_wd_epl_rdl_dc_wps extends E2EBaseTest {
 //        DBMirror[] resultsMirrors = getResults(outputDir,LEGACY_MNGD_PARTS_01);
 //
 //        // Will error because there isn't a mapping required for 'dc' to align locations.
-//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.CALCULATED_SQL);
 //
 //        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1827);
 //        validatePartitionCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1824);
@@ -130,7 +130,7 @@ public class Test_so_wd_epl_rdl_dc_wps extends E2EBaseTest {
 
     @Test
     public void phaseTest_01() {
-        validatePhase("tpcds_bin_partitioned_orc_10", "web_sales", PhaseState.SUCCESS);
+        validatePhase("tpcds_bin_partitioned_orc_10", "web_sales", PhaseState.CALCULATED_SQL);
     }
 
     @Test
@@ -145,6 +145,6 @@ public class Test_so_wd_epl_rdl_dc_wps extends E2EBaseTest {
     @Test
     public void tableIssueCountTest_01() {
         validateTableIssueCount("tpcds_bin_partitioned_orc_10", "web_sales",
-                Environment.RIGHT, 3);
+                Environment.RIGHT, 1828);
     }
 }

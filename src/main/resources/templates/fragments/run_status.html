@@ -40,29 +40,33 @@
             <div class="pure-g">
                 <div class="pure-u-1-2">
                     <fieldset>
-                        <legend th:text="#{runtime.progress(${RUN_STATUS.progress})}"/>
+                        <legend th:text="#{runtime.status}"/>
                         <form>
                             <table class="pure-table pure-table-striped">
                                 <tr>
+                                    <td th:text="#{runtime.status}" style="font-weight: bold;"></td>
+                                    <td th:text="${RUN_STATUS.progress}"/>
+                                </tr>
+                                <tr>
                                     <td th:text="#{concurrency}" style="font-weight: bold;"></td>
                                     <td th:text="${RUN_STATUS.concurrency}"/>
-                                    <td></td>
-                                    <td></td>
                                 </tr>
                                 <tr>
                                     <th:block th:if="${RUN_STATUS.reportName != null}">
                                         <td th:text="#{report.name}" style="font-weight: bold;"/>
                                         <td th:text="${RUN_STATUS.reportName}"/>
                                     </th:block>
-                                    <th:block th:unless="${RUN_STATUS.reportName != null}">
-                                        <td></td>
-                                        <td></td>
-                                    </th:block>
-                                    <td th:text="#{start.time}" style="font-weight: bold;"></td>
-                                    <td th:text="${#dates.format(RUN_STATUS.start, 'MM-dd-yyyy HH:mm:ss')}"/>
                                 </tr>
                                 <tr>
-                                    <th:block th:if="${RUN_STATUS.progress.toString() == 'COMPLETED'}">
+                                    <td th:text="#{start.time}" style="font-weight: bold;"></td>
+                                    <td th:text="${#dates.format(RUN_STATUS.start, 'yyyy-MM-dd HH:mm:ss')}"/>
+                                </tr>
+                                <th:block th:if="${('COMPLETED FAILED').contains(RUN_STATUS.progress.toString())}">
+                                    <tr>
+                                        <td th:text="#{end.time}" style="font-weight: bold;"></td>
+                                        <td th:text="${#dates.format(RUN_STATUS.end, 'yyyy-MM-dd HH:mm:ss')}"/>
+                                    </tr>
+                                    <tr>
                                         <input type="hidden" name="REPORT_ID" th:value="${RUN_STATUS.reportName}"
                                                readonly/>
                                         <td>
@@ -75,13 +79,7 @@
                                                     type="submit" th:text="#{button.details}"
                                                     th:formaction="@{/reports/detail}" th:formmethod="GET"/>
                                         </td>
-                                    </th:block>
-                                    <th:block th:unless="${RUN_STATUS.progress.toString() == 'COMPLETED'}">
-                                        <td></td>
-                                        <td></td>
-                                    </th:block>
-                                    <td th:text="#{end.time}" style="font-weight: bold;"></td>
-                                    <td th:text="${#dates.format(RUN_STATUS.end, 'MM-dd-yyyy HH:mm:ss')}"/>
+                                </th:block>
                                 </tr>
                             </table>
                         </form>

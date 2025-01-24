@@ -282,11 +282,7 @@ public class ConfigMVController implements ControllerReferences {
         ExecuteSession session = executeSessionService.createSession(sessionId, config);
         executeSessionService.setSession(session);
 
-        // Set to null, so it will reset.
-//        session.setSessionId(null);
-
         configService.validate(session, null);
-//        executeSessionService.transitionLoadedSessionToActive(maxThreads);
 
         // Set it as the current session.
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
@@ -317,17 +313,9 @@ public class ConfigMVController implements ControllerReferences {
         // Control Beta Features.
         newConfig.setBeta(beta);
 
-        // Remove the old session
-//        executeSessionService.getSessionHistory().remove(sessionId);
-
         // Create a new session
         ExecuteSession session = executeSessionService.createSession(sessionId, newConfig);
         executeSessionService.setSession(session);
-
-        // Set to null, so it will reset.
-//        session.setSessionId(null);
-
-//        executeSessionService.transitionLoadedSessionToActive(maxThreads);
 
         // Set it as the current session.
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
@@ -357,6 +345,8 @@ public class ConfigMVController implements ControllerReferences {
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();
         config.getOptimization().getOverrides().addProperty(property, value, side);
+        // After a 'save', the session connections statuses should be reset.
+        session.resetConnectionStatuses();
 
         return "redirect:/config/view";
     }
@@ -371,6 +361,10 @@ public class ConfigMVController implements ControllerReferences {
         HmsMirrorConfig config = session.getConfig();
         try {
             config.getOptimization().getOverrides().getProperties().get(property).remove(side);
+
+            // After a 'save', the session connections statuses should be reset.
+            session.resetConnectionStatuses();
+
         } catch (Exception e) {
             log.error("Error deleting property: {}", e.getMessage());
         }

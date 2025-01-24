@@ -111,17 +111,17 @@ public class TransferService {
     }
 
     @Async("jobThreadPool")
-    public Future<ReturnStatus> transfer(TableMirror tableMirror) {
+    public Future<ReturnStatus> build(TableMirror tableMirror) {
         ReturnStatus rtn = new ReturnStatus();
-//        rtn.setStatus(ReturnStatus.Status.SUCCESS);
-//        Boolean successful = Boolean.FALSE;
+        rtn.setTableMirror(tableMirror);
+
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
         RunStatus runStatus = executeSessionService.getSession().getRunStatus();
 
         Warehouse warehouse = null;
         try {
             Date start = new Date();
-            log.info("Migrating {}.{}", tableMirror.getParent().getName(), tableMirror.getName());
+            log.info("Building migration for {}.{}", tableMirror.getParent().getName(), tableMirror.getName());
 
             EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
             EnvironmentTable tet = tableMirror.getEnvironmentTable(Environment.TRANSFER);
@@ -130,26 +130,26 @@ public class TransferService {
 
 
             // Set Database to Transfer DB.
-            tableMirror.setPhaseState(PhaseState.STARTED);
+            tableMirror.setPhaseState(PhaseState.CALCULATING_SQL);
 
             tableMirror.setStrategy(config.getDataStrategy());
 //            tblMirror.setResolvedDbName(config.getResolvedDB(tblMirror.getParent().getName()));
 
             tableMirror.incPhase();
-            tableMirror.addStep("TRANSFER", config.getDataStrategy().toString());
+            tableMirror.addStep("Build TRANSFER", config.getDataStrategy().toString());
             try {
                 DataStrategy dataStrategy = null;
                 switch (config.getDataStrategy()) {
                     case HYBRID:
                         if (TableUtils.isACID(let) && config.getMigrateACID().isDowngradeInPlace()) {
-                            if (hybridAcidDowngradeInPlaceDataStrategy.execute(tableMirror)) {
+                            if (hybridAcidDowngradeInPlaceDataStrategy.build(tableMirror)) {
                                 rtn.setStatus(ReturnStatus.Status.SUCCESS);
                             } else {
                                 rtn.setStatus(ReturnStatus.Status.ERROR);
                                 runStatus.getOperationStatistics().getIssues().incrementTables();
                             }
                         } else {
-                            if (hybridDataStrategy.execute(tableMirror)) {
+                            if (hybridDataStrategy.build(tableMirror)) {
                                 rtn.setStatus(ReturnStatus.Status.SUCCESS);
                             } else {
                                 rtn.setStatus(ReturnStatus.Status.ERROR);
@@ -158,7 +158,7 @@ public class TransferService {
                         break;
                     default:
                         dataStrategy = getDataStrategyService().getDefaultDataStrategy(config);
-                        if (dataStrategy.execute(tableMirror)) {
+                        if (dataStrategy.build(tableMirror)) {
                             rtn.setStatus(ReturnStatus.Status.SUCCESS);
                         } else {
                             rtn.setStatus(ReturnStatus.Status.ERROR);
@@ -242,8 +242,8 @@ public class TransferService {
                         if (TableUtils.isACID(let)
                                 && !config.getMigrateACID().isDowngrade()
                                 && !(config.getDataStrategy() == DataStrategyEnum.STORAGE_MIGRATION)) {
-                            tableMirror.addIssue(Environment.RIGHT, DISTCP_FOR_SO_ACID.getDesc());
-                            rtn.setStatus(ReturnStatus.Status.ERROR);
+                            tableMirror.addError(Environment.RIGHT, DISTCP_FOR_SO_ACID.getDesc());
+                            rtn.setStatus(ReturnStatus.Status.INCOMPLETE);
 //                            successful = Boolean.FALSE;
                         } else if (TableUtils.isACID(let) && config.getMigrateACID().isDowngrade()) {
                             String rLoc = TableUtils.getLocation(tableMirror.getName(), ret.getDefinition());
@@ -283,10 +283,13 @@ public class TransferService {
                     }
                 }
 
-                if (rtn.getStatus() == ReturnStatus.Status.SUCCESS)
-                    tableMirror.setPhaseState(PhaseState.SUCCESS);
-                else
+                if (rtn.getStatus() == ReturnStatus.Status.SUCCESS) {
+                    tableMirror.setPhaseState(PhaseState.CALCULATED_SQL);
+                } else if (rtn.getStatus() == ReturnStatus.Status.INCOMPLETE) {
+                    tableMirror.setPhaseState(PhaseState.CALCULATED_SQL_WARNING);
+                } else {
                     tableMirror.setPhaseState(PhaseState.ERROR);
+                }
             } catch (ConnectionException ce) {
                 tableMirror.addIssue(Environment.LEFT, "FAILURE (check logs):" + ce.getMessage());
                 log.error("Connection Error", ce);
@@ -307,6 +310,83 @@ public class TransferService {
             rtn.setStatus(ReturnStatus.Status.FATAL);
             rtn.setException(mde);
         }
+        return new AsyncResult<>(rtn);
+    }
+
+    @Async("jobThreadPool")
+    public Future<ReturnStatus> execute(TableMirror tableMirror) {
+        ReturnStatus rtn = new ReturnStatus();
+        rtn.setTableMirror(tableMirror);
+
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
+        RunStatus runStatus = executeSessionService.getSession().getRunStatus();
+
+        Date start = new Date();
+        log.info("Processing migration for {}.{}", tableMirror.getParent().getName(), tableMirror.getName());
+
+        EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
+//        EnvironmentTable tet = tableMirror.getEnvironmentTable(Environment.TRANSFER);
+//        EnvironmentTable set = tableMirror.getEnvironmentTable(Environment.SHADOW);
+//        EnvironmentTable ret = tableMirror.getEnvironmentTable(Environment.RIGHT);
+
+
+        // Set Database to Transfer DB.
+        tableMirror.setPhaseState(PhaseState.APPLYING_SQL);
+
+        tableMirror.setStrategy(config.getDataStrategy());
+//            tblMirror.setResolvedDbName(config.getResolvedDB(tblMirror.getParent().getName()));
+
+        tableMirror.incPhase();
+        tableMirror.addStep("Processing TRANSFER", config.getDataStrategy().toString());
+        try {
+            DataStrategy dataStrategy = null;
+            switch (config.getDataStrategy()) {
+                case HYBRID:
+                    if (TableUtils.isACID(let) && config.getMigrateACID().isDowngradeInPlace()) {
+                        if (hybridAcidDowngradeInPlaceDataStrategy.execute(tableMirror)) {
+                            rtn.setStatus(ReturnStatus.Status.SUCCESS);
+                        } else {
+                            rtn.setStatus(ReturnStatus.Status.ERROR);
+                            runStatus.getOperationStatistics().getIssues().incrementTables();
+                        }
+                    } else {
+                        if (hybridDataStrategy.execute(tableMirror)) {
+                            rtn.setStatus(ReturnStatus.Status.SUCCESS);
+                        } else {
+                            rtn.setStatus(ReturnStatus.Status.ERROR);
+                        }
+                    }
+                    break;
+                default:
+                    dataStrategy = getDataStrategyService().getDefaultDataStrategy(config);
+                    if (dataStrategy.execute(tableMirror)) {
+                        rtn.setStatus(ReturnStatus.Status.SUCCESS);
+                    } else {
+                        rtn.setStatus(ReturnStatus.Status.ERROR);
+                    }
+                    break;
+            }
+            if (rtn.getStatus() == ReturnStatus.Status.SUCCESS)
+                tableMirror.setPhaseState(PhaseState.PROCESSED);
+            else
+                tableMirror.setPhaseState(PhaseState.ERROR);
+        } catch (ConnectionException ce) {
+            tableMirror.addIssue(Environment.LEFT, "FAILURE (check logs):" + ce.getMessage());
+            log.error("Connection Error", ce);
+            rtn.setStatus(ReturnStatus.Status.FATAL);
+            rtn.setException(ce);
+        } catch (RuntimeException rte) {
+            tableMirror.addIssue(Environment.LEFT, "FAILURE (check logs):" + rte.getMessage());
+            log.error("Transfer Error", rte);
+            rtn.setStatus(ReturnStatus.Status.FATAL);
+            rtn.setException(rte);
+        }
+
+        Date end = new Date();
+        Long diff = end.getTime() - start.getTime();
+        tableMirror.setStageDuration(diff);
+        log.info("Migration processing complete for {}.{} in {}ms", tableMirror.getParent().getName(), tableMirror.getName(), diff);
+
         return new AsyncResult<>(rtn);
     }
 

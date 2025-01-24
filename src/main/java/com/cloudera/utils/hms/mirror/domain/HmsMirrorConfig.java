@@ -38,7 +38,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.STORAGE_MIGRATION;
+import static com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.*;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -323,7 +323,8 @@ public class HmsMirrorConfig implements Cloneable {
         // When we're ALIGNED and asking fir DISTCP, we need to load the partition metadata.
         if ((transfer.getStorageMigration().getTranslationType() == TranslationTypeEnum.ALIGNED
                 && getTransfer().getStorageMigration().isDistcp()) ||
-                (dataStrategy == DataStrategyEnum.SQL
+                (dataStrategy == DUMP) ||
+                ((dataStrategy == SQL || dataStrategy == STORAGE_MIGRATION)
                         && getTransfer().getStorageMigration().getDataMovementStrategy() == DataMovementStrategyEnum.SQL)) {
             switch (dataStrategy) {
                 case LINKED:
@@ -337,22 +338,31 @@ public class HmsMirrorConfig implements Cloneable {
         }
     }
 
-    @JsonIgnore
-    public boolean isConnectionKerberized() {
-        boolean rtn = Boolean.FALSE;
-
-        Set<Environment> envs = getClusters().keySet();
-        for (Environment env : envs) {
-            Cluster cluster = getClusters().get(env);
-            if (nonNull(cluster.getHiveServer2()) &&
-                    cluster.getHiveServer2().isValidUri() &&
-                    !isBlank(cluster.getHiveServer2().getUri()) &&
-                    cluster.getHiveServer2().getUri().contains("principal")) {
-                rtn = Boolean.TRUE;
-            }
-        }
-        return rtn;
-    }
+    // No longer used.  Calling setupGSS in the EnvironmentService where
+    // it will look at the Hadoop configs to determine if Kerberos is enabled.
+//    @JsonIgnore
+//    public boolean isHS2ConnectionKerberized() {
+//        boolean rtn = Boolean.FALSE;
+//
+//        Set<Environment> envs = getClusters().keySet();
+//        for (Environment env : envs) {
+//            Cluster cluster = getClusters().get(env);
+//            if (nonNull(cluster.getHiveServer2()) &&
+//                    cluster.getHiveServer2().isValidUri() &&
+//                    !isBlank(cluster.getHiveServer2().getUri()) &&
+//                    cluster.getHiveServer2().getUri().contains("principal")) {
+//                rtn = Boolean.TRUE;
+//            }
+//        }
+//
+//        // The connections may be through ZooKeeper so the URI may not contain the principal.
+//        // Review the hdfs configs for the cluster.
+//        if (!rtn) {
+//
+//        }
+//
+//        return rtn;
+//    }
 
 
     /*

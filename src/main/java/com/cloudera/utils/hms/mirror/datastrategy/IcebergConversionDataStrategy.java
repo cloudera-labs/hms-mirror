@@ -81,14 +81,14 @@ public class IcebergConversionDataStrategy extends DataStrategyBase implements D
         IcebergState state = TableUtils.getIcebergConversionState(let);
         switch (state) {
             case NOT_CONVERTABLE:
-                let.addIssue("Table is not compatible with Iceberg conversion.");
+                let.addError("Table is not compatible with Iceberg conversion.");
                 return Boolean.FALSE;
             case CONVERTABLE:
                 // Convert
                 return Boolean.TRUE;
             case V1_FORMAT:
             case V2_FORMAT:
-                let.addIssue("Table has already been converted.  Is currently " + state);
+                let.addError("Table has already been converted.  Is currently " + state);
                 return Boolean.FALSE;
             default:
                 return Boolean.FALSE;
@@ -135,7 +135,7 @@ public class IcebergConversionDataStrategy extends DataStrategyBase implements D
     }
 
     @Override
-    public Boolean execute(TableMirror tableMirror) {
+    public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
 
         rtn = buildOutDefinition(tableMirror);
@@ -144,15 +144,20 @@ public class IcebergConversionDataStrategy extends DataStrategyBase implements D
                 rtn = buildOutSql(tableMirror);
             } catch (MissingDataPointException e) {
                 EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
-                let.addIssue("Failed to build out SQL: " + e.getMessage());
+                let.addError("Failed to build out SQL: " + e.getMessage());
                 rtn = Boolean.FALSE;
             }
         }
-        if (rtn) {
-            rtn = getTableService().runTableSql(tableMirror, Environment.LEFT);
-        }
+//        if (rtn) {
+//            rtn = getTableService().runTableSql(tableMirror, Environment.LEFT);
+//        }
 
         return rtn;
+    }
+
+    @Override
+    public Boolean execute(TableMirror tableMirror) {
+        return  getTableService().runTableSql(tableMirror, Environment.LEFT);
     }
 
     @Autowired

@@ -71,7 +71,7 @@ public class ConvertLinkedDataStrategy extends DataStrategyBase implements DataS
     }
 
     @Override
-    public Boolean execute(TableMirror tableMirror) {
+    public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
@@ -102,7 +102,7 @@ public class ConvertLinkedDataStrategy extends DataStrategyBase implements DataS
                     tableMirror.setStrategy(DataStrategyEnum.SCHEMA_ONLY);
                     // Set False that it doesn't exist, which it won't, since we're dropping it.
                     ret.setExists(Boolean.FALSE);
-                    rtn = schemaOnlyDataStrategy.execute(tableMirror);
+                    rtn = schemaOnlyDataStrategy.build(tableMirror);
                 } else {
                     // - AVRO LOCATION
                     if (AVROCheck(tableMirror)) {
@@ -126,19 +126,24 @@ public class ConvertLinkedDataStrategy extends DataStrategyBase implements DataS
                         rtn = Boolean.TRUE;
 
                         // Execute the RIGHT sql if config.execute.
-                        if (rtn) {
-                            rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
-                        }
+//                        if (rtn) {
+//                            rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
+//                        }
                     }
                 }
             }
         } catch (Throwable t) {
             log.error("Error executing ConvertLinkedDataStrategy", t);
-            let.addIssue(t.getMessage());
+            let.addError(t.getMessage());
             rtn = Boolean.FALSE;
         }
 
         return rtn;
+    }
+
+    @Override
+    public Boolean execute(TableMirror tableMirror) {
+        return tableService.runTableSql(tableMirror, Environment.RIGHT);
     }
 
     @Autowired

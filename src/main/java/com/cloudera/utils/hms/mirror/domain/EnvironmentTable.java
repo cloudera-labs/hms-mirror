@@ -49,6 +49,7 @@ public class EnvironmentTable implements Cloneable {
     private Map<String, String> addProperties = new TreeMap<>();
     private Map<String, Object> statistics = new HashMap<>();
     private List<String> issues = new ArrayList<>();
+    private List<String> errors = new ArrayList<>();
     @JsonIgnore
     private TableMirror parent = null;
 
@@ -74,6 +75,10 @@ public class EnvironmentTable implements Cloneable {
 
     public void addIssue(String issue) {
         getIssues().add(issue);
+    }
+
+    public void addError(String error) {
+        getErrors().add(error);
     }
 
     public void addProperty(String key, String value) {

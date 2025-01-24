@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -265,6 +266,15 @@ public class ConfigService {
                 }
 
                 // For the Aligned Translation Type, we need to ensure the Data Movement Strategy is set to SQL or DISTCP.
+                if (config.getIcebergConversion().isEnable() &&
+                        config.getTransfer().getStorageMigration().getDataMovementStrategy() != DataMovementStrategyEnum.SQL) {
+                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
+                            "DataMovementStrategy",
+                            config.getTransfer().getStorageMigration().getDataMovementStrategy().toString(),
+                            DataMovementStrategyEnum.SQL.toString(), "Only the SQL Data Movement Strategy is supported for STORAGE_MIGRATION w/ ICEBERG_CONVERSION enabled.");
+                    config.getTransfer().getStorageMigration().setDataMovementStrategy(DataMovementStrategyEnum.SQL);
+                }
+
                 if (config.getTransfer().getStorageMigration().getDataMovementStrategy() == DataMovementStrategyEnum.NA) {
                     session.addConfigAdjustmentMessage(config.getDataStrategy(),
                             "DataMovementStrategy",
@@ -287,6 +297,19 @@ public class ConfigService {
             default:
                 break;
         }
+        // If migrateView is on and the data strategy is NOT either DUMP or SCHEMA_ONLY,
+        //  change to data strategy to SCHEMA_ONLY.
+        if (config.getMigrateVIEW().isOn() &&
+                !(config.getDataStrategy() == DataStrategyEnum.DUMP ||
+                config.getDataStrategy() == DataStrategyEnum.SCHEMA_ONLY)) {
+            session.addConfigAdjustmentMessage(config.getDataStrategy(),
+                    "DataStrategy",
+                    config.getDataStrategy().toString(),
+                    DataStrategyEnum.SCHEMA_ONLY.toString(),
+                    "MigrateVIEW is only valid for DUMP and SCHEMA_ONLY Data Strategies.");
+            config.setDataStrategy(DataStrategyEnum.SCHEMA_ONLY);
+        }
+
         if (config.loadMetadataDetails()) {
             switch (config.getDatabaseFilterType()) {
                 case WAREHOUSE_PLANS:
@@ -717,44 +740,6 @@ public class ConfigService {
                             }
                         }
                     }
-                    // If evaluate partition locations is set, we need metastore_direct set on LEFT.
-//                    if (env == Environment.LEFT) {
-//                        if (config.isEvaluatePartitionLocation()) {
-//                            if (isNull(config.getCluster(env).getMetastoreDirect())) {
-//                                if (!config.isLoadingTestData()) {
-//                                    runStatus.addError(EVALUATE_PARTITION_LOCATION_CONFIG, env);
-//                                    rtn = Boolean.FALSE;
-//                                }
-//                            } else {
-//                                // Check the config values;
-//                                    /* Minimum Values:
-//                                    - type
-//                                    - uri
-//                                    - username
-//                                    - password
-//                                     */
-//                                if (!config.isLoadingTestData()) {
-//                                    DBStore dbStore = config.getCluster(env).getMetastoreDirect();
-//                                    if (isNull(dbStore.getType())) {
-//                                        runStatus.addError(MISSING_PROPERTY, "type", "Metastore Direct", env);
-//                                        rtn = Boolean.FALSE;
-//                                    }
-//                                    if (isBlank(dbStore.getUri())) {
-//                                        runStatus.addError(MISSING_PROPERTY, "uri", "Metastore Direct", env);
-//                                        rtn = Boolean.FALSE;
-//                                    }
-//                                    if (isBlank(dbStore.getConnectionProperties().getProperty("user"))) {
-//                                        runStatus.addError(MISSING_PROPERTY, "user", "Metastore Direct", env);
-//                                        rtn = Boolean.FALSE;
-//                                    }
-//                                    if (isBlank(dbStore.getConnectionProperties().getProperty("password"))) {
-//                                        runStatus.addError(MISSING_PROPERTY, "password", "Metastore Direct", env);
-//                                        rtn = Boolean.FALSE;
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
                 }
                 break;
             // Need Left cluster defined with HS2 config.
@@ -766,24 +751,6 @@ public class ConfigService {
                 break;
 
         }
-
-//        if (config.isEvaluatePartitionLocation() && !config.isLoadingTestData()) {
-//            switch (config.getDataStrategy()) {
-//                case SCHEMA_ONLY:
-//                case DUMP:
-//                case STORAGE_MIGRATION:
-//                    // Check the metastore_direct config on the LEFT.
-//                    if (isNull(config.getCluster(Environment.LEFT).getMetastoreDirect())) {
-//                        runStatus.addError(EVALUATE_PARTITION_LOCATION_CONFIG, "LEFT");
-//                        rtn = Boolean.FALSE;
-//                    }
-//                    runStatus.addWarning(ALIGN_LOCATIONS_WITH_DB);
-//                    break;
-//                default:
-//                    runStatus.addError(EVALUATE_PARTITION_LOCATION_USE);
-//                    rtn = Boolean.FALSE;
-//            }
-//        }
 
         // Set maxConnections to Concurrency.
         // Don't validate connections or url's if we're working with test data.
@@ -880,6 +847,13 @@ public class ConfigService {
             config.getIcebergConversion().setEnable(Boolean.FALSE);
         }
 
+        if (config.getIcebergConversion().isEnable()) {
+            if (config.getDataStrategy() != STORAGE_MIGRATION) {
+                session.addError(ICEBERG_CONVERSION_AVAILABILITY);
+                rtn.set(Boolean.FALSE);
+            }
+        }
+
         // ==============================================================================================================
 
         // Validate the jar files listed in the configs for each cluster.
@@ -930,6 +904,12 @@ public class ConfigService {
         if (!isBlank(config.getDbRename()) && !isBlank(config.getDbPrefix())) {
             rtn.set(Boolean.FALSE);
             session.addError(CONFLICTING_PROPERTIES, "dbRename", "dbPrefix");
+        }
+
+        if (isNull(config.getDatabases()) || config.getDatabases().isEmpty()) {
+//            log.error("No databases specified OR found if you used dbRegEx");
+            session.addError(MISC_ERROR, "No databases specified OR found if you used dbRegEx");
+            rtn.set(Boolean.FALSE);
         }
 
         // Before Validation continues, let's make some adjustments to the configuration to

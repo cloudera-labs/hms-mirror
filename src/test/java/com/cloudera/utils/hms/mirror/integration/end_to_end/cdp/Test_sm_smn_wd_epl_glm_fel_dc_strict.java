@@ -75,7 +75,7 @@ public class Test_sm_smn_wd_epl_glm_fel_dc_strict extends E2EBaseTest {
 //        // Read the output and verify the results.
 //        DBMirror[] resultsMirrors = getResults(outputDir, EXT_PURGE_ODD_PARTS_03);
 //
-//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.CALCULATED_SQL);
 //        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.LEFT, 3);
 //        /*
 //        - description: "Alter Table Location"
@@ -141,12 +141,19 @@ public class Test_sm_smn_wd_epl_glm_fel_dc_strict extends E2EBaseTest {
     @Test
     public void validateTableIssueCount() {
         validateTableIssueCount("ext_purge_odd_parts", "web_sales",
-                Environment.LEFT, 2);
+                Environment.LEFT, 1);
 
 //        assertEquals("Issue Count not as expected", 3,
 //                getConversion().getDatabase("ext_purge_odd_parts")
 //                        .getTableMirrors().get("web_sales")
 //                        .getEnvironmentTable(Environment.LEFT).getIssues().size());
     }
+
+    @Test
+    public void errorTest() {
+        validateTableErrorCount("ext_purge_odd_parts", "web_sales",
+                Environment.LEFT, 1);
+    }
+
 
 }

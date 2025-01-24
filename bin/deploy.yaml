@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 - hosts: edge
   become: true
 
@@ -19,6 +18,11 @@
 
 
   tasks:
+#    - name: Stop hms-mirror service
+#      become: true
+#      become_user: hms-mirror
+#      shell: "/usr/local/hms-mirror/bin/hms-mirror --stop"
+
     - name: Check Directories
       file:
         path: /usr/local/hms-mirror/bin
@@ -86,4 +90,6 @@
         mode: 0755
         state: link
 
+#    - name: Start hms-mirror service
+#      shell: "sudo -u hms-mirror /usr/local/hms-mirror/bin/hms-mirror --service"
 

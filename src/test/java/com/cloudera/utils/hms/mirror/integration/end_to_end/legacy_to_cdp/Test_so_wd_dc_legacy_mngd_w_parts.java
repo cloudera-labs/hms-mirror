@@ -66,7 +66,7 @@ public class Test_so_wd_dc_legacy_mngd_w_parts extends E2EBaseTest {
 //        // Read the output and verify the results.
 //        DBMirror[] resultsMirrors = getResults(outputDir,LEGACY_MNGD_PARTS_01);
 //
-//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.CALCULATED_SQL);
 //
 //        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 3);
 //        validateTableLocation(resultsMirrors[0], "web_sales", Environment.RIGHT, "hdfs://HOME90/apps/hive/warehouse/tpcds_bin_partitioned_orc_10.db/web_sales");
@@ -86,7 +86,7 @@ public class Test_so_wd_dc_legacy_mngd_w_parts extends E2EBaseTest {
 
     @Test
     public void phaseTest_01() {
-        validatePhase("tpcds_bin_partitioned_orc_10", "web_sales", PhaseState.SUCCESS);
+        validatePhase("tpcds_bin_partitioned_orc_10", "web_sales", PhaseState.CALCULATED_SQL);
     }
 
     @Test

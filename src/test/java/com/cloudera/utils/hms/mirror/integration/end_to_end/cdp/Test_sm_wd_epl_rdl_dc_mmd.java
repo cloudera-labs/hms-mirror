@@ -76,7 +76,7 @@ public class Test_sm_wd_epl_rdl_dc_mmd extends E2EBaseTest {
 //        // Read the output and verify the results.
 //        DBMirror[] resultsMirrors = getResults(outputDir, EXT_PURGE_ODD_PARTS_03);
 //
-//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.CALCULATED_SQL);
 //
 //        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Alter Table Location",
 //                "ALTER TABLE web_sales SET LOCATION \"hdfs://HDP50/finance/external-fso/ext_purge_odd_parts.db/web_sales\"")) {
@@ -95,12 +95,19 @@ public class Test_sm_wd_epl_rdl_dc_mmd extends E2EBaseTest {
 
     @Test
     public void issueCountTest() {
-        validateTableIssueCount("ext_purge_odd_parts", "web_sales", Environment.LEFT, 2);
+        validateTableIssueCount("ext_purge_odd_parts", "web_sales", Environment.LEFT, 1);
     }
 
     @Test
+    public void errorTest() {
+        validateTableErrorCount("ext_purge_odd_parts", "web_sales",
+                Environment.LEFT, 1);
+    }
+
+
+    @Test
     public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.CALCULATED_SQL);
     }
 
     @Test

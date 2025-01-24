@@ -6,7 +6,7 @@ tableMirrors:
     dbName: "sm_orders"
     name: "mngd_order_item_orc"
     strategy: "STORAGE_MIGRATION"
-    phaseState: "SUCCESS"
+    phaseState: "CALCULATED_SQL"
     environments:
       SHADOW:
         name: null
@@ -125,7 +125,7 @@ tableMirrors:
     dbName: "sm_orders"
     name: "mngd_order_item_small_orc"
     strategy: "STORAGE_MIGRATION"
-    phaseState: "SUCCESS"
+    phaseState: "CALCULATED_SQL"
     environments:
       SHADOW:
         name: null
@@ -244,7 +244,7 @@ tableMirrors:
     dbName: "sm_orders"
     name: "mngd_order_orc"
     strategy: "STORAGE_MIGRATION"
-    phaseState: "SUCCESS"
+    phaseState: "CALCULATED_SQL"
     environments:
       SHADOW:
         name: null
@@ -360,7 +360,7 @@ tableMirrors:
     dbName: "sm_orders"
     name: "mngd_order_small_orc"
     strategy: "STORAGE_MIGRATION"
-    phaseState: "SUCCESS"
+    phaseState: "CALCULATED_SQL"
     environments:
       SHADOW:
         name: null
@@ -476,7 +476,7 @@ tableMirrors:
     dbName: "sm_orders"
     name: "order_item_orc"
     strategy: "STORAGE_MIGRATION"
-    phaseState: "SUCCESS"
+    phaseState: "CALCULATED_SQL"
     environments:
       SHADOW:
         name: null
@@ -602,7 +602,7 @@ tableMirrors:
     dbName: "sm_orders"
     name: "order_item_small_orc"
     strategy: "STORAGE_MIGRATION"
-    phaseState: "SUCCESS"
+    phaseState: "CALCULATED_SQL"
     environments:
       SHADOW:
         name: null
@@ -717,7 +717,7 @@ tableMirrors:
     dbName: "sm_orders"
     name: "order_orc"
     strategy: "STORAGE_MIGRATION"
-    phaseState: "SUCCESS"
+    phaseState: "CALCULATED_SQL"
     environments:
       SHADOW:
         name: null
@@ -829,7 +829,7 @@ tableMirrors:
     dbName: "sm_orders"
     name: "order_small_orc"
     strategy: "STORAGE_MIGRATION"
-    phaseState: "SUCCESS"
+    phaseState: "CALCULATED_SQL"
     environments:
       SHADOW:
         name: null
@@ -941,7 +941,7 @@ tableMirrors:
     dbName: "sm_orders"
     name: "order_src"
     strategy: "STORAGE_MIGRATION"
-    phaseState: "SUCCESS"
+    phaseState: "CALCULATED_SQL"
     environments:
       SHADOW:
         name: null

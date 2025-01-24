@@ -28,6 +28,7 @@ import com.cloudera.utils.hms.util.NamespaceUtils;
 import com.cloudera.utils.hms.util.TableUtils;
 import com.cloudera.utils.hms.util.UrlUtils;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -76,11 +77,19 @@ public class TranslatorService {
         return sbPartitionDetails.toString();
     }
 
-    /*
-    TODO: Need to ensure that an "EXTERNAL" location is set in EVERY entry in-order for this to work.
-     */
-    public String processGlobalLocationMap(String originalLocation, Boolean externalTable) {
+    @Getter
+    @Setter
+    public class GLMResult {
+        private boolean mapped = Boolean.FALSE;
+        private String originalDir;
+        private String mappedDir;
+    }
+
+    public GLMResult processGlobalLocationMap(String originalLocation, Boolean externalTable) {
         // Set to original, so we capture the original location if we don't find a match.
+        GLMResult glmResult = new GLMResult();
+        glmResult.setOriginalDir(originalLocation);
+
         String newLocation = originalLocation;
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
@@ -93,10 +102,12 @@ public class TranslatorService {
                     if (externalTable) {
                         rLoc = rLocMap.get(TableType.EXTERNAL_TABLE);
                         newLocation = rLoc + originalLocation.replace(key, "");
+                        glmResult.setMapped(Boolean.TRUE);
                     } else {
                         rLoc = rLocMap.get(TableType.MANAGED_TABLE);
                         if (nonNull(rLoc)) {
                             newLocation = rLoc + originalLocation.replace(key, "");
+                            glmResult.setMapped(Boolean.TRUE);
                         }
                     }
                     log.info("Location Map Found. {}:{} New Location: {}", key, rLoc, newLocation);
@@ -104,7 +115,8 @@ public class TranslatorService {
                 }
             }
         }
-        return newLocation;
+        glmResult.setMappedDir(newLocation);
+        return glmResult;
     }
 
     public Boolean translatePartitionLocations(TableMirror tblMirror) throws RequiredConfigurationException, MissingDataPointException, MismatchException {
@@ -180,10 +192,11 @@ public class TranslatorService {
 //        String targetDatabaseDir = targetDatabase + ".db";
 
         // Check the Global Location Map for a match.
-        String mappedDir = processGlobalLocationMap(relativeDir, TableUtils.isExternal(ret));
+        GLMResult glmMapping = processGlobalLocationMap(relativeDir, TableUtils.isExternal(ret));
+//        String mappedDir = processGlobalLocationMap(relativeDir, TableUtils.isExternal(ret));
         // If they don't match, it was reMapped!
-        boolean reMapped = !relativeDir.equals(mappedDir);
-        if (reMapped) {
+//        boolean reMapped = !relativeDir.equals(mappedDir);
+        if (glmMapping.isMapped()) {
             tableMirror.setReMapped(Boolean.TRUE);
         } else {
 
@@ -220,29 +233,32 @@ public class TranslatorService {
         String newLocation = null;
         StringBuilder sbDir = new StringBuilder();
 
-        sbDir.append(targetNamespace);
-
         Warehouse warehouse = warehouseService.getWarehousePlan(originalDatabase);
         EnvironmentTable checkEnvTbl = tableMirror.getEnvironmentTable(Environment.RIGHT);
 
-        if (reMapped) {
-            sbDir.append(mappedDir);
+        if (glmMapping.isMapped()) {
+            sbDir.append(targetNamespace);
+            sbDir.append(glmMapping.getMappedDir());
         } else if (config.getTransfer().getStorageMigration().getTranslationType() == TranslationTypeEnum.ALIGNED) {
             if (isNull(checkEnvTbl) || checkEnvTbl.getDefinition().isEmpty()) {
                 checkEnvTbl = tableMirror.getEnvironmentTable(Environment.LEFT);
             }
             if (TableUtils.isManaged(checkEnvTbl)) {
                 if (tableMirror.getParent().getProperty(Environment.RIGHT, DB_MANAGED_LOCATION) != null) {
+                    // Assumed that the location here has the appropriate namespace.
                     sbDir.append(tableMirror.getParent().getProperty(Environment.RIGHT, DB_MANAGED_LOCATION));
                 } else {
+                    sbDir.append(targetNamespace);
                     sbDir.append(warehouse.getManagedDirectory());
                     sbDir.append("/");
                     sbDir.append(targetDatabaseManagedDir);
                 }
             } else if (TableUtils.isExternal(checkEnvTbl)) {
                 if (tableMirror.getParent().getProperty(Environment.RIGHT, DB_LOCATION) != null) {
+                    // Assumed that the location here has the appropriate namespace.
                     sbDir.append(tableMirror.getParent().getProperty(Environment.RIGHT, DB_LOCATION));
                 } else {
+                    sbDir.append(targetNamespace);
                     sbDir.append(warehouse.getExternalDirectory());
                     sbDir.append("/");
                     sbDir.append(targetDatabaseManagedDir);
@@ -264,6 +280,7 @@ public class TranslatorService {
                 case DUMP:
                 case STORAGE_MIGRATION:
                 case CONVERT_LINKED:
+                    sbDir.append(targetNamespace);
                     relativeDir = relativeDir.replace(originalDatabase, targetDatabase);
                     sbDir.append(relativeDir);
                     break;
@@ -275,6 +292,10 @@ public class TranslatorService {
             }
         }
         newLocation = sbDir.toString();
+        if (glmMapping.isMapped()) {
+            tableMirror.addIssue(Environment.RIGHT, "GLM applied.  Original Location: " +
+                    glmMapping.getOriginalDir() + " Mapped Location: " + glmMapping.getMappedDir());
+        }
         // Check and warn against table location (for external tables) not aligning with the
         //   set db location.
         String testRelativeDir = NamespaceUtils.stripNamespace(newLocation);

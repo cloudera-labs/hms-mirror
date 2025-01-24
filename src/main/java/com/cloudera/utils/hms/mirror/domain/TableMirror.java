@@ -102,6 +102,13 @@ public class TableMirror {
         }
     }
 
+    public void addError(Environment environment, String issue) {
+        if (!isBlank(issue)) {
+            String scrubbedIssue = issue.replace("\n", "<br/>");
+            getErrors(environment).add(scrubbedIssue);
+        }
+    }
+
     public void addStep(String key, Object value) {
         Date now = new Date();
         Long elapsed = now.getTime() - start.getTime();
@@ -148,6 +155,10 @@ public class TableMirror {
 
     public List<String> getIssues(Environment environment) {
         return getEnvironmentTable(environment).getIssues();
+    }
+
+    public List<String> getErrors(Environment environment) {
+        return getEnvironmentTable(environment).getErrors();
     }
 
     public String getName(Environment environment) {
@@ -224,6 +235,17 @@ public class TableMirror {
         boolean rtn = Boolean.FALSE;
         for (Map.Entry<Environment, EnvironmentTable> entry : getEnvironments().entrySet()) {
             if (!entry.getValue().getIssues().isEmpty()) {
+                rtn = Boolean.TRUE;
+                break;
+            }
+        }
+        return rtn;
+    }
+
+    public boolean hasErrors() {
+        boolean rtn = Boolean.FALSE;
+        for (Map.Entry<Environment, EnvironmentTable> entry : getEnvironments().entrySet()) {
+            if (!entry.getValue().getErrors().isEmpty()) {
                 rtn = Boolean.TRUE;
                 break;
             }

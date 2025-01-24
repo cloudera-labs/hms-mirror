@@ -70,6 +70,7 @@ public class Test_so_is extends E2EBaseTest {
         // Verify the return code.
         long expected = getCheckCode(
                 MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS,
+                MessageCode.BUILDING_DATABASES_ISSUE,
                 MessageCode.DATABASE_CREATION);
 
         assertEquals("Return Code Failure: ", expected, actual);

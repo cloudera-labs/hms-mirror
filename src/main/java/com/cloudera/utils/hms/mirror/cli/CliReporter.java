@@ -207,6 +207,7 @@ public class CliReporter {
 
         varMap.put("report.file", outputDir + FileSystems.getDefault().getSeparator() + "<db>_hms-mirror.md|html|yaml");
         varMap.put("left.execute.file", outputDir + FileSystems.getDefault().getSeparator() + "<db>_LEFT_execute.sql");
+
         varMap.put("left.cleanup.file", outputDir + FileSystems.getDefault().getSeparator() + "<db>_LEFT_CleanUp_execute.sql");
         varMap.put("right.execute.file", outputDir + FileSystems.getDefault().getSeparator() + "<db>_RIGHT_execute.sql");
         varMap.put("right.cleanup.file", outputDir + FileSystems.getDefault().getSeparator() + "<db>_RIGHT_CleanUp_execute.sql");
@@ -230,11 +231,11 @@ public class CliReporter {
                 switch (dbMirror.getTable(tbl).getPhaseState()) {
                     case INIT:
                         break;
-                    case STARTED:
+                    case CALCULATING_SQL:
                         started++;
                         startedTables.add(dbMirror.getTable(tbl));
                         break;
-                    case SUCCESS:
+                    case CALCULATED_SQL:
                         completed++;
                         break;
                     case ERROR:

@@ -73,6 +73,7 @@ public class Test_ei_rdl extends E2EBaseTest {
         // Verify the return code.
         long expected = getCheckCode(
                 MessageCode.DATABASE_CREATION,
+                MessageCode.BUILDING_DATABASES_ISSUE,
                 MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS);
 
         assertEquals("Return Code Failure: ", expected, actual);

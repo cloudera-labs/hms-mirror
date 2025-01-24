@@ -125,7 +125,7 @@ public class DumpDataStrategy extends DataStrategyBase implements DataStrategy {
     }
 
     @Override
-    public Boolean execute(TableMirror tableMirror) {
+    public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
 
         rtn = buildOutDefinition(tableMirror);
@@ -135,11 +135,17 @@ public class DumpDataStrategy extends DataStrategyBase implements DataStrategy {
             } catch (MissingDataPointException e) {
                 EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
                 log.error("Table: {} Missing Data Point: {}", let.getName(), e.getMessage());
-                let.addIssue("Failed to build out SQL: " + e.getMessage());
+                let.addError("Failed to build out SQL: " + e.getMessage());
                 rtn = Boolean.FALSE;
             }
         }
         return rtn;
+    }
+
+    @Override
+    public Boolean execute(TableMirror tableMirror) {
+        // No Action to perform.
+        return Boolean.TRUE;
     }
 
     @Autowired

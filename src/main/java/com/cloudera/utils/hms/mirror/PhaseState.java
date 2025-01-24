@@ -18,8 +18,11 @@
 package com.cloudera.utils.hms.mirror;
 
 public enum PhaseState {
-    INIT, STARTED, ERROR,
-    SUCCESS,
-    // This happens on RETRY only when it was previously SUCCESS.
+    INIT, CALCULATING_SQL, ERROR,
+    CALCULATED_SQL, APPLYING_SQL, PROCESSED,
+    @Deprecated
+    SUCCESS, // No longer used, but left in to handle reprocessing of historical runs.
+    CALCULATED_SQL_WARNING,
+    // This happens on RETRY only when it was previously CALCULATED_SQL.
     RETRY_SKIPPED_PAST_SUCCESS
 }

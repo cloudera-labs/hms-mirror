@@ -78,7 +78,7 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
 
     private String reportName;
     private String appVersion;
-
+    private ProgressEnum progress = ProgressEnum.INITIALIZED;
 
     public void clearErrors() {
         if (nonNull(errors)) {
@@ -147,33 +147,32 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
         return 0;
     }
 
-    @JsonIgnore
-    public ProgressEnum getProgress() {
-        // If the task is still running, then the progress is still in progress.
-        ProgressEnum rtn = ProgressEnum.INITIALIZED;
-        if (nonNull(runningTask)) {
-            if (runningTask.isCancelled()) {
-                rtn = ProgressEnum.CANCELLED;
-            } else if (!runningTask.isDone()) {
-                rtn = ProgressEnum.IN_PROGRESS;
-            } else if (runningTask.isDone()) {
-                // Don't attempt to get the result until the task is done.
-                //     or else it will block.
-                try {
-                    if (runningTask.get()) {
-                        rtn = ProgressEnum.COMPLETED;
-                    } else {
-                        rtn = ProgressEnum.FAILED;
-                    }
-                } catch (InterruptedException | ExecutionException e) {
-                    //throw new RuntimeException(e);
-                }
-            }
-        } else {
-            rtn = ProgressEnum.INITIALIZED;
-        }
-        return rtn;
-    }
+//    public ProgressEnum getDynamicProgress() {
+//        // If the task is still running, then the progress is still in progress.
+//        progress = ProgressEnum.INITIALIZED;
+//        if (nonNull(runningTask)) {
+//            if (runningTask.isCancelled()) {
+//                progress = ProgressEnum.CANCELLED;
+//            } else if (!runningTask.isDone()) {
+//                progress = ProgressEnum.IN_PROGRESS;
+//            } else if (runningTask.isDone()) {
+//                // Don't attempt to get the result until the task is done.
+//                //     or else it will block.
+//                try {
+//                    if (runningTask.get()) {
+//                        progress = ProgressEnum.COMPLETED;
+//                    } else {
+//                        progress = ProgressEnum.FAILED;
+//                    }
+//                } catch (InterruptedException | ExecutionException e) {
+//                    //throw new RuntimeException(e);
+//                }
+//            }
+////        } else {
+////            progress = ProgressEnum.INITIALIZED;
+//        }
+//        return progress;
+//    }
 
     public RunStatus() {
         for (StageEnum stage : StageEnum.values()) {

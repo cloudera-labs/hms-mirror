@@ -60,12 +60,12 @@ public class Test_sm_ma_parts_epl_dc extends E2EBaseTest {
     @Test
     public void issueTest() {
         validateTableIssueCount("assort_test_db", "acid_03",
-                Environment.RIGHT, 0);
+                Environment.RIGHT, 201);
     }
 
     @Test
     public void phaseTest() {
-        validatePhase("assort_test_db", "acid_03", PhaseState.SUCCESS);
+        validatePhase("assort_test_db", "acid_03", PhaseState.CALCULATED_SQL);
     }
 
     @Test

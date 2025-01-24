@@ -258,6 +258,15 @@ public class E2EBaseTest {
                 .getTableMirrors().get(tableName).getEnvironmentTable(environment).getIssues().size());
     }
 
+    protected void validateTableErrorCount(String database, String tableName, Environment environment, int expectedErrorCount) {
+        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
+        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().containsKey(tableName));
+        assertTrue("Environment doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment));
+        assertEquals("Error count doesn't match", expectedErrorCount, getConversion().getDatabase(database)
+                .getTableMirrors().get(tableName).getEnvironmentTable(environment).getErrors().size());
+    }
+
+
     protected void validateTableLocation(String database, String tableName, Environment environment, String expectedLocation) {
         assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
         assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().containsKey(tableName));

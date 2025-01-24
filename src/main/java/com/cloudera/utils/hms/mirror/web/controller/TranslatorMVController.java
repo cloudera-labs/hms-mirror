@@ -108,6 +108,7 @@ public class TranslatorMVController {
         return "redirect:/config/view";
     }
 
+    // TODO: Should this be removed?
     @RequestMapping(method = RequestMethod.POST, value = "/globalLocationMap/build")
     public String buildGLMFromPlans(Model model,
                                     @RequestParam(name = GLM_DRYRUN, required = false) Boolean dryrun,

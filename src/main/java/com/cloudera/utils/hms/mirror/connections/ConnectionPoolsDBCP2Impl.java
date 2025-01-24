@@ -24,6 +24,7 @@ import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
 import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import com.cloudera.utils.hms.mirror.service.PasswordService;
+import com.cloudera.utils.hms.util.ConfigUtils;
 import com.cloudera.utils.hms.util.DriverUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.*;
@@ -35,6 +36,8 @@ import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -78,6 +81,14 @@ public class ConnectionPoolsDBCP2Impl extends ConnectionPoolsBase implements Con
                         new GenericObjectPool<>(poolableConnectionFactory);
 
                 poolableConnectionFactory.setPool(connectionPool);
+                // Get any queue overrides and set in the init sql.
+                String queueOverride = ConfigUtils.getQueuePropertyOverride(environment, executeSession.getConfig());
+                List<String> queueOverrides = new ArrayList<>();
+                if (queueOverride != null) {
+                    queueOverrides.add(queueOverride);
+                    poolableConnectionFactory.setConnectionInitSql(queueOverrides);
+                }
+                poolableConnectionFactory.setValidationQuery("SELECT 1");
 
                 PoolingDataSource<PoolableConnection> poolingDatasource = new PoolingDataSource<>(connectionPool);
 //            poolingDatasource.setLoginTimeout(10);

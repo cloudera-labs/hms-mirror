@@ -24,6 +24,7 @@ import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
 import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import com.cloudera.utils.hms.mirror.service.PasswordService;
+import com.cloudera.utils.hms.util.ConfigUtils;
 import com.cloudera.utils.hms.util.DriverUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -52,6 +53,8 @@ public class ConnectionPoolsHikariImpl extends ConnectionPoolsBase implements Co
 
         for (Environment environment : environments) {
             HiveServer2Config hs2Config = hiveServerConfigs.get(environment);
+
+
             if (!hs2Config.isDisconnected()) {
 
                 Driver lclDriver = getHS2EnvironmentDriver(environment);
@@ -64,6 +67,13 @@ public class ConnectionPoolsHikariImpl extends ConnectionPoolsBase implements Co
                                 // Need with Apache Hive Driver, since it doesn't support
                                 //      Connection.isValid() api (JDBC4) and prevents Hikari-CP from attempting to call it.
                                 props.put("connectionTestQuery", "SELECT 1");
+                            }
+
+                            // We need to review any property overrides for the environment to see
+                            //   if they're trying to set the queue. EG tez.queue.name or mapred.job.queue.name
+                            String queueOverride = ConfigUtils.getQueuePropertyOverride(environment, executeSession.getConfig());
+                            if (queueOverride != null) {
+                                props.put("connectionInitSql", queueOverride);
                             }
 
                             // Make a copy.
@@ -86,9 +96,9 @@ public class ConnectionPoolsHikariImpl extends ConnectionPoolsBase implements Co
                             HikariDataSource poolingDatasource = new HikariDataSource(config);
 
                             hs2DataSources.put(environment, poolingDatasource);
-//                        } catch (Throwable se) {
-//                            log.error(se.getMessage(), se);
-//                            throw new RuntimeException(se);
+                        } catch (Throwable se) {
+                            log.error(se.getMessage(), se);
+                            throw new RuntimeException(se);
                         } finally {
                             DriverManager.deregisterDriver(lclDriver);
                         }

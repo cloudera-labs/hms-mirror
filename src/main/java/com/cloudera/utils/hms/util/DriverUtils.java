@@ -19,6 +19,7 @@ package com.cloudera.utils.hms.util;
 
 import com.cloudera.utils.hms.mirror.domain.HiveServer2Config;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -41,7 +42,7 @@ public class DriverUtils {
     // This is a shim process that allows us to load a Hive Driver from
     // a jar File, via a new ClassLoader.
     @SuppressWarnings("unchecked")
-    public static Driver getDriver(HiveServer2Config hs2Config, Environment environment) {
+    public static Driver getDriver(HiveServer2Config hs2Config, Environment environment) throws SessionException {
         Driver hiveShim = null;
         try {
             String jarFile = hs2Config.getJarFile();
@@ -53,7 +54,7 @@ public class DriverUtils {
                     jarFiles[i] = new File(files[i]);
                     if (!jarFiles[i].exists()) {
                         log.error("Jarfile: " + files[i] + " can't be located.");
-//                        throw new RuntimeException("Jarfile: " + files[i] + " can't be located.");
+                        throw new SessionException("Jarfile: " + files[i] + " can't be located.");
                     }
                     urls[i] = jarFiles[i].toURI().toURL();
                 }

@@ -18,6 +18,7 @@
 package com.cloudera.utils.hms.mirror.web.controller;
 
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
+import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
 import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.validation.constraints.NotNull;
+import java.net.URISyntaxException;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -81,12 +83,13 @@ public class WarehouseMVController {
     }
 
     @RequestMapping(value = "/plan/add", method = RequestMethod.GET)
-    public String addWarehousePlan(Model model) throws SQLException, SessionException, EncryptionException {
-        if (executeSessionService.startSession(1)
-                && configService.validateForConnections(executeSessionService.getSession())) {
-            if (!connectionPoolService.isConnected()) {
-                connectionPoolService.init();
-            }
+    public String addWarehousePlan(Model model) throws SQLException, SessionException, URISyntaxException,
+            EncryptionException {
+        // Set this incase it wasn't set yet.
+        ExecuteSession session = executeSessionService.getSession();
+        connectionPoolService.setExecuteSession(session);
+
+        if (connectionPoolService.init()) {
 
             List<String> availableDatabases = databaseService.listAvailableDatabases(Environment.LEFT);
             model.addAttribute(AVAILABLE_DATABASES, availableDatabases);

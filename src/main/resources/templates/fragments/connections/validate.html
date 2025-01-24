@@ -37,6 +37,7 @@
                 <th style="width: 20%" th:text="#{connection}"/>
                 <th style="width: 20%" th:text="#{connection.endpoint}"/>
                 <th style="width: 20%" th:text="#{connection.status}"/>
+                <th style="width: 20%" th:text="#{connection.properties}"/>
                 <th style="width: 60%" th:text="#{connection.message}"/>
             </tr>
             <tr>
@@ -49,6 +50,7 @@
                     <td th:text="#{__${key}__.namespace}"/>
                     <td th:text="${CONNECTIONS_STATUS.getNamespaces().get(key).endpoint}"/>
                     <td th:text="${CONNECTIONS_STATUS.getNamespaces().get(key).status}"/>
+                    <td/>
                     <td th:text="${CONNECTIONS_STATUS.getNamespaces().get(key).message}"/>
                 </tr>
             </th:block>
@@ -60,8 +62,11 @@
             <th:block th:each="key: ${CONNECTIONS_STATUS.getHiveServer2Connections().keySet()}">
                 <tr>
                     <td th:text="#{__${key}__.hs2}"/>
-                    <td th:text="${CONNECTIONS_STATUS.getHiveServer2Connections().get(key).endpoint}"/>
+                    <td>
+                        <pre th:text="${CONNECTIONS_STATUS.getHiveServer2Connections().get(key).endpoint}"/>
+                    </td>
                     <td th:text="${CONNECTIONS_STATUS.getHiveServer2Connections().get(key).status}"/>
+                    <td th:text="${CONNECTIONS_STATUS.getHiveServer2Connections().get(key).properties}"/>
                     <td th:text="${CONNECTIONS_STATUS.getHiveServer2Connections().get(key).message}"/>
                 </tr>
             </th:block>
@@ -75,6 +80,7 @@
                     <td th:text="#{__${key}__.metastore}"/>
                     <td th:text="${CONNECTIONS_STATUS.getMetastoreDirectConnections().get(key).endpoint}"/>
                     <td th:text="${CONNECTIONS_STATUS.getMetastoreDirectConnections().get(key).status}"/>
+                    <td/>
                     <td th:text="${CONNECTIONS_STATUS.getMetastoreDirectConnections().get(key).message}"/>
                 </tr>
             </th:block>

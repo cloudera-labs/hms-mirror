@@ -17,6 +17,7 @@
 
 package com.cloudera.utils.hms;
 
+import com.cloudera.utils.hms.mirror.cli.HmsMirrorCommandLineOptions;
 import com.cloudera.utils.hms.mirror.cli.HmsMirrorCommandLineOptionsEnum;
 import org.junit.Test;
 
@@ -46,4 +47,21 @@ public class CommandLineOptionsTest {
         }
         System.out.println(sb);
     }
+
+    @Test
+    public void testDuplicateEntriesforEWD() {
+        HmsMirrorCommandLineOptions options = new HmsMirrorCommandLineOptions();
+
+        String[] args = new String[] {
+                "-db", "mytestdb",
+                "-ewd", "/warehouse/tablespace/external/hive",
+                "-ewd", "/apps/hive/warehouse" };
+
+        String[] springOptions = options.toSpringBootOption(Boolean.FALSE, args);
+
+        for (String springOption : springOptions) {
+            System.out.println(springOption);
+        }
+    }
+
 }

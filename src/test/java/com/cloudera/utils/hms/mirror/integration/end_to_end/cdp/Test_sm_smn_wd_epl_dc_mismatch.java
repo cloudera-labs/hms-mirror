@@ -49,7 +49,7 @@ FIXED:1. when namespace in table doesn't match the namespace specified in the hc
     - This should result in an error and warnings about why this didn't work.
 
 TODO: We need to fix the return code to be negative on Errors and Positive on 'table' conversion failures
-        but success app run.
+        but mapped app run.
  */
 public class Test_sm_smn_wd_epl_dc_mismatch extends E2EBaseTest {
 
@@ -85,12 +85,32 @@ public class Test_sm_smn_wd_epl_dc_mismatch extends E2EBaseTest {
 
     @Test
     public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.CALCULATED_SQL);
     }
 
     @Test
-    public void issueTest() {
+    public void issueLeftTest() {
         validateTableIssueCount("ext_purge_odd_parts", "web_sales",
-                Environment.LEFT, 2);
+                Environment.LEFT, 1);
     }
+
+    @Test
+    public void errorLeftTest() {
+        validateTableErrorCount("ext_purge_odd_parts", "web_sales",
+                Environment.LEFT, 1);
+    }
+
+    @Test
+    public void issueRightTest() {
+        validateTableIssueCount("ext_purge_odd_parts", "web_sales",
+                Environment.RIGHT, 17);
+    }
+
+    @Test
+    public void errorRightTest() {
+        validateTableErrorCount("ext_purge_odd_parts", "web_sales",
+                Environment.RIGHT, 1);
+    }
+
+
 }

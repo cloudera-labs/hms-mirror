@@ -67,13 +67,19 @@ public class Test_sm_smn_wd_epl_dc extends E2EBaseTest {
 
     @Test
     public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.CALCULATED_SQL);
     }
 
     @Test
     public void issueTest() {
         validateTableIssueCount("ext_purge_odd_parts", "web_sales",
-                Environment.LEFT, 2);
+                Environment.LEFT, 1);
+    }
+
+    @Test
+    public void errorTest() {
+        validateTableErrorCount("ext_purge_odd_parts", "web_sales",
+                Environment.LEFT, 1);
     }
 
 }

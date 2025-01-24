@@ -24,32 +24,53 @@
     <link rel="stylesheet" type="text/css" th:href="@{/css/grids-responsive.css}">
     <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
     <link rel="stylesheet" type="text/css" th:href="@{/css/report.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
 </head>
 <body>
 <div class="pure-g">
     <div class="pure-u-1">
         <h2 th:text="#{detailed.database.report(${DB_MIRROR.name})}"/>
-        <h4 th:text="#{report.id(${REPORT_ID})}"/>
-        <hr>
-        <b th:if="${RUN_STATUS != null && RUN_STATUS.appVersion != null}"
-           th:text="#{version(${RUN_STATUS.appVersion})}"/>
-        <br/>
-        <b th:if="${RUN_STATUS != null}"
-           th:text="#{job.runtime(${RUN_STATUS.getRuntimeMS()})}"/>
-        <br/>
+
+        <table class="pure-table pure-table-bordered pure-table-striped">
+            <thead>
+            <tr>
+                <th th:text="#{runtime.status}"/>
+                <th th:text="#{report.id}"/>
+                <th th:text="#{version}"/>
+                <th th:text="#{job.runtime}"/>
+
+            </tr>
+            </thead>
+            <tr>
+                <td th:text="${RUN_STATUS.progress}"/>
+                <td th:text="${REPORT_ID}"/>
+                <td th:text="${RUN_STATUS.appVersion}"/>
+                <td th:text="${RUN_STATUS.getRuntimeMS()}"/>
+            </tr>
+        </table>
     </div>
 
-    <fieldset>
-        <legend th:text="#{messages.basic}"/>
-        <div class="pure-u-1" th:insert="fragments/messages::view">
-        </div>
-    </fieldset>
+    <hr>
 
+    <div class="pure-u-1">
+        <fieldset>
+            <legend th:text="#{messages.basic}"/>
+            <div th:insert="fragments/messages::view">
+            </div>
+        </fieldset>
+    </div>
+
+    <br/>
+
+    <div class="pure-u-1">
     <fieldset>
         <legend th:text="#{config}"/>
-        <div class="pure-u-1" th:insert="reports/fileview::view">
+        <div th:insert="reports/fileview::view">
         </div>
     </fieldset>
+    </div>
+
+    <br/>
 
     <div class="pure-u-1">
         <fieldset>
@@ -57,19 +78,23 @@
             <!--        <h3 th:text="#{database.details}"/>-->
 
             <!--            Summary Statistics for the Database-->
-            <div class="pure-u-1-2" th:unless="${DB_MIRROR.environmentStatistics.isEmpty()}">
+            <div class="pure-u-2-5" th:unless="${DB_MIRROR.environmentStatistics.isEmpty()}">
                 <fieldset>
                     <legend th:text="#{database.stats}"/>
 
                     <table class="pure-table pure-table-bordered pure-table-striped">
+                        <thead>
                         <tr>
                             <th th:text="#{description}"/>
                             <th th:text="#{value}"/>
                         </tr>
+                        </thead>
                         <th:block th:each="env: ${DB_MIRROR.environmentStatistics.keySet()}">
+                            <thead>
                             <tr>
-                                <td th:text="${env}" colspan="2"/>
+                                <th th:text="${env}" colspan="2"/>
                             </tr>
+                            </thead>
                             <th:block th:each="stat: ${DB_MIRROR.environmentStatistics.get(env)}">
                                 <tr>
                                     <td th:text="${stat.key}"/>
@@ -80,17 +105,48 @@
                     </table>
                 </fieldset>
             </div>
-            <div class="pure-u-1-2" th:unless="${DB_MIRROR.issues.size() == 0}">
+            <div class="pure-u-2-5" th:unless="${DB_MIRROR.issues.size() == 0}">
                 <th:block th:each="env: ${DB_MIRROR.issues}">
                     <div th:if="${DB_MIRROR.issues[env.key].size() > 0}">
-                        <h4 th:text="#{database.issues(${env.key})}"/>
-                        <ul>
-                            <th:block th:each="issue: ${DB_MIRROR.issues[env.key]}">
-                                <li th:text="${issue}"/>
-                            </th:block>
-                        </ul>
+                        <fieldset>
+                            <legend th:text="#{database.issues(${env.key})}"/>
+                            <ul>
+                                <th:block th:each="issue: ${DB_MIRROR.issues[env.key]}">
+                                    <li th:text="${issue}"/>
+                                </th:block>
+                            </ul>
+                        </fieldset>
                     </div>
                 </th:block>
+            </div>
+            <div class="pure-u-3-4" th:unless="${DB_MIRROR.problemSQL.isEmpty()}">
+                <fieldset>
+                    <legend th:text="#{database.problem.sql}"/>
+
+                    <table class="pure-table pure-table-bordered pure-table-striped">
+                        <thead>
+                        <tr>
+                            <th th:text="#{sql}"/>
+                            <th th:text="#{reason}"/>
+                        </tr>
+                        </thead>
+                        <th:block th:each="env: ${DB_MIRROR.problemSQL.keySet()}">
+                            <thead>
+                            <tr>
+                                <th th:text="${env}" colspan="2"/>
+                            </tr>
+                            </thead>
+                            <th:block th:each="stat: ${DB_MIRROR.problemSQL.get(env)}">
+                                <tr>
+                                    <td>
+                                        <pre th:text="${stat.key}"/>
+                                    </td>
+                                    <td th:text="${stat.value}"/>
+                                </tr>
+                            </th:block>
+                        </th:block>
+                    </table>
+                </fieldset>
             </div>
             <div class="pure-u-1">
 
@@ -201,6 +257,7 @@
                                         </div>
                                         <!--                        <td>-->
                                         <th:block th:each="env: ${table.value.environments.keySet()}">
+                                            <!--  Added Table Properties -->
                                             <fieldset
                                                     th:if="${('LEFT RIGHT').contains(env.toString()) && !table.value.environments.get(env).addProperties.isEmpty()}">
                                                 <legend th:text="#{table.added.properties(${env})}"/>
@@ -232,10 +289,18 @@
                                     <td>
                                         <th:block th:each="env: ${table.value.environments.keySet()}">
                                             <fieldset
-                                                    th:if="${('LEFT RIGHT').contains(env.toString()) && !table.value.environments.get(env).issues.isEmpty()}">
+                                                    th:if="${('LEFT RIGHT').contains(env.toString()) && (!table.value.environments.get(env).issues.isEmpty() || !table.value.environments.get(env).errors.isEmpty())}">
                                                 <legend th:text="${env}"/>
                                                 <th:block th:each="issue: ${table.value.environments.get(env).issues}">
                                                     <p th:text="${'# ' + issue}">
+                                                </th:block>
+                                                <th:block th:if="${table.value.environments.get(env).errors.size() > 0}">
+                                                    <h3 th:text="#{errors}"/>
+                                                    <ul>
+                                                    <th:block th:each="error: ${table.value.environments.get(env).errors}">
+                                                        <li th:text="${error}"/>
+                                                    </th:block>
+                                                    </ul>
                                                 </th:block>
                                             </fieldset>
                                         </th:block>

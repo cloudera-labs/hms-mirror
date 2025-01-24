@@ -30,6 +30,7 @@ import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.StatsCalculatorService;
 import com.cloudera.utils.hms.mirror.service.TableService;
 import com.cloudera.utils.hms.mirror.service.TranslatorService;
+import com.cloudera.utils.hms.util.ConfigUtils;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -37,10 +38,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.Map;
 
-import static com.cloudera.utils.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION;
-import static com.cloudera.utils.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION_THRESHOLD;
+import static com.cloudera.utils.hms.mirror.SessionVars.*;
 import static com.cloudera.utils.hms.mirror.TablePropertyVars.TRANSLATED_TO_EXTERNAL;
 
 @Component
@@ -127,17 +128,18 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
         let.addSql(TableUtils.USE_DESC, useDb);
         // Set Override Properties.
         // Get the LEFT overrides for the DOWNGRADE.
-        Map<String, String> overrides = hmsMirrorConfig.getOptimization().getOverrides().getFor(Environment.LEFT);
-        if (!overrides.isEmpty()) {
-            for (String key : overrides.keySet()) {
-                let.addSql("Setting " + key, "set " + key + "=" + overrides.get(key));
+        List<String> overrides = ConfigUtils.getPropertyOverridesFor(Environment.LEFT, hmsMirrorConfig);
+//        Map<String, String> overrides = hmsMirrorConfig.getOptimization().getOverrides().getFor(Environment.LEFT);
+//        if (!overrides.isEmpty()) {
+            for (String setCmd : overrides) {
+                let.addSql(setCmd, setCmd);
             }
-        }
+//        }
 
         if (let.getPartitioned()) {
             if (hmsMirrorConfig.getOptimization().isSkip()) {
                 if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
+                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE,SORT_DYNAMIC_PARTITION,"false"));
                 }
                 String partElement = TableUtils.getPartitionElements(let);
                 String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
@@ -146,9 +148,9 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
                 let.addSql(new Pair(transferDesc, transferSql));
             } else if (hmsMirrorConfig.getOptimization().isSortDynamicPartitionInserts()) {
                 if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
+                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE,SORT_DYNAMIC_PARTITION ,"true"));
                     if (!hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
-                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE,SORT_DYNAMIC_PARTITION_THRESHOLD ,"0"));
                     }
                 }
                 String partElement = TableUtils.getPartitionElements(let);
@@ -159,9 +161,9 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
             } else {
                 // Prescriptive Optimization.
                 if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
+                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE,SORT_DYNAMIC_PARTITION ,"false"));
                     if (!hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
-                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE,SORT_DYNAMIC_PARTITION_THRESHOLD ,"-1"));
                     }
                 }
 
@@ -184,7 +186,7 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
     }
 
     @Override
-    public Boolean execute(TableMirror tableMirror) {
+    public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.TRUE;
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
@@ -206,7 +208,7 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
         try {
             rtn = buildOutDefinition(tableMirror);//tableMirror.buildoutSQLACIDDowngradeInplaceDefinition(config, dbMirror);
         } catch (RequiredConfigurationException e) {
-            let.addIssue("Failed to build out definition: " + e.getMessage());
+            let.addError("Failed to build out definition: " + e.getMessage());
             rtn = Boolean.FALSE;
         }
 
@@ -216,7 +218,7 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
 
             // Check Partition Counts.
             if (let.getPartitioned() && let.getPartitions().size() > hmsMirrorConfig.getMigrateACID().getPartitionLimit()) {
-                let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the ACID SQL " +
+                let.addError("The number of partitions: " + let.getPartitions().size() + " exceeds the ACID SQL " +
                         "partition limit (migrateACID->partitionLimit) of " + hmsMirrorConfig.getMigrateACID().getPartitionLimit() +
                         ".  The queries will NOT be automatically run.");
                 rtn = Boolean.FALSE;
@@ -228,17 +230,22 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
             try {
                 rtn = buildOutSql(tableMirror);
             } catch (MissingDataPointException e) {
-                let.addIssue("Failed to build out SQL: " + e.getMessage());
+                let.addError("Failed to build out SQL: " + e.getMessage());
                 rtn = Boolean.FALSE;
             }
         }
 
         // run queries.
-        if (rtn) {
-            getTableService().runTableSql(tableMirror, Environment.LEFT);
-        }
+//        if (rtn) {
+//            getTableService().runTableSql(tableMirror, Environment.LEFT);
+//        }
 
         return rtn;
+    }
+
+    @Override
+    public Boolean execute(TableMirror tableMirror) {
+        return getTableService().runTableSql(tableMirror, Environment.LEFT);
     }
 
     @Autowired

@@ -44,6 +44,11 @@ public class AcidDataStrategy extends DataStrategyBase implements DataStrategy {
     }
 
     @Override
+    public Boolean build(TableMirror tableMirror) {
+        return null;
+    }
+
+    @Override
     public Boolean execute(TableMirror tableMirror) {
         return null;
     }

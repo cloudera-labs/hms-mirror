@@ -17,7 +17,9 @@
 
 package com.cloudera.utils.hms.mirror.web.service;
 
+import com.cloudera.utils.hms.mirror.MessageCode;
 import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
+import com.cloudera.utils.hms.mirror.domain.support.ProgressEnum;
 import com.cloudera.utils.hms.mirror.domain.support.RunStatus;
 import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
 import com.cloudera.utils.hms.mirror.exceptions.MismatchException;
@@ -73,30 +75,29 @@ public class RuntimeService {
     public RunStatus start(boolean dryrun, //boolean autoGLM,
                            Integer concurrency) throws RequiredConfigurationException, MismatchException, SessionException, EncryptionException {
         RunStatus runStatus = null;
-        ExecuteSession session = null;
+        ExecuteSession session = executeSessionService.getSession();
         if (executeSessionService.startSession(concurrency)) {
 
             session = executeSessionService.getSession();
-            configService.validate(session, executeSessionService.getCliEnvironment());
-
             runStatus = session.getRunStatus();
+//            if (configService.validate(session, executeSessionService.getCliEnvironment())) {
 
-//            rtn = configService.validate(session, executeSessionService.getCliEnvironment(), Boolean.FALSE);
-//             Set whether the config has been validated.
-//            session.getConfig().setValidated(rtn);
+                if (runStatus.reset()) {
+                    executeSessionService.getSession().getConfig().setExecute(!dryrun);
 
-            if (runStatus.reset()) {
-                executeSessionService.getSession().getConfig().setExecute(!dryrun);
+                    // Start job in a separate thread.
+                    Future<Boolean> runningTask = hmsMirrorAppService.run();
 
-                // Start job in a separate thread.
-                Future<Boolean> runningTask = hmsMirrorAppService.run();
-
-                // Set the running task reference in the RunStatus.
-                runStatus.setRunningTask(runningTask);
-            }
+                    // Set the running task reference in the RunStatus.
+                    runStatus.setRunningTask(runningTask);
+                }
+//            } else {
+//                runStatus.addError(MessageCode.CONFIG_INVALID);
+//                runStatus.setProgress(ProgressEnum.FAILED);
+//            }
         } else {
-            session = executeSessionService.getSession();
-            runStatus = session.getRunStatus();
+            throw new SessionException("Session is already running. " +
+                    "You can't start a new session while the current session is running.");
         }
         return runStatus;
     }

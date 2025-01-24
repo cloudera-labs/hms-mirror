@@ -22,14 +22,18 @@ public enum StageEnum {
     VALIDATING_CONFIG("Validating Configuration"),
     VALIDATE_CONNECTION_CONFIG("Validating Connection Configuration"),
     CONNECTION("Connecting to Endpoints"),
+//    CHECKING_ENGINE_RESOURCES("Checking Engine Resources"),
     GATHERING_DATABASES("Gathering Databases"),
     ENVIRONMENT_VARS("Retrieving Environment Variables"),
     DATABASES("Loading Databases"),
     TABLES("Loading Tables"),
     GLM_BUILD("Building GLM's from Sources"),
-    CREATE_DATABASES("Creating Databases"),
+    BUILDING_DATABASES("Building Databases"),
     LOAD_TABLE_METADATA("Loading Table Metadata"),
-    MIGRATE_TABLES("Migrating Tables"),
+    BUILDING_TABLES("Building Tables"),
+    VALIDATING_ENVIRONMENT_SETS("Validating 'SET' Statements"),
+    PROCESSING_DATABASES("Processing Databases"),
+    PROCESSING_TABLES("Processing (Executing) Tables"),
     SAVING_REPORTS("Saving Reports");
 
     private final String stage;

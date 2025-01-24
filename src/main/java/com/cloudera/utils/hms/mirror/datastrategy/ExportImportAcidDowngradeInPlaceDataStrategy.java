@@ -60,7 +60,7 @@ public class ExportImportAcidDowngradeInPlaceDataStrategy extends DataStrategyBa
     }
 
     @Override
-    public Boolean execute(TableMirror tableMirror) {
+    public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.TRUE;
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
@@ -76,7 +76,7 @@ public class ExportImportAcidDowngradeInPlaceDataStrategy extends DataStrategyBa
         try {
             rtn = getExportCircularResolveService().buildOutExportImportSql(tableMirror);
         } catch (MissingDataPointException e) {
-            let.addIssue("Failed to build out SQL: " + e.getMessage());
+            let.addError("Failed to build out SQL: " + e.getMessage());
             rtn = Boolean.FALSE;
         }
         if (rtn) {
@@ -86,7 +86,7 @@ public class ExportImportAcidDowngradeInPlaceDataStrategy extends DataStrategyBa
 
             // Check Partition Counts.
             if (let.getPartitioned() && let.getPartitions().size() > hmsMirrorConfig.getHybrid().getExportImportPartitionLimit()) {
-                let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the EXPORT_IMPORT " +
+                let.addError("The number of partitions: " + let.getPartitions().size() + " exceeds the EXPORT_IMPORT " +
                         "partition limit (hybrid->exportImportPartitionLimit) of " +
                         hmsMirrorConfig.getHybrid().getExportImportPartitionLimit() +
                         ".  The queries will NOT be automatically run.");
@@ -95,11 +95,16 @@ public class ExportImportAcidDowngradeInPlaceDataStrategy extends DataStrategyBa
         }
 
         // run queries.
-        if (rtn) {
-            getTableService().runTableSql(tableMirror, Environment.LEFT);
-        }
+//        if (rtn) {
+//            getTableService().runTableSql(tableMirror, Environment.LEFT);
+//        }
 
         return rtn;
+    }
+
+    @Override
+    public Boolean execute(TableMirror tableMirror) {
+        return getTableService().runTableSql(tableMirror, Environment.LEFT);
     }
 
     @Autowired

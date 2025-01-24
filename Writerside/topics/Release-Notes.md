@@ -10,6 +10,20 @@ The latest set of enhancement requests can be found [here](https://github.com/cl
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 2.3.0.4
+
+**What's New**
+BETA Iceberg conversion support for the STORAGE_MIGRATION data strategy. See [Iceberg Conversion](hms-mirror-iceberg_migration.md) for more details.
+
+**Bugs (Fixed)**
+[Add to connection init the ability to set the queue AND trigger an engine resource](https://github.com/cloudera-labs/hms-mirror/issues/173)
+[https://github.com/cloudera-labs/hms-mirror/issues/168
+Validate SQL elements before making changes to the Cluster](https://github.com/cloudera-labs/hms-mirror/issues/168)
+[Extend the HS2 connection validation with Tez task validation](https://github.com/cloudera-labs/hms-mirror/issues/167)
+[The reset-to-default-location doesn't seem to be working in v2](https://github.com/cloudera-labs/hms-mirror/issues/165)
+
+
+
 ## 2.2.0.19.6 (pre-release)
 
 **What's New**

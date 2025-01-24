@@ -28,7 +28,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import static com.cloudera.utils.hms.mirror.MessageCode.STORAGE_MIGRATION_NAMESPACE_LEFT_MISSING_RDL_GLM;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
@@ -73,12 +72,19 @@ public class Test_sm_wd_epl_dc extends E2EBaseTest {
 
     @Test
     public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.CALCULATED_SQL);
     }
 
     @Test
     public void issueTest() {
         validateTableIssueCount("ext_purge_odd_parts", "web_sales",
-                Environment.LEFT, 2);
+                Environment.LEFT, 1);
     }
+
+    @Test
+    public void errorTest() {
+        validateTableErrorCount("ext_purge_odd_parts", "web_sales",
+                Environment.LEFT, 1);
+    }
+
 }

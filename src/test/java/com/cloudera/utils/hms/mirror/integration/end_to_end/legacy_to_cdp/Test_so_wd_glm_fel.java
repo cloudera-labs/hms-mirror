@@ -74,7 +74,7 @@ public class Test_so_wd_glm_fel extends E2EBaseTest {
 //        // Read the output and verify the results.
 //        DBMirror[] resultsMirrors = getResults(outputDir,ASSORTED_TBLS_04);
 //
-//        validatePhase(resultsMirrors[0], "ext_part_01", PhaseState.SUCCESS);
+//        validatePhase(resultsMirrors[0], "ext_part_01", PhaseState.CALCULATED_SQL);
 //
 //        validateTableIssueCount(resultsMirrors[0], "ext_part_01", Environment.RIGHT, 3);
 //        validateTableLocation(resultsMirrors[0], "ext_part_01", Environment.RIGHT, "hdfs://HOME90/chuck/me/assorted_test_db.db/ext_part_01");
@@ -82,7 +82,7 @@ public class Test_so_wd_glm_fel extends E2EBaseTest {
     @Test
     public void issueTest_01() {
         validateTableIssueCount("assorted_test_db", "ext_part_01",
-                Environment.RIGHT, 3);
+                Environment.RIGHT, 4);
     }
 
     @Test
@@ -94,12 +94,12 @@ public class Test_so_wd_glm_fel extends E2EBaseTest {
 
     @Test
     public void phaseTest_01() {
-        validatePhase("assorted_test_db", "ext_part_01", PhaseState.SUCCESS);
+        validatePhase("assorted_test_db", "ext_part_01", PhaseState.CALCULATED_SQL);
     }
 
     @Test
     public void phaseTest_02() {
-        validatePhase("assorted_test_db", "legacy_mngd_01", PhaseState.SUCCESS);
+        validatePhase("assorted_test_db", "legacy_mngd_01", PhaseState.CALCULATED_SQL);
     }
 
     @Test

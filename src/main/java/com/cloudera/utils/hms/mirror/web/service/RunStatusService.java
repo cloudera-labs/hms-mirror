@@ -76,7 +76,7 @@ public class RunStatusService {
             try {
                 inProgressTables = conversion.getDatabases().values().stream()
                         .flatMap(db -> db.getTableMirrors().values().stream())
-                        .filter(table -> Objects.requireNonNull(table.getPhaseState()) == PhaseState.STARTED)
+                        .filter(table -> Objects.requireNonNull(table.getPhaseState()) == PhaseState.CALCULATING_SQL)
                         .collect(Collectors.toList());
             } catch (ConcurrentModificationException cme) {
                 // If we get a concurrent modification exception, move ahead and get it next time..

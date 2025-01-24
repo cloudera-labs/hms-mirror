@@ -24,6 +24,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.IOException;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
@@ -67,17 +68,35 @@ public class EnvironmentService {
             // hadoop.security.authentication
             if (hadoopConfig.get("hadoop.security.authentication", "simple").equalsIgnoreCase("kerberos")) {
                 try {
+                    UserGroupInformation.reset();
                     UserGroupInformation.setConfiguration(hadoopConfig);
+                    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+                    String user = ugi.getShortUserName();
+                    String auth = ugi.getAuthenticationMethod().toString();
+                    log.info("User: {} with auth: {}", user, auth);
+                    // We should be logged in via Kerberos.
+                    if (!auth.equalsIgnoreCase("KERBEROS")) {
+                        throw new RuntimeException("Kerberos auth required as seen in configs.  (" + user + ":" + auth + ").");
+                    }
                 } catch (Throwable t) {
                     // Revert to non JNI. This happens in Squadron (Docker Imaged Hosts)
+                    UserGroupInformation.reset();
                     log.error("Failed GSS Init.  Attempting different Group Mapping");
                     hadoopConfig.set("hadoop.security.group.mapping", "org.apache.hadoop.security.ShellBasedUnixGroupsMapping");
                     UserGroupInformation.setConfiguration(hadoopConfig);
+                    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+                    String user = ugi.getShortUserName();
+                    String auth = ugi.getAuthenticationMethod().toString();
+                    log.info("User: {} with auth: {}", user, auth);
+                    // We should be logged in via Kerberos.
+                    if (!auth.equalsIgnoreCase("KERBEROS")) {
+                        throw new RuntimeException("Kerberos auth required as seen in configs.  (" + user + ":" + auth + ").");
+                    }
                 }
             }
-        } catch (Throwable t) {
-            log.error("Issue initializing Kerberos", t);
-            throw t;
+        } catch (IOException ioe) {
+            log.error("Issue initializing Configurations", ioe);
+            throw new RuntimeException(ioe);
         }
     }
 

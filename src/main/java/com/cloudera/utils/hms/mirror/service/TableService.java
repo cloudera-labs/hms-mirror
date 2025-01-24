@@ -559,7 +559,7 @@ public class TableService {
                 tableMirror.addStep(environment.toString(), "No Schema");
             } else {
                 log.error(throwables.getMessage(), throwables);
-                et.addIssue(throwables.getMessage());
+                et.addError(throwables.getMessage());
             }
         } finally {
             if (resultSet != null) {
@@ -630,7 +630,7 @@ public class TableService {
                     tableMirror.addStep(environment.toString(), "No Schema");
                 } else {
                     log.error(throwables.getMessage(), throwables);
-                    et.addIssue(throwables.getMessage());
+                    et.addError(throwables.getMessage());
                 }
             } finally {
                 if (resultSet != null) {
@@ -679,7 +679,7 @@ public class TableService {
 
             }
         } catch (SQLException throwables) {
-            et.addIssue(throwables.getMessage());
+            et.addError(throwables.getMessage());
             log.error("{}:{}.{}: Issue loading Partitions.", environment, database, et.getName(), throwables);
         } finally {
             if (resultSet != null) {
@@ -747,7 +747,7 @@ public class TableService {
             }
             log.info("Loaded Partitions from Metastore Direct Connection {}:{}.{}", environment, database, et.getName());
         } catch (SQLException throwables) {
-            et.addIssue(throwables.getMessage());
+            et.addError(throwables.getMessage());
             log.error("Issue loading Partitions from Metastore Direct Connection. {}:{}.{}", environment, database, et.getName());
             log.error(throwables.getMessage(), throwables);
         } finally {
@@ -892,7 +892,7 @@ public class TableService {
                             message = message + ". It's possible the `avro.schema.url` referenced file doesn't exist at the target. " +
                                     "Use the `-asm` option and hms-mirror will attempt to copy it to the new cluster.";
                         }
-                        tblMirror.getEnvironmentTable(environment).addIssue(message);
+                        tblMirror.getEnvironmentTable(environment).addError(message);
                         rtn = Boolean.FALSE;
                     } finally {
                         if (stmt != null) {
@@ -905,7 +905,7 @@ public class TableService {
                     }
                 }
             } catch (SQLException throwables) {
-                tblMirror.getEnvironmentTable(environment).addIssue("Connecting: " + throwables.getMessage());
+                tblMirror.getEnvironmentTable(environment).addError("Connecting: " + throwables.getMessage());
                 log.error("{}:{}", environment.toString(), throwables.getMessage(), throwables);
                 rtn = Boolean.FALSE;
             } finally {

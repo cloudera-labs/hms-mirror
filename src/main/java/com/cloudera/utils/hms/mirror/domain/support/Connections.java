@@ -35,13 +35,13 @@ public class Connections implements Cloneable {
 
 
     public Connections() {
-        hiveServer2Connections.put(Environment.LEFT, new Connection());
-        hiveServer2Connections.put(Environment.RIGHT, new Connection());
-        metastoreDirectConnections.put(Environment.LEFT, new Connection());
-        metastoreDirectConnections.put(Environment.RIGHT, new Connection());
-        namespaces.put(Environment.LEFT, new Connection());
-        namespaces.put(Environment.RIGHT, new Connection());
-        namespaces.put(Environment.TARGET, new Connection());
+        hiveServer2Connections.put(Environment.LEFT, new Connection(Environment.LEFT));
+        hiveServer2Connections.put(Environment.RIGHT, new Connection(Environment.RIGHT));
+        metastoreDirectConnections.put(Environment.LEFT, new Connection(Environment.LEFT));
+        metastoreDirectConnections.put(Environment.RIGHT, new Connection(Environment.RIGHT));
+        namespaces.put(Environment.LEFT, new Connection(Environment.LEFT));
+        namespaces.put(Environment.RIGHT, new Connection(Environment.RIGHT));
+        namespaces.put(Environment.TARGET, new Connection(Environment.TARGET));
     }
 
     public void reset() {

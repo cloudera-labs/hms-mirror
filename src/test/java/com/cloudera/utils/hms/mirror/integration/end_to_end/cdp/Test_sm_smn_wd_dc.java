@@ -64,7 +64,7 @@ public class Test_sm_smn_wd_dc extends E2EBaseTest {
 //        // Read the output and verify the results.
 //        DBMirror[] resultsMirrors = getResults(outputDir,ASSORTED_TBLS_04);
 //
-//        validatePhase(resultsMirrors[0], "ext_part_01", PhaseState.SUCCESS);
+//        validatePhase(resultsMirrors[0], "ext_part_01", PhaseState.CALCULATED_SQL);
 //        validateTableIssueCount(resultsMirrors[0], "ext_part_01", Environment.LEFT, 441);
 //
 //        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "ext_part_01", "Alter Table Location",
@@ -82,7 +82,7 @@ public class Test_sm_smn_wd_dc extends E2EBaseTest {
 
 //    @Test
 //    public void phaseTest() {
-//        validatePhase("assorted_test_db", "ext_part_01", PhaseState.SUCCESS);
+//        validatePhase("assorted_test_db", "ext_part_01", PhaseState.CALCULATED_SQL);
 //    }
 
     @Test

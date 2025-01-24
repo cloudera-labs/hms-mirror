@@ -21,7 +21,6 @@ import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
-import com.cloudera.utils.hms.util.TableUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,7 +28,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import static com.cloudera.utils.hms.mirror.MirrorConf.ALTER_DB_LOCATION_DESC;
-import static com.cloudera.utils.hms.mirror.MirrorConf.ALTER_DB_MNGD_LOCATION_DESC;
 import static com.cloudera.utils.hms.util.TableUtils.REPAIR_DESC;
 import static org.junit.Assert.assertEquals;
 
@@ -107,7 +105,7 @@ public class Test_so_01 extends E2EBaseTest {
 
     @Test
     public void phaseTest() {
-        validatePhase("assorted_test_db", "ext_part_01", PhaseState.SUCCESS);
+        validatePhase("assorted_test_db", "ext_part_01", PhaseState.CALCULATED_SQL);
     }
 
     @Test

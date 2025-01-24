@@ -73,7 +73,7 @@ public class Test_so_wd_fel extends E2EBaseTest {
 //        // Read the output and verify the results.
 //        DBMirror[] resultsMirrors = getResults(outputDir,ASSORTED_TBLS_04);
 //
-//        validatePhase(resultsMirrors[0], "ext_part_01", PhaseState.SUCCESS);
+//        validatePhase(resultsMirrors[0], "ext_part_01", PhaseState.CALCULATED_SQL);
 //
 //        validateTableIssueCount(resultsMirrors[0], "ext_part_01", Environment.RIGHT, 3);
 //        validateTableLocation(resultsMirrors[0], "ext_part_01", Environment.RIGHT, "hdfs://HOME90/warehouse/tablespace/external/hive/assorted_test_db.db/ext_part_01");
@@ -93,7 +93,7 @@ public class Test_so_wd_fel extends E2EBaseTest {
 
     @Test
     public void phaseTest_01() {
-        validatePhase("assorted_test_db", "ext_part_01", PhaseState.SUCCESS);
+        validatePhase("assorted_test_db", "ext_part_01", PhaseState.CALCULATED_SQL);
     }
 
     @Test

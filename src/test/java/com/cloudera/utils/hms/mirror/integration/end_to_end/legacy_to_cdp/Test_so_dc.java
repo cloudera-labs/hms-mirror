@@ -77,7 +77,7 @@ public class Test_so_dc extends E2EBaseTest {
 
     @Test
     public void phaseTest() {
-        validatePhase("assorted_test_db", "ext_part_01", PhaseState.SUCCESS);
+        validatePhase("assorted_test_db", "ext_part_01", PhaseState.CALCULATED_SQL);
     }
 
     @Test

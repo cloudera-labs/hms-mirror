@@ -48,7 +48,7 @@ FIXED:1. when namespace in table doesn't match the namespace specified in the hc
     - This should result in an error and warnings about why this didn't work.
 
 TODO: We need to fix the return code to be negative on Errors and Positive on 'table' conversion failures
-        but success app run.
+        but mapped app run.
  */
 public class Test_sm_smn_wd_epl_dc_mismatch_strict extends E2EBaseTest {
 

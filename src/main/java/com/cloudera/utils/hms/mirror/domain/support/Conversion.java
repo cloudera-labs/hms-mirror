@@ -17,7 +17,9 @@
 
 package com.cloudera.utils.hms.mirror.domain.support;
 
-import com.cloudera.utils.hms.mirror.*;
+import com.cloudera.utils.hms.mirror.Marker;
+import com.cloudera.utils.hms.mirror.MirrorConf;
+import com.cloudera.utils.hms.mirror.Pair;
 import com.cloudera.utils.hms.mirror.domain.DBMirror;
 import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
@@ -55,8 +57,13 @@ public class Conversion {
         int count = 0;
         for (DBMirror dbMirror : databases.values()) {
             for (TableMirror tableMirror : dbMirror.getTableMirrors().values()) {
-                if (tableMirror.getPhaseState() != PhaseState.SUCCESS) {
-                    count++;
+                switch (tableMirror.getPhaseState()) {
+                    // Don't count successful conversions.
+                    case CALCULATED_SQL:
+                    case PROCESSED:
+                        break;
+                    default:
+                        count++;
                 }
             }
         }
@@ -180,8 +187,8 @@ public class Conversion {
         sb.append("# HMS-Mirror for: ").append(database).append("\n\n");
         sb.append(ReportingConf.substituteVariablesFromManifest("v.${HMS-Mirror-Version}")).append("\n");
         sb.append("---\n").append("## Run Log\n\n");
-        sb.append("| Date | Elapsed Time |\n");
-        sb.append("|:---|:---|\n");
+        sb.append("| Date | Elapsed Time | Status\n");
+        sb.append("|:---|:---|:---|\n");
         Date current = new Date();
         BigDecimal elsecs = new BigDecimal(runStatus.getDuration())
                 .divide(new BigDecimal(1000), 2, RoundingMode.HALF_UP);
@@ -189,7 +196,9 @@ public class Conversion {
         DecimalFormat lngdecf = new DecimalFormat("#,###");
         String elsecStr = eldecf.format(elsecs);
 
-        sb.append("| ").append(df.format(new Date())).append(" | ").append(elsecStr).append(" secs |\n\n");
+        sb.append("| ").append(df.format(new Date()))
+                .append(" | ").append(elsecStr).append(" secs | ")
+                .append(runStatus.getProgress()).append("|\n\n");
 
         sb.append("## Config:\n");
 
@@ -251,14 +260,26 @@ public class Conversion {
             environments.add(Environment.RIGHT);
 
             for (Environment env : environments) {
+                if (dbMirror.getProblemSQL().get(env) != null) {
+                    sb.append("### Problem SQL Statements for ").append(env.toString()).append("\n\n");
+                    sb.append("```\n");
+                    // For each entry in the dbMirror.getProblemSQL().get(environment) print the SQL
+                    for (Map.Entry<String, String> sqlItem : dbMirror.getProblemSQL().get(env).entrySet()) {
+                        sb.append("-- ").append(sqlItem.getValue()).append("\n");
+                        sb.append(sqlItem.getKey()).append("\n");
+                    }
+                    sb.append("```\n");
+                }
+
                 List<String> issues = dbMirror.getIssuesList(env);
                 if (issues != null) {
-                    sb.append("### ").append(env).append("\n\n");
+                    sb.append("### Advisories for ").append(env).append("\n\n");
                     for (String issue : issues) {
                         sb.append("* ").append(issue).append("\n");
                     }
                 }
             }
+
         } else {
             sb.append("none\n");
         }
@@ -287,7 +308,7 @@ public class Conversion {
         if (dbMirror.hasStatistics()) {
             sb.append("<th style=\"test-align:left\">Stats</th>").append("\n");
         }
-        if (dbMirror.hasIssues()) {
+        if (dbMirror.hasIssues() || dbMirror.hasErrors()) {
             sb.append("<th style=\"test-align:left\">Issues</th>").append("\n");
         }
         sb.append("<th style=\"test-align:left\">SQL</th>").append("\n");
@@ -445,7 +466,7 @@ public class Conversion {
                 sb.append("</td>").append("\n");
             }
             // Issues Reporting
-            if (dbMirror.hasIssues()) {
+            if (dbMirror.hasIssues() || dbMirror.hasErrors()) {
                 sb.append("<td>").append("\n");
                 sb.append("<table>");
                 for (Map.Entry<Environment, EnvironmentTable> entry : tblMirror.getEnvironments().entrySet()) {
@@ -463,6 +484,24 @@ public class Conversion {
                             sb.append("</td>\n");
                             sb.append("</tr>\n");
                         }
+                    }
+                    if (!entry.getValue().getErrors().isEmpty()) {
+                        sb.append("<tr>\n");
+                        sb.append("<th>");
+                        sb.append(entry.getKey()).append(" - Error(s)");
+                        sb.append("</th>\n");
+                        sb.append("</tr>").append("\n");
+                        sb.append("<tr>\n");
+                        sb.append("<td>");
+                        sb.append("<ul>");
+                        for (String error : entry.getValue().getErrors()) {
+                            sb.append("<li>");
+                            sb.append(error);
+                            sb.append("</li>");
+                        }
+                        sb.append("</ul>");
+                        sb.append("</td>\n");
+                        sb.append("</tr>\n");
                     }
                 }
                 sb.append("</table>");

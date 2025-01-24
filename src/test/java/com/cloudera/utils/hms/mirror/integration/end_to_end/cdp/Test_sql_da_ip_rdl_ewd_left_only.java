@@ -73,7 +73,7 @@ public class Test_sql_da_ip_rdl_ewd_left_only extends E2EBaseTest {
 //        // Read the output and verify the results.
 //        DBMirror[] resultsMirrors = getResults(outputDir,ACID_W_PARTS_05);
 //
-////        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+////        validatePhase(resultsMirrors[0], "web_sales", PhaseState.CALCULATED_SQL);
 ////        validateTableIssueCount(resultsMirror, "web_sales", Environment.RIGHT, 1);
 //
 ////        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Remove table property",

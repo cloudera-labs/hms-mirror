@@ -212,7 +212,7 @@ public class ExportCircularResolveService extends DataStrategyBase {
             if (let.getPartitions().size() > config.getHybrid().getExportImportPartitionLimit() &&
                     config.getHybrid().getExportImportPartitionLimit() > 0) {
                 // The partition limit has been exceeded.  The process will need to be done manually.
-                let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
+                let.addError("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
                         "limit (hybrid->exportImportPartitionLimit) of "
                         + config.getHybrid().getExportImportPartitionLimit() +
                         ".  This value is used to abort migrations that have a high potential for failure.  " +
@@ -223,7 +223,7 @@ public class ExportCircularResolveService extends DataStrategyBase {
             }
         } catch (Throwable t) {
             log.error("Error executing EXPORT_IMPORT", t);
-            let.addIssue(t.getMessage());
+            let.addError(t.getMessage());
             rtn = Boolean.FALSE;
         }
         return rtn;
@@ -231,6 +231,11 @@ public class ExportCircularResolveService extends DataStrategyBase {
 
     @Override
     public Boolean buildOutSql(TableMirror tableMirror) throws MissingDataPointException {
+        return null;
+    }
+
+    @Override
+    public Boolean build(TableMirror tableMirror) {
         return null;
     }
 

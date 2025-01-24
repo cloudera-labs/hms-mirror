@@ -29,5 +29,6 @@ public interface DataStrategy {
 
     BuildWhat whatToBuild(HmsMirrorConfig config, TableMirror tableMirror);
 
+    Boolean build(TableMirror tableMirror);
     Boolean execute(TableMirror tableMirror);
 }

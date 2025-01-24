@@ -154,6 +154,8 @@ public class TranslatorController {
     }
 
     // Get Global Location Map
+    // TODO: Remove this?  As this is a part of the runtime process.
+    @Deprecated
     @Operation(summary = "Build GLM from Warehouse Plan")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "GLM Built",

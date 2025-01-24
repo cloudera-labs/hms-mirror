@@ -18,13 +18,11 @@
 package com.cloudera.utils.hms.mirror.service;
 
 import com.cloudera.utils.hadoop.cli.CliEnvironment;
+import com.cloudera.utils.hms.mirror.MessageCode;
 import com.cloudera.utils.hms.mirror.domain.Cluster;
 import com.cloudera.utils.hms.mirror.domain.HiveServer2Config;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
-import com.cloudera.utils.hms.mirror.domain.support.Conversion;
-import com.cloudera.utils.hms.mirror.domain.support.Environment;
-import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
-import com.cloudera.utils.hms.mirror.domain.support.RunStatus;
+import com.cloudera.utils.hms.mirror.domain.support.*;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import com.jcabi.manifests.Manifests;
 import lombok.Getter;
@@ -101,6 +99,9 @@ public class ExecuteSessionService {
         AtomicReference<Boolean> passwordCheck = new AtomicReference<>(Boolean.FALSE);
 
         ExecuteSession session = getSession();
+
+        // Reset the connection status.
+        session.setConnected(Boolean.FALSE);
 
         if (session.isRunning()) {
             throw new SessionException("Can't save while running.");
@@ -204,14 +205,11 @@ public class ExecuteSessionService {
 //    }
 
     public void closeSession() throws SessionException {
-        if (nonNull(session)) {
-            if (session.isRunning()) {
-                throw new SessionException("Session is still running.  You can't change the session while it is running.");
-            }
-
-            // Close the connections pools, so they can be reset.
-            connectionPoolService.close();
-        }
+//        if (nonNull(session)) {
+//            if (session.isRunning()) {
+//                throw new SessionException("Session is still running.  You can't change the session while it is running.");
+//            }
+//        }
     }
 
     public ExecuteSession getSession() {
@@ -254,7 +252,7 @@ public class ExecuteSessionService {
         Boolean rtn = Boolean.TRUE;
 
         // Throws Exception if can't close (running).
-        closeSession();
+//        closeSession();
 
         ExecuteSession session = getSession();
 
@@ -266,6 +264,19 @@ public class ExecuteSessionService {
         if (isNull(session)) {
             throw new SessionException("No session loaded.");
         }
+
+        // Will create new RunStatus and set version info.
+        RunStatus runStatus = new RunStatus();
+        runStatus.setConcurrency(concurrency);
+        // Link the RunStatus to the session so users know what session details to retrieve.
+        runStatus.setSessionId(session.getSessionId());
+        runStatus.setProgress(ProgressEnum.STARTED);
+
+        // Ensure the configuration is valid.
+//        if (!configService.validate(session, null)) {
+//            runStatus.setProgress(ProgressEnum.FAILED);
+//            runStatus.addError(MessageCode.CONFIG_INVALID);
+//        };
 
         // Reset for each transition.
         // Set the active session id to the current date and time.
@@ -311,11 +322,6 @@ public class ExecuteSessionService {
         // Connection Service should be set to the resolved config.
         connectionPoolService.setExecuteSession(session);
 
-        // Will create new RunStatus and set version info.
-        RunStatus runStatus = new RunStatus();
-        runStatus.setConcurrency(concurrency);
-        // Link the RunStatus to the session so users know what session details to retrieve.
-        runStatus.setSessionId(session.getSessionId());
         try {
             runStatus.setAppVersion(Manifests.read("HMS-Mirror-Version"));
         } catch (IllegalArgumentException iae) {

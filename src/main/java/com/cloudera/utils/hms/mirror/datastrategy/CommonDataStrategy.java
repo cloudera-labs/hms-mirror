@@ -103,6 +103,7 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
                     // Compare Schemas.
                     if (tableMirror.schemasEqual(Environment.LEFT, Environment.RIGHT)) {
                         ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                        ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                         ret.setCreateStrategy(CreateStrategy.LEAVE);
                         String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                                 SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
@@ -110,6 +111,7 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
                     } else {
                         if (TableUtils.isExternalPurge(ret)) {
                             ret.addIssue(SCHEMA_EXISTS_NOT_MATCH_WITH_PURGE.getDesc());
+                            ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NOT_MATCH_WITH_PURGE.getDesc());
                             ret.setCreateStrategy(CreateStrategy.LEAVE);
                             String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                                     SCHEMA_EXISTS_NOT_MATCH_WITH_PURGE.getDesc());
@@ -127,6 +129,7 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
                 if (ret.isExists()) {
                     // Already exists, no action.
                     ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                    ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                     ret.setCreateStrategy(CreateStrategy.LEAVE);
                     String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                             SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
@@ -229,7 +232,7 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
     }
 
     @Override
-    public Boolean execute(TableMirror tableMirror) {
+    public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
@@ -243,7 +246,7 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
             try {
                 rtn = buildOutDefinition(tableMirror);
             } catch (RequiredConfigurationException e) {
-                let.addIssue("Failed to build out definition: " + e.getMessage());
+                let.addError("Failed to build out definition: " + e.getMessage());
                 rtn = Boolean.FALSE;
             }
         }
@@ -252,17 +255,21 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
             try {
                 rtn = buildOutSql(tableMirror);
             } catch (MissingDataPointException e) {
-                let.addIssue("Failed to build out SQL: " + e.getMessage());
+                let.addError("Failed to build out SQL: " + e.getMessage());
                 rtn = Boolean.FALSE;
             }
         }
         // Execute the RIGHT sql if config.execute.
-        if (rtn) {
-            rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
-            //getConfigService().getConfig().getCluster(Environment.RIGHT).runTableSql(tableMirror);
-        }
+//        if (rtn) {
+//            rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
+//        }
 
         return rtn;
+    }
+
+    @Override
+    public Boolean execute(TableMirror tableMirror) {
+        return tableService.runTableSql(tableMirror, Environment.RIGHT);
     }
 
     @Autowired

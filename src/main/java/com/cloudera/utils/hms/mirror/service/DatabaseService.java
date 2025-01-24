@@ -38,11 +38,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 import static com.cloudera.utils.hms.mirror.MessageCode.*;
 import static com.cloudera.utils.hms.mirror.MirrorConf.*;
@@ -50,6 +53,7 @@ import static com.cloudera.utils.hms.mirror.SessionVars.EXT_DB_LOCATION_PROP;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.Validate.notNull;
 
 @Service
 @Slf4j
@@ -59,7 +63,7 @@ public class DatabaseService {
     private ConnectionPoolService connectionPoolService;
     private ExecuteSessionService executeSessionService;
     private QueryDefinitionsService queryDefinitionsService;
-//    private TranslatorService translatorService;
+    //    private TranslatorService translatorService;
     private WarehouseService warehouseService;
     private ConfigService configService;
 
@@ -109,8 +113,8 @@ public class DatabaseService {
             if (!connectionPoolService.isConnected() && !config.isLoadingTestData()) {
                 try {
                     connectionPoolService.init();
-                } catch (SQLException e) {
-                    log.error("SQL Exception", e);
+                } catch (SQLException | URISyntaxException e) {
+                    log.error("SQL|URI Exception", e);
                     throw new SessionException(e.getMessage());
                 }
             }
@@ -433,6 +437,10 @@ public class DatabaseService {
                 // Clone Left to Right as a Holding Location for work with STORAGE_MIGRATION.
                 if (isNull(config.getCluster(Environment.RIGHT))) {
                     Cluster cluster = config.getCluster(Environment.LEFT).clone();
+                    // Since it's a place holder, we're going to disconnect the HiveServer2.
+                    if (!isNull(cluster.getHiveServer2())) {
+                        cluster.getHiveServer2().setDisconnected(Boolean.TRUE);
+                    }
                     config.getClusters().put(Environment.RIGHT, cluster);
                 }
                 // Build the Right Def as a Clone of the Left to Seed it.
@@ -472,7 +480,9 @@ public class DatabaseService {
                 if (isNull(dbDefRight)) {
                     // No Right DB Definition.  So we're going to create it.
                     createRight = Boolean.TRUE;
-                    dbDefRight = new TreeMap<String, String>(dbDefLeft);
+//                    dbDefRight = new TreeMap<String, String>(dbDefLeft);
+                    dbDefRight = new TreeMap<String, String>();
+                    dbDefRight.put(DB_NAME, HmsMirrorConfigUtil.getResolvedDB(dbMirror.getName(), config));
                     dbMirror.setProperty(Environment.RIGHT, dbDefRight);
                 }
                 // Force Locations to ensure DB and new tables are created in the right locations.
@@ -548,6 +558,14 @@ public class DatabaseService {
                     if (isNull(originalLocation)) {
                         log.warn("Original Location is NULL.  Setting to default.");
                         originalLocation = config.getCluster(Environment.LEFT).getEnvVars().get(EXT_DB_LOCATION_PROP);
+                        if (isNull(originalLocation)) {
+                            originalLocation = "/warehouse/tablespace/external/hive/" + targetDatabase + ".db";
+                            log.error("Original Location is (still) NULL.  Setting to default");
+//                            runStatus.addError("The original database location is NULL.  Skipping.");
+//                            return Boolean.FALSE;
+                        } else {
+                            originalLocation = originalLocation + "/" + targetDatabase + ".db";
+                        }
                     }
                     targetLocation = NamespaceUtils.stripNamespace(originalLocation);
                     log.debug("Target Location from Original Location: {}", targetLocation);
@@ -593,6 +611,11 @@ public class DatabaseService {
                         if (!targetLocation.contains(targetDatabase)) {
                             log.debug("Target Location doesn't contain the target database name.  Adjusting.");
                             targetLocation = targetLocation.replace(originalDatabase, targetDatabase);
+                            // If it still doesn't and we're using db_rename, then we need to adjust the location.
+                            if (!targetLocation.contains(targetDatabase) && !isBlank(config.getDbRename())) {
+                                String lastDirectory = NamespaceUtils.getLastDirectory(targetLocation);
+                                targetLocation = targetLocation.replace(lastDirectory, targetDatabase + ".db");
+                            }
                         }
                         targetLocation = targetNamespace + targetLocation;
                     }
@@ -603,8 +626,8 @@ public class DatabaseService {
                     log.debug("Original Managed Location: {}", originalManagedLocation);
                     targetManagedLocation = NamespaceUtils.stripNamespace(originalManagedLocation);
                     log.debug("Target Managed Location from Original Managed Location: {}", targetManagedLocation);
-                    String dbDirectory = nonNull(targetManagedLocation)?NamespaceUtils.getLastDirectory(targetManagedLocation):
-                            nonNull(dbMirror.getLocationDirectory())?dbMirror.getLocationDirectory():targetDatabase + ".db";
+                    String dbDirectory = nonNull(targetManagedLocation) ? NamespaceUtils.getLastDirectory(targetManagedLocation) :
+                            nonNull(dbMirror.getLocationDirectory()) ? dbMirror.getLocationDirectory() : targetDatabase + ".db";
 
                     // Only set to warehouse location if the translation type is 'ALIGNED',
                     //   otherwise we want to keep the same relative location.
@@ -632,7 +655,7 @@ public class DatabaseService {
                                 // The new target location is the same as the ENV warehouse location.  So we're not
                                 // going to set it and let it default to the ENV warehouse location.
                                 log.debug("The new target managed location: {} is the same as the ENV warehouse managed location.  " +
-                                        "So we're not going to set it and let it default to the ENV warehouse managed location: {}.",
+                                                "So we're not going to set it and let it default to the ENV warehouse managed location: {}.",
                                         targetManagedLocation, envWarehouse.getManagedDirectory());
                                 dbDefRight.put(DB_MANAGED_LOCATION, targetNamespace + targetManagedLocation);
                                 dbMirror.addIssue(Environment.RIGHT, "The database 'Managed' location is the same as the ENV warehouse Managed location.  The database location will NOT be set and will depend on the ENV warehouse location.");
@@ -646,6 +669,11 @@ public class DatabaseService {
                             log.debug("Target Managed Location: {} doesn't contain the target database name: {}.  Adjusting.",
                                     targetManagedLocation, targetDatabase);
                             targetManagedLocation = targetManagedLocation.replace(originalDatabase, targetDatabase);
+                            // If it still doesn't and we're using db_rename, then we need to adjust the location.
+                            if (!targetManagedLocation.contains(targetDatabase) && !isBlank(config.getDbRename())) {
+                                String lastDirectory = NamespaceUtils.getLastDirectory(targetManagedLocation);
+                                targetManagedLocation = targetManagedLocation.replace(lastDirectory, targetDatabase + ".db");
+                            }
                         }
                         targetManagedLocation = targetNamespace + targetManagedLocation;
                         log.debug("Target Managed Location after Namespace Adjustment: {}", targetManagedLocation);
@@ -897,11 +925,11 @@ public class DatabaseService {
         return rtn;
     }
 
-    public boolean createDatabases() {
+    public boolean build() {
         boolean rtn = true;
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();
-        log.info("Creating Databases");
+        log.info("Building Database commands");
         if (config.getMigrateACID().isDowngradeInPlace() && config.getDataStrategy() == DataStrategyEnum.SQL) {
             log.info("Downgrade in place.  Skipping database creation.");
             return true;
@@ -911,7 +939,7 @@ public class DatabaseService {
         RunStatus runStatus = session.getRunStatus();
         OperationStatistics stats = runStatus.getOperationStatistics();
         for (String database : config.getDatabases()) {
-            log.info("Creating Database: {}", database);
+            log.info("Building Database commands: {}", database);
             DBMirror dbMirror = conversion.getDatabase(database);
             try {
                 rtn = buildDBStatements(dbMirror);
@@ -921,24 +949,164 @@ public class DatabaseService {
                 rtn = false;
             }
 
+//            if (rtn) {
+//                if (!runDatabaseSql(dbMirror, Environment.LEFT)) {
+//                    rtn = false;
+////                    stats.getFailures().incrementDatabases();
+//                } else {
+////                    stats.getSuccesses().incrementDatabases();
+//                }
+//                if (config.getDataStrategy() != DataStrategyEnum.STORAGE_MIGRATION && !runDatabaseSql(dbMirror, Environment.RIGHT)) {
+//                    rtn = false;
+////                    stats.getFailures().incrementDatabases();
+//                } else {
+//                    // TODO: Will this double up the mapped counts?  I think it will..  Will Observed..
+////                    stats.getSuccesses().incrementDatabases();
+//                }
+//            } else {
+////                stats.getFailures().incrementDatabases();
+//            }
+        }
+        return rtn;
+    }
+
+    public boolean execute() {
+        boolean rtn = true;
+        ExecuteSession session = executeSessionService.getSession();
+        HmsMirrorConfig config = session.getConfig();
+        log.info("Executing Database commands");
+        if (config.getMigrateACID().isDowngradeInPlace() && config.getDataStrategy() == DataStrategyEnum.SQL) {
+//            log.info("Downgrade in place.  Skipping database creation.");
+            return true;
+        }
+
+        Conversion conversion = session.getConversion();
+        RunStatus runStatus = session.getRunStatus();
+        OperationStatistics stats = runStatus.getOperationStatistics();
+        for (String database : config.getDatabases()) {
+            log.info("Executing Database Commands for: {}", database);
+            DBMirror dbMirror = conversion.getDatabase(database);
+
             if (rtn) {
                 if (!runDatabaseSql(dbMirror, Environment.LEFT)) {
                     rtn = false;
-//                    stats.getFailures().incrementDatabases();
-                } else {
-//                    stats.getSuccesses().incrementDatabases();
                 }
-                if (!runDatabaseSql(dbMirror, Environment.RIGHT)) {
+                if (config.getDataStrategy() != DataStrategyEnum.STORAGE_MIGRATION && !runDatabaseSql(dbMirror, Environment.RIGHT)) {
                     rtn = false;
-//                    stats.getFailures().incrementDatabases();
-                } else {
-                    // TODO: Will this double up the success counts?  I think it will..  Will Observed..
-//                    stats.getSuccesses().incrementDatabases();
                 }
-            } else {
-//                stats.getFailures().incrementDatabases();
             }
         }
+        return rtn;
+
+    }
+
+    public Boolean checkSqlStatements(DBMirror dbMirror) {
+
+        Map<Environment, Set<String>> uniqueSql = getTableSetStatements(dbMirror);
+
+        // Open the connections and ensure we are running this on the "RIGHT" cluster.
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
+        final AtomicBoolean rtn = new AtomicBoolean(true);
+
+        // Skip when running test data.
+        if (!config.isLoadingTestData()) {
+            for (Map.Entry<Environment, Set<String>> entry : uniqueSql.entrySet()) {
+                Environment environment = entry.getKey();
+                Set<String> uniqueSqlSet = entry.getValue();
+                if (uniqueSqlSet.isEmpty()) {
+                    continue;
+                }
+                log.info("Checking SET SQL Statements for {}", environment);
+
+                try (final Connection conn = connectionPoolService.getHS2EnvironmentConnection(environment)) {
+
+                    if (isNull(conn) && config.isExecute()
+                            && !config.getCluster(environment).getHiveServer2().isDisconnected()) {
+                        // this is a problem.
+                        rtn.set(Boolean.FALSE);
+                        dbMirror.addIssue(environment, "Connection missing. This is a bug.");
+                    }
+
+                    if (isNull(conn) && config.getCluster(environment).getHiveServer2().isDisconnected()) {
+                        dbMirror.addIssue(environment, "Running in 'disconnected' mode.  NO RIGHT operations will be done.  " +
+                                "The scripts will need to be run 'manually'.");
+                    }
+
+                    if (!isNull(conn)) {
+                        try (final Statement stmt = conn.createStatement()) {
+                            for (String sql : uniqueSqlSet) {
+                                log.info("{}:{}", environment, sql);
+                                try {
+                                    log.info("Checking {}:{}", environment, sql);
+                                    stmt.execute(sql);
+                                } catch (SQLException throwables) {
+                                    log.error("Failed SQL {}:{} - {}", environment, sql, throwables.getMessage());
+                                    dbMirror.addProblemSQL(environment, sql, throwables.getMessage());
+                                    rtn.set(Boolean.FALSE);
+                                }
+                            }
+                        } catch (SQLException stmtException) {
+                            log.error("Issue building statement", stmtException);
+                            rtn.set(Boolean.FALSE);
+                        }
+                    } else {
+                        log.info("DRY-RUN: {} - {}", environment, dbMirror.getName());
+                        uniqueSqlSet.forEach(sql -> {
+                            log.info("{}:{}", environment, sql);
+                        });
+                    }
+                } catch (SQLException connException) {
+                    log.error(environment.toString(), connException);
+                } catch (NullPointerException npe) {
+                    // Thrown when the connection is null, ignore
+                }
+            }
+        } else {
+            uniqueSql.forEach((environment, uniqueSqlSet) -> {
+                log.info("TEST DATA RUN: {} - {}", environment, dbMirror.getName());
+                uniqueSqlSet.forEach(sql -> {
+                    log.info("SQL {}:{}", environment, sql);
+                });
+
+            });
+        }
+        return rtn.get();
+    }
+
+    // We need to loop through the TableMirrors in the DBMirror and extract the Unique SQL statements that are 'set' statements from
+    // each environment.
+    public Map<Environment, Set<String>> getTableSetStatements(DBMirror dbMirror) {
+        Map<Environment, Set<String>> rtn = new HashMap<>();
+        // Setup return structure.
+
+        Map<Environment, List<Pair>> envSetPairs = new TreeMap<>();
+
+        // Build Temp Structure to hold the SET SQL statements.
+        for (Environment environment : Environment.values()) {
+            List<Pair> sqlPair = new ArrayList<>();
+            envSetPairs.put(environment, sqlPair);
+            Set<String> uniqueSets = new HashSet<>();
+            rtn.put(environment, uniqueSets);
+        }
+
+        // Extract the SET SQL statements from the TableMirrors.
+        dbMirror.getTableMirrors().values().forEach(tableMirror -> tableMirror.getEnvironments()
+                .forEach((env, tbl) -> {
+                    List<Pair> sqlPair = envSetPairs.get(env);
+                    sqlPair.addAll(tbl.getSql().stream().
+                            filter(s -> s.getAction().trim().startsWith("SET")).collect(Collectors.toList()));
+
+                }));
+
+        // Extract the unique SET SQL statements.
+        for (Environment environment : Environment.values()) {
+            Set<String> uniqueSets = rtn.get(environment);
+            List<Pair> sqlPair = envSetPairs.get(environment);
+            for (Pair pair : sqlPair) {
+                uniqueSets.add(pair.getAction());
+            }
+        }
+
         return rtn;
     }
 
@@ -1063,7 +1231,22 @@ public class DatabaseService {
         Connection conn = null;
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
+        // Make sure there is something to run;
+        boolean proceed = false;
+        for (Pair dbSqlPair : pairs) {
+            String action = dbSqlPair.getAction();
+            // When you find a non-commented line, set the flag to proceed.
+            if (!(action.trim().isEmpty() || action.trim().startsWith("--"))) {
+                proceed = true;
+                break;
+            }
+        }
         Boolean rtn = Boolean.TRUE;
+
+        // Nothing found to run.
+        if (!proceed)
+            return rtn;
+
         // Skip when running test data.
         if (!config.isLoadingTestData()) {
             try {

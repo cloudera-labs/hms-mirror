@@ -90,6 +90,7 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
                 } else {
                     // Already exists, no action.
                     ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                    ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                     ret.setCreateStrategy(CreateStrategy.NOTHING);
                     String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                             SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
@@ -348,7 +349,7 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
     }
 
     @Override
-    public Boolean execute(TableMirror tableMirror) {
+    public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
         EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
@@ -359,7 +360,7 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
         try {
             rtn = buildOutDefinition(tableMirror);
         } catch (RequiredConfigurationException e) {
-            let.addIssue("Failed to build out definition: " + e.getMessage());
+            let.addError("Failed to build out definition: " + e.getMessage());
             rtn = Boolean.FALSE;
         }
 
@@ -367,7 +368,7 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
             try {
                 rtn = buildOutSql(tableMirror);
             } catch (MissingDataPointException e) {
-                let.addIssue("Failed to build out SQL: " + e.getMessage());
+                let.addError("Failed to build out SQL: " + e.getMessage());
                 rtn = Boolean.FALSE;
             }
         }
@@ -395,20 +396,34 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
         }
 
         // Execute the LEFT sql if config.execute.
-        if (rtn) {
-            rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
-        }
+//        if (rtn) {
+//            rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
+//        }
+//
+//        // Execute the RIGHT sql if config.execute.
+//        if (rtn) {
+//            rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
+//        }
+//
+//        if (rtn) {
+//            // Run the Cleanup Scripts
+//            tableService.runTableSql(let.getCleanUpSql(), tableMirror, Environment.LEFT);
+//        }
 
-        // Execute the RIGHT sql if config.execute.
+        return rtn;
+    }
+
+    @Override
+    public Boolean execute(TableMirror tableMirror) {
+        Boolean rtn = Boolean.FALSE;
+        rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
         if (rtn) {
             rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
         }
-
         if (rtn) {
             // Run the Cleanup Scripts
-            tableService.runTableSql(let.getCleanUpSql(), tableMirror, Environment.LEFT);
+            rtn = tableService.runTableSql(tableMirror.getEnvironmentTable(Environment.LEFT).getCleanUpSql(), tableMirror, Environment.LEFT);;
         }
-
         return rtn;
     }
 

@@ -68,7 +68,7 @@ public class Test_so_wd_epl_dc_ext_purge_w_odd_parts extends E2EBaseTest {
 //        // Read the output and verify the results.
 //        DBMirror[] resultsMirrors = getResults(outputDir,EXT_PURGE_ODD_PARTS_03);
 //
-//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.CALCULATED_SQL);
 //
 //        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 18);
 //        validatePartitionCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 16);
@@ -82,7 +82,7 @@ public class Test_so_wd_epl_dc_ext_purge_w_odd_parts extends E2EBaseTest {
     @Test
     public void issueTest_01() {
         validateTableIssueCount("ext_purge_odd_parts", "web_sales",
-                Environment.RIGHT, 2);
+                Environment.RIGHT, 19);
     }
 
 //    @Test
@@ -125,7 +125,7 @@ public class Test_so_wd_epl_dc_ext_purge_w_odd_parts extends E2EBaseTest {
 
     @Test
     public void phaseTest_01() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.CALCULATED_SQL);
     }
 
     @Test

@@ -48,7 +48,7 @@ Issues: Need to post warning when table/partition(s) new location isn't in the -
 public class Test_sm_smn_wd_epl_glm_dc extends E2EBaseTest {
     @Test
     public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.CALCULATED_SQL);
     }
 
     /*
@@ -79,7 +79,7 @@ public class Test_sm_smn_wd_epl_glm_dc extends E2EBaseTest {
     // Read the output and verify the results.
     DBMirror[] resultsMirrors = getResults(outputDir, EXT_PURGE_ODD_PARTS_03);
 
-    validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+    validatePhase(resultsMirrors[0], "web_sales", PhaseState.CALCULATED_SQL);
     validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.LEFT, 3);
 
 //        - description: "Alter Table Location"

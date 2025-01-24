@@ -76,7 +76,7 @@ public class Test_sm_smn_wd_epl_glm_fel_dc extends E2EBaseTest {
 //        // Read the output and verify the results.
 //        DBMirror[] resultsMirrors = getResults(outputDir, EXT_PURGE_ODD_PARTS_03);
 //
-//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.CALCULATED_SQL);
 //        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.LEFT, 3);
 //        /*
 //        - description: "Alter Table Location"
@@ -108,7 +108,7 @@ public class Test_sm_smn_wd_epl_glm_fel_dc extends E2EBaseTest {
 
     @Test
     public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.CALCULATED_SQL);
     }
 
     @Test
@@ -140,14 +140,28 @@ public class Test_sm_smn_wd_epl_glm_fel_dc extends E2EBaseTest {
 //    }
 
     @Test
-    public void validateTableIssueCount() {
+    public void validateTableLeftIssueCount() {
         validateTableIssueCount("ext_purge_odd_parts", "web_sales",
-                Environment.LEFT, 3);
-
-//        assertEquals("Issue Count not as expected", 3,
-//                getConversion().getDatabase("ext_purge_odd_parts")
-//                        .getTableMirrors().get("web_sales")
-//                        .getEnvironmentTable(Environment.LEFT).getIssues().size());
+                Environment.LEFT, 2);
     }
+
+    @Test
+    public void validateTableLeftErrorCount() {
+        validateTableErrorCount("ext_purge_odd_parts", "web_sales",
+                Environment.LEFT, 1);
+    }
+
+    @Test
+    public void validateTableRightIssueCount() {
+        validateTableIssueCount("ext_purge_odd_parts", "web_sales",
+                Environment.RIGHT, 18);
+    }
+
+    @Test
+    public void validateTableRightErrorCount() {
+        validateTableErrorCount("ext_purge_odd_parts", "web_sales",
+                Environment.RIGHT, 1);
+    }
+
 
 }

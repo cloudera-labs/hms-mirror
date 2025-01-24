@@ -47,31 +47,6 @@ public class Overrides {
         }
     }
 
-    @JsonIgnore
-    public Map<String, String> getFor(Environment environment) {
-
-        Map<String, String> rtn = new TreeMap<String, String>();
-        for (Map.Entry<String, Map<SideType, String>> entry : properties.entrySet()) {
-            switch (environment) {
-                case LEFT:
-                    if (entry.getValue().containsKey(SideType.LEFT)) {
-                        rtn.put(entry.getKey(), entry.getValue().get(SideType.LEFT));
-                    }
-                    break;
-                case RIGHT:
-                    if (entry.getValue().containsKey(SideType.RIGHT)) {
-                        rtn.put(entry.getKey(), entry.getValue().get(SideType.RIGHT));
-                    }
-                    break;
-            }
-            if (entry.getValue().containsKey(SideType.BOTH)) {
-                rtn.put(entry.getKey(), entry.getValue().get(SideType.BOTH));
-            }
-        }
-
-        return rtn;
-    }
-
     public void setPropertyOverridesStr(String[] inPropsStr, SideType side) {
         if (inPropsStr != null) {
             for (String property : inPropsStr) {

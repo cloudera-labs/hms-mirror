@@ -22,10 +22,7 @@ import com.cloudera.utils.hadoop.cli.DisabledException;
 import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import com.cloudera.utils.hms.mirror.MessageCode;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
-import com.cloudera.utils.hms.mirror.domain.support.ConnectionStatus;
-import com.cloudera.utils.hms.mirror.domain.support.Connections;
-import com.cloudera.utils.hms.mirror.domain.support.Environment;
-import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
+import com.cloudera.utils.hms.mirror.domain.support.*;
 import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
@@ -41,6 +38,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -90,136 +88,27 @@ public class ConnectionMVController {
     }
 
     @RequestMapping(value = "/doValidate", method = RequestMethod.POST)
-    public String doValidate(Model model) throws SessionException, EncryptionException {
+    public String doValidate(Model model) throws SQLException, SessionException,
+            URISyntaxException, EncryptionException {
 
-        executeSessionService.closeSession();
-
-        ExecuteSession session = executeSessionService.getSession();
-        Connections connections = session.getConnections();
-
-        HmsMirrorConfig config = session.getConfig();
-        boolean configErrors = !configService.validateForConnections(session);
-        if (!configErrors) {
+        if (executeSessionService.startSession(1)) {
             try {
-                executeSessionService.startSession(1);
-                log.info("Initializing Connection Pools");
-                connectionPoolService.init();
-                log.info("Connection Pools Initialized");
-            } catch (SQLException e) {
-                log.error("Error initializing connection pools", e);
-                configErrors = Boolean.TRUE;
-            }
-        }
-
-        boolean finalConfigErrors = configErrors;
-        config.getClusters().forEach((k, v) -> {
-            if (nonNull(v)) {
-                if (nonNull(v.getHiveServer2()) && !finalConfigErrors) {
-                    connections.getHiveServer2Connections().get(k).setEndpoint(v.getHiveServer2().getUri());
-                    try {
-                        log.info("Testing HiveServer2 Connection for {}", k);
-                        Connection conn = connectionPoolService.getConnectionPools().getHS2EnvironmentConnection(k);
-                        if (conn != null) {
-                            log.info("HS2 Connection Successful for {}", k);
-                        } else {
-                            log.error("HS2 Connection Failed for {}", k);
-                        }
-                        connections.getHiveServer2Connections().get(k).setStatus(ConnectionStatus.SUCCESS);
-                    } catch (SQLException se) {
-                        log.error("HS2 Connection Failed for {}", k, se);
-                        connections.getHiveServer2Connections().get(k).setStatus(ConnectionStatus.FAILED);
-                        connections.getHiveServer2Connections().get(k).setMessage(se.getMessage());
-                    }
-                } else if (nonNull(v.getHiveServer2())) {
-                    log.info("HS2 Connection Check Configuration for {}", k);
-                    connections.getHiveServer2Connections().get(k).setStatus(ConnectionStatus.CHECK_CONFIGURATION);
+                RunStatus runStatus = executeSessionService.getSession().getRunStatus();
+                boolean connCheck = connectionPoolService.init();
+                if (connCheck) {
+                    runStatus.setProgress(ProgressEnum.COMPLETED);
                 } else {
-                    log.info("HS2 Connection Not Configured for {}", k);
-                    connections.getHiveServer2Connections().get(k).setStatus(ConnectionStatus.NOT_CONFIGURED);
+                    runStatus.setProgress(ProgressEnum.FAILED);
+                    runStatus.addError(MessageCode.CONNECTION_ISSUE);
                 }
-
-                if (nonNull(v.getMetastoreDirect()) && !finalConfigErrors) {
-                    connections.getMetastoreDirectConnections().get(k).setEndpoint(v.getMetastoreDirect().getUri());
-                    if (!configService.isMetastoreDirectConfigured(session, k)) {
-                        connections.getMetastoreDirectConnections().get(k).setStatus(ConnectionStatus.NOT_CONFIGURED);
-                        connections.getMetastoreDirectConnections().get(k).setMessage(MessageCode.LEFT_METASTORE_URI_NOT_DEFINED.getDesc());
-                    } else {
-                        try {
-                            log.info("Testing Metastore Direct Connection for {}", k);
-                            Connection conn = connectionPoolService.getConnectionPools().getMetastoreDirectEnvironmentConnection(k);
-                            if (conn != null) {
-                                log.info("Metastore Direct Connection Successful for {}", k);
-                            } else {
-                                log.error("Metastore Direct Connection Failed for {}", k);
-                            }
-                            connections.getMetastoreDirectConnections().get(k).setStatus(ConnectionStatus.SUCCESS);
-                        } catch (SQLException se) {
-                            log.error("Metastore Direct Connection Failed for {}", k, se);
-                            connections.getMetastoreDirectConnections().get(k).setStatus(ConnectionStatus.FAILED);
-                            connections.getMetastoreDirectConnections().get(k).setMessage(se.getMessage());
-                        }
-                    }
-
-                } else if (nonNull(v.getMetastoreDirect())) {
-                    log.info("Metastore Direct Connection Check Configuration for {}", k);
-                    connections.getMetastoreDirectConnections().get(k).setStatus(ConnectionStatus.CHECK_CONFIGURATION);
-                } else {
-                    log.info("Metastore Direct Connection Not Configured for {}", k);
-                    connections.getMetastoreDirectConnections().get(k).setStatus(ConnectionStatus.NOT_CONFIGURED);
-                }
-                // checked..
-                if (!isBlank(v.getHcfsNamespace())) {
-                    connections.getNamespaces().get(k).setEndpoint(v.getHcfsNamespace());
-                    try {
-                        log.info("Testing HCFS Connection for {}", k);
-                        CommandReturn cr = cliEnvironment.processInput("ls /");
-                        if (cr.isError()) {
-                            log.error("HCFS Connection Failed for {} with: {}", k, cr.getError());
-                            connections.getNamespaces().get(k).setStatus(ConnectionStatus.FAILED);
-                            connections.getNamespaces().get(k).setMessage(cr.getError());
-                        } else {
-                            log.info("HCFS Connection Successful for {}", k);
-                            connections.getNamespaces().get(k).setStatus(ConnectionStatus.SUCCESS);
-                        }
-                    } catch (DisabledException e) {
-                        log.info("HCFS Connection Disabled for {}", k);
-                        connections.getNamespaces().get(k).setStatus(ConnectionStatus.DISABLED);
-//                        throw new RuntimeException(e);
-                    }
-                } else {
-                    log.info("HCFS Connection Not Configured for {}", k);
-                    connections.getNamespaces().get(k).setStatus(ConnectionStatus.NOT_CONFIGURED);
-                }
+            } catch (RuntimeException rte) {
+                log.error("Error in doValidate", rte);
+                executeSessionService.getSession().getRunStatus().setProgress(ProgressEnum.FAILED);
+                executeSessionService.getSession().getRunStatus().addError(MessageCode.CONNECTION_ISSUE);
+                throw new SessionException(rte.getMessage());
+            } finally {
+                //executeSessionService.endSession();
             }
-        });
-        try {
-            if (!config.isSkipLinkCheck() && !isBlank(config.getTargetNamespace())) {
-                connections.getNamespaces().get(Environment.TARGET).setEndpoint(config.getTargetNamespace());
-                try {
-                    String targetNamespace = config.getTargetNamespace();
-                    if (NamespaceUtils.getProtocol(targetNamespace).toLowerCase().startsWith("ofs")) {
-                        if (!targetNamespace.endsWith("/")) {
-                            // For ofs, using just the protocol namespace is NOT enough and throws an Not found error.
-                            targetNamespace = targetNamespace + "/";
-                        }
-                    }
-                    CommandReturn cr = cliEnvironment.processInput("ls " + targetNamespace);
-                    if (cr.isError()) {
-                        connections.getNamespaces().get(Environment.TARGET).setStatus(ConnectionStatus.FAILED);
-                        connections.getNamespaces().get(Environment.TARGET).setMessage(cr.getError());
-                    } else {
-                        connections.getNamespaces().get(Environment.TARGET).setStatus(ConnectionStatus.SUCCESS);
-                    }
-                } catch (DisabledException e) {
-                    connections.getNamespaces().get(Environment.TARGET).setStatus(ConnectionStatus.DISABLED);
-//                        throw new RuntimeException(e);
-                } catch (RequiredConfigurationException e) {
-                    connections.getNamespaces().get(Environment.TARGET).setStatus(ConnectionStatus.DISABLED);
-                }
-
-            }
-        } catch (RequiredConfigurationException e) {
-            connections.getNamespaces().get(Environment.TARGET).setStatus(ConnectionStatus.NOT_CONFIGURED);
         }
 
         uiModelService.sessionToModel(model, 1, false);

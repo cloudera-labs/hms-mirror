@@ -17,7 +17,10 @@
 
 package com.cloudera.utils.hms.mirror.datastrategy;
 
-import com.cloudera.utils.hms.mirror.*;
+import com.cloudera.utils.hms.mirror.CopySpec;
+import com.cloudera.utils.hms.mirror.CreateStrategy;
+import com.cloudera.utils.hms.mirror.MessageCode;
+import com.cloudera.utils.hms.mirror.MirrorConf;
 import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
@@ -46,7 +49,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 public class ExportImportDataStrategy extends DataStrategyBase implements DataStrategy {
 
     private ExportCircularResolveService exportCircularResolveService;
-//    private TranslatorService translatorService;
+    //    private TranslatorService translatorService;
     private ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy;
     private ConfigService configService;
     private DatabaseService databaseService;
@@ -89,12 +92,12 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
         if (TableUtils.isACID(let) &&
                 !hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()
                         == hmsMirrorConfig.getCluster(Environment.RIGHT).isLegacyHive()) {
-            let.addIssue("Can't process ACID tables with EXPORT_IMPORT between 'legacy' and 'non-legacy' hive environments.  The processes aren't compatible.");
+            let.addError("Can't process ACID tables with EXPORT_IMPORT between 'legacy' and 'non-legacy' hive environments.  The processes aren't compatible.");
             return Boolean.FALSE;
         }
 
         if (!TableUtils.isHiveNative(let)) {
-            let.addIssue("Can't process ACID tables, VIEWs, or Non Native Hive Tables with this strategy.");
+            let.addError("Can't process ACID tables, VIEWs, or Non Native Hive Tables with this strategy.");
             return Boolean.FALSE;
         }
 
@@ -220,13 +223,13 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
             } else {
                 if (config.loadMetadataDetails()) {
 //                    if (dbWarehouse.getExternalDirectory() != null) {
-                        // Build default location, because in some cases when location isn't specified, it will use the "FROM"
-                        // location in the IMPORT statement.
-                        targetLocation = config.getTargetNamespace()
-                                + dbWarehouse.getExternalDirectory() +
-                                "/" + HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config) + ".db/"
-                                + tableMirror.getName();
-                        importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
+                    // Build default location, because in some cases when location isn't specified, it will use the "FROM"
+                    // location in the IMPORT statement.
+                    targetLocation = config.getTargetNamespace()
+                            + dbWarehouse.getExternalDirectory() +
+                            "/" + HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config) + ".db/"
+                            + tableMirror.getName();
+                    importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
 //                    } else {
 //                        importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
 //                    }
@@ -262,7 +265,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
             if (let.getPartitions().size() > config.getHybrid().getExportImportPartitionLimit() &&
                     config.getHybrid().getExportImportPartitionLimit() > 0) {
                 // The partition limit has been exceeded.  The process will need to be done manually.
-                let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
+                let.addError("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
                         "limit (hybrid->exportImportPartitionLimit) of "
                         + config.getHybrid().getExportImportPartitionLimit() +
                         ".  This value is used to abort migrations that have a high potential for failure.  " +
@@ -273,14 +276,14 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
             }
         } catch (Throwable t) {
             log.error("Error executing EXPORT_IMPORT", t);
-            let.addIssue(t.getMessage());
+            let.addError(t.getMessage());
             rtn = Boolean.FALSE;
         }
         return rtn;
     }
 
     @Override
-    public Boolean execute(TableMirror tableMirror) {
+    public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
         EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
@@ -288,6 +291,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
         if (ret.isExists()) {
             if (!hmsMirrorConfig.isSync()) {
                 let.addIssue(MessageCode.SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                let.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                 String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                         SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                 log.error(msg);
@@ -296,7 +300,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
         }
 
         if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
-            rtn = getExportImportAcidDowngradeInPlaceDataStrategy().execute(tableMirror);//doEXPORTIMPORTACIDInplaceDowngrade();
+            rtn = getExportImportAcidDowngradeInPlaceDataStrategy().build(tableMirror);//doEXPORTIMPORTACIDInplaceDowngrade();
         } else {
             if (TableUtils.isACID(let)) {
                 if (hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive() != hmsMirrorConfig.getCluster(Environment.RIGHT).isLegacyHive()) {
@@ -306,7 +310,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
                     try {
                         rtn = buildOutSql(tableMirror); //tableMirror.buildoutEXPORT_IMPORTSql(config, dbMirror);
                     } catch (MissingDataPointException e) {
-                        let.addIssue("Failed to build out SQL: " + e.getMessage());
+                        let.addError("Failed to build out SQL: " + e.getMessage());
                         rtn = Boolean.FALSE;
                     }
                 }
@@ -315,26 +319,40 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
                 try {
                     rtn = buildOutSql(tableMirror); //tableMirror.buildoutEXPORT_IMPORTSql(config, dbMirror);
                 } catch (MissingDataPointException e) {
-                    let.addIssue("Failed to build out SQL: " + e.getMessage());
+                    let.addError("Failed to build out SQL: " + e.getMessage());
                     rtn = Boolean.FALSE;
                 }
 
                 if (rtn)
                     rtn = AVROCheck(tableMirror);
             }
-            // If EXPORT_IMPORT, need to run LEFT queries.
-            if (rtn) {
-                rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
-            }
-
-            // Execute the RIGHT sql if config.execute.
-            if (rtn) {
-                rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
-            }
+//            // If EXPORT_IMPORT, need to run LEFT queries.
+//            if (rtn) {
+//                rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
+//            }
+//
+//            // Execute the RIGHT sql if config.execute.
+//            if (rtn) {
+//                rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
+//            }
         }
 
         return rtn;
 
+    }
+
+    @Override
+    public Boolean execute(TableMirror tableMirror) {
+        Boolean rtn = Boolean.FALSE;
+        // If EXPORT_IMPORT, need to run LEFT queries.
+        rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
+
+        // Execute the RIGHT sql if config.execute.
+        if (rtn) {
+            rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
+        }
+
+        return rtn;
     }
 
     @Autowired

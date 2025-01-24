@@ -1674,6 +1674,7 @@ public class HmsMirrorCommandLineOptions {
         Option externalWarehouseDirOption = new Option("ewd", "external-warehouse-directory", true,
                 "The external warehouse directory path.  Should not include the namespace OR the database directory. " +
                         "This will be used to set the LOCATION database option.");
+        externalWarehouseDirOption.setArgs(1);
         externalWarehouseDirOption.setOptionalArg(Boolean.TRUE);
         externalWarehouseDirOption.setArgName("path");
         externalWarehouseDirOption.setRequired(Boolean.FALSE);

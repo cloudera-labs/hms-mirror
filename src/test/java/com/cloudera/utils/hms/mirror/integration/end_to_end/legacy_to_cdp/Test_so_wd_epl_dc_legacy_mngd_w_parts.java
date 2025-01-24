@@ -68,7 +68,7 @@ public class Test_so_wd_epl_dc_legacy_mngd_w_parts extends E2EBaseTest {
 //        // Read the output and verify the results.
 //        DBMirror[] resultsMirrors = getResults(outputDir,LEGACY_MNGD_PARTS_01);
 //
-//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.CALCULATED_SQL);
 //
 //        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1827);
 //        validatePartitionCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1824);
@@ -80,7 +80,13 @@ public class Test_so_wd_epl_dc_legacy_mngd_w_parts extends E2EBaseTest {
     @Test
     public void issueTest_01() {
         validateTableIssueCount("tpcds_bin_partitioned_orc_10", "web_sales",
-                Environment.RIGHT, 3);
+                Environment.RIGHT, 1828);
+    }
+
+    @Test
+    public void errorTest() {
+        validateTableErrorCount("tpcds_bin_partitioned_orc_10", "web_sales",
+                Environment.RIGHT, 0);
     }
 
     @Test
@@ -115,7 +121,7 @@ public class Test_so_wd_epl_dc_legacy_mngd_w_parts extends E2EBaseTest {
 
     @Test
     public void phaseTest_01() {
-        validatePhase("tpcds_bin_partitioned_orc_10", "web_sales", PhaseState.SUCCESS);
+        validatePhase("tpcds_bin_partitioned_orc_10", "web_sales", PhaseState.CALCULATED_SQL);
     }
 
     @Test

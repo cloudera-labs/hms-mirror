@@ -54,6 +54,42 @@ public class HybridAcidDowngradeInPlaceDataStrategy extends DataStrategyBase imp
     }
 
     @Override
+    public Boolean build(TableMirror tableMirror) {
+        Boolean rtn = Boolean.TRUE;
+        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+        /*
+        Check environment is Hive 3.
+            if not, need to do SQLACIDInplaceDowngrade.
+        If table is not partitioned
+            go to export import downgrade inplace
+        else if partitions <= hybrid.exportImportPartitionLimit
+            go to export import downgrade inplace
+        else if partitions <= hybrid.sqlPartitionLimit
+            go to sql downgrade inplace
+        else
+            too many partitions.
+         */
+        if (hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
+            rtn = sqlAcidDowngradeInPlaceDataStrategy.build(tableMirror);
+        } else {
+            EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
+            if (let.getPartitioned()) {
+                // Partitions less than export limit or export limit set to 0 (or less), which means ignore.
+                if (let.getPartitions().size() < hmsMirrorConfig.getHybrid().getExportImportPartitionLimit() ||
+                        hmsMirrorConfig.getHybrid().getExportImportPartitionLimit() <= 0) {
+                    rtn = exportImportAcidDowngradeInPlaceDataStrategy.build(tableMirror);
+                } else {
+                    rtn = sqlAcidDowngradeInPlaceDataStrategy.build(tableMirror);
+                }
+            } else {
+                // Go with EXPORT_IMPORT
+                rtn = exportImportAcidDowngradeInPlaceDataStrategy.build(tableMirror);
+            }
+        }
+        return rtn;
+    }
+
+    @Override
     public Boolean execute(TableMirror tableMirror) {
         Boolean rtn = Boolean.TRUE;
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();

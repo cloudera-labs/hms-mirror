@@ -2,13 +2,12 @@
 
 This process will look at Hive tables, evaluate if the table is a candidate for migration to Iceberg, and then migrate the table to Iceberg.
 
-Specify `-d ICEBERG_CONVERSION` as the DataStrategy to run the Iceberg Migration.
+Currently the conversion of Hive Table Format to Iceberg is supported through the [STORAGE_MIGRATION](storage_migration.md) data strategy.  Efforts are in place to extend this conversion to SCHEMA_ONLY and SQL data strategies.
 
-This process uses Hive SQL to build(and run) the conversion scripts.  These are "inplace" migrations.
+![iceberg_conversion.png](iceberg_conversion.png)
 
-The following options apply to the Iceberg Migration:
-- `-iv|--iceberg-version` - The Iceberg version to use.  Default is 1.  Can be 1 or 2.
-- `-itpo|--iceberg-table-property-overrides` - A comma separated list of table properties to override.  See the Iceberg Table Properties available [here](https://iceberg.apache.org/docs/latest/configuration/#configuration) and [CDP Properties](https://docs.cloudera.com/cdw-runtime/cloud/iceberg-how-to/topics/iceberg-table-properties.html)
+Simply 'enable' the conversion and all tables covered by the data strategy will be converted to Iceberg.  You can 
+also determine which iceberg table format to apply to the table.
 
 ## Requirements
 

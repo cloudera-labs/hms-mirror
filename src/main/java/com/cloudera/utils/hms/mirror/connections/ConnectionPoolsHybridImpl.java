@@ -23,6 +23,7 @@ import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
 import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import com.cloudera.utils.hms.mirror.service.PasswordService;
+import com.cloudera.utils.hms.util.ConfigUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,8 @@ import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -74,6 +77,14 @@ public class ConnectionPoolsHybridImpl extends ConnectionPoolsBase implements Co
 
                     PoolableConnectionFactory poolableConnectionFactory =
                             new PoolableConnectionFactory(connectionFactory, null);
+                    // Get any queue overrides and set in the init sql.
+                    String queueOverride = ConfigUtils.getQueuePropertyOverride(environment, executeSession.getConfig());
+                    List<String> queueOverrides = new ArrayList<>();
+                    if (queueOverride != null) {
+                        queueOverrides.add(queueOverride);
+                        poolableConnectionFactory.setConnectionInitSql(queueOverrides);
+                    }
+                    poolableConnectionFactory.setValidationQuery("SELECT 1");
 
                     ObjectPool<PoolableConnection> connectionPool =
                             new GenericObjectPool<>(poolableConnectionFactory);
@@ -110,6 +121,13 @@ public class ConnectionPoolsHybridImpl extends ConnectionPoolsBase implements Co
                                     // Need with Apache Hive Driver, since it doesn't support
                                     //      Connection.isValid() api (JDBC4) and prevents Hikari-CP from attempting to call it.
                                     props.put("connectionTestQuery", "SELECT 1");
+                                }
+
+                                // We need to review any property overrides for the environment to see
+                                //   if they're trying to set the queue. EG tez.queue.name or mapred.job.queue.name
+                                String queueOverride = ConfigUtils.getQueuePropertyOverride(environment, executeSession.getConfig());
+                                if (queueOverride != null) {
+                                    props.put("connectionInitSql", queueOverride);
                                 }
 
                                 // Make a copy.

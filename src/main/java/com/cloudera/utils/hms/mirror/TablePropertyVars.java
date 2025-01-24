@@ -67,5 +67,7 @@ METADATA Transfer Flag
     String HMS_STORAGE_MIGRATION_FLAG = "hms-mirror-STORAGE_MIGRATED";
     String BUCKETING_VERSION = "bucketing_version";
     String AVRO_SCHEMA_URL_KEY = "avro.schema.url";
+    String CONVERTED_TO_ICEBERG = "hms-mirror-CONVERTED_TO_ICEBERG";
+    String ICEBERG_FORMAT_VERSION = "format-version";
 
 }

@@ -21,18 +21,29 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+
 @Getter
 @Setter
 @Slf4j
 public class Connection implements Cloneable {
 
     private ConnectionStatus status = ConnectionStatus.NOT_CONFIGURED;
+    private Environment environment;
     private String endpoint;
     private String message;
+    private List<String> properties;
+
+
+    public Connection(Environment environment) {
+        this.environment = environment;
+    }
 
     public void reset() {
         status = ConnectionStatus.NOT_CONFIGURED;
+        endpoint = null;
         message = null;
+        properties = null;
     }
 
     public Connection clone() {

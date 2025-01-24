@@ -74,7 +74,7 @@ public class Test_sm_wd_epl_glm_dc extends E2EBaseTest {
 
     @Test
     public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.CALCULATED_SQL);
     }
 
     @Test
@@ -88,12 +88,18 @@ public class Test_sm_wd_epl_glm_dc extends E2EBaseTest {
     @Test
     public void validateTableIssueCount() {
         validateTableIssueCount("ext_purge_odd_parts", "web_sales",
-                Environment.LEFT, 2);
+                Environment.LEFT, 1);
 
 //        assertEquals("Issue Count not as expected", 3,
 //                getConversion().getDatabase("ext_purge_odd_parts")
 //                        .getTableMirrors().get("web_sales")
 //                        .getEnvironmentTable(Environment.LEFT).getIssues().size());
+    }
+
+    @Test
+    public void errorTest() {
+        validateTableErrorCount("ext_purge_odd_parts", "web_sales",
+                Environment.LEFT, 1);
     }
 
 }

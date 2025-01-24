@@ -77,7 +77,7 @@ public class Test_sql_ext_purge extends E2EBaseTest {
     public void checkForPropertyOverride() {
         assertTrue("Couldn't validate Property Override",validateTableSqlPair("ext_purge_odd_parts",
                 Environment.RIGHT, "web_sales", "Setting hive.exec.orc.split.strategy",
-                "set hive.exec.orc.split.strategy=BI"));
+                "SET hive.exec.orc.split.strategy=BI"));
     }
 
 }

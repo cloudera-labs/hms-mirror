@@ -20,6 +20,7 @@ package com.cloudera.utils.hms.mirror.domain.support;
 import com.cloudera.utils.hadoop.cli.CliEnvironment;
 import com.cloudera.utils.hms.mirror.MessageCode;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
+import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import com.jcabi.manifests.Manifests;
 import lombok.Getter;
 import lombok.Setter;
@@ -63,6 +64,12 @@ public class ExecuteSession implements Cloneable {
         getRunStatus().addWarning(code, args);
     }
 
+    public void close() throws SessionException {
+        if (this.isRunning()) {
+            throw new SessionException("Session is still running.  You can't change the session while it is running.");
+        }
+
+    }
     /*
     Placeholder to save messages on background adjustments to a configuration done during validation.
      */
@@ -114,6 +121,8 @@ public class ExecuteSession implements Cloneable {
 
     public void resetConnectionStatuses() {
         this.connections.reset();
+        runStatus.setProgress(ProgressEnum.INITIALIZED);
+        connected = Boolean.FALSE;
     }
 
     @Override

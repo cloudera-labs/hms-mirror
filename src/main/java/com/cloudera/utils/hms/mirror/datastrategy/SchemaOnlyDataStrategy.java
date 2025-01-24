@@ -118,6 +118,7 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
                         ret.addIssue(SCHEMA_EXISTS_SYNC_PARTS.getDesc());
                     } else {
                         ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
+                        ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION.getDesc());
                         ret.setCreateStrategy(CreateStrategy.LEAVE);
                         String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                                 SCHEMA_EXISTS_NO_ACTION.getDesc());
@@ -126,7 +127,7 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
                     }
                 } else {
                     if (TableUtils.isExternalPurge(ret)) {
-                        ret.addIssue("Schema exists AND DOESN'T match.  But the 'RIGHT' table is has a PURGE option set. " +
+                        ret.addError("Schema exists AND DOESN'T match.  But the 'RIGHT' table is has a PURGE option set. " +
                                 "We can NOT safely replace the table without compromising the data. No action will be taken.");
                         ret.setCreateStrategy(CreateStrategy.LEAVE);
                         return Boolean.FALSE;
@@ -149,8 +150,8 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
                         ret.setCreateStrategy(CreateStrategy.CREATE);
                     } else {
                         // Already exists, no action.
-                        ret.addIssue("Schema exists already, no action. If you wish to rebuild the schema, " +
-                                "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
+                        ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
+                        ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION.getDesc());
                         ret.setCreateStrategy(CreateStrategy.LEAVE);
                         String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                                 SCHEMA_EXISTS_NO_ACTION.getDesc());
@@ -176,7 +177,7 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
                 && hmsMirrorConfig.getMigrateACID().isOn())) {
             rtn = buildTableSchema(copySpec);
         } else {
-            let.addIssue(TableUtils.ACID_NOT_ON);
+            let.addError(TableUtils.ACID_NOT_ON);
             ret.setCreateStrategy(CreateStrategy.NOTHING);
             rtn = Boolean.FALSE;
         }
@@ -272,7 +273,7 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
     }
 
     @Override
-    public Boolean execute(TableMirror tableMirror) {
+    public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
 
         EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
@@ -280,7 +281,7 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
         try {
             rtn = this.buildOutDefinition(tableMirror);
         } catch (RequiredConfigurationException e) {
-            let.addIssue("Failed to build out definition: " + e.getMessage());
+            let.addError("Failed to build out definition: " + e.getMessage());
             rtn = Boolean.FALSE;
         }
 
@@ -291,14 +292,19 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
             try {
                 rtn = this.buildOutSql(tableMirror);
             } catch (MissingDataPointException e) {
-                let.addIssue("Failed to build out SQL: " + e.getMessage());
+                let.addError("Failed to build out SQL: " + e.getMessage());
                 rtn = Boolean.FALSE;
             }
         }
-        if (rtn) {
-            rtn = getTableService().runTableSql(tableMirror, Environment.RIGHT);
-        }
+//        if (rtn) {
+//            rtn = getTableService().runTableSql(tableMirror, Environment.RIGHT);
+//        }
         return rtn;
+    }
+
+    @Override
+    public Boolean execute(TableMirror tableMirror) {
+        return getTableService().runTableSql(tableMirror, Environment.RIGHT);
     }
 
     @Autowired

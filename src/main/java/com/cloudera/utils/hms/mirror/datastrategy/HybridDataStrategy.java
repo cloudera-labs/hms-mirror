@@ -66,7 +66,7 @@ public class HybridDataStrategy extends DataStrategyBase implements DataStrategy
     }
 
     @Override
-    public Boolean execute(TableMirror tableMirror) {
+    public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
@@ -77,9 +77,9 @@ public class HybridDataStrategy extends DataStrategyBase implements DataStrategy
         if (TableUtils.isACID(let) && configService.legacyMigration(config)) {
             tableMirror.setStrategy(DataStrategyEnum.ACID);
             if (config.getMigrateACID().isOn()) {
-                rtn = intermediateDataStrategy.execute(tableMirror);
+                rtn = intermediateDataStrategy.build(tableMirror);
             } else {
-                let.addIssue(TableUtils.ACID_NOT_ON);
+                let.addError(TableUtils.ACID_NOT_ON);
                 rtn = Boolean.FALSE;
             }
         } else {
@@ -96,23 +96,59 @@ public class HybridDataStrategy extends DataStrategyBase implements DataStrategy
                     tableMirror.setStrategy(DataStrategyEnum.SQL);
                     if (!isBlank(config.getTransfer().getIntermediateStorage())
                             || !isBlank(config.getTransfer().getTargetNamespace())) {
+                        rtn = intermediateDataStrategy.build(tableMirror);
+                    } else {
+                        rtn = sqlDataStrategy.build(tableMirror);
+                    }
+                } else {
+                    // EXPORT
+                    tableMirror.setStrategy(DataStrategyEnum.EXPORT_IMPORT);
+                    rtn = exportImportDataStrategy.build(tableMirror);
+                }
+            } else {
+                // EXPORT
+                tableMirror.setStrategy(DataStrategyEnum.EXPORT_IMPORT);
+                rtn = exportImportDataStrategy.build(tableMirror);
+            }
+        }
+        return rtn;
+
+    }
+
+    @Override
+    public Boolean execute(TableMirror tableMirror) {
+        Boolean rtn = Boolean.FALSE;
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
+        EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
+
+        if (TableUtils.isACID(let) && configService.legacyMigration(config)) {
+            tableMirror.setStrategy(DataStrategyEnum.ACID);
+            if (config.getMigrateACID().isOn()) {
+                rtn = intermediateDataStrategy.execute(tableMirror);
+            } else {
+                rtn = Boolean.FALSE;
+            }
+        } else {
+            if (let.getPartitioned()) {
+                if (let.getPartitions().size() > config.getHybrid().getExportImportPartitionLimit() &&
+                        config.getHybrid().getExportImportPartitionLimit() > 0) {
+                    if (!isBlank(config.getTransfer().getIntermediateStorage())
+                            || !isBlank(config.getTransfer().getTargetNamespace())) {
                         rtn = intermediateDataStrategy.execute(tableMirror);
                     } else {
                         rtn = sqlDataStrategy.execute(tableMirror);
                     }
                 } else {
                     // EXPORT
-                    tableMirror.setStrategy(DataStrategyEnum.EXPORT_IMPORT);
                     rtn = exportImportDataStrategy.execute(tableMirror);
                 }
             } else {
                 // EXPORT
-                tableMirror.setStrategy(DataStrategyEnum.EXPORT_IMPORT);
                 rtn = exportImportDataStrategy.execute(tableMirror);
             }
         }
-        return rtn;
 
+        return null;
     }
 
     @Autowired

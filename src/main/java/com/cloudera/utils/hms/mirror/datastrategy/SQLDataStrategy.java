@@ -93,6 +93,7 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
                 ret.setCreateStrategy(CreateStrategy.CREATE);
             } else {
                 ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
+                ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION.getDesc());
                 String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                         SCHEMA_EXISTS_NO_ACTION.getDesc());
                 log.error(msg);
@@ -234,14 +235,14 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
     }
 
     @Override
-    public Boolean execute(TableMirror tableMirror) {
+    public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
 
         if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
-            rtn = getSqlAcidDowngradeInPlaceDataStrategy().execute(tableMirror);
+            rtn = getSqlAcidDowngradeInPlaceDataStrategy().build(tableMirror);
         } else if (!isBlank(config.getTransfer().getIntermediateStorage())
                 || !isBlank(config.getTransfer().getTargetNamespace())
                 || (TableUtils.isACID(let)
@@ -249,7 +250,7 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
             if (TableUtils.isACID(let)) {
                 tableMirror.setStrategy(DataStrategyEnum.ACID);
             }
-            rtn = getIntermediateDataStrategy().execute(tableMirror);
+            rtn = getIntermediateDataStrategy().build(tableMirror);
         } else {
 
             EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT, tableMirror);
@@ -259,7 +260,7 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
             try {
                 rtn = buildOutDefinition(tableMirror);
             } catch (RequiredConfigurationException e) {
-                let.addIssue("Failed to build out definition: " + e.getMessage());
+                let.addError("Failed to build out definition: " + e.getMessage());
                 rtn = Boolean.FALSE;
             }
 
@@ -270,7 +271,7 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
                 try {
                     rtn = buildOutSql(tableMirror);
                 } catch (MissingDataPointException e) {
-                    let.addIssue("Failed to build out SQL: " + e.getMessage());
+                    let.addError("Failed to build out SQL: " + e.getMessage());
                     rtn = Boolean.FALSE;
                 }
             }
@@ -281,12 +282,17 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
                 rtn = buildMigrationSql(tableMirror, Environment.LEFT, Environment.SHADOW, Environment.RIGHT);
 
                 // Execute the RIGHT sql if config.execute.
-                if (rtn) {
-                    tableService.runTableSql(tableMirror, Environment.RIGHT);
-                }
+//                if (rtn) {
+//                    tableService.runTableSql(tableMirror, Environment.RIGHT);
+//                }
             }
         }
         return rtn;
+    }
+
+    @Override
+    public Boolean execute(TableMirror tableMirror) {
+        return tableService.runTableSql(tableMirror, Environment.RIGHT);
     }
 
     @Autowired

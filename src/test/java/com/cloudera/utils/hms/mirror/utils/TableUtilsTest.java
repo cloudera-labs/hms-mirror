@@ -20,6 +20,7 @@ package com.cloudera.utils.hms.mirror.utils;
 import com.cloudera.utils.hms.mirror.domain.Cluster;
 import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.util.TableUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -30,6 +31,7 @@ import java.util.List;
 import static com.cloudera.utils.hms.mirror.TablePropertyVars.TRANSACTIONAL;
 import static org.junit.Assert.*;
 
+@Slf4j
 public class TableUtilsTest {
 
     private final List<String> table_01 = new ArrayList<>();
@@ -39,6 +41,7 @@ public class TableUtilsTest {
     private final List<String> table_05 = new ArrayList<>();
     private final List<String> table_06 = new ArrayList<>();
     private final List<String> table_07 = new ArrayList<>();
+    private final List<String> table_08 = new ArrayList<>();
 
 
     @Test
@@ -133,6 +136,12 @@ public class TableUtilsTest {
         assertTrue(TableUtils.isManaged(envTable));
         envTable.setDefinition(table_04);
         assertFalse(TableUtils.isManaged(envTable));
+    }
+
+    @Test
+    public void convertToIceberg_01() {
+        TableUtils.convertToIceberg("test", table_01);
+        log.info("Table: {}", table_01);
     }
 
     @Test

@@ -74,6 +74,7 @@ public class Test_sql_mao_da_dc extends E2EBaseTest {
         // distcp adjusted automatically.
         long expected = getCheckCode(
                 MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS,
+                MessageCode.BUILDING_DATABASES_ISSUE,
                 MessageCode.DATABASE_CREATION);
 
         assertEquals("Return Code Failure: ", expected, actual);

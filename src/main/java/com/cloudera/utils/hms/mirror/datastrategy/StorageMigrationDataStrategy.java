@@ -31,6 +31,7 @@ import com.cloudera.utils.hms.mirror.exceptions.MismatchException;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.service.*;
+import com.cloudera.utils.hms.util.ConfigUtils;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -38,10 +39,10 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.text.DateFormat;
 import java.text.MessageFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Map;
 
 import static com.cloudera.utils.hms.mirror.MessageCode.LOCATION_NOT_MATCH_WAREHOUSE;
@@ -105,7 +106,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
             assert dbWarehouse != null;
         } catch (MissingDataPointException e) {
             log.error(MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS.getDesc(), e);
-            let.addIssue(MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS.getDesc());
+            let.addError(MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS.getDesc());
             rtn = Boolean.FALSE;
             return rtn;
         }
@@ -127,8 +128,8 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
             return Boolean.FALSE;
         }
         // Add the STORAGE_MIGRATED flag to the table definition.
-        DateFormat df = new SimpleDateFormat();
-        TableUtils.upsertTblProperty(HMS_STORAGE_MIGRATION_FLAG, df.format(new Date()), let);
+        String dateAsString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
+        TableUtils.upsertTblProperty(HMS_STORAGE_MIGRATION_FLAG, dateAsString, let);
 
         // Create a 'target' table definition on left cluster with right definition (used only as place holder)
         copySpec = new CopySpec(tableMirror, Environment.LEFT, Environment.RIGHT);
@@ -206,7 +207,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
     }
 
     @Override
-    public Boolean execute(TableMirror tableMirror) {
+    public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
@@ -389,7 +390,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
 
                     } else if (config.getTransfer().getStorageMigration().isStrict()) {
                         log.warn("Cleaning up SQL due to issues for table: {}", tableMirror.getName());
-                        let.addIssue(MessageCode.STORAGE_MIGRATION_STRICT.getDesc());
+                        let.addError(MessageCode.STORAGE_MIGRATION_STRICT.getDesc());
                         let.getSql().clear();
                         rtn = Boolean.FALSE;
                     }
@@ -397,7 +398,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                         // Strict is NOT set, but there were some issues.  We need to post a warning here.
                         log.warn("Storage Migration is NOT strict, but there are concerns with the location mappings for {}",
                                 tableMirror.getName());
-                        let.addIssue(MessageCode.STORAGE_MIGRATION_NOT_STRICT_ISSUE.getDesc());
+                        let.addError(MessageCode.STORAGE_MIGRATION_NOT_STRICT_ISSUE.getDesc());
                         rtn = Boolean.TRUE;
                     }
                 } else {
@@ -506,7 +507,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                             rtn = Boolean.TRUE;
                         } else if (config.getTransfer().getStorageMigration().isStrict()) {
                             log.warn("Cleaning up SQL due to issues for table: {}", tableMirror.getName());
-                            let.addIssue(MessageCode.STORAGE_MIGRATION_STRICT.getDesc());
+                            let.addError(MessageCode.STORAGE_MIGRATION_STRICT.getDesc());
                             let.getSql().clear();
                             rtn = Boolean.FALSE;
                         }
@@ -514,7 +515,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                             // Strict is NOT set, but there were some issues.  We need to post a warning here.
                             log.warn("Storage Migration is NOT strict, but there are concerns with the location mappings for {}",
                                     tableMirror.getName());
-                            let.addIssue(MessageCode.STORAGE_MIGRATION_NOT_STRICT_ISSUE.getDesc());
+                            let.addError(MessageCode.STORAGE_MIGRATION_NOT_STRICT_ISSUE.getDesc());
                             rtn = Boolean.TRUE;
                         }
                     }
@@ -538,11 +539,9 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                         let.addSql(new Pair(TEZ_EXECUTION_DESC, SET_TEZ_AS_EXECUTION_ENGINE));
                     }
                     // Set Override Properties.
-                    Map<String, String> overrides = config.getOptimization().getOverrides().getFor(Environment.LEFT);
-                    if (!overrides.isEmpty()) {
-                        for (String key : overrides.keySet()) {
-                            let.addSql("Setting " + key, "set " + key + "=" + overrides.get(key));
-                        }
+                    List<String> overrides = ConfigUtils.getPropertyOverridesFor(Environment.LEFT, config);
+                    for (String setCmd : overrides) {
+                        let.addSql(setCmd, setCmd);
                     }
 
                     statsCalculatorService.setSessionOptions(config.getCluster(Environment.LEFT), let, let);
@@ -564,7 +563,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                         // Build Partition Elements.
                         if (config.getOptimization().isSkip()) {
                             if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
-                                let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
+                                let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION, "false"));
                             }
                             String partElement = TableUtils.getPartitionElements(let);
                             String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
@@ -574,9 +573,9 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                         } else if (config.getOptimization().isSortDynamicPartitionInserts()) {
                             // Declarative
                             if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
-                                let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
+                                let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION, "true"));
                                 if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
-                                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION_THRESHOLD, "0"));
                                 }
                             }
                             String partElement = TableUtils.getPartitionElements(let);
@@ -587,22 +586,28 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                         } else {
                             // Prescriptive
                             if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
-                                let.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
+                                let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION, "false"));
                                 if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
-                                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION_THRESHOLD, "-1"));
                                 }
                             }
                             String partElement = TableUtils.getPartitionElements(let);
                             String distPartElement = statsCalculatorService.getDistributedPartitionElements(let);
-                            String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
-                                    leftTable, rightTable, partElement, distPartElement);
+                            String transferSql = null;
+                            if (TableUtils.isIceberg(let)) {
+                                transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE_FOR_NON_NATIVE,
+                                        leftTable, rightTable, distPartElement);
+                            } else {
+                                transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_PRESCRIPTIVE,
+                                        leftTable, rightTable, partElement, distPartElement);
+                            }
                             String transferDesc = MessageFormat.format(TableUtils.STORAGE_MIGRATION_TRANSFER_DESC, let.getPartitions().size());
                             let.addSql(new Pair(transferDesc, transferSql));
                         }
                         if (TableUtils.isACID(let)) {
                             if (let.getPartitions().size() > config.getMigrateACID().getPartitionLimit() && config.getMigrateACID().getPartitionLimit() > 0) {
                                 // The partition limit has been exceeded.  The process will need to be done manually.
-                                let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
+                                let.addError("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
                                         "limit (migrateACID->partitionLimit) of " + config.getMigrateACID().getPartitionLimit() +
                                         ".  This value is used to abort migrations that have a high potential for failure.  " +
                                         "The migration will need to be done manually OR try increasing the limit. Review commandline option '-ap'.");
@@ -611,7 +616,7 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                         } else {
                             if (let.getPartitions().size() > config.getHybrid().getSqlPartitionLimit() && config.getHybrid().getSqlPartitionLimit() > 0) {
                                 // The partition limit has been exceeded.  The process will need to be done manually.
-                                let.addIssue("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
+                                let.addError("The number of partitions: " + let.getPartitions().size() + " exceeds the configuration " +
                                         "limit (hybrid->sqlPartitionLimit) of " + config.getHybrid().getSqlPartitionLimit() +
                                         ".  This value is used to abort migrations that have a high potential for failure.  " +
                                         "The migration will need to be done manually OR try increasing the limit. Review commandline option '-sp'.");
@@ -625,16 +630,21 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
                     }
                 }
             }
-            if (rtn) {
-                // Run the Transfer Scripts
-                rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
-            }
+//            if (rtn) {
+//                // Run the Transfer Scripts
+//                rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
+//            }
         } catch (MissingDataPointException | RequiredConfigurationException e) {
             log.error(MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS.getDesc(), e);
-            let.addIssue(MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS.getDesc());
+            let.addError(MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS.getDesc());
             rtn = Boolean.FALSE;
         }
         return rtn;
+    }
+
+    @Override
+    public Boolean execute(TableMirror tableMirror) {
+        return tableService.runTableSql(tableMirror, Environment.LEFT);
     }
 
     @Autowired

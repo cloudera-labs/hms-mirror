@@ -102,7 +102,7 @@ public class Test_sql_mao_da_dc_ewd extends E2EBaseTest {
 
 //    @Test
 //    public void phaseTest() {
-//        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+//        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.CALCULATED_SQL);
 //    }
 //
 //    @Test

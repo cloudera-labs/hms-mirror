@@ -28,6 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -59,6 +61,7 @@ public class TableUtils {
     public static final String INTO = "INTO";
     public static final String TBL_PROPERTIES = "TBLPROPERTIES (";
     public static final String STORED_BY = "STORED BY";
+    public static final String STORED_BY_ICEBERG = "STORED BY ICEBERG";
     public static final String USE_DESC = "Selecting DB";
     public static final String CREATE_DESC = "Creating Table";
     public static final String CREATE_SHADOW_DESC = "Creating Shadow Table";
@@ -182,12 +185,46 @@ public class TableUtils {
 
     public static void stripLocation(String tableName, List<String> tableDefinition) {
         log.debug("Stripping table location data for: {}", tableName);
-        String location = null;
         int locIdx = tableDefinition.indexOf(LOCATION);
         if (locIdx > 0) {
             tableDefinition.remove(locIdx + 1);
             tableDefinition.remove(locIdx);
         }
+    }
+
+    public static void convertToIceberg(String tableName, List<String> tableDefinition) {
+        log.debug("Converting table {} to Iceberg", tableName);
+        // Trim contents.
+        for (int i = 0; i < tableDefinition.size(); i++) {
+            tableDefinition.set(i, tableDefinition.get(i).trim());
+        }
+
+        // TODO: Check to make sure the table isn't already an Iceberg table.
+
+        // Remove the legacy properties.
+        // OUTPUTFORMAT
+        int locIdx = tableDefinition.indexOf(OUTPUTFORMAT);
+        if (locIdx > 0) {
+            tableDefinition.remove(locIdx + 1);
+            tableDefinition.remove(locIdx);
+        }
+        // STORED_AS_INPUTFORMAT
+        locIdx = tableDefinition.indexOf(STORED_AS_INPUTFORMAT);
+        if (locIdx > 0) {
+            tableDefinition.remove(locIdx + 1);
+            tableDefinition.remove(locIdx);
+        }
+        // ROW_FORMAT_SERDE
+        locIdx = tableDefinition.indexOf(ROW_FORMAT_SERDE);
+        if (locIdx > 0) {
+            tableDefinition.remove(locIdx + 1);
+            tableDefinition.remove(locIdx);
+        }
+
+        // Using the last locIdx, add the Iceberg properties.
+        tableDefinition.add(locIdx, STORED_BY_ICEBERG);
+        String dateAsString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
+        upsertTblProperty(TablePropertyVars.CONVERTED_TO_ICEBERG, dateAsString, tableDefinition);
     }
 
     public static void changeTableName(EnvironmentTable envTable, String newTableName) {
@@ -322,7 +359,7 @@ public class TableUtils {
             }
             if (line.trim().startsWith(ROW_FORMAT_SERDE) || line.trim().startsWith(STORED_AS_INPUTFORMAT)
                     || line.trim().startsWith(OUTPUTFORMAT) || line.trim().startsWith(CLUSTERED_BY)
-                    || line.trim().startsWith(ROW_FORMAT_DELIMITED)) {
+                    || line.trim().startsWith(ROW_FORMAT_DELIMITED) || line.trim().startsWith(STORED_BY)) {
                 pEIdx = envTable.getDefinition().indexOf(line);
             }
             if (pIdx > 0 && pEIdx > 0) {
@@ -920,9 +957,20 @@ public class TableUtils {
          */
         String rtn = null;
         int sbIdx = envTable.getDefinition().indexOf(STORED_BY);
+
         if (sbIdx != -1) {
+            // Check current line (eg: STORED BY ICEBERG)
             String storedBy = envTable.getDefinition().get(sbIdx + 1);
-            if (storedBy.contains("iceberg")) {
+            if (storedBy.contains("ICEBERG")) {
+                return Boolean.TRUE;
+            } else {
+                if (storedBy.contains("HiveIcebergStorageHandler")) {
+                    return Boolean.TRUE;
+                }
+            }
+        } else {
+            sbIdx = envTable.getDefinition().indexOf(STORED_BY_ICEBERG);
+            if (sbIdx != -1) {
                 return Boolean.TRUE;
             }
         }

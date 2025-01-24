@@ -36,8 +36,7 @@ import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
 
-import static com.cloudera.utils.hms.mirror.MessageCode.SCHEMA_EXISTS_NO_ACTION;
-import static com.cloudera.utils.hms.mirror.MessageCode.TABLE_ISSUE;
+import static com.cloudera.utils.hms.mirror.MessageCode.*;
 
 @Component
 @Slf4j
@@ -91,13 +90,14 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
                     // Compare Schemas.
                     if (tableMirror.schemasEqual(Environment.LEFT, Environment.RIGHT)) {
                         ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
+                        ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION.getDesc());
                         ret.setCreateStrategy(CreateStrategy.LEAVE);
                         String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                                 SCHEMA_EXISTS_NO_ACTION.getDesc());
                         log.error(msg);
                     } else {
                         if (TableUtils.isExternalPurge(ret)) {
-                            ret.addIssue("Schema exists AND DOESN'T match.  But the 'RIGHT' table is has a PURGE option set. " +
+                            ret.addError("Schema exists AND DOESN'T match.  But the 'RIGHT' table is has a PURGE option set. " +
                                     "We can NOT safely replace the table without compromising the data. No action will be taken.");
                             ret.setCreateStrategy(CreateStrategy.LEAVE);
                             return Boolean.FALSE;
@@ -111,19 +111,19 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
             } else {
                 if (ret.isExists()) {
                     // Already exists, no action.
-                    ret.addIssue("Schema exists already, no action. If you wish to rebuild the schema, " +
+                    ret.addError("Schema exists already, no action. If you wish to rebuild the schema, " +
                             "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
                     ret.setCreateStrategy(CreateStrategy.LEAVE);
                     return Boolean.FALSE;
                 } else {
-                    ret.addIssue("Schema will be created");
+                    ret.addError("Schema will be created");
                     ret.setCreateStrategy(CreateStrategy.CREATE);
                 }
             }
             // Rebuild Target from Source.
             rtn = buildTableSchema(copySpec);
         } else {
-            let.addIssue("Can't LINK ACID tables");
+            let.addError("Can't LINK ACID tables");
             ret.setCreateStrategy(CreateStrategy.NOTHING);
         }
         return rtn;
@@ -136,7 +136,7 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
     }
 
     @Override
-    public Boolean execute(TableMirror tableMirror) {
+    public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
@@ -149,7 +149,7 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
             try {
                 rtn = buildOutDefinition(tableMirror);//tblMirror.buildoutLINKEDDefinition(config, dbMirror);
             } catch (RequiredConfigurationException e) {
-                let.addIssue("Failed to build out definition: " + e.getMessage());
+                let.addError("Failed to build out definition: " + e.getMessage());
                 rtn = Boolean.FALSE;
             }
         }
@@ -158,18 +158,23 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
             try {
                 rtn = buildOutSql(tableMirror);//tblMirror.buildoutLINKEDSql(config, dbMirror);
             } catch (MissingDataPointException e) {
-                let.addIssue("Failed to build out SQL: " + e.getMessage());
+                let.addError("Failed to build out SQL: " + e.getMessage());
                 rtn = Boolean.FALSE;
             }
         }
 
         // Execute the RIGHT sql if config.execute.
-        if (rtn) {
-            rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
-        }
+//        if (rtn) {
+//            rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
+//        }
 
         return rtn;
 
+    }
+
+    @Override
+    public Boolean execute(TableMirror tableMirror) {
+        return tableService.runTableSql(tableMirror, Environment.RIGHT);
     }
 
     @Autowired

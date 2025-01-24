@@ -69,7 +69,7 @@ public class Test_sm_smn_wd_epl_glm_fel extends E2EBaseTest {
 //        // Read the output and verify the results.
 //        DBMirror[] resultsMirrors = getResults(outputDir,EXT_PURGE_ODD_PARTS_03);
 //
-//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.SUCCESS);
+//        validatePhase(resultsMirrors[0], "web_sales", PhaseState.CALCULATED_SQL);
 //        validateTableIssueCount(resultsMirrors[0], "web_sales", Environment.RIGHT, 1);
 //
 //        if (!validateSqlPair(resultsMirrors[0], Environment.LEFT, "web_sales",  "Remove table property",
@@ -81,7 +81,7 @@ public class Test_sm_smn_wd_epl_glm_fel extends E2EBaseTest {
 
     @Test
     public void phaseTest() {
-        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.SUCCESS);
+        validatePhase("ext_purge_odd_parts", "web_sales", PhaseState.CALCULATED_SQL);
     }
 
     @Test
@@ -96,6 +96,6 @@ public class Test_sm_smn_wd_epl_glm_fel extends E2EBaseTest {
     @Test
     public void tableIssueCountTest() {
         validateTableIssueCount("ext_purge_odd_parts", "web_sales",
-                Environment.RIGHT, 1);
+                Environment.RIGHT, 19);
     }
 }

@@ -47,6 +47,10 @@ public class DBMirror {
     private final Map<String, String> filteredOut = new TreeMap<>();
     //    @JsonIgnore
     private final Map<Environment, List<Pair>> sql = new TreeMap<>();
+
+//    @JsonIgnore
+    private final Map<Environment, Map<String, String>> problemSQL = new TreeMap<>();
+
     private String name;
     @JsonIgnore
     private String resolvedName;
@@ -86,6 +90,15 @@ public class DBMirror {
             issues.put(environment, issuesList);
         }
         issuesList.add(scrubbedIssue);
+    }
+
+    public void addProblemSQL(Environment environment, String sql, String reason) {
+        Map<String, String> sqlList = problemSQL.get(environment);
+        if (isNull(sqlList)) {
+            sqlList = new TreeMap<>();
+            problemSQL.put(environment, sqlList);
+        }
+        sqlList.put(sql, reason);
     }
 
     public TableMirror addTable(String table) {
@@ -235,6 +248,15 @@ public class DBMirror {
         boolean rtn = Boolean.FALSE;
         for (Map.Entry<String, TableMirror> entry : getTableMirrors().entrySet()) {
             if (entry.getValue().hasIssues())
+                rtn = Boolean.TRUE;
+        }
+        return rtn;
+    }
+
+    public boolean hasErrors() {
+        boolean rtn = Boolean.FALSE;
+        for (Map.Entry<String, TableMirror> entry : getTableMirrors().entrySet()) {
+            if (entry.getValue().hasErrors())
                 rtn = Boolean.TRUE;
         }
         return rtn;

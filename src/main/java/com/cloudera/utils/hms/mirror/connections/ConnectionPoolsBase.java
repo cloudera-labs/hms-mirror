@@ -81,6 +81,9 @@ public abstract class ConnectionPoolsBase implements ConnectionPools {
         } catch (SQLException throwables) {
             //
         }
+        // Clear the DataSources
+        hs2DataSources.clear();
+
         if (metastoreDirectDataSources.get(Environment.LEFT) != null)
             if (metastoreDirectDataSources.get(Environment.LEFT) instanceof PoolingDataSource) {
                 try {
@@ -104,6 +107,8 @@ public abstract class ConnectionPoolsBase implements ConnectionPools {
             }
             else if (metastoreDirectDataSources.get(Environment.RIGHT) instanceof HikariDataSource)
                 ((HikariDataSource)metastoreDirectDataSources.get(Environment.RIGHT)).close();
+        // Clear the DataSources.
+        metastoreDirectDataSources.clear();
     }
 
 
@@ -155,7 +160,7 @@ public abstract class ConnectionPoolsBase implements ConnectionPools {
         return metastoreDirectDataSources.get(environment);
     }
 
-    protected void initHS2Drivers() throws SQLException {
+    protected void initHS2Drivers() throws SQLException, SessionException {
         Set<Environment> environments = new HashSet<>();
         environments.add(Environment.LEFT);
         environments.add(Environment.RIGHT);

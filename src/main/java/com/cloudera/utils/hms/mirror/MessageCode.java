@@ -33,11 +33,14 @@ public enum MessageCode {
     ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS("When using `ALIGNED`, you will need specify " +
             "warehouse locations (-wd,-ewd) OR have a Warehouse Plan created for the 'database' to enable the `distcp` workbooks and/or resetting locations.  Without them, we can NOT know the " +
             "default locations to build a plan."),
-    BETA_FEATURE("Beta Feature: {0} isn't available unless you set the 'beta' flag to TRUE in the configuration. The feature will be DISABLED."),
+    BETA_FEATURE("Beta Feature: {0} isn''t available unless you set the ''beta'' flag to TRUE in the configuration. The feature will be DISABLED."),
+    BUILDING_DATABASES_ISSUE("There was an issue building the databases(sql).  Please check 'database' section for details."),
+    BUILDING_TABLES_ISSUE("There was an issue building the tables(sql).  Please check 'tables' section for details."),
     CINE_WITH_DATASTRATEGY("The `-cine` (createIfNotExist) option is only applied while using the `SCHEMA_ONLY` data strategy " +
             "OR with SQL and the `-sync` option."),
     CINE_WITH_EXIST("Schema exists already.  But you've specified 'createIfNotExist', which will attempt to create " +
             "and softly fail and continue with the remainder sql statements for the table."),
+    CONFIG_INVALID("The configuration is invalid.  Please check the configuration and try again."),
     CLUSTER_NOT_DEFINED_OR_CONFIGURED("The {0} cluster is NOT defined or configured in the runtime configuration.  " +
             "Please check the configuration and try again."),
     COLLECTING_TABLES("There was an issue collecting tables.  Please check logs."),
@@ -92,7 +95,7 @@ public enum MessageCode {
     ENCRYPTED_PASSWORD_CHANGE_ATTEMPT("Password can NOT be changed while ENCRYPTED.  Decrypt them first to change/add a password then Re-encrytped them before saving."),
     ENCRYPTION_ISSUE("There was an issue with the encryption. ''{0}'' Check the logs for details."),
     ENCRYPT_PASSWORD_ISSUE("Issue Encrypting PasswordApp"),
-    ENVIRONMENT_CONNECTION_ISSUE("There is an issue connecting to the {0} HS2 environment.  Check jdbc setup."),
+    ENVIRONMENT_CONNECTION_ISSUE("There is an issue connecting to the {0} HS2 environment.  Check jdbc setup and/or engine resources. Error: {1}"),
     ENVIRONMENT_DISCONNECTED("Environment {0} is disconnected. Current db/table status could not be determined.  " +
             "All actions will assume they don't exist.\n\nStrategies/methods of sync that require the 'RIGHT' cluster or 'LEFT' cluster " +
             "to be linked may not work without a `common-storage` or `intermediate-storage` option that will bridge the gap."),
@@ -117,6 +120,7 @@ public enum MessageCode {
     HS2_DRIVER_JAR_NOT_FOUND("The Hive JDBC jar file `{0}` for the `{1}` environment was NOT found in the location specified.  Please check the location and try again."),
     HS2_NOT_DEFINED_OR_CONFIGURED("The {0} HiveServer2 is NOT defined or configured in the runtime configuration.  " +
             "Please check the configuration and try again."),
+    ICEBERG_CONVERSION_AVAILABILITY("Only available through the 'STORAGE_MIGRATION' strategy."),
     IGNORING_TBL_FILTERS_W_TEST_DATA("Table filters are ignored with 'test data'"),
     INTERMEDIATE_STORAGE_WITH_DA_IP("Intermediate Storage (-is) is not a valid option for the ACID downgrades inplace."),
     INTERMEDIATE_STORAGE_WITH_LINKED("Intermediate Storage (-is) is not a valid option for the LINKED data strategy."),
@@ -148,6 +152,8 @@ public enum MessageCode {
     PASSWORDS_ENCRYPTED("Passwords are encrypted.  Too change/add a password, you must decrypt them first."),
     PASSWORD_CFG("PasswordApp en/de crypt"),
     PKEY_PASSWORD_CFG("Passwords are encrypted.  You must supply a password key to run the process. For CLI '-pkey' with '-p'."),
+    PROCESSING_TABLES_ISSUE("There was an issue processing tables.  Please check table section for details."),
+    PROCESSING_DATABASES_ISSUE("There was an issue processing databases.  Please check 'database' section for details."),
     RDL_FEL_OVERRIDES("You've request both -rdl and -fel. -fel will take precedence."),
     RDL_W_EPL_NO_MAPPING("`-epl` with `-rdl` requires a 'Warehouse Plan' for the database or a manual 'Global Location Map' to ensure we can map from the original location " +
             "to the new location.  Source: {0} : {1} "),
@@ -190,6 +196,7 @@ public enum MessageCode {
             "re-created.  The data will be overwritten."),
     SCHEMA_EXISTS_SYNC_PARTS("Schema exists already and matches. `--sync` and `-epl` specified, adding partition sync."),
     SCHEMA_WILL_BE_CREATED("Schema will be created"),
+    SKIPPED("Skipped"),
     SESSION_ISSUE("There was an issue with the session. ''{0}'' Check the logs for details."),
     SQL_ACID_DA_DISTCP_WO_EXT_WAREHOUSE("You need to specify `-ewd` when using `distcp`, `da`, and `SQL`"),
     SQL_ACID_W_DC("`distcp` isn't valid for SQL strategies on ACID tables."),
@@ -230,6 +237,7 @@ public enum MessageCode {
             "The LOCATION element was adjusted and will be explicitly set during table creation."),
     TARGET_DB_MISSING(""),
     TARGET_NAMESPACE_NOT_DEFINED("Unable to determine the Target Namespace. Check the settings for the RIGHT hcfsNamespace or set the 'targetNamespace'"),
+    VALIDATE_SQL_STATEMENT_ISSUE("There was an issue validating the SQL statements.  Please check the 'Database-Problem SQL Statements' section for details."),
     VALID_ACID_DA_IP_STRATEGIES("Inplace Downgrade of ACID tables only valid for the SQL data strategy"),
     VALID_ACID_STRATEGIES("Migrating ACID tables only valid for SCHEMA_ONLY, DUMP, SQL, EXPORT_IMPORT, " +
             "HYBRID, and STORAGE_MIGRATION data strategies"),

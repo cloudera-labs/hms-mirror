@@ -38,6 +38,7 @@ import com.cloudera.utils.hms.mirror.feature.FeaturesEnum;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.StatsCalculatorService;
 import com.cloudera.utils.hms.mirror.service.TranslatorService;
+import com.cloudera.utils.hms.util.ConfigUtils;
 import com.cloudera.utils.hms.util.NamespaceUtils;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
@@ -47,16 +48,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
-import static com.cloudera.utils.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION;
-import static com.cloudera.utils.hms.mirror.SessionVars.SORT_DYNAMIC_PARTITION_THRESHOLD;
+import static com.cloudera.utils.hms.mirror.SessionVars.*;
 import static com.cloudera.utils.hms.mirror.TablePropertyVars.*;
-import static com.cloudera.utils.hms.mirror.TablePropertyVars.BUCKETING_VERSION;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -124,19 +120,19 @@ public abstract class DataStrategyBase implements DataStrategy {
                         if (nonNull(parentDirectory)) {
                             cr = cli.processInput("mkdir -p " + parentDirectory);
                             if (cr.isError()) {
-                                ret.addIssue("Problem creating directory " + parentDirectory + ". " + cr.getError());
+                                ret.addError("Problem creating directory " + parentDirectory + ". " + cr.getError());
                                 rtn = Boolean.FALSE;
                             } else {
                                 cr = cli.processInput("cp -f " + leftPath + " " + rightPath);
                                 if (cr.isError()) {
-                                    ret.addIssue("Problem copying AVRO schema file from " + leftPath + " to " + parentDirectory + ".\n```" + cr.getError() + "```");
+                                    ret.addError("Problem copying AVRO schema file from " + leftPath + " to " + parentDirectory + ".\n```" + cr.getError() + "```");
                                     rtn = Boolean.FALSE;
                                 }
                             }
                         }
                     } catch (Throwable t) {
                         log.error("{}: AVRO file copy issue", ret.getName(), t);
-                        ret.addIssue(t.getMessage());
+                        ret.addError(t.getMessage());
                         rtn = Boolean.FALSE;
                     }
                 } else {
@@ -145,7 +141,7 @@ public abstract class DataStrategyBase implements DataStrategy {
                 tableMirror.addStep("AVRO", "Checked");
             } catch (RequiredConfigurationException e) {
                 log.error("Required Configuration Exception", e);
-                ret.addIssue(e.getMessage());
+                ret.addError(e.getMessage());
                 rtn = Boolean.FALSE;
             }
         } else {
@@ -207,7 +203,18 @@ public abstract class DataStrategyBase implements DataStrategy {
                 // Clear the target spec.
                 target.getDefinition().clear();
                 // Reset with Source
-                target.getDefinition().addAll(source.getDefinition());
+                List<String> sourceDef = source.getDefinition();
+
+                // TODO: For Iceberg Conversion, we need to strip the parts of the table definition that are not
+                //       supported by Iceberg.
+                if (config.getIcebergConversion().isEnable()) {
+                    // We need to strip the parts of the table definition that are not supported by Iceberg.
+                    TableUtils.convertToIceberg(target.getName(), sourceDef);
+                    TableUtils.upsertTblProperty(ICEBERG_FORMAT_VERSION,
+                            Integer.toString(config.getIcebergConversion().getVersion()), sourceDef);
+                }
+
+                target.getDefinition().addAll(sourceDef);
                 if (TableUtils.isHiveNative(source)) {
                     // Rules
                     // 1. Strip db from create state.  It's broken anyway with the way
@@ -227,7 +234,7 @@ public abstract class DataStrategyBase implements DataStrategy {
                             if (config.getTransfer().getStorageMigration().isDistcp()) {
                                 // We need to FAIL the table to ensure we point out that there is a disconnect.
                                 rtn = Boolean.FALSE;
-                                target.addIssue("Tablename does NOT match last directory name.  Using `dc|distcp` will copy " +
+                                target.addError("Tablename does NOT match last directory name.  Using `dc|distcp` will copy " +
                                         "the data but the table will not align with the directory.");
                             }
                         }
@@ -501,11 +508,11 @@ public abstract class DataStrategyBase implements DataStrategy {
             }
         } catch (MismatchException e) {
             log.error("Error building table schema: {}", e.getMessage(), e);
-            source.addIssue("Error building table schema: " + e.getMessage());
+            source.addError("Error building table schema: " + e.getMessage());
             rtn = Boolean.FALSE;
         } catch (MissingDataPointException e) {
             log.error(MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS.getDesc(), e);
-            source.addIssue(MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS.getDesc());
+            source.addError(MessageCode.ALIGN_LOCATIONS_WITHOUT_WAREHOUSE_PLANS.getDesc());
             rtn = Boolean.FALSE;
         }
         return rtn;
@@ -543,7 +550,7 @@ public abstract class DataStrategyBase implements DataStrategy {
         if (TableUtils.isACID(original)) {
             if (original.getPartitions().size() > config.getMigrateACID().getPartitionLimit() && config.getMigrateACID().getPartitionLimit() > 0) {
                 // The partition limit has been exceeded.  The process will need to be done manually.
-                original.addIssue("The number of partitions: " + original.getPartitions().size() + " exceeds the configuration " +
+                original.addError("The number of partitions: " + original.getPartitions().size() + " exceeds the configuration " +
                         "limit (migrateACID->partitionLimit) of " + config.getMigrateACID().getPartitionLimit() +
                         ".  This value is used to abort migrations that have a high potential for failure.  " +
                         "The migration will need to be done manually OR try increasing the limit. Review commandline option '-ap'.");
@@ -553,7 +560,7 @@ public abstract class DataStrategyBase implements DataStrategy {
             if (original.getPartitions().size() > config.getHybrid().getSqlPartitionLimit() &&
                     config.getHybrid().getSqlPartitionLimit() > 0) {
                 // The partition limit has been exceeded.  The process will need to be done manually.
-                original.addIssue("The number of partitions: " + original.getPartitions().size() + " exceeds the configuration " +
+                original.addError("The number of partitions: " + original.getPartitions().size() + " exceeds the configuration " +
                         "limit (hybrid->sqlPartitionLimit) of " + config.getHybrid().getSqlPartitionLimit() +
                         ".  This value is used to abort migrations that have a high potential for failure.  " +
                         "The migration will need to be done manually OR try increasing the limit. Review commandline option '-sp'.");
@@ -564,15 +571,15 @@ public abstract class DataStrategyBase implements DataStrategy {
         if (isACIDDowngradeInPlace(tableMirror, originalEnv)) {
             String dropOriginalTable = MessageFormat.format(MirrorConf.DROP_TABLE,
                     original.getName());
+            assert targetEnvTable != null;
             targetEnvTable.addCleanUpSql(MirrorConf.DROP_TABLE_DESC, dropOriginalTable);
         }
 
         // Set Override Properties.
-        if (config.getOptimization().getOverrides() != null) {
-            Map<String, String> overrides = config.getOptimization().getOverrides().getFor(targetEnv2);
-            for (String key : overrides.keySet()) {
-                targetEnvTable.addSql("Setting " + key, "set " + key + "=" + overrides.get(key));
-            }
+        List<String> overrides = ConfigUtils.getPropertyOverridesFor(targetEnv2, config);
+        for (String setCmd : overrides) {
+            assert targetEnvTable != null;
+            targetEnvTable.addSql(setCmd, setCmd);
         }
 
         if (source.isDefined()) {
@@ -580,18 +587,20 @@ public abstract class DataStrategyBase implements DataStrategy {
             if (original.getPartitioned()) {
                 if (config.getOptimization().isSkip()) {
                     if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
-                        targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
+                        assert targetEnvTable != null;
+                        targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION, "false"));
                     }
                     String partElement = TableUtils.getPartitionElements(original);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
                             source.getName(), target.getName(), partElement);
                     String transferDesc = MessageFormat.format(TableUtils.STAGE_TRANSFER_PARTITION_DESC, original.getPartitions().size());
+                    assert targetEnvTable != null;
                     targetEnvTable.addSql(new Pair(transferDesc, transferSql));
                 } else if (config.getOptimization().isSortDynamicPartitionInserts()) {
                     if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
-                        targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=true");
+                        targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION, "true"));
                         if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
-                            targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=0");
+                            targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION_THRESHOLD, "0"));
                         }
                     }
                     String partElement = TableUtils.getPartitionElements(original);
@@ -601,9 +610,9 @@ public abstract class DataStrategyBase implements DataStrategy {
                     targetEnvTable.addSql(new Pair(transferDesc, transferSql));
                 } else {
                     if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
-                        targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, "set " + SORT_DYNAMIC_PARTITION + "=false");
+                        targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION, "false"));
                         if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
-                            targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, "set " + SORT_DYNAMIC_PARTITION_THRESHOLD + "=-1");
+                            targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION_THRESHOLD, "-1"));
                         }
                     }
                     String partElement = TableUtils.getPartitionElements(original);
