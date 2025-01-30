@@ -238,6 +238,11 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
                     if (!isBlank(tableParts)) {
                         String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION, set.getName(), tableParts);
                         ret.addSql(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION_DESC, addPartSql);
+                    } else {
+                        // When not partitions were loaded, we need to add the MSCK REPAIR TABLE.
+                        // This might be because the metadata_direct wasn't defined.
+                        String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
+                        ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
                     }
                 } else {// if (config.getCluster(Environment.RIGHT).getPartitionDiscovery().isInitMSCK()) {
                     String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());

@@ -13,6 +13,7 @@ also determine which iceberg table format to apply to the table.
 
 - Requires Hive with Iceberg Support.
   - CDP Private Cloud Base 7.1.9 Hive does NOT support Iceberg.
+  - CDP Private Cloud Base 7.3.1 Hive does support Iceberg.
   - CDP Private Cloud CDW 1.5.1 Hive does support Iceberg.  You need CDW Data Services 1.5.1 or higher.
   - CDP Public Cloud Hive does support Iceberg as of August 2023 (Datahub and CDW)
 
