@@ -292,7 +292,17 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
 
     @Override
     public Boolean execute(TableMirror tableMirror) {
-        return tableService.runTableSql(tableMirror, Environment.RIGHT);
+        Boolean rtn = Boolean.FALSE;
+        rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
+        if (rtn) {
+            rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
+        }
+        if (rtn) {
+            // Run the Cleanup Scripts
+            rtn = tableService.runTableSql(tableMirror.getEnvironmentTable(Environment.LEFT).getCleanUpSql(), tableMirror, Environment.LEFT);
+            ;
+        }
+        return rtn;
     }
 
     @Autowired

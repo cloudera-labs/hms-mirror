@@ -228,38 +228,31 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
                 ret.addSql(TableUtils.DROP_DESC, dropStmt);
                 // Create Shadow Table
                 ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
-                // Repair Partitions
-                // TODO: Handle odd partitions.
-                if (config.loadMetadataDetails()) {
-                    // TODO: Write out the SQL to build the partitions.  NOTE: We need to get the partition locations and modify them
-                    //       to the new namespace.
-                    String tableParts = getTranslatorService().buildPartitionAddStatement(let);
-                    // This will be empty when there's no data and we need to handle that.
-                    if (!isBlank(tableParts)) {
-                        String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION, set.getName(), tableParts);
-                        ret.addSql(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION_DESC, addPartSql);
-                    } else {
-                        // When not partitions were loaded, we need to add the MSCK REPAIR TABLE.
-                        // This might be because the metadata_direct wasn't defined.
+                // Repair Partitions for Shadow Table
+                if (TableUtils.isPartitioned(set)) {
+                    // Only build the partitions if the original table was NOT managed. Which
+                    // means the SHADOW table will be looking for partitions in the original
+                    // locations.  If it was managed, then a 'transfer' table was built and
+                    // the partitions should align with the standard locations, so only msck is needed.
+                    if (config.loadMetadataDetails() && !TableUtils.isManaged(let)) {
+                        // TODO: Write out the SQL to build the partitions.  NOTE: We need to get the partition locations and modify them
+                        //       to the new namespace.
+                        String tableParts = getTranslatorService().buildPartitionAddStatement(let);
+                        // This will be empty when there's no data and we need to handle that.
+                        if (!isBlank(tableParts)) {
+                            String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION, set.getName(), tableParts);
+                            ret.addSql(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION_DESC, addPartSql);
+                        } else {
+                            // When not partitions were loaded, we need to add the MSCK REPAIR TABLE.
+                            // This might be because the metadata_direct wasn't defined.
+                            String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
+                            ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
+                        }
+                    } else {// if (config.getCluster(Environment.RIGHT).getPartitionDiscovery().isInitMSCK()) {
                         String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
                         ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
                     }
-                } else {// if (config.getCluster(Environment.RIGHT).getPartitionDiscovery().isInitMSCK()) {
-                    String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
-                    ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
-                    //                    String msckStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, ret.getName());
-//                    // Add the MSCK repair to both initial and cleanup.
-//                    ret.addSql(TableUtils.REPAIR_DESC, msckStmt);
-//                    if (config.getTransfer().getStorageMigration().isDistcp()) {
-//                        ret.addCleanUpSql(TableUtils.REPAIR_DESC, msckStmt);
-//                    }
                 }
-
-
-//                if (let.getPartitioned()) {
-//                    String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
-//                    ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
-//                }
             }
         }
 
@@ -293,9 +286,9 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
                     // Unless we are using 'distcp' to copy the data.
                     // Partitioned, non-acid, w/ distcp.
                     if (let.getPartitioned() && config.getTransfer().getStorageMigration().isDistcp()
-                        && !TableUtils.isACID(ret)) {
-                                String rightMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, ret.getName());
-                                ret.addSql(TableUtils.REPAIR_DESC, rightMSCKStmt);
+                            && !TableUtils.isACID(ret)) {
+                        String rightMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, ret.getName());
+                        ret.addSql(TableUtils.REPAIR_DESC, rightMSCKStmt);
                     }
 
                     break;
@@ -315,21 +308,21 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
         // Build the RIGHT table definition.
         // TODO: Do we need to check for the existence of the RIGHT table?
 
-            // Assumes Clusters are linked.
-            // acid
-                // intermediate
-                    // transfer YES (downgrade to intermediate namespace)
-                    // shadow YES (convert back from intermediate namespace)
-                // no intermediate
-                    // transfer YES (downgrade on source namespace)
-                    // shadow YES (convert back from source namespace)
-            // non-acid
-                // intermediate
-                    // transfer YES (transfer to intermediate namespace)
-                    // shadow YES (convert back from intermediate namespace)
-                // no intermediate
-                    // transfer NO
-                    // shadow YES (convert back from source namespace)
+        // Assumes Clusters are linked.
+        // acid
+        // intermediate
+        // transfer YES (downgrade to intermediate namespace)
+        // shadow YES (convert back from intermediate namespace)
+        // no intermediate
+        // transfer YES (downgrade on source namespace)
+        // shadow YES (convert back from source namespace)
+        // non-acid
+        // intermediate
+        // transfer YES (transfer to intermediate namespace)
+        // shadow YES (convert back from intermediate namespace)
+        // no intermediate
+        // transfer NO
+        // shadow YES (convert back from source namespace)
         if (TableUtils.isACID(let)) {
             buildWhat.transferTable = true;
             buildWhat.transferSql = true;
@@ -427,7 +420,7 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
         }
         if (rtn) {
             // Run the Cleanup Scripts
-            rtn = tableService.runTableSql(tableMirror.getEnvironmentTable(Environment.LEFT).getCleanUpSql(), tableMirror, Environment.LEFT);;
+            rtn = tableService.runTableSql(tableMirror.getEnvironmentTable(Environment.LEFT).getCleanUpSql(), tableMirror, Environment.LEFT);
         }
         return rtn;
     }

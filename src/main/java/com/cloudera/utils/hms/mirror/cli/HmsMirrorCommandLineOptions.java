@@ -1462,6 +1462,14 @@ public class HmsMirrorCommandLineOptions {
         quietOutput.setRequired(Boolean.FALSE);
         options.addOption(quietOutput);
 
+        Option concurrencyOption = new Option("c", "concurrency", true,
+                "Set application concurrency, default is 10");
+        concurrencyOption.setOptionalArg(Boolean.TRUE);
+        concurrencyOption.setArgName("threads");
+        concurrencyOption.setType(Integer.class);
+        concurrencyOption.setRequired(Boolean.FALSE);
+        options.addOption(concurrencyOption);
+
         Option resetTarget = new Option("rr", "reset-right", false,
                 "Use this for testing to remove the database on the RIGHT using CASCADE.");
         resetTarget.setRequired(Boolean.FALSE);
@@ -2049,7 +2057,7 @@ public class HmsMirrorCommandLineOptions {
                 springOptions.add("--hms-mirror.config.filename" + "=\"" + String.join(",", values) + "\"");
             } else if (opt.equals("concurrency")) {
                 // Set Concurrency
-                springOptions.add("--hms-mirror.concurrency.max-threads" + "=\"" + String.join(",", values) + "\"");
+                springOptions.add("--hms-mirror.concurrency.max-threads" + "=" + values[0]);
             } else if (opt.equals("load-test-data")) {
                 // Set Concurrency
                 springOptions.add("--hms-mirror.conversion.test-filename" + "=\"" + String.join(",", values) + "\"");
