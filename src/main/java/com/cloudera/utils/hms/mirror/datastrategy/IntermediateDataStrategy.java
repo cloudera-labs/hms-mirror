@@ -413,14 +413,24 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
 
     @Override
     public Boolean execute(TableMirror tableMirror) {
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
+
         Boolean rtn = Boolean.FALSE;
         rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
         if (rtn) {
             rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
         }
-        if (rtn) {
+        // Run Cleanup Scripts on both sides.
+        if (!config.isSaveWorkingTables()) {
             // Run the Cleanup Scripts
-            rtn = tableService.runTableSql(tableMirror.getEnvironmentTable(Environment.LEFT).getCleanUpSql(), tableMirror, Environment.LEFT);
+            boolean CleanupRtn = tableService.runTableSql(tableMirror.getEnvironmentTable(Environment.LEFT).getCleanUpSql(), tableMirror, Environment.LEFT);
+            if (!CleanupRtn) {
+                tableMirror.addIssue(Environment.LEFT, "Failed to run cleanup SQL.");
+            }
+            CleanupRtn = tableService.runTableSql(tableMirror.getEnvironmentTable(Environment.RIGHT).getCleanUpSql(), tableMirror, Environment.RIGHT);
+            if (!CleanupRtn) {
+                tableMirror.addIssue(Environment.RIGHT, "Failed to run cleanup SQL.");
+            }
         }
         return rtn;
     }

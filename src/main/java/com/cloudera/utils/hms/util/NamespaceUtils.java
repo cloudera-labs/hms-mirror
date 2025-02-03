@@ -126,6 +126,7 @@ public class NamespaceUtils {
 
         CommandReturn lcr = cli.processInput("ls " + namespaceTestLine);
         if (lcr.isError()) {
+            log.error("Error checking namespace: {}:{}", namespace, lcr.getError());
             return false;
         }
 

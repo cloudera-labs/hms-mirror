@@ -63,16 +63,18 @@
         <appender-ref ref="RollingFile"/>
         <appender-ref ref="Console"/>
     </logger>
-    <logger name="com.cloudera.utils.hms.mirror" level="${logging.threshold:-debug}" additivity="false">
+    <logger name="com.cloudera.utils" level="${logging.threshold:-debug}" additivity="false">
         <appender-ref ref="RollingFile"/>
     </logger>
-    <logger name="com.cloudera.utils.hadoop.cli" level="warn" additivity="false">
-        <appender-ref ref="RollingFile"/>
-    </logger>
-
-    <logger name="com.cloudera.utils.hms.mirror.datastrategy" level="ERROR" additivity="true">
-        <appender-ref ref="Console"/>
-    </logger>
+<!--    <logger name="com.cloudera.utils.hadoop.cli" level="warn" additivity="false">-->
+<!--        <appender-ref ref="RollingFile"/>-->
+<!--    </logger>-->
+<!--    <logger name="com.cloudera.utils.hms.mirror.service.TransferService" level="debug" additivity="true">-->
+<!--        <appender-ref ref="RollingFile"/>-->
+<!--    </logger>-->
+<!--    <logger name="com.cloudera.utils.hms.mirror.datastrategy" level="DEBUG" additivity="true">-->
+<!--        <appender-ref ref="RollingFile"/>-->
+<!--    </logger>-->
     <logger name="com.cloudera.utils.hms.mirror.cli.HmsMirrorCommandLineOptions" level="info" additivity="true">
         <appender-ref ref="Console"/>
     </logger>
@@ -90,10 +92,10 @@
     <logger name="com.cloudera.utils.hms.mirror.service.TableService" level="info" additivity="true">
         <appender-ref ref="Console"/>
     </logger>
-    <logger name="com.cloudera.utils.hms.mirror.web" level="debug" additivity="true">
+    <logger name="com.cloudera.utils.hms.util.NamespaceUtils" level="info" additivity="true">
         <appender-ref ref="Console"/>
     </logger>
-    <logger name="com.cloudera.utils.hms.mirror.service.TransferService" level="warn" additivity="true">
+    <logger name="com.cloudera.utils.hms.mirror.web" level="debug" additivity="true">
         <appender-ref ref="Console"/>
     </logger>
     <logger name="com.zaxxer.hikari" level="warn" additivity="false">

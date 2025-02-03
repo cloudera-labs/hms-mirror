@@ -149,32 +149,38 @@ public class HMSMirrorAppService {
                 } else {
                     runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
                     runStatus.setProgress(ProgressEnum.FAILED);
+                    connectionPoolService.close();
                     return new AsyncResult<>(Boolean.FALSE);
                 }
             } catch (SQLException sqle) {
                 log.error("Issue refreshing connections pool", sqle);
                 runStatus.addError(CONNECTION_ISSUE, sqle.getMessage());
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
+                connectionPoolService.close();
                 return new AsyncResult<>(Boolean.FALSE);
             } catch (URISyntaxException e) {
                 log.error("URI issue with connections pool", e);
                 runStatus.addError(CONNECTION_ISSUE, e.getMessage());
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
+                connectionPoolService.close();
                 return new AsyncResult<>(Boolean.FALSE);
             } catch (SessionException se) {
                 log.error("Issue with Session", se);
                 runStatus.addError(SESSION_ISSUE, se.getMessage());
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
+                connectionPoolService.close();
                 return new AsyncResult<>(Boolean.FALSE);
             } catch (EncryptionException ee) {
                 log.error("Issue with Decryption", ee);
                 runStatus.addError(ENCRYPTION_ISSUE, ee.getMessage());
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
+                connectionPoolService.close();
                 return new AsyncResult<>(Boolean.FALSE);
             } catch (RuntimeException rte) {
                 log.error("Runtime Issue", rte);
                 runStatus.addError(SESSION_ISSUE, rte.getMessage());
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
+                connectionPoolService.close();
                 return new AsyncResult<>(Boolean.FALSE);
             }
         } else {
@@ -245,6 +251,7 @@ public class HMSMirrorAppService {
                 runStatus.setStage(StageEnum.GATHERING_DATABASES, CollectionEnum.ERRORED);
                 executeSessionService.getSession().addError(MISC_ERROR, "LEFT:Issue getting databases for dbRegEx");
                 reportWriterService.wrapup();
+                connectionPoolService.close();
                 return new AsyncResult<>(Boolean.FALSE);
             } finally {
                 if (nonNull(conn)) {
@@ -268,6 +275,7 @@ public class HMSMirrorAppService {
             } else {
                 runStatus.setStage(StageEnum.ENVIRONMENT_VARS, CollectionEnum.ERRORED);
                 reportWriterService.wrapup();
+                connectionPoolService.close();
                 return new AsyncResult<>(Boolean.FALSE);
             }
         } else {
@@ -277,6 +285,7 @@ public class HMSMirrorAppService {
         if (isNull(config.getDatabases()) || config.getDatabases().isEmpty()) {
             log.error("No databases specified OR found if you used dbRegEx");
             runStatus.addError(MISC_ERROR, "No databases specified OR found if you used dbRegEx");
+            connectionPoolService.close();
             return new AsyncResult<>(Boolean.FALSE);
         }
 
@@ -306,6 +315,7 @@ public class HMSMirrorAppService {
                     runStatus.getOperationStatistics().getFailures().incrementDatabases();
                     runStatus.setStage(StageEnum.DATABASES, CollectionEnum.ERRORED);
                     reportWriterService.wrapup();
+                    connectionPoolService.close();
                     return new AsyncResult<>(Boolean.FALSE);
                 } catch (RuntimeException rte) {
                     log.error("Runtime Issue", rte);
@@ -313,6 +323,7 @@ public class HMSMirrorAppService {
                     runStatus.getOperationStatistics().getFailures().incrementDatabases();
                     runStatus.setStage(StageEnum.DATABASES, CollectionEnum.ERRORED);
                     reportWriterService.wrapup();
+                    connectionPoolService.close();
                     return new AsyncResult<>(Boolean.FALSE);
                 }
 
@@ -357,6 +368,7 @@ public class HMSMirrorAppService {
                 runStatus.setStage(StageEnum.TABLES, CollectionEnum.ERRORED);
                 runStatus.getErrors().set(MessageCode.COLLECTING_TABLES);
                 reportWriterService.wrapup();
+                connectionPoolService.close();
                 return new AsyncResult<>(Boolean.FALSE);
             }
         } else {
@@ -388,6 +400,7 @@ public class HMSMirrorAppService {
                 runStatus.setStage(StageEnum.VALIDATING_CONFIG, CollectionEnum.ERRORED);
 
                 reportWriterService.wrapup();
+                connectionPoolService.close();
                 return new AsyncResult<>(Boolean.FALSE);
             }
         }
@@ -533,7 +546,7 @@ public class HMSMirrorAppService {
                 runStatus.setStage(StageEnum.BUILDING_TABLES, CollectionEnum.SKIPPED);
             }
 
-            List<TableMirror> migrationExecutions = new ArrayList<>();
+            Set<TableMirror> migrationExecutions = new HashSet<>();
 
             // Check the Migration Futures are done.
             while (true) {
@@ -541,7 +554,7 @@ public class HMSMirrorAppService {
                 for (Future<ReturnStatus> sf : migrationFuture) {
                     if (!sf.isDone()) {
                         check = false;
-                        break;
+                        continue;
                     }
                     try {
                         if (sf.isDone() && sf.get() != null) {
@@ -725,6 +738,9 @@ public class HMSMirrorAppService {
             runStatus.addError(MISC_ERROR, rte.getMessage());
             runStatus.setStage(StageEnum.SAVING_REPORTS, CollectionEnum.ERRORED);
             rtn = Boolean.FALSE;
+        } finally {
+            // Close down the connections to free up resources.
+            connectionPoolService.close();
         }
 
         return new AsyncResult<>(rtn);

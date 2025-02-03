@@ -633,7 +633,7 @@ public abstract class DataStrategyBase implements DataStrategy {
                 //  which is the target table in this case.
                 if (originalEnv == sourceEnv) {
                     String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, target.getName());
-                    targetEnvTable.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
+                    targetEnvTable.getCleanUpSql().add(new Pair(TableUtils.DROP_TRANSFER_TABLE, dropTransferSql));
                 } else {
                     // Otherwise, we're on the RIGHT cluster and need to cleanup the 'shadow' table.
                     // Add USE clause to the SQL
@@ -641,15 +641,6 @@ public abstract class DataStrategyBase implements DataStrategy {
                     if (config.isSaveWorkingTables()) {
                         Pair cleanUp = new Pair("Post Migration Cleanup", "-- To be run AFTER final RIGHT SQL statements.");
                         targetEnvTable.addCleanUpSql(cleanUp);
-                    } else {
-                        // Remove Shadow table as a part of the automatic cleanup.
-                        String useRightDb = MessageFormat.format(MirrorConf.USE, rightDatabase);
-                        Pair leftRightPair = new Pair(TableUtils.USE_DESC, useRightDb);
-                        targetEnvTable.addSql(leftRightPair);
-
-                        // Drop Shadow Table.
-                        String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, source.getName());
-                        targetEnvTable.getSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
                     }
                     // Always generate the drop working table scripts.
                     String useRightDb = MessageFormat.format(MirrorConf.USE, rightDatabase);
@@ -657,8 +648,8 @@ public abstract class DataStrategyBase implements DataStrategy {
                     targetEnvTable.addCleanUpSql(leftRightPair);
 
                     // Drop Shadow Table.
-                    String dropTransferSql = MessageFormat.format(MirrorConf.DROP_TABLE, source.getName());
-                    targetEnvTable.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropTransferSql));
+                    String dropShadowSql = MessageFormat.format(MirrorConf.DROP_TABLE, source.getName());
+                    targetEnvTable.getCleanUpSql().add(new Pair(TableUtils.DROP_SHADOW_TABLE, dropShadowSql));
                 }
             }
         }

@@ -19,9 +19,9 @@ package com.cloudera.utils.hms.mirror.datastrategy;
 
 import com.cloudera.utils.hms.mirror.CopySpec;
 import com.cloudera.utils.hms.mirror.CreateStrategy;
-import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.MirrorConf;
 import com.cloudera.utils.hms.mirror.domain.Cluster;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum;
@@ -281,10 +281,6 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
                 // TODO: Double check this...
                 rtn = buildMigrationSql(tableMirror, Environment.LEFT, Environment.SHADOW, Environment.RIGHT);
 
-                // Execute the RIGHT sql if config.execute.
-//                if (rtn) {
-//                    tableService.runTableSql(tableMirror, Environment.RIGHT);
-//                }
             }
         }
         return rtn;
@@ -292,15 +288,25 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
 
     @Override
     public Boolean execute(TableMirror tableMirror) {
+        log.info("SQLDataStrategy -> Table: {} execute", tableMirror.getName());
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
+
         Boolean rtn = Boolean.FALSE;
         rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
         if (rtn) {
             rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
         }
-        if (rtn) {
+        // Run Cleanup Scripts on both sides.
+        if (!config.isSaveWorkingTables()) {
             // Run the Cleanup Scripts
-            rtn = tableService.runTableSql(tableMirror.getEnvironmentTable(Environment.LEFT).getCleanUpSql(), tableMirror, Environment.LEFT);
-            ;
+            boolean CleanupRtn = tableService.runTableSql(tableMirror.getEnvironmentTable(Environment.LEFT).getCleanUpSql(), tableMirror, Environment.LEFT);
+            if (!CleanupRtn) {
+                tableMirror.addIssue(Environment.LEFT, "Failed to run cleanup SQL.");
+            }
+            CleanupRtn = tableService.runTableSql(tableMirror.getEnvironmentTable(Environment.RIGHT).getCleanUpSql(), tableMirror, Environment.RIGHT);
+            if (!CleanupRtn) {
+                tableMirror.addIssue(Environment.RIGHT, "Failed to run cleanup SQL.");
+            }
         }
         return rtn;
     }

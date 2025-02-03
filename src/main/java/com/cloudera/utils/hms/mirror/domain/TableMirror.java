@@ -179,8 +179,8 @@ public class TableMirror {
     public String getProgressIndicator(int width) {
         StringBuilder sb = new StringBuilder();
         int progressLength = Math.floorDiv(Math.multiplyExact(width, currentPhase.get()), totalPhaseCount.get());
-        log.info("{}:{} CurrentPhase: {} -> TotalPhaseCount: {}", this.getParent().getName(), this.getName(), currentPhase.get(), totalPhaseCount.get());
-        log.info("{}:{} Progress: {} of {}", this.getParent().getName(), this.getName(), progressLength, width);
+        log.debug("{}:{} CurrentPhase: {} -> TotalPhaseCount: {}", this.getParent().getName(), this.getName(), currentPhase.get(), totalPhaseCount.get());
+        log.debug("{}:{} Progress: {} of {}", this.getParent().getName(), this.getName(), progressLength, width);
         sb.append("\u001B[32m");
         sb.append(StringUtils.rightPad("=", progressLength - 1, "="));
         sb.append("\u001B[33m");
@@ -338,4 +338,18 @@ public class TableMirror {
         return !et.getAddProperties().isEmpty() ? Boolean.TRUE : Boolean.FALSE;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+
+        TableMirror that = (TableMirror) o;
+        return Objects.equals(name, that.name) && Objects.equals(parent.getName(), that.parent.getName());
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hashCode(name);
+        result = 31 * result + Objects.hashCode(parent.getName());
+        return result;
+    }
 }

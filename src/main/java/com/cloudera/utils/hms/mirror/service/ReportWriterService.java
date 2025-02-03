@@ -320,7 +320,7 @@ public class ReportWriterService {
                     runbookFile.write("\n");
                 }
 
-                String lcu = conversion.executeCleanUpSql(Environment.LEFT, originalDatabase, database);
+                String lcu = conversion.executeCleanUpSql(Environment.LEFT, originalDatabase);
                 if (lcu != null) {
                     FileWriter leftCleanUpOutput = new FileWriter(dbLeftCleanUpFile);
                     leftCleanUpOutput.write(lcu);
@@ -331,7 +331,7 @@ public class ReportWriterService {
                     runbookFile.write("\n");
                 }
 
-                String rcu = conversion.executeCleanUpSql(Environment.RIGHT, originalDatabase, database);
+                String rcu = conversion.executeCleanUpSql(Environment.RIGHT, originalDatabase);
                 if (rcu != null) {
                     FileWriter rightCleanUpOutput = new FileWriter(dbRightCleanUpFile);
                     rightCleanUpOutput.write(rcu);

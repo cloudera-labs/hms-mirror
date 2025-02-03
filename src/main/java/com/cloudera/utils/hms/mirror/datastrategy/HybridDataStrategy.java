@@ -147,8 +147,7 @@ public class HybridDataStrategy extends DataStrategyBase implements DataStrategy
                 rtn = exportImportDataStrategy.execute(tableMirror);
             }
         }
-
-        return null;
+        return rtn;
     }
 
     @Autowired

@@ -841,32 +841,26 @@ public class TableService {
     }
 
     public Boolean runTableSql(List<Pair> sqlList, TableMirror tblMirror, Environment environment) {
-        Connection conn = null;
         Boolean rtn = Boolean.TRUE;
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         // Skip this if using test data.
-        if (!hmsMirrorConfig.isLoadingTestData()) {
+        if (!config.isLoadingTestData()) {
 
-            try {
-                // conn will be null if config.execute != true.
-                conn = getConnectionPoolService().getHS2EnvironmentConnection(environment);
-
-                if (isNull(conn) && hmsMirrorConfig.isExecute() && !hmsMirrorConfig.getCluster(environment).getHiveServer2().isDisconnected()) {
+            try (Connection conn = getConnectionPoolService().getHS2EnvironmentConnection(environment)) {
+                if (isNull(conn) && config.isExecute() && !config.getCluster(environment).getHiveServer2().isDisconnected()) {
                     // this is a problem.
                     rtn = Boolean.FALSE;
                     tblMirror.addIssue(environment, "Connection missing. This is a bug.");
                 }
 
-                if (isNull(conn) && hmsMirrorConfig.getCluster(environment).getHiveServer2().isDisconnected()) {
+                if (isNull(conn) && config.getCluster(environment).getHiveServer2().isDisconnected()) {
                     tblMirror.addIssue(environment, "Running in 'disconnected' mode.  NO RIGHT operations will be done.  " +
                             "The scripts will need to be run 'manually'.");
                 }
 
-                if (nonNull(conn)) {
-                    Statement stmt = null;
-                    try {
-                        stmt = conn.createStatement();
+                if (rtn && nonNull(conn)) {
+                    try (Statement stmt = conn.createStatement()) {
                         for (Pair pair : sqlList) {
                             String action = pair.getAction();
                             if (action.trim().isEmpty() || action.trim().startsWith("--")) {
@@ -874,7 +868,7 @@ public class TableService {
                             } else {
                                 log.debug("{}:SQL:{}:{}", environment, pair.getDescription(), pair.getAction());
                                 tblMirror.setMigrationStageMessage("Executing SQL: " + pair.getDescription());
-                                if (hmsMirrorConfig.isExecute()) {
+                                if (config.isExecute()) {
                                     stmt.execute(pair.getAction());
                                     tblMirror.addStep(environment.toString(), "Sql Run Complete for: " + pair.getDescription());
                                 } else {
@@ -894,27 +888,12 @@ public class TableService {
                         }
                         tblMirror.getEnvironmentTable(environment).addError(message);
                         rtn = Boolean.FALSE;
-                    } finally {
-                        if (stmt != null) {
-                            try {
-                                stmt.close();
-                            } catch (SQLException sqlException) {
-                                // ignore
-                            }
-                        }
                     }
                 }
             } catch (SQLException throwables) {
                 tblMirror.getEnvironmentTable(environment).addError("Connecting: " + throwables.getMessage());
                 log.error("{}:{}", environment.toString(), throwables.getMessage(), throwables);
                 rtn = Boolean.FALSE;
-            } finally {
-                try {
-                    if (conn != null)
-                        conn.close();
-                } catch (SQLException throwables) {
-                    //
-                }
             }
         }
         return rtn;

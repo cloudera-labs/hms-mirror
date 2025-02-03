@@ -181,7 +181,7 @@ public class CliReporter {
     private void populateVarMap() {
         ExecuteSession session = executeSessionService.getSession();
         Conversion conversion = executeSessionService.getSession().getConversion();
-        HmsMirrorConfig hmsMirrorConfig = session.getConfig();
+        HmsMirrorConfig config = session.getConfig();
 
         tiktok = !tiktok;
         startedTables.clear();
@@ -189,10 +189,10 @@ public class CliReporter {
             varMap.put("retry", "       ");
         else
             varMap.put("retry", "(RETRY)");
-        varMap.put("run.mode", hmsMirrorConfig.isExecute() ? "EXECUTE" : "DRYRUN");
+        varMap.put("run.mode", config.isExecute() ? "EXECUTE" : "DRYRUN");
         varMap.put("HMS-Mirror-Version", ReportingConf.substituteVariablesFromManifest("${HMS-Mirror-Version}"));
-        varMap.put("config.file", hmsMirrorConfig.getConfigFilename());
-        varMap.put("config.strategy", hmsMirrorConfig.getDataStrategy().toString());
+        varMap.put("config.file", config.getConfigFilename());
+        varMap.put("config.strategy", config.getDataStrategy().toString());
         varMap.put("tik.tok", tiktok ? "*" : "");
         varMap.put("java.version", System.getProperty("java.version"));
         varMap.put("os.name", System.getProperty("os.name"));
@@ -231,14 +231,22 @@ public class CliReporter {
                 switch (dbMirror.getTable(tbl).getPhaseState()) {
                     case INIT:
                         break;
+                    case APPLYING_SQL:
                     case CALCULATING_SQL:
                         started++;
                         startedTables.add(dbMirror.getTable(tbl));
                         break;
                     case CALCULATED_SQL:
+                        if (config.isExecute())
+                            started++;
+                        else
+                            completed++;
+                        break;
+                    case PROCESSED:
                         completed++;
                         break;
                     case ERROR:
+                    case CALCULATED_SQL_WARNING:
                         errors++;
                         break;
                     case RETRY_SKIPPED_PAST_SUCCESS:

@@ -102,15 +102,13 @@ public class Conversion {
         }
     }
 
-    public String executeCleanUpSql(Environment environment, String database, String resolvedDB) {
+    public String executeCleanUpSql(Environment environment, String database) {
         StringBuilder sb = new StringBuilder();
         boolean found = Boolean.FALSE;
         sb.append("-- EXECUTION CLEANUP script for ").append(database).append(" on ").append(environment).append(" cluster\n\n");
         sb.append("-- ").append(new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date())).append("\n\n");
-//        sb.append("-- These are the command run on the " + environment + " cluster when `-e` is used.\n");
-        DBMirror dbMirror = databases.get(database);
 
-        sb.append("USE ").append(resolvedDB).append(";\n");
+        DBMirror dbMirror = databases.get(database);
 
         Set<String> tables = dbMirror.getTableMirrors().keySet();
         for (String table : tables) {
