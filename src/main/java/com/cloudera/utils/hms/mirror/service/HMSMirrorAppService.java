@@ -559,14 +559,8 @@ public class HMSMirrorAppService {
                     try {
                         if (sf.isDone() && sf.get() != null) {
                             TableMirror tableMirror = sf.get().getTableMirror();
-                            if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
-                                // Check if the table was removed, so that's not a processing error.
-                                if (tableMirror != null) {
-                                    if (!tableMirror.isRemove()) {
-                                        rtn = Boolean.FALSE;
-                                    }
-                                }
-                            } else if (sf.get().getStatus() == ReturnStatus.Status.SUCCESS) {
+                            // Only push SUCCESSFUL tables to the migrationExecutions list.
+                            if (sf.get().getStatus() == ReturnStatus.Status.SUCCESS) {
                                 // Success means add table the execution list.
                                 migrationExecutions.add(tableMirror);
                             }
