@@ -98,6 +98,11 @@ public class ConnectionPoolService {
             // Set State of Connection.
             connected = false;
             getConnectionPools().close();
+            try {
+                getExecuteSession().setConnected(Boolean.FALSE);
+            } catch (SessionException e) {
+                throw new RuntimeException(e);
+            }
             // Set to null to allow for reset.
             connectionPools = null;
         }

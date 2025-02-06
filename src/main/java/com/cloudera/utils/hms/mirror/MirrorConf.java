@@ -43,7 +43,7 @@ public interface MirrorConf {
     String ALTER_DB_LOCATION_DESC =
             "Alter Database Location";
     String ALTER_DB_PROPERTIES =
-            "ALTER DATABASE {0} SET DBPROPERTIES ({1}={2})";
+            "ALTER DATABASE {0} SET DBPROPERTIES (''{1}''=''{2}'')";
     String ALTER_DB_PROPERTIES_DESC = "Set database property";
     String DEFAULT_MANAGED_BASE_DIR = "/warehouse/tablespace/managed/hive";
     String DEFAULT_FS = "fs.defaultFS";

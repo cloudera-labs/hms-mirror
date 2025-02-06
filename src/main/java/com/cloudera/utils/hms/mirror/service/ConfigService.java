@@ -906,7 +906,7 @@ public class ConfigService {
             session.addError(CONFLICTING_PROPERTIES, "dbRename", "dbPrefix");
         }
 
-        if (isNull(config.getDatabases()) || config.getDatabases().isEmpty()) {
+        if ((isNull(config.getDatabases()) || config.getDatabases().isEmpty()) && (isBlank(config.getFilter().getDbRegEx()))) {
 //            log.error("No databases specified OR found if you used dbRegEx");
             session.addError(MISC_ERROR, "No databases specified OR found if you used dbRegEx");
             rtn.set(Boolean.FALSE);

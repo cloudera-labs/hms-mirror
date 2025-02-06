@@ -18,8 +18,9 @@
 package com.cloudera.utils.hms.util;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import static java.util.Objects.nonNull;
 
@@ -40,7 +41,7 @@ public class DatabaseUtils {
         return map;
     }
 
-    public static boolean upsertParameters(Map<String, String> source, Map<String, String> target, List<String> skipList) {
+    public static boolean upsertParameters(Map<String, String> source, Map<String, String> target, Set<String> skipList) {
         boolean changed = false;
         for (Map.Entry<String, String> entry : source.entrySet()) {
             if (skipList.contains(entry.getKey())) {
@@ -54,11 +55,26 @@ public class DatabaseUtils {
         return changed;
     }
 
-    public static Map<String, String> getParameters(Map<String, String> parameters, List<String> skipList) {
+    public static Map<String, String> getParameters(Map<String, String> parameters, Set<String> staticSkipList, Set<Pattern> dynamicSkipList) {
         Map<String, String> result = new HashMap<>();
         for (Map.Entry<String, String> entry : parameters.entrySet()) {
-            if (!skipList.contains(entry.getKey())) {
-                result.put(entry.getKey(), entry.getValue());
+            String gKey = entry.getKey().trim().replaceAll("^\"|\"$", "");
+            gKey = gKey.replaceAll("^'|'$", "");
+            if (!staticSkipList.contains(gKey)) {
+                // Now check against the user supplied dynamic skip list
+                boolean skip = false;
+                for (Pattern pattern : dynamicSkipList) {
+                    if (pattern.matcher(gKey).matches()) {
+                        skip = true;
+                        break;
+                    }
+                }
+                if (!skip) {
+                    // Strip the quotes from the key and value
+                    String gValue = entry.getValue().trim().replaceAll("^\"|\"$", "");
+                    gValue = gValue.replaceAll("^'|'$", "");
+                    result.put(gKey, gValue);
+                }
             }
         }
         return result;

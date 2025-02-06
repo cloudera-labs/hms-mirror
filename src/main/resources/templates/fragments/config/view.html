@@ -63,6 +63,10 @@
                                    onclick="openSection(event, 'databases')"/>
                             </li>
                             <li class="pure-menu-item">
+                                <a th:text="#{config.filter.database.skip.properties}" href="#" class="pure-menu-link"
+                                   onclick="openSection(event, 'dbSkipProperties')"/>
+                            </li>
+                            <li class="pure-menu-item">
                                 <a th:text="#{config.filter.warehousePlans}" href="#" class="pure-menu-link"
                                    onclick="openSection(event, 'warehousePlans')"/>
                             </li>
@@ -170,6 +174,8 @@
 <!--                <div th:insert="fragments/config/passwordManagement::main"></div>-->
 <!--            </div>-->
             <div id="databases" class="tabcontent" th:insert="fragments/config/databases::view">
+            </div>
+            <div id="dbSkipProperties" class="tabcontent" th:insert="fragments/config/databaseSkipProperties::view">
             </div>
             <div id="warehousePlans" class="tabcontent" th:insert="fragments/config/warehousePlans::view">
             </div>

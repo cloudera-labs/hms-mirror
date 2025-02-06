@@ -88,5 +88,35 @@ public class DatabaseMVController implements ControllerReferences {
         return "redirect:/config/edit";
     }
 
+    @RequestMapping(value = "/property/add", method = RequestMethod.POST)
+    public String addDatabaseSkipProperty(Model model,
+                              @RequestParam(value = DBPROPERTIES, required = true) String properties) throws SessionException {
+        executeSessionService.closeSession();
+
+        ExecuteSession session = executeSessionService.getSession();
+        HmsMirrorConfig config = session.getConfig();
+
+        String[] props = properties.split(",");
+        for (String property: props) {
+            config.getFilter().addDbPropertySkipItem(property);
+        }
+
+        configService.validate(session, null);
+
+        return "redirect:/config/edit";
+    }
+
+    @RequestMapping(value = "/property/{index}/delete", method = RequestMethod.GET)
+    public String deleteDatabaseSkipProperty(Model model,
+                                 @PathVariable @NotNull Integer index) throws SessionException {
+        executeSessionService.closeSession();
+
+        ExecuteSession session = executeSessionService.getSession();
+        HmsMirrorConfig config = session.getConfig();
+
+        config.getFilter().removeDbPropertySkipItemByIndex(index);
+
+        return "redirect:/config/edit";
+    }
 
 }

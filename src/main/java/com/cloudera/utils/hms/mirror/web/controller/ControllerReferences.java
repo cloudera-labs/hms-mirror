@@ -73,6 +73,7 @@ public interface ControllerReferences {
     String MESSAGE = "MESSAGE";
     String ARTIFACTS = "ARTIFACTS";
     String DATABASES = "DATABASES";
+    String DBPROPERTIES = "DBPROPERTIES";
     String OTHERS = "OTHERS";
     String DISTCP = "DISTCP";
     String SQL = "SQL";

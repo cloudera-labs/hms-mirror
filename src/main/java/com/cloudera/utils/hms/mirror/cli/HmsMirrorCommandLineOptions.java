@@ -331,6 +331,20 @@ public class HmsMirrorCommandLineOptions {
     @Bean
     @Order(1)
     @ConditionalOnProperty(
+            name = "hms-mirror.config.database-skip-properties")
+    CommandLineRunner configDatabasePropertySkip(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.database-skip-properties}") String values) {
+        return args -> {
+            log.info("database-skip-properties: {}", values);
+            for (String prop: values.split(",")) {
+                hmsMirrorConfig.getFilter().getDbPropertySkipList().add(prop);
+            }
+        };
+    }
+
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
             name = "hms-mirror.config.database-regex")
     CommandLineRunner configDatabaseRegEx(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.database-regex}") String value) {
         return args -> {
@@ -1677,6 +1691,15 @@ public class HmsMirrorCommandLineOptions {
         storageOptionsGroup.addOption(commonStorageOption);
 
         options.addOptionGroup(storageOptionsGroup);
+
+        Option dbPropertySkipOption = new Option("dbsp", "database-skip-properties", true,
+                "Comma separated list of database properties (regex) to skip during the migration process.  " +
+                        "This will prevent the property from being set on the target cluster.");
+        dbPropertySkipOption.setArgs(1);
+        dbPropertySkipOption.setOptionalArg(Boolean.TRUE);
+        dbPropertySkipOption.setArgName("properties");
+        dbPropertySkipOption.setRequired(Boolean.FALSE);
+        options.addOption(dbPropertySkipOption);
 
         // External Warehouse Dir
         Option externalWarehouseDirOption = new Option("ewd", "external-warehouse-directory", true,

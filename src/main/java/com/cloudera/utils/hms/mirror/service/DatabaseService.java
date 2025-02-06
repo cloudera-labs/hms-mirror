@@ -67,7 +67,7 @@ public class DatabaseService {
     private WarehouseService warehouseService;
     private ConfigService configService;
 
-    private final List<String> skipList = Arrays.asList(DB_LOCATION, DB_MANAGED_LOCATION, COMMENT, DB_NAME, OWNER_NAME, OWNER_TYPE);
+    public static final Set<String> skipList = new HashSet<String>(Arrays.asList(DB_LOCATION, DB_MANAGED_LOCATION, COMMENT, DB_NAME, OWNER_NAME, OWNER_TYPE));
 
     @Autowired
     public void setConfigService(ConfigService configService) {
@@ -877,7 +877,9 @@ public class DatabaseService {
                     }
 
                     // Build the DBPROPERITES
-                    Map<String, String> dbProperties = DatabaseUtils.getParameters(dbDefRight, skipList);
+                    // Check if the user has specified any DB Properties to skip.
+                    Set<String> lclSkipList = new HashSet<>(skipList);
+                    Map<String, String> dbProperties = DatabaseUtils.getParameters(dbDefRight, lclSkipList, config.getFilter().getDbPropertySkipListPattern());
                     if (!dbProperties.isEmpty()) {
                         for (Map.Entry<String, String> entry : dbProperties.entrySet()) {
                             String alterDbProps = MessageFormat.format(ALTER_DB_PROPERTIES, targetDatabase, entry.getKey(), entry.getValue());

@@ -125,8 +125,8 @@ public class HMSMirrorAppService {
             runStatus.setStage(StageEnum.VALIDATING_CONFIG, CollectionEnum.COMPLETED);
         } else {
             runStatus.setStage(StageEnum.VALIDATING_CONFIG, CollectionEnum.ERRORED);
-            runStatus.setProgress(ProgressEnum.FAILED);
             reportWriterService.wrapup();
+            runStatus.setProgress(ProgressEnum.FAILED);
             return new AsyncResult<>(Boolean.FALSE);
         }
 
@@ -150,6 +150,7 @@ public class HMSMirrorAppService {
                     runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
                     runStatus.setProgress(ProgressEnum.FAILED);
                     connectionPoolService.close();
+                    runStatus.setProgress(ProgressEnum.FAILED);
                     return new AsyncResult<>(Boolean.FALSE);
                 }
             } catch (SQLException sqle) {
@@ -157,30 +158,35 @@ public class HMSMirrorAppService {
                 runStatus.addError(CONNECTION_ISSUE, sqle.getMessage());
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
                 connectionPoolService.close();
+                runStatus.setProgress(ProgressEnum.FAILED);
                 return new AsyncResult<>(Boolean.FALSE);
             } catch (URISyntaxException e) {
                 log.error("URI issue with connections pool", e);
                 runStatus.addError(CONNECTION_ISSUE, e.getMessage());
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
                 connectionPoolService.close();
+                runStatus.setProgress(ProgressEnum.FAILED);
                 return new AsyncResult<>(Boolean.FALSE);
             } catch (SessionException se) {
                 log.error("Issue with Session", se);
                 runStatus.addError(SESSION_ISSUE, se.getMessage());
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
                 connectionPoolService.close();
+                runStatus.setProgress(ProgressEnum.FAILED);
                 return new AsyncResult<>(Boolean.FALSE);
             } catch (EncryptionException ee) {
                 log.error("Issue with Decryption", ee);
                 runStatus.addError(ENCRYPTION_ISSUE, ee.getMessage());
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
                 connectionPoolService.close();
+                runStatus.setProgress(ProgressEnum.FAILED);
                 return new AsyncResult<>(Boolean.FALSE);
             } catch (RuntimeException rte) {
                 log.error("Runtime Issue", rte);
                 runStatus.addError(SESSION_ISSUE, rte.getMessage());
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
                 connectionPoolService.close();
+                runStatus.setProgress(ProgressEnum.FAILED);
                 return new AsyncResult<>(Boolean.FALSE);
             }
         } else {
@@ -252,6 +258,7 @@ public class HMSMirrorAppService {
                 executeSessionService.getSession().addError(MISC_ERROR, "LEFT:Issue getting databases for dbRegEx");
                 reportWriterService.wrapup();
                 connectionPoolService.close();
+                runStatus.setProgress(ProgressEnum.FAILED);
                 return new AsyncResult<>(Boolean.FALSE);
             } finally {
                 if (nonNull(conn)) {
@@ -276,6 +283,7 @@ public class HMSMirrorAppService {
                 runStatus.setStage(StageEnum.ENVIRONMENT_VARS, CollectionEnum.ERRORED);
                 reportWriterService.wrapup();
                 connectionPoolService.close();
+                runStatus.setProgress(ProgressEnum.FAILED);
                 return new AsyncResult<>(Boolean.FALSE);
             }
         } else {
@@ -286,6 +294,7 @@ public class HMSMirrorAppService {
             log.error("No databases specified OR found if you used dbRegEx");
             runStatus.addError(MISC_ERROR, "No databases specified OR found if you used dbRegEx");
             connectionPoolService.close();
+            runStatus.setProgress(ProgressEnum.FAILED);
             return new AsyncResult<>(Boolean.FALSE);
         }
 
@@ -316,6 +325,7 @@ public class HMSMirrorAppService {
                     runStatus.setStage(StageEnum.DATABASES, CollectionEnum.ERRORED);
                     reportWriterService.wrapup();
                     connectionPoolService.close();
+                    runStatus.setProgress(ProgressEnum.FAILED);
                     return new AsyncResult<>(Boolean.FALSE);
                 } catch (RuntimeException rte) {
                     log.error("Runtime Issue", rte);
@@ -324,6 +334,7 @@ public class HMSMirrorAppService {
                     runStatus.setStage(StageEnum.DATABASES, CollectionEnum.ERRORED);
                     reportWriterService.wrapup();
                     connectionPoolService.close();
+                    runStatus.setProgress(ProgressEnum.FAILED);
                     return new AsyncResult<>(Boolean.FALSE);
                 }
 
@@ -366,9 +377,10 @@ public class HMSMirrorAppService {
             // Failure, report and exit with FALSE
             if (!rtn) {
                 runStatus.setStage(StageEnum.TABLES, CollectionEnum.ERRORED);
-                runStatus.getErrors().set(MessageCode.COLLECTING_TABLES);
+                runStatus.addError(MessageCode.COLLECTING_TABLES);
                 reportWriterService.wrapup();
                 connectionPoolService.close();
+                runStatus.setProgress(ProgressEnum.FAILED);
                 return new AsyncResult<>(Boolean.FALSE);
             }
         } else {
@@ -401,6 +413,9 @@ public class HMSMirrorAppService {
 
                 reportWriterService.wrapup();
                 connectionPoolService.close();
+
+                runStatus.setProgress(ProgressEnum.FAILED);
+
                 return new AsyncResult<>(Boolean.FALSE);
             }
         }

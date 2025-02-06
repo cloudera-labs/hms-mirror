@@ -22,6 +22,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static java.util.Objects.isNull;
@@ -32,8 +36,14 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 public class Filter implements Cloneable {
     @JsonIgnore
     private Pattern dbFilterPattern = null;
-    @JsonIgnore // wip
+
     private String dbRegEx = null;
+    private List<String> dbPropertySkipList = new ArrayList<>();
+
+    @JsonIgnore
+    // Build a set of Pattern Objects based on the dbPropertySkipList
+    private Set<Pattern> dbPropertySkipListPattern = new HashSet<>();
+
     @JsonIgnore
     private Pattern tblExcludeFilterPattern = null;
     @JsonIgnore
@@ -58,9 +68,50 @@ public class Filter implements Cloneable {
         }
     }
 
-//    public void setDbRegEx(String dbRegEx) {
-//        this.dbRegEx = dbRegEx;
+    public Set<Pattern> getDbPropertySkipListPattern() {
+        // Whenever this is retrieved this way, we need to ensure that the dbPropertySkipListPattern is in sync
+        dbPropertySkipListPattern.clear();
+        for (String dbPropertySkip : dbPropertySkipList) {
+            dbPropertySkipListPattern.add(Pattern.compile(dbPropertySkip));
+        }
+        return dbPropertySkipListPattern;
+    }
+
+    public void setDbPropertySkipList(List<String> dbPropertySkipList) {
+        this.dbPropertySkipList = dbPropertySkipList;
+        dbPropertySkipListPattern.clear();
+        for (String dbPropertySkip : dbPropertySkipList) {
+            dbPropertySkipListPattern.add(Pattern.compile(dbPropertySkip));
+        }
+    }
+
+    public void addDbPropertySkipItem(String dbPropertySkipItem) {
+        if (!isBlank(dbPropertySkipItem)) {
+            this.dbPropertySkipList.add(dbPropertySkipItem);
+            dbPropertySkipListPattern.add(Pattern.compile(dbPropertySkipItem));
+        }
+    }
+
+    public void setDbPropertySkipListPattern(Set<Pattern> dbPropertySkipListPattern) {
+        // Do nothing here, as this is a derived field
+    }
+
+    //    public void removeDbPropertySkipItem(String dbPropertySkipItem) {
+//        if (!isBlank(dbPropertySkipItem)) {
+//            this.dbPropertySkipList.remove(dbPropertySkipItem);
+//            dbPropertySkipListPattern.remove(Pattern.compile(dbPropertySkipItem));
+//        }
 //    }
+//
+    public void removeDbPropertySkipItemByIndex(int index) {
+        try {
+            this.dbPropertySkipList.remove(index);
+        } catch (IndexOutOfBoundsException e) {
+            // Nothing to do.
+        } finally {
+            this.dbPropertySkipListPattern.clear();
+        }
+    }
 
     public Pattern getDbFilterPattern() {
         if (!isBlank(dbRegEx) && isNull(dbFilterPattern)) {

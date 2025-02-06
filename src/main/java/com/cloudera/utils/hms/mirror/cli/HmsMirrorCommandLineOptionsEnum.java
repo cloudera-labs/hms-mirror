@@ -36,6 +36,7 @@ public enum HmsMirrorCommandLineOptionsEnum {
     DATABASE("db", "database", "databases", ""),
     DATABASE_ONLY("dbo", "database-only", null, ""),
     DATABASE_PREFIX("dbp", "db-prefix", "prefix", ""),
+    DATABASE_SKIP_PROPERTIES("dbsp", "database-skip-properties", "key(s)", ""),
     DATABASE_RENAME("dbr", "db-rename", "rename", ""),
     DATABASE_REGEX("dbRegEx", "database-regex", "regex", ""),
     //TODO: Double check conversion from legacy.
