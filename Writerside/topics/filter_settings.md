@@ -89,6 +89,35 @@ translator:
 </tab>
 </tabs>
 
+## Database Skip Properties (via RegEx)
+
+A user managed list of properties that will be filter OUT from the migration.  For example: If you don't want to migrate a DBPROPERTY like `repl.incl.test=hello_world`, then add `repl\.incl.*` to this list.
+
+<note>This is a RegEx, so ensure you follow that syntax.</note>
+
+<tabs>
+<tab title="CLI">
+
+`-dbsp,--database-skip-properties <properties>` Comma separated list of database properties (regex) to skip during the migration process.  This will prevent the property from being set on the target cluster.
+
+</tab>
+<tab title="Web UI">
+
+![dbSkipProps.png](dbSkipProps.png)
+
+</tab>
+<tab title="Config File">
+
+```yaml
+filter:
+  dbPropertySkipList:
+    - "repl\\.inc.*"
+```
+
+</tab>
+</tabs>
+
+
 ## Tables
 
 When nothing is specified, all tables in the processed databases are included.  To limit the tables processed, you 

@@ -1,7 +1,7 @@
 # HMS-Mirror
 
-## V2 Docs (Latest)
-[Tech Preview Docs v2](https://dstreev.github.io/hms-mirror)
+## V2 Docs
+[Docs v2](https://dstreev.github.io/hms-mirror)
 
 [Single Page](https://dstreev.github.io/single_html/pdfSourceHMS-MIRROR.html)
 [Single PDF](https://dstreev.github.io/single_html/pdfSourceHMS-MIRROR.pdf)

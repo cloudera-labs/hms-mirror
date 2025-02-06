@@ -10,6 +10,32 @@ The latest set of enhancement requests can be found [here](https://github.com/cl
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 2.3.0.10
+
+**Bug Fixes**
+[Second run in WebUI Fails](https://github.com/cloudera-labs/hms-mirror/issues/181)
+
+[dbRegEx not being processed. Throws MISC_ERROR because it can't find any databases.](https://github.com/cloudera-labs/hms-mirror/issues/180)
+
+[Legacy DBPROPERTIES are causing ERROR when attempting to set on CDP](https://github.com/cloudera-labs/hms-mirror/issues/179)
+
+Issue with jobs not completing when some schema's were already present.
+
+Address lingering connections after run completes.
+
+Fixed counters for CLI screen output.
+
+Fixed an issue with tables being processed multiple times under some conditions.
+
+[Partition discovery for SHADOW table when source is a Managed table shouldn't try to build partitions with ALTER](https://github.com/cloudera-labs/hms-mirror/issues/178)
+
+[LEFT side SQL when running 'execute' mode for SQL data strategy isn't being run.](https://github.com/cloudera-labs/hms-mirror/issues/177)
+
+[CLI App version fails when attempting to set 'concurrency' option](https://github.com/cloudera-labs/hms-mirror/issues/176)
+
+[MSCK for Shadow table not generated when 'metastore_direct' on the LEFT isn't defined](https://github.com/cloudera-labs/hms-mirror/issues/175)
+
+
 ## 2.3.0.4
 
 **What's New**
