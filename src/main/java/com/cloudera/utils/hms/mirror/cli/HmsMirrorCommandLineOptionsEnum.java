@@ -64,6 +64,7 @@ public enum HmsMirrorCommandLineOptionsEnum {
     MIGRATE_NON_NATIVE_ONLY("mnno", "migrate-non-native-only", null, ""),
     NO_PURGE("np", "no-purge", null, ""),
     OUTPUT_DIRECTORY("o", "output-dir", "outputdir", ""),
+    PASS_THROUGH("pt", "pass-through", "spring-setting", ""),
     PASSWORD("p", "password", "password", ""),
     PASSWORD_KEY("pkey", "password-key", "password-key", ""),
     PROPERTY_OVERRIDES("po", "property-overrides", "key=value", ""),

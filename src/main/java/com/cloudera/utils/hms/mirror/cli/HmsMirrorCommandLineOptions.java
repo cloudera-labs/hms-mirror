@@ -618,6 +618,74 @@ public class HmsMirrorCommandLineOptions {
     @Bean
     @Order(1)
     @ConditionalOnProperty(
+            name = "dbcp2.maxWaitMillis")
+    CommandLineRunner configDBCP2MaxWaitMillis(HmsMirrorConfig config, @Value("${dbcp2.maxWaitMillis}") String value) {
+        return args -> {
+            log.info("dbcp2.maxWaitMillis: {}", value);
+            // Get Array of Environment values for LEFT and RIGHT
+            Environment[] envs = new Environment[]{Environment.LEFT, Environment.RIGHT};
+            for (Environment env: envs) {
+                if (nonNull(config.getCluster(env)) && nonNull(config.getCluster(env).getHiveServer2())) {
+                    config.getCluster(env).getHiveServer2().getConnectionProperties().put("maxWaitMillis", value);
+                }
+            }
+        };
+    }
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
+            name = "hikari.connectionTimeout")
+    CommandLineRunner configHikariConnectionTimeout(HmsMirrorConfig config, @Value("${hikari.connectionTimeout}") String value) {
+        return args -> {
+            log.info("hikari.connectionTimeout: {}", value);
+            // Get Array of Environment values for LEFT and RIGHT
+            Environment[] envs = new Environment[]{Environment.LEFT, Environment.RIGHT};
+            for (Environment env: envs) {
+                if (nonNull(config.getCluster(env)) && nonNull(config.getCluster(env).getHiveServer2())) {
+                    config.getCluster(env).getHiveServer2().getConnectionProperties().put("hikari.connectionTimeout", value);
+                }
+            }
+        };
+    }
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
+            name = "hikari.validationTimeout")
+    CommandLineRunner configHikariValidationTimeout(HmsMirrorConfig config, @Value("${hikari.validationTimeout}") String value) {
+        return args -> {
+            log.info("hikari.validationTimeout: {}", value);
+            // Get Array of Environment values for LEFT and RIGHT
+            Environment[] envs = new Environment[]{Environment.LEFT, Environment.RIGHT};
+            for (Environment env: envs) {
+                if (nonNull(config.getCluster(env)) && nonNull(config.getCluster(env).getHiveServer2())) {
+                    config.getCluster(env).getHiveServer2().getConnectionProperties().put("hikari.validationTimeout", value);
+                }
+            }
+        };
+    }
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
+            name = "hikari.initializationFailTimeout")
+    CommandLineRunner configHikariInitializationFailTimeout(HmsMirrorConfig config, @Value("${hikari.initializationFailTimeout}") String value) {
+        return args -> {
+            log.info("hikari.initializationFailTimeout: {}", value);
+            // Get Array of Environment values for LEFT and RIGHT
+            Environment[] envs = new Environment[]{Environment.LEFT, Environment.RIGHT};
+            for (Environment env: envs) {
+                if (nonNull(config.getCluster(env)) && nonNull(config.getCluster(env).getHiveServer2())) {
+                    config.getCluster(env).getHiveServer2().getConnectionProperties().put("hikari.initializationFailTimeout", value);
+                }
+            }
+        };
+    }
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
             name = "hms-mirror.config.iceberg-table-property-overrides")
     CommandLineRunner configIcebergTablePropertyOverrides(HmsMirrorConfig config, @Value("${hms-mirror.config.iceberg-table-property-overrides}") String value) {
         return args -> {
@@ -1701,6 +1769,15 @@ public class HmsMirrorCommandLineOptions {
         dbPropertySkipOption.setRequired(Boolean.FALSE);
         options.addOption(dbPropertySkipOption);
 
+        Option passThroughOption = new Option("pt", "pass-through", true,
+                "Key=value property to pass-through to the configuration.  " +
+                        "This will allow you to set properties that are not part of the HMS-Mirror configuration or part of spring's configuration.");
+        passThroughOption.setArgs(1);
+//        passThroughOption.setOptionalArg(Boolean.TRUE);
+        passThroughOption.setArgName("key=value");
+        passThroughOption.setRequired(Boolean.FALSE);
+        options.addOption(passThroughOption);
+
         // External Warehouse Dir
         Option externalWarehouseDirOption = new Option("ewd", "external-warehouse-directory", true,
                 "The external warehouse directory path.  Should not include the namespace OR the database directory. " +
@@ -2084,6 +2161,15 @@ public class HmsMirrorCommandLineOptions {
             } else if (opt.equals("load-test-data")) {
                 // Set Concurrency
                 springOptions.add("--hms-mirror.conversion.test-filename" + "=\"" + String.join(",", values) + "\"");
+            } else if (opt.equals("pass-through")) {
+                // Pass-through to Spring.
+                for (String value : values) {
+                    if (value.contains("=")) {
+                        String lclKey = value.substring(0, value.indexOf('='));
+                        String lclValue = value.substring(value.indexOf('=') + 1);
+                        springOptions.add("--" + lclKey + "=" + lclValue);
+                    }
+                }
             }else {
                 if (nonNull(values) && values.length > 0) {
                     springOptions.add("--" + SPRING_CONFIG_PREFIX + "." + opt + "=" + String.join(",", values));

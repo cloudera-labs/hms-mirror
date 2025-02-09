@@ -39,6 +39,7 @@ import java.sql.SQLException;
 import java.util.*;
 
 import static java.util.Objects.nonNull;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Slf4j
 public class ConnectionPoolsHikariImpl extends ConnectionPoolsBase implements ConnectionPools {
@@ -75,6 +76,26 @@ public class ConnectionPoolsHikariImpl extends ConnectionPoolsBase implements Co
                             if (queueOverride != null) {
                                 props.put("connectionInitSql", queueOverride);
                             }
+
+                            // Set the Concurrency
+                            props.put("maximumPoolSize", executeSession.getConcurrency());
+                            String hct = hs2Config.getConnectionProperties().getProperty(HIKARI_CONNECTION_TIMEOUT, HIKARI_CONNECTION_TIMEOUT_DEFAULT);
+                            if (isBlank(hct)) {
+                                hct = HIKARI_CONNECTION_TIMEOUT_DEFAULT;
+                            }
+                            props.put("connectionTimeout", Integer.parseInt(hct));
+
+                            String vto = hs2Config.getConnectionProperties().getProperty(HIKARI_VALIDATION_TIMEOUT, HIKARI_VALIDATION_TIMEOUT_DEFAULT);
+                            if (isBlank(vto)) {
+                                vto = HIKARI_VALIDATION_TIMEOUT_DEFAULT;
+                            }
+                            props.put("validationTimeout", Integer.parseInt(vto));
+
+                            String ift = hs2Config.getConnectionProperties().getProperty(HIKARI_INITIALIZATION_FAIL_TIMEOUT, HIKARI_INITIALIZATION_FAIL_TIMEOUT_DEFAULT);
+                            if (isBlank(ift)) {
+                                ift = HIKARI_INITIALIZATION_FAIL_TIMEOUT_DEFAULT;
+                            }
+                            props.put("initializationFailTimeout", Integer.parseInt(ift));
 
                             // Make a copy.
                             Properties connProperties = new Properties();

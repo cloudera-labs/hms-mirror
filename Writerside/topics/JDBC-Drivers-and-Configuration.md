@@ -75,3 +75,59 @@ required by `hms-mirror`.
 ## HDP 3 Connections
 
 The JDBC driver for HDP Hive 3 has some embedded classes for `log4j` that conflict with the `log4j` classes in the `hms-mirror` application.  To resolve this, you can use the Cloudera Apache JDBC driver for HDP 3 Hive.  This driver is compatible with HDP 3 and does not have the `log4j` conflict.
+
+## Hive JDBC Driver Connection Pool Settings
+
+Hive 1/2, which includes HDP 2.x and CDH 5.x / 6.x environments will use the Apache Commons DBCP2 Connection Pool libraries. Hive 3/4, which includes HDP 3.x and CDH 7.x environments will use the HikariCP Connection Pool libraries.
+
+There are a few settings that you can adjust in the `hms-mirror` configuration file to tune the connection pool settings.
+
+For the DBCP2 connection pool, you can set the `maxWaitMillis` setting, which has a default of `5000` milliseconds.
+
+For the HikariCP connection pool, the following connection properties can be adjusted:
+`connectionTimeout` (default: `60000` milliseconds)
+`validationTimeout` (default: `30000` milliseconds)
+`initializationFailTimeout` (default: `10000` milliseconds)
+
+The default setting have been pretty successful in our testing, but you can adjust these settings to meet your needs.
+
+<tabs>
+<tab title="CLI">
+
+The DBCP2 connection pool settings can be adjustment through the CLI via the `-pt|--pass-through` option using one of more of the following setting:
+- `dbcp2.maxWaitMillis`
+
+EG: `-pt dbcp2.maxWaitMillis=10000`
+
+The Hikari connection pool settings can be adjusted through the CLI via the `-pt|--pass-through` option using one of more of the following setting:
+- `hikari.connectionTimeout`
+- `hikari.validationTimeout`
+- `hikari.initializationFailTimeout`
+
+<note>You can have multiple `-pt` options on the command line</note>
+
+EG: `-pt hikari.connectionTimeout=60000 -pt hikari.validationTimeout=30000 -pt hikari.initializationFailTimeout=10000`
+
+</tab>
+<tab title="Web UI">
+
+![hs2_cp_settings.png](hs2_cp_settings.png)![filter_databases.png](filter_databases.png)
+
+</tab>
+<tab title="Config File">
+
+```yaml
+clusters:
+  LEFT:
+    environment: "LEFT|RIGHT"
+    hiveServer2:
+      uri: "..."
+      connectionProperties:
+        maxWaitMillis: "5000" # DBCP2 connection pool setting
+        hikari.validationTimeout: "30000"
+        hikari.initializationFailTimeout: "10000"
+        hikari.connectionTimeout: "60000"
+```
+
+</tab>
+</tabs>

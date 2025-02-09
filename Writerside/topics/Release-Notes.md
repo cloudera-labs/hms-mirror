@@ -10,6 +10,12 @@ The latest set of enhancement requests can be found [here](https://github.com/cl
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 2.3.0.12
+
+**Bug Fixes**
+[The Hikari Connection Pool settings are causing intermittent connection failures, cause table transfer failures.](https://github.com/cloudera-labs/hms-mirror/issues/182)
+
+
 ## 2.3.0.10
 
 **Bug Fixes**

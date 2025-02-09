@@ -7,10 +7,11 @@ springdoc:
     path: "/swagger-ui.html"
 spring:
   datasource:
-    hikari:
+#    hikari:
 #      maxLifetime: 1800000
-      connectionTimeout: 5000
-#      minimumIdle: 3
+#      connectionTimeout: 60000
+#      validationTimeout: 30000
+#      minimumIdle: 2
   main:
     banner-mode: "off"
   thymeleaf:

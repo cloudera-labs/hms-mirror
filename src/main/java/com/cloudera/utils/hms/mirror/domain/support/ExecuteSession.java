@@ -37,15 +37,11 @@ import static java.util.Objects.nonNull;
 public class ExecuteSession implements Cloneable {
 
     private String sessionId;
-//    private String passwordKey;
-
-    //    private final AtomicBoolean running = new AtomicBoolean(false);
+    private int concurrency = 10; // Default
     private boolean connected = Boolean.FALSE;
     private Connections connections = new Connections();
     private RunStatus runStatus;
-    //    private HmsMirrorConfig resolvedConfig;
     private HmsMirrorConfig config;
-//    private CliEnvironment cliEnvironment;
     private Conversion conversion;
     
     public void addError(MessageCode code) {

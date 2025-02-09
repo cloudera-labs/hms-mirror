@@ -255,6 +255,8 @@ public class ExecuteSessionService {
 //        closeSession();
 
         ExecuteSession session = getSession();
+        // Set the concurrency.
+        session.setConcurrency(concurrency);
 
         if (!isNull(session) && session.isRunning()) {
             throw new SessionException("Session is still running.  Cannot transition to active.");

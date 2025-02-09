@@ -96,7 +96,27 @@
                 <input type="number"
                        autocomplete="off"
                        th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[maxWaitMillis]}"/>
-                <!--                                               th:value="${CONFIG.clusters[__${env}__].hiveServer2.connectionProperties[maxWaitMillis]}"/>-->
+            </div>
+            <div class="pure-control-group">
+                <label
+                        th:text="#{hive.server2.hikari.connectionTimeout}"/>
+                <input type="number"
+                       autocomplete="off"
+                       th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[hikari.connectionTimeout]}"/>
+            </div>
+            <div class="pure-control-group">
+                <label
+                        th:text="#{hive.server2.hikari.validationTimeout}"/>
+                <input type="number"
+                       autocomplete="off"
+                       th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[hikari.validationTimeout]}"/>
+            </div>
+            <div class="pure-control-group">
+                <label
+                        th:text="#{hive.server2.hikari.initializationFailTimeout}"/>
+                <input type="number"
+                       autocomplete="off"
+                       th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[hikari.initializationFailTimeout]}"/>
             </div>
             <!--                                    <div class="pure-control-group">-->
             <!--                                        <label for="hs2maxTotal" th:text="#{hive.server2.max.total}"/>-->
