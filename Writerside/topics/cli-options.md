@@ -2,7 +2,7 @@
 
 ```
 usage: hms-mirror <options>
-version:2.3.0.10
+version:2.3.0.12
 Hive Metastore Migration Utility
  -accept,--accept                                                        Accept ALL confirmations
                                                                          and silence prompts
@@ -281,6 +281,14 @@ Hive Metastore Migration Utility
                                                                          pairs of Hive properties
                                                                          you wish to set/override
                                                                          for RIGHT cluster.
+ -pt,--pass-through <key=value>                                          Key=value property to
+                                                                         pass-through to the
+                                                                         configuration.  This will
+                                                                         allow you to set properties
+                                                                         that are not part of the
+                                                                         HMS-Mirror configuration or
+                                                                         part of spring's
+                                                                         configuration.
  -q,--quiet                                                              Reduce screen reporting
                                                                          output.  Good for
                                                                          background processes with

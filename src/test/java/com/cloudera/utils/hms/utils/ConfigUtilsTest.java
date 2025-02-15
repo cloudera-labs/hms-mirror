@@ -24,6 +24,10 @@ public class ConfigUtilsTest {
             put(SideType.LEFT, "queue1");
             put(SideType.RIGHT, "queue2");
         }});
+        config.getOptimization().getOverrides().getProperties().put("something.null", new HashMap<SideType, String>() {{
+            put(SideType.LEFT, null);
+            put(SideType.RIGHT, null);
+        }});
         List<String> result = ConfigUtils.getPropertyOverridesFor(environment, config);
 
         //        assertEquals("SET tez.queue.name=queue1", result);

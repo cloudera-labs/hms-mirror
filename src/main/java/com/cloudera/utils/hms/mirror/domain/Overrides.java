@@ -38,12 +38,17 @@ public class Overrides {
     private Map<String, Map<SideType, String>> properties = new TreeMap<String, Map<SideType, String>>();
 
     public void addProperty(String key, String value, SideType side) {
-        // Don't save unless both key and value are present and not blank.
-        if (!isBlank(key) && !isBlank(value)) {
+        // Don't save unless key is present and not blank.
+        // The value can be blank/null.
+        if (!isBlank(key)) {
             if (!properties.containsKey(key)) {
                 properties.put(key, new TreeMap<SideType, String>());
             }
-            properties.get(key).put(side, value);
+            if (!isBlank(value)) {
+                properties.get(key).put(side, value);
+            } else {
+                properties.get(key).put(side, null);
+            }
         }
     }
 
@@ -64,6 +69,8 @@ public class Overrides {
                                 addProperty(keyValue[0],keyValue[1],SideType.RIGHT);
                                 break;
                         }
+                    } else if (keyValue.length == 1) {
+                        addProperty(keyValue[0],null,side);
                     }
                 } catch (Throwable t) {
                     log.error("Error setting property overrides: {}", t.getMessage());

@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static java.util.Objects.isNull;
+
 public class ConfigUtils {
 
     public static String TEZ_QUEUE_PROPERTY = "tez.queue.name";
@@ -22,16 +24,28 @@ public class ConfigUtils {
                 v.forEach((k1, v1) -> {
                     switch (k1) {
                         case BOTH:
-                            overrides.add("SET " + k + "=" + v1);
+                            if (!isNull(v1)) {
+                                overrides.add("SET " + k + "=" + v1);
+                            } else {
+                                overrides.add("SET " + k );
+                            }
                             break;
                         case LEFT:
                             if (target == Environment.LEFT) {
-                                overrides.add("SET " + k + "=" + v1);
+                                if (!isNull(v1)) {
+                                    overrides.add("SET " + k + "=" + v1);
+                                } else {
+                                    overrides.add("SET " + k );
+                                }
                             }
                             break;
                         case RIGHT:
                             if (target == Environment.RIGHT) {
-                                overrides.add("SET " + k + "=" + v1);
+                                if (!isNull(v1)) {
+                                    overrides.add("SET " + k + "=" + v1);
+                                } else {
+                                    overrides.add("SET " + k );
+                                }
                             }
                             break;
                     }

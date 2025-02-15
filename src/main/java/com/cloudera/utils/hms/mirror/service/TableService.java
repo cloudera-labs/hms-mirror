@@ -386,14 +386,14 @@ public class TableService {
                                         "The name matches the transfer prefix and is most likely a remnant of a previous " +
                                         "event. If this is a mistake, change the 'transferPrefix' to something more unique.", database, tableName);
                             } else if (tableName.startsWith(config.getTransfer().getShadowPrefix())) {
-                                    TableMirror tableMirror = dbMirror.addTable(tableName);
-                                    tableMirror.setRemove(Boolean.TRUE);
-                                    tableMirror.setRemoveReason("Table name matches the shadow prefix.  " +
-                                            "This is most likely a remnant of a previous event.  If this is a mistake, " +
-                                            "change the 'shadowPrefix' to something more unique.");
-                                    log.info("{}.{} was NOT added to list.  " +
-                                            "The name matches the shadow prefix and is most likely a remnant of a previous " +
-                                            "event. If this is a mistake, change the 'shadowPrefix' to something more unique.", database, tableName);
+                                TableMirror tableMirror = dbMirror.addTable(tableName);
+                                tableMirror.setRemove(Boolean.TRUE);
+                                tableMirror.setRemoveReason("Table name matches the shadow prefix.  " +
+                                        "This is most likely a remnant of a previous event.  If this is a mistake, " +
+                                        "change the 'shadowPrefix' to something more unique.");
+                                log.info("{}.{} was NOT added to list.  " +
+                                        "The name matches the shadow prefix and is most likely a remnant of a previous " +
+                                        "event. If this is a mistake, change the 'shadowPrefix' to something more unique.", database, tableName);
                             } else if (tableName.endsWith(config.getTransfer().getStorageMigrationPostfix())) {
                                 TableMirror tableMirror = dbMirror.addTable(tableName);
                                 tableMirror.setRemove(Boolean.TRUE);
@@ -869,8 +869,28 @@ public class TableService {
                                 log.debug("{}:SQL:{}:{}", environment, pair.getDescription(), pair.getAction());
                                 tblMirror.setMigrationStageMessage("Executing SQL: " + pair.getDescription());
                                 if (config.isExecute()) {
-                                    stmt.execute(pair.getAction());
-                                    tblMirror.addStep(environment.toString(), "Sql Run Complete for: " + pair.getDescription());
+                                    // Log the Return of 'set' commands.
+                                    if (pair.getAction().trim().toLowerCase().startsWith("set")) {
+                                        stmt.execute(pair.getAction());
+                                        try {
+                                            // Check for a result set and print result if present.
+                                            ResultSet resultSet = stmt.getResultSet();
+                                            if (!isNull(resultSet)) {
+                                                while (resultSet.next()) {
+                                                    tblMirror.addStep(environment.toString(), "Sql Run Complete for: " + pair.getDescription() + " : " + resultSet.getString(1));
+                                                    log.debug("{}:{}", pair.getAction(), resultSet.getString(1));
+                                                }
+                                            } else {
+                                                tblMirror.addStep(environment.toString(), "Sql Run Complete for: " + pair.getDescription());
+                                            }
+                                        } catch (SQLException se) {
+                                            // Otherwise, just log command.
+                                            tblMirror.addStep(environment.toString(), "Sql Run Complete for: " + pair.getDescription());
+                                        }
+                                    } else {
+                                        stmt.execute(pair.getAction());
+                                        tblMirror.addStep(environment.toString(), "Sql Run Complete for: " + pair.getDescription());
+                                    }
                                 } else {
                                     tblMirror.addStep(environment.toString(), "Sql Run SKIPPED (DRY-RUN) for: " + pair.getDescription());
                                 }

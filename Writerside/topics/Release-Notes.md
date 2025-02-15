@@ -9,16 +9,24 @@ The latest set of known issues can be found [here](https://github.com/cloudera-l
 The latest set of enhancement requests can be found [here](https://github.com/cloudera-labs/hms-mirror/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement). 
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
+## 2.3.0.13
+
+**What's New**
+
+[Enhance logging to show which instance is handling a connection/job in case of using multiple HS2 instances](https://github.com/cloudera-labs/hms-mirror/issues/183)
+> When using multiple HS2 instances, it can be difficult to determine which instance is handling a connection or job.  This enhancement will allow you to add a `set` statement that identifies which instance is handling the connection or job. Use the `-po[r|l]` property override values if you'd like to include this information in the log output. `-po hive.server2.thrift.bind.host` will add the statement to both LEFT and RIGHT output. The option is also available in the Web UI through "Property Overrides".
 
 ## 2.3.0.12
 
 **Bug Fixes**
+
 [The Hikari Connection Pool settings are causing intermittent connection failures, cause table transfer failures.](https://github.com/cloudera-labs/hms-mirror/issues/182)
 
 
 ## 2.3.0.10
 
 **Bug Fixes**
+
 [Second run in WebUI Fails](https://github.com/cloudera-labs/hms-mirror/issues/181)
 
 [dbRegEx not being processed. Throws MISC_ERROR because it can't find any databases.](https://github.com/cloudera-labs/hms-mirror/issues/180)
@@ -63,6 +71,7 @@ config.beta=true` to the startup command.  EG: `hms-mirror --service --hms-mirro
 ## 2.2.0.19.6 (pre-release)
 
 **What's New**
+
 [BEHAVIOR CHANGE - Drop any shadow table definitions created during migration automatically](https://github.com/cloudera-labs/hms-mirror/issues/163)
 > This adjustment will remove shadow tables that were created during the migration process.  This will help to keep 
 > the source and target clusters clean of any artifacts created during the migration process. An option 
@@ -73,6 +82,7 @@ config.beta=true` to the startup command.  EG: `hms-mirror --service --hms-mirro
 ## 2.2.0.19.2 (pre-release)
 
 **What's New**
+
 [Error event is not logged for table skipped because RIGHT already has the table](https://github.com/cloudera-labs/hms-mirror/issues/162)
 [Would be great to be able to omit warnings from the end of logs](https://github.com/cloudera-labs/hms-mirror/issues/161)
 [Be able to reduce spring framework related log entries](https://github.com/cloudera-labs/hms-mirror/issues/160)
