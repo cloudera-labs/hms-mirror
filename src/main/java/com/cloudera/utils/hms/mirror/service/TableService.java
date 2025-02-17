@@ -878,7 +878,7 @@ public class TableService {
                                             if (!isNull(resultSet)) {
                                                 while (resultSet.next()) {
                                                     tblMirror.addStep(environment.toString(), "Sql Run Complete for: " + pair.getDescription() + " : " + resultSet.getString(1));
-                                                    log.debug("{}:{}", pair.getAction(), resultSet.getString(1));
+                                                    log.info("{}:{}", pair.getAction(), resultSet.getString(1));
                                                 }
                                             } else {
                                                 tblMirror.addStep(environment.toString(), "Sql Run Complete for: " + pair.getDescription());
