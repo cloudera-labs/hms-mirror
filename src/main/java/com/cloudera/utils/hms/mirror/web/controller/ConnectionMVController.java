@@ -18,68 +18,73 @@
 package com.cloudera.utils.hms.mirror.web.controller;
 
 import com.cloudera.utils.hadoop.cli.CliEnvironment;
-import com.cloudera.utils.hadoop.cli.DisabledException;
-import com.cloudera.utils.hadoop.shell.command.CommandReturn;
 import com.cloudera.utils.hms.mirror.MessageCode;
-import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
-import com.cloudera.utils.hms.mirror.domain.support.*;
+import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
+import com.cloudera.utils.hms.mirror.domain.support.ProgressEnum;
+import com.cloudera.utils.hms.mirror.domain.support.RunStatus;
 import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
-import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
-import com.cloudera.utils.hms.mirror.service.ConfigService;
-import com.cloudera.utils.hms.mirror.service.ConnectionPoolService;
-import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
-import com.cloudera.utils.hms.mirror.service.UIModelService;
-import com.cloudera.utils.hms.util.NamespaceUtils;
+import com.cloudera.utils.hms.mirror.service.*;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.net.URISyntaxException;
-import java.sql.Connection;
 import java.sql.SQLException;
-
-import static java.util.Objects.nonNull;
-import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Controller
 @RequestMapping(path = "/connections")
 @Slf4j
 public class ConnectionMVController {
 
-    private ConfigService configService;
-    private ConnectionPoolService connectionPoolService;
-    private ExecuteSessionService executeSessionService;
-    private UIModelService uiModelService;
-    private CliEnvironment cliEnvironment;
+    private final ConfigService configService;
+    private final ConnectionPoolService connectionPoolService;
+    private final ExecuteSessionService executeSessionService;
+    private final EnvironmentService environmentService;
 
-    @Autowired
-    public void setCliEnvironment(CliEnvironment cliEnvironment) {
+    private final UIModelService uiModelService;
+    private final CliEnvironment cliEnvironment;
+
+    public ConnectionMVController(ConfigService configService,
+                                  ConnectionPoolService connectionPoolService,
+                                  ExecuteSessionService executeSessionService,
+                                  EnvironmentService environmentService,
+                                  UIModelService uiModelService,
+                                  CliEnvironment cliEnvironment) {
+        this.configService = configService;
+        this.connectionPoolService = connectionPoolService;
+        this.executeSessionService = executeSessionService;
+        this.environmentService = environmentService;
+        this.uiModelService = uiModelService;
         this.cliEnvironment = cliEnvironment;
     }
 
-    @Autowired
-    public void setConfigService(ConfigService configService) {
-        this.configService = configService;
-    }
-
-    @Autowired
-    public void setConnectionPoolService(ConnectionPoolService connectionPoolService) {
-        this.connectionPoolService = connectionPoolService;
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
-        this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setUiModelService(UIModelService uiModelService) {
-        this.uiModelService = uiModelService;
-    }
+    //    @Autowired
+//    public void setCliEnvironment(CliEnvironment cliEnvironment) {
+//        this.cliEnvironment = cliEnvironment;
+//    }
+//
+//    @Autowired
+//    public void setConfigService(ConfigService configService) {
+//        this.configService = configService;
+//    }
+//
+//    @Autowired
+//    public void setConnectionPoolService(ConnectionPoolService connectionPoolService) {
+//        this.connectionPoolService = connectionPoolService;
+//    }
+//
+//    @Autowired
+//    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
+//        this.executeSessionService = executeSessionService;
+//    }
+//
+//    @Autowired
+//    public void setUiModelService(UIModelService uiModelService) {
+//        this.uiModelService = uiModelService;
+//    }
 
     @RequestMapping(value = "/validate", method = RequestMethod.GET)
     public String validate(Model model) {
@@ -91,12 +96,20 @@ public class ConnectionMVController {
     public String doValidate(Model model) throws SQLException, SessionException,
             URISyntaxException, EncryptionException {
 
+        environmentService.setupGSS();
         if (executeSessionService.startSession(1)) {
             try {
                 RunStatus runStatus = executeSessionService.getSession().getRunStatus();
-                boolean connCheck = connectionPoolService.init();
-                if (connCheck) {
-                    runStatus.setProgress(ProgressEnum.COMPLETED);
+                ExecuteSession session = executeSessionService.getSession();
+                if (configService.validateForConnections(session)) {
+
+                    boolean connCheck = connectionPoolService.init();
+                    if (connCheck) {
+                        runStatus.setProgress(ProgressEnum.COMPLETED);
+                    } else {
+                        runStatus.setProgress(ProgressEnum.FAILED);
+                        runStatus.addError(MessageCode.CONNECTION_ISSUE);
+                    }
                 } else {
                     runStatus.setProgress(ProgressEnum.FAILED);
                     runStatus.addError(MessageCode.CONNECTION_ISSUE);

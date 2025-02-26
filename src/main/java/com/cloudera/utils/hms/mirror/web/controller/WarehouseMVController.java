@@ -19,6 +19,7 @@ package com.cloudera.utils.hms.mirror.web.controller;
 
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
+import com.cloudera.utils.hms.mirror.domain.support.ProgressEnum;
 import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
@@ -94,12 +95,17 @@ public class WarehouseMVController {
             List<String> availableDatabases = databaseService.listAvailableDatabases(Environment.LEFT);
             model.addAttribute(AVAILABLE_DATABASES, availableDatabases);
             uiModelService.sessionToModel(model, 1, Boolean.FALSE);
-
+            if (session.isRunning()) {
+                session.getRunStatus().setProgress(ProgressEnum.COMPLETED);
+            }
             return "warehouse/plan/add";
         } else {
             uiModelService.sessionToModel(model, 1, Boolean.FALSE);
             model.addAttribute(TYPE, "Connections");
             model.addAttribute(MESSAGE, "Issue validating connections.  Review Messages and try again.");
+            if (session.isRunning()) {
+                session.getRunStatus().setProgress(ProgressEnum.FAILED);
+            }
             return "error";
         }
     }

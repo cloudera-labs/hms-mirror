@@ -36,7 +36,7 @@
 <!--            <a th:href="#{docs.website}" target="_blank"><b th:text="#{documentation}"/></a>-->
         </div>
         <div class="pure-u-2-3">
-            <b th:text="#{version(${VERSION})}" th:if="${VERSION != 'Unknown'}"/>
+            <b th:text="#{version.with(${VERSION})}" th:if="${VERSION != 'Unknown'}"/>
         </div>
         <div class="pure-u-1-6">
             <a href="https://github.com/cloudera-labs/hms-mirror" target="_blank"><b th:text="#{copyright}"/></a>
