@@ -74,7 +74,7 @@ public class MigrateACID implements Cloneable {
     same cluster.  SQL/EXPORT_IMPORT will be used to migrate the data out of the ACID table, into an EXTERNAL/PURGE table.  That table
     will be renamed to the original ACID table once this is completed.
      */
-    @Schema(description = "Downgrade ACID tables in-place.")
+    @Schema(description = "ACID tables in-place.")
     private boolean inplace = Boolean.FALSE;
 
     @Override
@@ -94,8 +94,8 @@ public class MigrateACID implements Cloneable {
             if (!on) {
                 this.on = Boolean.TRUE;
             }
-            if (!downgrade) {
-                this.downgrade = Boolean.TRUE;
+            if (!only) {
+                this.only = Boolean.TRUE;
             }
         }
     }
@@ -106,15 +106,10 @@ public class MigrateACID implements Cloneable {
             if (!on) {
                 this.on = Boolean.TRUE;
             }
+            if (!only) {
+                this.only = Boolean.TRUE;
+            }
         }
-    }
-
-    @JsonIgnore
-    public Boolean isDowngradeInPlace() {
-        if (inplace && downgrade)
-            return Boolean.TRUE;
-        else
-            return Boolean.FALSE;
     }
 
 }

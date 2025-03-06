@@ -41,7 +41,7 @@ public class DataStrategyService {
     private SchemaOnlyDataStrategy schemaOnlyDataStrategy = null;
     private StorageMigrationDataStrategy storageMigrationDataStrategy = null;
     private SQLDataStrategy sqlDataStrategy = null;
-    private SQLAcidDowngradeInPlaceDataStrategy sqlAcidDowngradeInPlaceDataStrategy = null;
+    private SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy = null;
     private IntermediateDataStrategy intermediateDataStrategy = null;
     private IcebergConversionDataStrategy icebergConversionDataStrategy = null;
 
@@ -88,7 +88,7 @@ public class DataStrategyService {
                 dataStrategy = hybridAcidDowngradeInPlaceDataStrategy;
                 break;
             case SQL_ACID_DOWNGRADE_INPLACE:
-                dataStrategy = sqlAcidDowngradeInPlaceDataStrategy;
+                dataStrategy = sqlAcidInPlaceDataStrategy;
                 break;
             case EXPORT_IMPORT_ACID_DOWNGRADE_INPLACE:
                 dataStrategy = exportImportAcidDowngradeInPlaceDataStrategy;
@@ -160,8 +160,8 @@ public class DataStrategyService {
     }
 
     @Autowired
-    public void setSqlAcidDowngradeInPlaceDataStrategy(SQLAcidDowngradeInPlaceDataStrategy sqlAcidDowngradeInPlaceDataStrategy) {
-        this.sqlAcidDowngradeInPlaceDataStrategy = sqlAcidDowngradeInPlaceDataStrategy;
+    public void setSqlAcidInPlaceDataStrategy(SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy) {
+        this.sqlAcidInPlaceDataStrategy = sqlAcidInPlaceDataStrategy;
     }
 
     @Autowired

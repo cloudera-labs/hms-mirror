@@ -57,6 +57,7 @@ METADATA Transfer Flag
     String HMS_MIRROR_STORAGE_DISTCP_FLAG = "hms-mirror_Storage_DISTCP_Stage2";
     String HMS_MIRROR_LEGACY_MANAGED_FLAG = "hms-mirror_LegacyManaged";
     String DOWNGRADED_FROM_ACID = "downgraded_from_acid";
+    String ACID_INPLACE = "acid_inplace";
     String DISCOVER_PARTITIONS = "discover.partitions";
     String TRANSLATED_TO_EXTERNAL = "TRANSLATED_TO_EXTERNAL";
     String EXTERNAL_TABLE_PURGE = "external.table.purge";

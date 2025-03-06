@@ -32,17 +32,17 @@ import static org.junit.Assert.assertEquals;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Mirror.class,
         args = {
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sql_leg_mngd_da_ip",
-                "--hms-mirror.config.downgrade-acid=true",
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sql_leg_mngd_bucket_ip_already",
+//                "--hms-mirror.config.downgrade-acid=true",
                 "--hms-mirror.config.in-place=true",
-                "--hms-mirror.config.migrate-acid-only=true",
-                "--hms-mirror.conversion.test-filename=/test_data/legacy_mngd_no_parts.yaml",
+                "--hms-mirror.config.migrate-acid=10",
+                "--hms-mirror.conversion.test-filename=/test_data/legacy_mngd_no_parts_ip.yaml",
                 "--hms-mirror.config.filename=/config/default.yaml.cdp-cdp",
                 "--hms-mirror.config.right-is-disconnected=true"
         })
 @ActiveProfiles("e2e-cdp-sql-acid")
 @Slf4j
-public class Test_sql_leg_mngd_da_ip extends E2EBaseTest {
+public class Test_sql_leg_mngd_bucket_ip_already extends E2EBaseTest {
 //
 //        String[] args = new String[]{"-d", "SQL",
 //                "-da", "-ip", "-mao", "-rid",
@@ -63,12 +63,12 @@ public class Test_sql_leg_mngd_da_ip extends E2EBaseTest {
         // Get Runtime Return Code.
         long rtn = getReturnCode();
         // Verify the return code.
-        assertEquals("Return Code Failure: " + rtn, 0L, rtn);
+        assertEquals("Return Code Failure: " + rtn, 1L, rtn);
     }
 
+    // Ensure the table is still an ACID table.
     @Test
-    public void isNotAcidTest() {
-        validateTableIsNotACID("tpcds_bin_partitioned_orc_10", "call_center_acid", Environment.RIGHT);
+    public void isStillAcidTest() {
+        validateTableIsACID("tpcds_bin_partitioned_orc_10", "web_sales_acid", Environment.RIGHT);
     }
-
 }

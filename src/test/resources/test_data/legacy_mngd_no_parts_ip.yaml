@@ -64,7 +64,8 @@ databases:
             - "'numRows'='24',"
             - "'rawDataSize'='54648',"
             - "'totalSize'='6548',"
-            - "'transient_lastDdlTime'='1644950967')"
+            - "'transient_lastDdlTime'='1644950967',"
+            - "'acid_inplace'='2025-01-01')"
             owner: null
             partitions: {}
             actions: []
@@ -146,7 +147,8 @@ databases:
             - "'rawDataSize'='0',"
             - "'totalSize'='11414',"
             - "'transactional'='true',"
-            - "'transient_lastDdlTime'='1633307508')"
+            - "'transient_lastDdlTime'='1633307508',"
+            - "'acid_inplace'='2025-01-01')"
             owner: null
             partitions: {}
             actions: []

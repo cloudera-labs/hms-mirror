@@ -141,7 +141,7 @@ public class TransferService {
                 DataStrategy dataStrategy = null;
                 switch (config.getDataStrategy()) {
                     case HYBRID:
-                        if (TableUtils.isACID(let) && config.getMigrateACID().isDowngradeInPlace()) {
+                        if (TableUtils.isACID(let) && config.getMigrateACID().isInplace()) {
                             if (hybridAcidDowngradeInPlaceDataStrategy.build(tableMirror)) {
                                 rtn.setStatus(ReturnStatus.Status.SUCCESS);
                             } else {
@@ -171,7 +171,7 @@ public class TransferService {
                 if (rtn.getStatus() == ReturnStatus.Status.SUCCESS && config.getTransfer().getStorageMigration().isDistcp()) {
                     warehouse = warehouseService.getWarehousePlan(tableMirror.getParent().getName());
                     // Build distcp reports.
-                    // Build when intermediate and NOT ACID with isDowngrade.
+                    // Build when intermediate and NOT ACID with isInPlace.
                     if (!isBlank(config.getTransfer().getIntermediateStorage())) {
                         // The Transfer Table should be available.
                         String isLoc = config.getTransfer().getIntermediateStorage();
@@ -182,7 +182,7 @@ public class TransferService {
                                 config.getRunMarker() + "/" +
                                 tableMirror.getParent().getName() + ".db/" +
                                 tableMirror.getName();
-                        if (TableUtils.isACID(let) && config.getMigrateACID().isDowngrade()) {
+                        if (TableUtils.isACID(let) && config.getMigrateACID().isInplace()) {
                             // skip the LEFT because the TRANSFER table used to downgrade was placed in the intermediate location.
                         } else {
                             // LEFT PUSH INTERMEDIATE
@@ -342,7 +342,7 @@ public class TransferService {
             DataStrategy dataStrategy = null;
             switch (config.getDataStrategy()) {
                 case HYBRID:
-                    if (TableUtils.isACID(let) && config.getMigrateACID().isDowngradeInPlace()) {
+                    if (TableUtils.isACID(let) && config.getMigrateACID().isInplace()) {
                         if (hybridAcidDowngradeInPlaceDataStrategy.execute(tableMirror)) {
                             rtn.setStatus(ReturnStatus.Status.SUCCESS);
                         } else {

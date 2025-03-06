@@ -176,7 +176,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
                         + tableMirror.getParent().getName() + "/" + let.getName();
             }
             String origTableName = let.getName();
-            if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+            if (isACIDInPlace(tableMirror, Environment.LEFT)) {
                 // Rename original table.
                 // Remove property (if exists) to prevent rename from happening.
                 if (TableUtils.hasTblProperty(TRANSLATED_TO_EXTERNAL, let)) {
@@ -193,7 +193,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
             let.addSql(TableUtils.EXPORT_TABLE, exportSql);
 
             // RIGHT IMPORT from Directory
-            if (!isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+            if (!isACIDInPlace(tableMirror, Environment.LEFT)) {
                 String useRightDb = MessageFormat.format(MirrorConf.USE, database);
                 ret.addSql(TableUtils.USE_DESC, useRightDb);
             }
@@ -214,7 +214,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
                 if (!config.getMigrateACID().isDowngrade()) {
                     importSql = MessageFormat.format(MirrorConf.IMPORT_TABLE, let.getName(), importLoc);
                 } else {
-                    if (config.getMigrateACID().isDowngradeInPlace()) {
+                    if (config.getMigrateACID().isInplace()) {
                         importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, origTableName, importLoc);
                     } else {
                         importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
@@ -242,7 +242,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
                 if (config.isSync()) {
                     // Need to Drop table first.
                     String dropExistingTable = MessageFormat.format(MirrorConf.DROP_TABLE, let.getName());
-                    if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+                    if (isACIDInPlace(tableMirror, Environment.LEFT)) {
                         let.addSql(MirrorConf.DROP_TABLE_DESC, dropExistingTable);
                         let.addIssue(EXPORT_IMPORT_SYNC.getDesc());
                     } else {
@@ -251,7 +251,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
                     }
                 }
             }
-            if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+            if (isACIDInPlace(tableMirror, Environment.LEFT)) {
                 let.addSql(TableUtils.IMPORT_TABLE, importSql);
             } else {
                 ret.addSql(TableUtils.IMPORT_TABLE, importSql);
@@ -299,7 +299,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
             }
         }
 
-        if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+        if (isACIDInPlace(tableMirror, Environment.LEFT)) {
             rtn = getExportImportAcidDowngradeInPlaceDataStrategy().build(tableMirror);//doEXPORTIMPORTACIDInplaceDowngrade();
         } else {
             if (TableUtils.isACID(let)) {

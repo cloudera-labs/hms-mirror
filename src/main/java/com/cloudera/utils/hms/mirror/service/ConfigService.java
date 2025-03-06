@@ -29,7 +29,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -695,7 +694,7 @@ public class ConfigService {
             // Need both clusters defined and HS2 configs set.
             case SQL:
                 // Inplace Downgrade is a single cluster effort
-                if (config.getMigrateACID().isDowngradeInPlace()) {
+                if (config.getMigrateACID().isInplace()) {
                     envSet.remove(Environment.RIGHT);
                     // Drop the Right cluster to prevent confusion.
                     config.getClusters().remove(Environment.RIGHT);
@@ -808,7 +807,7 @@ public class ConfigService {
             } else {
                 if (!(config.getDataStrategy() == STORAGE_MIGRATION
                         || config.getDataStrategy() == DataStrategyEnum.DUMP)) {
-                    if (!config.getMigrateACID().isDowngradeInPlace()) {
+                    if (!config.getMigrateACID().isInplace()) {
                         rtn = Boolean.FALSE;
                         runStatus.addError(RIGHT_HS2_DEFINITION_MISSING);
                     }
@@ -970,7 +969,7 @@ public class ConfigService {
 
                 }
                 // Check for INPLACE DOWNGRADE, in which case no RIGHT needs to be defined or check.
-                if (!config.getMigrateACID().isDowngradeInPlace()) {
+                if (!config.getMigrateACID().isInplace()) {
                     if (config.getCluster(Environment.RIGHT).isLegacyHive() &&
                             !config.getCluster(Environment.LEFT).isLegacyHive() &&
                             !config.isDumpTestData()) {
@@ -1012,7 +1011,7 @@ public class ConfigService {
 
         // Check for valid acid downgrade scenario.
         // Can't downgrade without SQL.
-        if (config.getMigrateACID().isDowngradeInPlace()) {
+        if (config.getMigrateACID().isInplace()) {
             if (config.getDataStrategy() != DataStrategyEnum.SQL) {
                 runStatus.addError(VALID_ACID_DA_IP_STRATEGIES);
                 rtn.set(Boolean.FALSE);
@@ -1174,7 +1173,7 @@ public class ConfigService {
                     // No check needed.
                     break;
                 case SQL:
-                    if (config.getMigrateACID().isDowngradeInPlace()) {
+                    if (config.getMigrateACID().isInplace()) {
                         break;
                     } else {
                         targetNamespace = config.getTargetNamespace();
@@ -1222,14 +1221,14 @@ public class ConfigService {
             case SQL:
                 // Only do link test when NOT using intermediate storage.
                 // Downgrade inplace is a single cluster effort.
-                if (!config.getMigrateACID().isDowngradeInPlace()) {
+                if (!config.getMigrateACID().isInplace()) {
                     if (config.getCluster(Environment.RIGHT).getHiveServer2() != null
                             && !config.getCluster(Environment.RIGHT).getHiveServer2().isDisconnected()
                             && isBlank(config.getTransfer().getIntermediateStorage())
                     ) {
 
                         try {
-                            if (!config.getMigrateACID().isDowngradeInPlace() && !linkTest(session, cli)) {
+                            if (!config.getMigrateACID().isInplace() && !linkTest(session, cli)) {
                                 runStatus.addError(LINK_TEST_FAILED);
                                 rtn.set(Boolean.FALSE);
                             }

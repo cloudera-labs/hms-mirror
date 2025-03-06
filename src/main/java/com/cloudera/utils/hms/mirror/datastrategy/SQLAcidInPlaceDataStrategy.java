@@ -39,20 +39,21 @@ import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
 import java.util.List;
-import java.util.Map;
 
+import static com.cloudera.utils.hms.mirror.MessageCode.*;
 import static com.cloudera.utils.hms.mirror.SessionVars.*;
+import static com.cloudera.utils.hms.mirror.TablePropertyVars.ACID_INPLACE;
 import static com.cloudera.utils.hms.mirror.TablePropertyVars.TRANSLATED_TO_EXTERNAL;
 
 @Component
 @Slf4j
 @Getter
-public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implements DataStrategy {
+public class SQLAcidInPlaceDataStrategy extends DataStrategyBase implements DataStrategy {
 
     private TableService tableService;
     private StatsCalculatorService statsCalculatorService;
 
-    public SQLAcidDowngradeInPlaceDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
+    public SQLAcidInPlaceDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
         this.executeSessionService = executeSessionService;
         this.translatorService = translatorService;
     }
@@ -60,10 +61,34 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
     @Override
     public Boolean buildOutDefinition(TableMirror tableMirror) throws RequiredConfigurationException {
         Boolean rtn = Boolean.FALSE;
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
         EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT, tableMirror);
+
+        // Check the Left to ensure it hasn't already been processed by 'inplace'
+        if (TableUtils.hasTblProperty(ACID_INPLACE, let)) {
+            let.addIssue(INPLACE_MIGRATED.getDesc());
+            String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                    INPLACE_MIGRATED.getDesc());
+            log.error(msg);
+            return Boolean.FALSE;
+        }
+
+        // If 'inplace' and not 'downgrade', this process is about 'removing' the bucket definitions.
+        // So if there are buckets and the threshold is met, skip the conversion.
+        if (config.getMigrateACID().isInplace() && !config.getMigrateACID().isDowngrade()) {
+            int bucketCount = TableUtils.numOfBuckets(let);
+            if (bucketCount > config.getMigrateACID().getArtificialBucketThreshold()) {
+                // Skip.
+                String msg = MessageFormat.format(BUCKET_CONVERSION_THRESHOLD.getDesc(),
+                        tableMirror.getParent().getName(), tableMirror.getName(),
+                        config.getMigrateACID().getArtificialBucketThreshold(), bucketCount);
+                log.error(msg);
+                let.addIssue(msg);
+                return Boolean.FALSE;
+            }
+        }
 
         // Use db
         String useDb = MessageFormat.format(MirrorConf.USE, tableMirror.getParent().getName());
@@ -72,7 +97,9 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
         // Build Right (to be used as new table on left).
         CopySpec leftNewTableSpec = new CopySpec(tableMirror, Environment.LEFT, Environment.RIGHT);
         leftNewTableSpec.setTakeOwnership(Boolean.TRUE);
-        leftNewTableSpec.setMakeExternal(Boolean.TRUE);
+        if (config.getMigrateACID().isDowngrade()) {
+            leftNewTableSpec.setMakeExternal(Boolean.TRUE);
+        }
         // Location of converted data will got to default location.
         leftNewTableSpec.setStripLocation(Boolean.TRUE);
 
@@ -94,12 +121,12 @@ public class SQLAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implem
 
         // Check Buckets and Strip.
         int buckets = TableUtils.numOfBuckets(ret);
-        if (buckets > 0 && buckets <= hmsMirrorConfig.getMigrateACID().getArtificialBucketThreshold()) {
+        if (buckets > 0 && buckets <= config.getMigrateACID().getArtificialBucketThreshold()) {
             // Strip bucket definition.
-            if (TableUtils.removeBuckets(ret, hmsMirrorConfig.getMigrateACID().getArtificialBucketThreshold())) {
+            if (TableUtils.removeBuckets(ret, config.getMigrateACID().getArtificialBucketThreshold())) {
                 let.addIssue("Bucket Definition removed (was " + TableUtils.numOfBuckets(ret) + ") because it was EQUAL TO or BELOW " +
                         "the configured 'artificialBucketThreshold' of " +
-                        hmsMirrorConfig.getMigrateACID().getArtificialBucketThreshold());
+                        config.getMigrateACID().getArtificialBucketThreshold());
             }
 
         }

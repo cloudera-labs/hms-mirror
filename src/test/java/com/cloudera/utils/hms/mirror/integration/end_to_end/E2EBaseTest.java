@@ -190,6 +190,22 @@ public class E2EBaseTest {
         this.hmsMirrorAppService = hmsMirrorAppService;
     }
 
+    protected void validateTableIsACID(String database, String table, Environment environment) {
+        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
+        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(table) != null ? Boolean.TRUE : Boolean.FALSE);
+        TableMirror tableMirror = getConversion().getDatabase(database).getTableMirrors().get(table);
+        assertTrue("Table Environment doesn't exist", tableMirror.getEnvironmentTable(environment) != null ? Boolean.TRUE : Boolean.FALSE);
+        assertTrue("Table is NOT ACID", TableUtils.isACID(tableMirror.getEnvironmentTable(environment)));
+    }
+
+    protected void validateTableIsNotACID(String database, String table, Environment environment) {
+        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
+        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(table) != null ? Boolean.TRUE : Boolean.FALSE);
+        TableMirror tableMirror = getConversion().getDatabase(database).getTableMirrors().get(table);
+        assertTrue("Table Environment doesn't exist", tableMirror.getEnvironmentTable(environment) != null ? Boolean.TRUE : Boolean.FALSE);
+        assertTrue("Table is ACID", !TableUtils.isACID(tableMirror.getEnvironmentTable(environment)));
+    }
+
     protected void validateDBLocation(String database, Environment environment, String expectedLocation) {
         assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
         assertTrue("DB Environment doesn't exist", getConversion().getDatabase(database).getProperties().containsKey(environment));

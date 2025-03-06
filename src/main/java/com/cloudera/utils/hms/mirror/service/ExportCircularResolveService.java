@@ -120,7 +120,7 @@ public class ExportCircularResolveService extends DataStrategyBase {
                         + tableMirror.getParent().getName() + "/" + let.getName();
             }
             String origTableName = let.getName();
-            if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+            if (isACIDInPlace(tableMirror, Environment.LEFT)) {
                 // Rename original table.
                 // Remove property (if exists) to prevent rename from happening.
                 if (TableUtils.hasTblProperty(TRANSLATED_TO_EXTERNAL, let)) {
@@ -137,7 +137,7 @@ public class ExportCircularResolveService extends DataStrategyBase {
             let.addSql(TableUtils.EXPORT_TABLE, exportSql);
 
             // RIGHT IMPORT from Directory
-            if (!isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+            if (!isACIDInPlace(tableMirror, Environment.LEFT)) {
                 String useRightDb = MessageFormat.format(MirrorConf.USE, database);
                 ret.addSql(TableUtils.USE_DESC, useRightDb);
             }
@@ -160,7 +160,7 @@ public class ExportCircularResolveService extends DataStrategyBase {
                 if (!config.getMigrateACID().isDowngrade()) {
                     importSql = MessageFormat.format(MirrorConf.IMPORT_TABLE, let.getName(), importLoc);
                 } else {
-                    if (config.getMigrateACID().isDowngradeInPlace()) {
+                    if (config.getMigrateACID().isInplace()) {
                         importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, origTableName, importLoc);
                     } else {
                         importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
@@ -189,7 +189,7 @@ public class ExportCircularResolveService extends DataStrategyBase {
                 if (config.isSync()) {
                     // Need to Drop table first.
                     String dropExistingTable = MessageFormat.format(MirrorConf.DROP_TABLE, let.getName());
-                    if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+                    if (isACIDInPlace(tableMirror, Environment.LEFT)) {
                         let.addSql(MirrorConf.DROP_TABLE_DESC, dropExistingTable);
                         let.addIssue(EXPORT_IMPORT_SYNC.getDesc());
                     } else {
@@ -198,7 +198,7 @@ public class ExportCircularResolveService extends DataStrategyBase {
                     }
                 }
             }
-            if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+            if (isACIDInPlace(tableMirror, Environment.LEFT)) {
                 let.addSql(TableUtils.IMPORT_TABLE, importSql);
             } else {
                 ret.addSql(TableUtils.IMPORT_TABLE, importSql);

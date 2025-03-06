@@ -454,7 +454,7 @@ public class DatabaseService {
                 altLeftDB = Boolean.FALSE;
                 buildLeft = Boolean.FALSE;
                 // This is a single cluster operation.
-                if (config.getMigrateACID().isDowngradeInPlace()) {
+                if (config.getMigrateACID().isInplace()) {
                     buildRight = Boolean.FALSE;
                 }
                 // Build the Right Def as a Clone of the Left to Seed it.
@@ -932,7 +932,7 @@ public class DatabaseService {
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();
         log.info("Building Database commands");
-        if (config.getMigrateACID().isDowngradeInPlace() && config.getDataStrategy() == DataStrategyEnum.SQL) {
+        if (config.getMigrateACID().isInplace() && config.getDataStrategy() == DataStrategyEnum.SQL) {
             log.info("Downgrade in place.  Skipping database creation.");
             return true;
         }
@@ -977,7 +977,7 @@ public class DatabaseService {
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();
         log.info("Executing Database commands");
-        if (config.getMigrateACID().isDowngradeInPlace() && config.getDataStrategy() == DataStrategyEnum.SQL) {
+        if (config.getMigrateACID().isInplace() && config.getDataStrategy() == DataStrategyEnum.SQL) {
 //            log.info("Downgrade in place.  Skipping database creation.");
             return true;
         }

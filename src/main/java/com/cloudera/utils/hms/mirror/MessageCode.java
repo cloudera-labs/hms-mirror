@@ -34,6 +34,7 @@ public enum MessageCode {
             "warehouse locations (-wd,-ewd) OR have a Warehouse Plan created for the 'database' to enable the `distcp` workbooks and/or resetting locations.  Without them, we can NOT know the " +
             "default locations to build a plan."),
     BETA_FEATURE("Beta Feature: {0} isn''t available unless you set the ''beta'' flag to TRUE in the configuration. The feature will be DISABLED."),
+    BUCKET_CONVERSION_THRESHOLD("{0}.{1} The bucket conversion threshold is {2} and the table definition has {3} buckets.  Threshold not met, will skip conversion."),
     BUILDING_DATABASES_ISSUE("There was an issue building the databases(sql).  Please check 'database' section for details."),
     BUILDING_TABLES_ISSUE("There was an issue building the tables(sql).  Please check 'tables' section for details."),
     CINE_WITH_DATASTRATEGY("The `-cine` (createIfNotExist) option is only applied while using the `SCHEMA_ONLY` data strategy " +
@@ -122,6 +123,7 @@ public enum MessageCode {
             "Please check the configuration and try again."),
     ICEBERG_CONVERSION_AVAILABILITY("Only available through the 'STORAGE_MIGRATION' strategy."),
     IGNORING_TBL_FILTERS_W_TEST_DATA("Table filters are ignored with 'test data'"),
+    INPLACE_MIGRATED("Table has already gone through an 'inplace' migration.  Remove property from table if you'd like to proceed"),
     INTERMEDIATE_STORAGE_WITH_DA_IP("Intermediate Storage (-is) is not a valid option for the ACID downgrades inplace."),
     INTERMEDIATE_STORAGE_WITH_LINKED("Intermediate Storage (-is) is not a valid option for the LINKED data strategy."),
     KERB_ACROSS_VERSIONS("Kerberos connections can only be supported to a single version of the platform.  LEFT and RIGHT " +

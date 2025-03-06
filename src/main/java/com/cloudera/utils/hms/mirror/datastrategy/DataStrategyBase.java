@@ -317,6 +317,10 @@ public abstract class DataStrategyBase implements DataStrategy {
                             target.addProperty(DOWNGRADED_FROM_ACID, Boolean.TRUE.toString());
                         }
 
+                        if (config.getMigrateACID().isInplace()) {
+                            target.addProperty(ACID_INPLACE, df.format(new Date()));
+                        }
+
                         if (TableUtils.removeBuckets(target, config.getMigrateACID().getArtificialBucketThreshold())) {
                             target.addIssue("Bucket Definition removed (was " + TableUtils.numOfBuckets(source) + ") because it was EQUAL TO or BELOW " +
                                     "the configured 'artificialBucketThreshold' of " +
@@ -568,7 +572,7 @@ public abstract class DataStrategyBase implements DataStrategy {
             }
         }
 
-        if (isACIDDowngradeInPlace(tableMirror, originalEnv)) {
+        if (isACIDInPlace(tableMirror, originalEnv)) {
             String dropOriginalTable = MessageFormat.format(MirrorConf.DROP_TABLE,
                     original.getName());
             assert targetEnvTable != null;
@@ -628,7 +632,7 @@ public abstract class DataStrategyBase implements DataStrategy {
                 targetEnvTable.addSql(new Pair(TableUtils.STAGE_TRANSFER_DESC, transferSql));
             }
             // Drop Shadow or Transfer Table via the Clean Up Scripts.
-            if (!isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
+            if (!isACIDInPlace(tableMirror, Environment.LEFT)) {
                 // When the source and target are the same, we're on the LEFT cluster and need to cleanup the 'transfer' table,
                 //  which is the target table in this case.
                 if (originalEnv == sourceEnv) {
@@ -659,11 +663,11 @@ public abstract class DataStrategyBase implements DataStrategy {
         return rtn;
     }
 
-    public Boolean isACIDDowngradeInPlace(TableMirror tableMirror, Environment environment) {
+    public Boolean isACIDInPlace(TableMirror tableMirror, Environment environment) {
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
 
         EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
-        if (TableUtils.isACID(et) && hmsMirrorConfig.getMigrateACID().isDowngradeInPlace()) {
+        if (TableUtils.isACID(et) && hmsMirrorConfig.getMigrateACID().isInplace()) {
             return Boolean.TRUE;
         } else {
             return Boolean.FALSE;

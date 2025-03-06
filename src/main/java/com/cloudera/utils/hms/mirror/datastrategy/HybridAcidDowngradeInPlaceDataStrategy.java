@@ -34,7 +34,7 @@ import org.springframework.stereotype.Component;
 @Getter
 public class HybridAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implements DataStrategy {
 
-    private SQLAcidDowngradeInPlaceDataStrategy sqlAcidDowngradeInPlaceDataStrategy;
+    private SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy;
 
     private ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy;
 
@@ -70,7 +70,7 @@ public class HybridAcidDowngradeInPlaceDataStrategy extends DataStrategyBase imp
             too many partitions.
          */
         if (hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-            rtn = sqlAcidDowngradeInPlaceDataStrategy.build(tableMirror);
+            rtn = sqlAcidInPlaceDataStrategy.build(tableMirror);
         } else {
             EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
             if (let.getPartitioned()) {
@@ -79,7 +79,7 @@ public class HybridAcidDowngradeInPlaceDataStrategy extends DataStrategyBase imp
                         hmsMirrorConfig.getHybrid().getExportImportPartitionLimit() <= 0) {
                     rtn = exportImportAcidDowngradeInPlaceDataStrategy.build(tableMirror);
                 } else {
-                    rtn = sqlAcidDowngradeInPlaceDataStrategy.build(tableMirror);
+                    rtn = sqlAcidInPlaceDataStrategy.build(tableMirror);
                 }
             } else {
                 // Go with EXPORT_IMPORT
@@ -106,7 +106,7 @@ public class HybridAcidDowngradeInPlaceDataStrategy extends DataStrategyBase imp
             too many partitions.
          */
         if (hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-            rtn = sqlAcidDowngradeInPlaceDataStrategy.execute(tableMirror);
+            rtn = sqlAcidInPlaceDataStrategy.execute(tableMirror);
         } else {
             EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
             if (let.getPartitioned()) {
@@ -115,7 +115,7 @@ public class HybridAcidDowngradeInPlaceDataStrategy extends DataStrategyBase imp
                         hmsMirrorConfig.getHybrid().getExportImportPartitionLimit() <= 0) {
                     rtn = exportImportAcidDowngradeInPlaceDataStrategy.execute(tableMirror);
                 } else {
-                    rtn = sqlAcidDowngradeInPlaceDataStrategy.execute(tableMirror);
+                    rtn = sqlAcidInPlaceDataStrategy.execute(tableMirror);
                 }
             } else {
                 // Go with EXPORT_IMPORT
@@ -131,7 +131,7 @@ public class HybridAcidDowngradeInPlaceDataStrategy extends DataStrategyBase imp
     }
 
     @Autowired
-    public void setSqlAcidDowngradeInPlaceDataStrategy(SQLAcidDowngradeInPlaceDataStrategy sqlAcidDowngradeInPlaceDataStrategy) {
-        this.sqlAcidDowngradeInPlaceDataStrategy = sqlAcidDowngradeInPlaceDataStrategy;
+    public void setSqlAcidInPlaceDataStrategy(SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy) {
+        this.sqlAcidInPlaceDataStrategy = sqlAcidInPlaceDataStrategy;
     }
 }

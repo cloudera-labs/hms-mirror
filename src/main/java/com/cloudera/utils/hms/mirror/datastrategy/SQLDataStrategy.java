@@ -52,7 +52,7 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
 
     private ConfigService configService;
 
-    private SQLAcidDowngradeInPlaceDataStrategy sqlAcidDowngradeInPlaceDataStrategy;
+    private SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy;
     private TableService tableService;
     private IntermediateDataStrategy intermediateDataStrategy;
 
@@ -241,8 +241,8 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
 
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
 
-        if (isACIDDowngradeInPlace(tableMirror, Environment.LEFT)) {
-            rtn = getSqlAcidDowngradeInPlaceDataStrategy().build(tableMirror);
+        if (isACIDInPlace(tableMirror, Environment.LEFT)) {
+            rtn = getSqlAcidInPlaceDataStrategy().build(tableMirror);
         } else if (!isBlank(config.getTransfer().getIntermediateStorage())
                 || !isBlank(config.getTransfer().getTargetNamespace())
                 || (TableUtils.isACID(let)
@@ -317,8 +317,8 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
     }
 
     @Autowired
-    public void setSqlAcidDowngradeInPlaceDataStrategy(SQLAcidDowngradeInPlaceDataStrategy sqlAcidDowngradeInPlaceDataStrategy) {
-        this.sqlAcidDowngradeInPlaceDataStrategy = sqlAcidDowngradeInPlaceDataStrategy;
+    public void setSqlAcidInPlaceDataStrategy(SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy) {
+        this.sqlAcidInPlaceDataStrategy = sqlAcidInPlaceDataStrategy;
     }
 
     @Autowired

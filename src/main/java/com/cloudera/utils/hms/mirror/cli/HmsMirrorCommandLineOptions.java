@@ -716,20 +716,20 @@ public class HmsMirrorCommandLineOptions {
     CommandLineRunner configInPlace(HmsMirrorConfig hmsMirrorConfig) {
         return args -> {
             log.info("in-place downgrade acid tables: {}", Boolean.TRUE);
-            if (hmsMirrorConfig.getMigrateACID().isOn()) {
+//            if (hmsMirrorConfig.getMigrateACID().isOn()) {
                 // Downgrade ACID tables inplace
                 // Only work on LEFT cluster definition.
-                hmsMirrorConfig.getMigrateACID().setDowngrade(Boolean.TRUE);
+//                hmsMirrorConfig.getMigrateACID().setDowngrade(Boolean.TRUE);
                 hmsMirrorConfig.getMigrateACID().setInplace(Boolean.TRUE);
                 // For 'in-place' downgrade, only applies to ACID tables.
                 // Implies `-mao`.
-                log.info("Only ACID Tables will be looked at since 'ip' was specified.");
-                hmsMirrorConfig.getMigrateACID().setOnly(Boolean.TRUE);
+//                log.info("Only ACID Tables will be looked at since 'ip' was specified.");
+//                hmsMirrorConfig.getMigrateACID().setOnly(Boolean.TRUE);
                 // Remove RIGHT cluster and enforce mao
                 log.info("RIGHT Cluster definition will be disconnected if exists since this is a LEFT cluster ONLY operation");
                 if (nonNull(hmsMirrorConfig.getCluster(Environment.RIGHT)) && nonNull(hmsMirrorConfig.getCluster(Environment.RIGHT).getHiveServer2()))
                     hmsMirrorConfig.getCluster(Environment.RIGHT).getHiveServer2().setDisconnected(Boolean.TRUE);
-            }
+//            }
         };
     }
 
