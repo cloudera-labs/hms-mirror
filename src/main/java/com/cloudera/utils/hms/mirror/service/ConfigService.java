@@ -962,7 +962,6 @@ public class ConfigService {
                     runStatus.addWarning(RELATIVE_MANUAL);
                 }
             default:
-
                 if (nonNull(config.getCluster(Environment.RIGHT)) && config.getCluster(Environment.RIGHT).isHdpHive3()) {
                     config.getTranslator().setForceExternalLocation(Boolean.TRUE);
                     runStatus.addWarning(HDP3_HIVE);
@@ -976,6 +975,9 @@ public class ConfigService {
                         runStatus.addError(NON_LEGACY_TO_LEGACY);
                         rtn.set(Boolean.FALSE);
                     }
+                } else {
+                    // Drop the Right cluster to prevent confusion.
+                    config.getClusters().remove(Environment.RIGHT);
                 }
         }
 
@@ -1172,6 +1174,7 @@ public class ConfigService {
                 case DUMP:
                     // No check needed.
                     break;
+                case EXPORT_IMPORT:
                 case SQL:
                     if (config.getMigrateACID().isInplace()) {
                         break;

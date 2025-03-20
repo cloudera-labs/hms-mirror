@@ -191,7 +191,10 @@ public abstract class DataStrategyBase implements DataStrategy {
                 // Cluster as an intermediate holder.
                 intermediateCluster = config.getCluster(Environment.LEFT).clone();
             }
-            config.getClusters().put(copySpec.getTarget(), intermediateCluster);
+            if (nonNull(intermediateCluster) && nonNull(intermediateCluster.getHiveServer2())) {
+                intermediateCluster.getHiveServer2().setDisconnected(Boolean.TRUE);
+                config.getClusters().put(copySpec.getTarget(), intermediateCluster);
+            }
         }
 
         try {
@@ -356,7 +359,8 @@ public abstract class DataStrategyBase implements DataStrategy {
                     TableUtils.removeTblProperty("last_modified_time", target);
 
                     // 6. Set 'discover.partitions' if config and non-acid
-                    if (config.getCluster(copySpec.getTarget()).getPartitionDiscovery().isAuto() && TableUtils.isPartitioned(target)) {
+                    if (nonNull(config.getCluster(copySpec.getTarget())) &&
+                            config.getCluster(copySpec.getTarget()).getPartitionDiscovery().isAuto() && TableUtils.isPartitioned(target)) {
 
                         if (converted) {
                             target.addProperty(DISCOVER_PARTITIONS, Boolean.TRUE.toString());
@@ -492,7 +496,8 @@ public abstract class DataStrategyBase implements DataStrategy {
                         TableUtils.removeTblProperty(EXTERNAL_TABLE_PURGE, target);
                     }
 
-                    if (config.getCluster(copySpec.getTarget()).isLegacyHive() && config.getDataStrategy() != DataStrategyEnum.STORAGE_MIGRATION) {
+                    if (nonNull(config.getCluster(copySpec.getTarget())) &&
+                            config.getCluster(copySpec.getTarget()).isLegacyHive() && config.getDataStrategy() != DataStrategyEnum.STORAGE_MIGRATION) {
                         // remove newer flags;
                         TableUtils.removeTblProperty(EXTERNAL_TABLE_PURGE, target);
                         TableUtils.removeTblProperty(DISCOVER_PARTITIONS, target);

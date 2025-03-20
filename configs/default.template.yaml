@@ -61,7 +61,7 @@ clusters:
         max: 5
   RIGHT:
     # Removed, see platformType. ...legacyHive:    false
-    platformType: 'CDP_7_1'
+    platformType: 'CDP7_1'
     # Is the 'Hadoop COMPATIBLE File System' used to prefix data locations for this cluster.
     # It is mainly used to as a baseline for where "DATA" will be transfered in the
     # STORAGE stage.  The data location in the source location will be move to this
