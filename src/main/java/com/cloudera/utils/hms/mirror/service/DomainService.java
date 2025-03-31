@@ -128,9 +128,13 @@ public class DomainService {
     }
 
     public HmsMirrorConfig deserializeConfig(String configFilename) {
-        HmsMirrorConfig config;
+        HmsMirrorConfig config = null;
         log.info("Initializing Config.");
         String yamlCfgFile = fileToString(configFilename);
+        if (isNull(yamlCfgFile)) {
+            log.error("Couldn't locate configuration file: " + configFilename);
+            return null;
+        }
         try {
             config = yamlMapper.readerFor(HmsMirrorConfig.class).readValue(yamlCfgFile);
         } catch (JsonProcessingException e) {

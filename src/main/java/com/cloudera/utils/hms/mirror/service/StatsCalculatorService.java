@@ -155,7 +155,7 @@ public class StatsCalculatorService {
                 // Set the tez group max size.
                 Long maxGrouping = getTezMaxGrouping(controlEnv);
                 applyEnv.addSql("Setting the " + TEZ_GROUP_MAX_SIZE,
-                        MessageFormat.format(SET_SESSION_VALUE,TEZ_GROUP_MAX_SIZE , Long.toString(maxGrouping)));
+                        MessageFormat.format(SET_SESSION_VALUE_INT,TEZ_GROUP_MAX_SIZE , maxGrouping));
             }
         }
 
@@ -166,17 +166,17 @@ public class StatsCalculatorService {
             if (controlEnv.getPartitions().size() > 1000) {
                 applyEnv.addIssue("Setting " + HIVE_MAX_DYNAMIC_PARTITIONS);
                 applyEnv.addSql("Setting " + HIVE_MAX_DYNAMIC_PARTITIONS,
-                        MessageFormat.format(SET_SESSION_VALUE,HIVE_MAX_DYNAMIC_PARTITIONS ,
+                        MessageFormat.format(SET_SESSION_VALUE_INT,HIVE_MAX_DYNAMIC_PARTITIONS ,
                                 (int) (controlEnv.getPartitions().size() * 1.2)));
                 applyEnv.addIssue("Adjusting " + HIVE_MAX_REDUCERS + " to handle partition load");
                 int ratio = getPartitionDistributionRatio(controlEnv).intValue();
                 if (ratio >= 1) {
                     applyEnv.addSql("Setting " + HIVE_MAX_REDUCERS,
-                            MessageFormat.format(SET_SESSION_VALUE,HIVE_MAX_REDUCERS ,
+                            MessageFormat.format(SET_SESSION_VALUE_INT,HIVE_MAX_REDUCERS ,
                                     (ratio * controlEnv.getPartitions().size()) + 20));
                 } else {
                     applyEnv.addSql("Setting " + HIVE_MAX_REDUCERS,
-                            MessageFormat.format(SET_SESSION_VALUE, HIVE_MAX_REDUCERS ,
+                            MessageFormat.format(SET_SESSION_VALUE_INT, HIVE_MAX_REDUCERS ,
                                     (int) (controlEnv.getPartitions().size() * 1.2)));
                 }
             }
@@ -186,10 +186,10 @@ public class StatsCalculatorService {
         if (serdeType == SerdeType.TEXT) {
             if (hmsMirrorConfig.getOptimization().isCompressTextOutput()) {
                 applyEnv.addIssue("Setting " + HIVE_COMPRESS_OUTPUT + " because you've setting that optimization");
-                applyEnv.addSql("Setting: " + HIVE_COMPRESS_OUTPUT, MessageFormat.format(SET_SESSION_VALUE, HIVE_COMPRESS_OUTPUT, "true"));
+                applyEnv.addSql("Setting: " + HIVE_COMPRESS_OUTPUT, MessageFormat.format(SET_SESSION_VALUE_STRING, HIVE_COMPRESS_OUTPUT, "true"));
             } else {
                 applyEnv.addIssue("Setting " + HIVE_COMPRESS_OUTPUT + " because you HAVEN'T set that optimization");
-                applyEnv.addSql("Setting: " + HIVE_COMPRESS_OUTPUT, MessageFormat.format(SET_SESSION_VALUE,HIVE_COMPRESS_OUTPUT,"false"));
+                applyEnv.addSql("Setting: " + HIVE_COMPRESS_OUTPUT, MessageFormat.format(SET_SESSION_VALUE_STRING,HIVE_COMPRESS_OUTPUT,"false"));
             }
         }
 
@@ -197,17 +197,17 @@ public class StatsCalculatorService {
         if (!cluster.isLegacyHive()) {
             if (cluster.isEnableAutoTableStats()) {
                 applyEnv.addIssue("Setting " + HIVE_AUTO_TABLE_STATS + " because you've set that optimization");
-                applyEnv.addSql("Setting: " + HIVE_AUTO_TABLE_STATS, MessageFormat.format(SET_SESSION_VALUE,HIVE_AUTO_TABLE_STATS ,"true"));
+                applyEnv.addSql("Setting: " + HIVE_AUTO_TABLE_STATS, MessageFormat.format(SET_SESSION_VALUE_STRING,HIVE_AUTO_TABLE_STATS ,"true"));
             } else {
                 applyEnv.addIssue("Setting " + HIVE_AUTO_TABLE_STATS + " because you've set that optimization");
-                applyEnv.addSql("Setting: " + HIVE_AUTO_TABLE_STATS, MessageFormat.format(SET_SESSION_VALUE,HIVE_AUTO_TABLE_STATS ,"false"));
+                applyEnv.addSql("Setting: " + HIVE_AUTO_TABLE_STATS, MessageFormat.format(SET_SESSION_VALUE_STRING,HIVE_AUTO_TABLE_STATS ,"false"));
             }
             if (cluster.isEnableAutoColumnStats()) {
                 applyEnv.addIssue("Setting " + HIVE_AUTO_COLUMN_STATS + " because you've set that optimization");
-                applyEnv.addSql("Setting: " + HIVE_AUTO_COLUMN_STATS, MessageFormat.format(SET_SESSION_VALUE,HIVE_AUTO_COLUMN_STATS,"true"));
+                applyEnv.addSql("Setting: " + HIVE_AUTO_COLUMN_STATS, MessageFormat.format(SET_SESSION_VALUE_STRING,HIVE_AUTO_COLUMN_STATS,"true"));
             } else {
                 applyEnv.addIssue("Setting " + HIVE_AUTO_COLUMN_STATS + " because you've set that optimization");
-                applyEnv.addSql("Setting: " + HIVE_AUTO_COLUMN_STATS, MessageFormat.format(SET_SESSION_VALUE,HIVE_AUTO_COLUMN_STATS, "false"));
+                applyEnv.addSql("Setting: " + HIVE_AUTO_COLUMN_STATS, MessageFormat.format(SET_SESSION_VALUE_STRING,HIVE_AUTO_COLUMN_STATS, "false"));
             }
         }
     }

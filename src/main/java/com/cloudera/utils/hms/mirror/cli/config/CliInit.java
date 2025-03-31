@@ -138,6 +138,10 @@ public class CliInit {
             fullConfigPath = configPath + File.separator + configFile;
         }
         HmsMirrorConfig config = domainService.deserializeConfig(fullConfigPath);
+        if (config == null) {
+            log.error("Couldn't locate configuration file: {}", fullConfigPath);
+            throw new RuntimeException("Couldn't locate configuration file: " + fullConfigPath);
+        }
         return config;
     }
 

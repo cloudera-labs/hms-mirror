@@ -21,7 +21,8 @@ public interface SessionVars {
     String TEZ_EXECUTION_DESC = "SET 'tez' as the execution engine";
     String SET_TEZ_AS_EXECUTION_ENGINE = "SET hive.execution.engine=tez";
 
-    String SET_SESSION_VALUE = "SET {0}={1}";
+    String SET_SESSION_VALUE_INT = "SET {0}={1,number,0}";
+    String SET_SESSION_VALUE_STRING = "SET {0}={1}";
 
     String SORT_DYNAMIC_PARTITION = "hive.optimize.sort.dynamic.partition";
     String SORT_DYNAMIC_PARTITION_THRESHOLD = "hive.optimize.sort.dynamic.partition.threshold";

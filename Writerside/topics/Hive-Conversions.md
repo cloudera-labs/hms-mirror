@@ -27,7 +27,7 @@ Modify the `hms-mirror` configuration to include the following settings:
 ``` yaml
 clusters:
   LEFT|RIGHT:
-    platformType: HDP2|HDP3|CHD5|CDH6|CDP7.1|CDP7_2|...
+    platformType: HDP2|HDP3|CHD5|CDH6|CDP7_1|CDP7_2|...
 ```
 </tab>
 </tabs>

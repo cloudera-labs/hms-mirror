@@ -597,7 +597,7 @@ public abstract class DataStrategyBase implements DataStrategy {
                 if (config.getOptimization().isSkip()) {
                     if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
                         assert targetEnvTable != null;
-                        targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION, "false"));
+                        targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE_STRING, SORT_DYNAMIC_PARTITION, "false"));
                     }
                     String partElement = TableUtils.getPartitionElements(original);
                     String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
@@ -607,9 +607,9 @@ public abstract class DataStrategyBase implements DataStrategy {
                     targetEnvTable.addSql(new Pair(transferDesc, transferSql));
                 } else if (config.getOptimization().isSortDynamicPartitionInserts()) {
                     if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
-                        targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION, "true"));
+                        targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE_STRING, SORT_DYNAMIC_PARTITION, "true"));
                         if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
-                            targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION_THRESHOLD, "0"));
+                            targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE_INT, SORT_DYNAMIC_PARTITION_THRESHOLD, 0));
                         }
                     }
                     String partElement = TableUtils.getPartitionElements(original);
@@ -619,9 +619,9 @@ public abstract class DataStrategyBase implements DataStrategy {
                     targetEnvTable.addSql(new Pair(transferDesc, transferSql));
                 } else {
                     if (!config.getCluster(Environment.LEFT).isLegacyHive()) {
-                        targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION, "false"));
+                        targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE_STRING, SORT_DYNAMIC_PARTITION, "false"));
                         if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
-                            targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE, SORT_DYNAMIC_PARTITION_THRESHOLD, "-1"));
+                            targetEnvTable.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE_INT, SORT_DYNAMIC_PARTITION_THRESHOLD, -1));
                         }
                     }
                     String partElement = TableUtils.getPartitionElements(original);

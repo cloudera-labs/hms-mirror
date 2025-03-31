@@ -166,7 +166,7 @@ public class SQLAcidInPlaceDataStrategy extends DataStrategyBase implements Data
         if (let.getPartitioned()) {
             if (hmsMirrorConfig.getOptimization().isSkip()) {
                 if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE,SORT_DYNAMIC_PARTITION,"false"));
+                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE_STRING,SORT_DYNAMIC_PARTITION,"false"));
                 }
                 String partElement = TableUtils.getPartitionElements(let);
                 String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
@@ -175,9 +175,9 @@ public class SQLAcidInPlaceDataStrategy extends DataStrategyBase implements Data
                 let.addSql(new Pair(transferDesc, transferSql));
             } else if (hmsMirrorConfig.getOptimization().isSortDynamicPartitionInserts()) {
                 if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE,SORT_DYNAMIC_PARTITION ,"true"));
+                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE_STRING,SORT_DYNAMIC_PARTITION ,"true"));
                     if (!hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
-                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE,SORT_DYNAMIC_PARTITION_THRESHOLD ,"0"));
+                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE_INT,SORT_DYNAMIC_PARTITION_THRESHOLD , 0));
                     }
                 }
                 String partElement = TableUtils.getPartitionElements(let);
@@ -188,9 +188,9 @@ public class SQLAcidInPlaceDataStrategy extends DataStrategyBase implements Data
             } else {
                 // Prescriptive Optimization.
                 if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE,SORT_DYNAMIC_PARTITION ,"false"));
+                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE_STRING,SORT_DYNAMIC_PARTITION ,"false"));
                     if (!hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
-                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE,SORT_DYNAMIC_PARTITION_THRESHOLD ,"-1"));
+                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE_INT,SORT_DYNAMIC_PARTITION_THRESHOLD , -1));
                     }
                 }
 
