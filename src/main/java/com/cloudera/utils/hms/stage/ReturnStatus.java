@@ -39,7 +39,7 @@ public class ReturnStatus {
         ERROR,
         INCOMPLETE,
         FATAL,
-        SKIP;
+        SKIP
     }
 
 }

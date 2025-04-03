@@ -123,8 +123,8 @@ public class StatsCalculatorService {
             try {
                 SerdeType stype = serdeFromStats(envTable.getStatistics());
                 Long dataSize = (Long) envTable.getStatistics().get(MirrorConf.DATA_SIZE);
-                Long avgPartSize = Math.floorDiv(dataSize, envTable.getPartitions().size());
-                ratio = Math.floorDiv(avgPartSize, stype.getTargetSize()) - 1;
+                Long avgPartSize = Math.floorDiv(dataSize, Long.valueOf(envTable.getPartitions().size()));
+                ratio = Math.floorDiv(avgPartSize, Long.valueOf(stype.getTargetSize())) - 1;
             } catch (RuntimeException rte) {
                 log.warn("Unable to calculate partition distribution ratio for table: {}", envTable.getName());
             }

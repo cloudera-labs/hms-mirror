@@ -27,7 +27,7 @@ public enum TranslationTypeEnum {
     @Schema(description = "The location will be translated with the 'relative' location intact.  Only the '[protocol]://namespace' will be changed.")
     RELATIVE,
     @Schema(description = "The location will go through a full translation and pull from the mappings built by the system.")
-    ALIGNED;
+    ALIGNED
 //    HYBRID
 
 }

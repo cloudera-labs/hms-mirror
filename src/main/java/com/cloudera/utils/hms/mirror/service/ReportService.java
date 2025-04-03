@@ -77,7 +77,7 @@ public class ReportService {
         ZipOutputStream zipOut = new ZipOutputStream(fos);
         File sessionDirectory = new File(baseDirectory);
 
-        List<String> files = Arrays.asList(sessionDirectory.list());
+        String[] files = sessionDirectory.list();
 
         for (String srcFile : files) {
             System.out.println("Adding file: " + srcFile);
@@ -146,7 +146,7 @@ public class ReportService {
         String sessionDirectoryName = reportDirectory + File.separator + id;
         File sessionDirectory = new File(sessionDirectoryName);
 
-        List<String> files = Arrays.asList(sessionDirectory.list());
+        String[] files = sessionDirectory.list();
 
         for (String srcFile : files) {
             if (srcFile.endsWith("_hms-mirror.yaml")) {

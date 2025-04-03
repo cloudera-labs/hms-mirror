@@ -27,7 +27,7 @@ public enum ProgressEnum {
     CANCELLED("Cancelled"),
     CANCEL_FAILED("Cancel Failed");
 
-    private String value;
+    private final String value;
 
     ProgressEnum(String value) {
         this.value = value;

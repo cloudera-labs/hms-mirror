@@ -21,5 +21,5 @@ public enum DatabaseFilterType {
     MANUAL,
     WAREHOUSE_PLANS,
     REGEX,
-    UNDETERMINED;
+    UNDETERMINED
 }

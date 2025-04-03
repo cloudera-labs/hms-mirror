@@ -180,7 +180,7 @@ public class WarehouseMapBuilder implements Cloneable {
 
         Map<String, Warehouse> newWarehousePlan = new HashMap<>();
         for (Map.Entry<String, Warehouse> entry : warehousePlans.entrySet()) {
-            newWarehousePlan.put(entry.getKey(), (Warehouse) entry.getValue().clone());
+            newWarehousePlan.put(entry.getKey(), entry.getValue().clone());
         }
         clone.setWarehousePlans(newWarehousePlan);
 

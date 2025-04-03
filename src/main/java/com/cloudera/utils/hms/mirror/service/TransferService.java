@@ -198,16 +198,15 @@ public class TransferService {
                         } else {
                             fnlLoc = TableUtils.getLocation(tableMirror.getName(), ret.getDefinition());
                             if (isBlank(fnlLoc) && config.loadMetadataDetails()) {
-                                StringBuilder sbDir = new StringBuilder();
-                                sbDir.append(config.getTargetNamespace());
+                                String sbDir = config.getTargetNamespace() +
 //                                if (!isBlank(config.getTransfer().getTargetNamespace())) {
 //                                    sbDir.append(config.getTransfer().getTargetNamespace());
 //                                } else {
 //                                    sbDir.append(config.getCluster(Environment.RIGHT).getHcfsNamespace());
 //                                }
-                                sbDir.append(warehouse.getExternalDirectory()).append("/");
-                                sbDir.append(HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config)).append(".db").append("/").append(tableMirror.getName());
-                                fnlLoc = sbDir.toString();
+                                        warehouse.getExternalDirectory() + "/" +
+                                        HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config) + ".db" + "/" + tableMirror.getName();
+                                fnlLoc = sbDir;
                             }
                         }
                         config.getTranslator().addTranslation(tableMirror.getParent().getName(), Environment.RIGHT,
@@ -248,16 +247,15 @@ public class TransferService {
                         } else if (TableUtils.isACID(let) && config.getMigrateACID().isDowngrade()) {
                             String rLoc = TableUtils.getLocation(tableMirror.getName(), ret.getDefinition());
                             if (isBlank(rLoc) && config.loadMetadataDetails()) {
-                                StringBuilder sbDir = new StringBuilder();
-                                sbDir.append(config.getTargetNamespace());
+                                String sbDir = config.getTargetNamespace() +
 //                                if (!isBlank(config.getTransfer().getTargetNamespace())) {
 //                                    sbDir.append(config.getTransfer().getTargetNamespace());
 //                                } else {
 //                                    sbDir.append(config.getCluster(Environment.RIGHT).getHcfsNamespace());
 //                                }
-                                sbDir.append(warehouse.getExternalDirectory()).append("/");
-                                sbDir.append(HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config)).append(".db").append("/").append(tableMirror.getName());
-                                rLoc = sbDir.toString();
+                                        warehouse.getExternalDirectory() + "/" +
+                                        HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config) + ".db" + "/" + tableMirror.getName();
+                                rLoc = sbDir;
                             }
                             config.getTranslator().addTranslation(tableMirror.getParent().getName(), Environment.RIGHT,
                                     TableUtils.getLocation(tableMirror.getName(), tet.getDefinition()),
@@ -265,16 +263,15 @@ public class TransferService {
                         } else {
                             String rLoc = TableUtils.getLocation(tableMirror.getName(), ret.getDefinition());
                             if (isBlank(rLoc) && config.loadMetadataDetails()) {
-                                StringBuilder sbDir = new StringBuilder();
-                                sbDir.append(config.getTargetNamespace());
+                                String sbDir = config.getTargetNamespace() +
 //                                if (!isBlank(config.getTransfer().getTargetNamespace())) {
 //                                    sbDir.append(config.getTransfer().getTargetNamespace());
 //                                } else {
 //                                    sbDir.append(config.getCluster(Environment.RIGHT).getHcfsNamespace());
 //                                }
-                                sbDir.append(warehouse.getExternalDirectory()).append("/");
-                                sbDir.append(HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config)).append(".db").append("/").append(tableMirror.getName());
-                                rLoc = sbDir.toString();
+                                        warehouse.getExternalDirectory() + "/" +
+                                        HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config) + ".db" + "/" + tableMirror.getName();
+                                rLoc = sbDir;
                             }
                             config.getTranslator().addTranslation(tableMirror.getParent().getName(), Environment.RIGHT,
                                     TableUtils.getLocation(tableMirror.getName(), let.getDefinition())

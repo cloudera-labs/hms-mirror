@@ -133,7 +133,7 @@ public class DistCpService {
                         //   is carried over. Hence, the logic adjustment here to address the behavioral differences.
                         for (Map.Entry<String, Set<String>> dbMap : value.entrySet()) {
                             if (dbMap.getValue().size() > 1) {
-                                String distcpSourceFile = entry.getKey() + "_" + distcpEnv.toString() + "_" + i++ + "_distcp_source.txt";
+                                String distcpSourceFile = entry.getKey() + "_" + distcpEnv + "_" + i++ + "_distcp_source.txt";
                                 String distcpSourceFileFull = outputDir + File.separator + distcpSourceFile;
                                 distcpSourceFW = new FileWriter(distcpSourceFileFull);
 
@@ -180,10 +180,8 @@ public class DistCpService {
 //                                    }
                                 }
 
-                                StringBuilder line = new StringBuilder();
-                                line.append("| | ").append(target).append(" | ");
-
-                                line.append(source).append(" |\n");
+                                String line = "| | " + target + " | " +
+                                        source + " |\n";
 
                                 distcpWorkbookSb.append(line);
 

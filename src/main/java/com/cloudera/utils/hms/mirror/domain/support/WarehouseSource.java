@@ -27,5 +27,5 @@ public enum WarehouseSource {
     @Schema(description = "From the config.")
     GLOBAL,
     @Schema(description = "From the environment.")
-    ENVIRONMENT;
+    ENVIRONMENT
 }

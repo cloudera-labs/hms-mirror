@@ -24,5 +24,5 @@ public enum ConnectionStatus {
     CHECK_CONFIGURATION,
     SKIPPED,
     DISABLED,
-    UNKNOWN;
+    UNKNOWN
 }

@@ -19,5 +19,5 @@ package com.cloudera.utils.hms.mirror.domain.support;
 
 public enum TableType {
     EXTERNAL_TABLE,
-    MANAGED_TABLE;
+    MANAGED_TABLE
 }

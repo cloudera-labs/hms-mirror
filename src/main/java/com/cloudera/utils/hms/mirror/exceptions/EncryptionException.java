@@ -22,7 +22,7 @@ import lombok.Getter;
 @Getter
 public class EncryptionException extends Throwable {
 
-    private RuntimeException runtimeException;
+    private final RuntimeException runtimeException;
 
     public EncryptionException(String message, RuntimeException runtimeException) {
         super(message);

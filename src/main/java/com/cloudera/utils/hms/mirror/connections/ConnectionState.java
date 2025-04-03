@@ -22,5 +22,5 @@ public enum ConnectionState {
     INITIALIZED,
     CONNECTED,
     DISCONNECTED,
-    ERROR;
+    ERROR
 }

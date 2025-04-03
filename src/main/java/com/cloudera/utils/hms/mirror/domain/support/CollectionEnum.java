@@ -22,5 +22,5 @@ public enum CollectionEnum {
     IN_PROGRESS,
     COMPLETED,
     ERRORED,
-    SKIPPED;
+    SKIPPED
 }

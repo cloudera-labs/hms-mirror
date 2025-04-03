@@ -92,6 +92,9 @@
     <logger name="com.cloudera.utils.hms.mirror.service.TableService" level="info" additivity="true">
         <appender-ref ref="Console"/>
     </logger>
+    <logger name="com.cloudera.utils.hms.mirror.service.DomainService" level="info" additivity="true">
+        <appender-ref ref="Console"/>
+    </logger>
     <logger name="com.cloudera.utils.hms.util.NamespaceUtils" level="info" additivity="true">
         <appender-ref ref="Console"/>
     </logger>

@@ -24,5 +24,5 @@ public enum ConfigSection {
     LEFT_CLUSTER,
     RIGHT_CLUSTER,
     TRANSLATOR,
-    TRANSFER;
+    TRANSFER
 }

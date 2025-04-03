@@ -142,7 +142,7 @@ public class TranslatorService {
                     String partSpec = entry.getKey();
                     // First level partitions are +2 from the DB level.  So we need to add 2 to the level.
                     // EG: The spec for a single partition will have level 1.
-                    String spec[] = partSpec.split("/");
+                    String[] spec = partSpec.split("/");
                     int level = spec.length + 1;
                     // Increase level to the table, since we're not filter any tables.  It's assumed that
                     //   we're pulling the whole DB.
@@ -423,12 +423,12 @@ public class TranslatorService {
             if (sourceLocationMap != null && dbMirror != null) {
                 for (Map.Entry<TableType, Map<String, Set<String>>> sourceLocationEntry : sourceLocationMap.getLocations().entrySet()) {
                     String typeTargetLocation = null;
-                    String extTargetLocation = new String(externalBaseLocation + "/" + dbMirror.getLocationDirectory());
-                    String mngdTargetLocation = new String(managedBaseLocation + "/" + dbMirror.getManagedLocationDirectory());
+                    String extTargetLocation = externalBaseLocation + "/" + dbMirror.getLocationDirectory();
+                    String mngdTargetLocation = managedBaseLocation + "/" + dbMirror.getManagedLocationDirectory();
 
                     // Locations and the tables that are in that location.
                     for (Map.Entry<String, Set<String>> sourceLocationSet : sourceLocationEntry.getValue().entrySet()) {
-                        String sourceLocation = new String(sourceLocationSet.getKey());
+                        String sourceLocation = sourceLocationSet.getKey();
                         // Strip the namespace from the location.
                         sourceLocation = NamespaceUtils.stripNamespace(sourceLocation); //.replace(hmsMirrorConfig.getCluster(Environment.LEFT).getHcfsNamespace(), "");
 

@@ -1487,7 +1487,7 @@ public class HmsMirrorCommandLineOptions {
             log.info("warehouse-plan: {}", value);
             String[] warehouseplan = value.split(",");
 
-            if (nonNull(warehouseplan) && warehouseplan.length > 0) {
+            if (nonNull(warehouseplan)) {
                 // for each plan entry, split on '=' for db=ext_dir:mngd_dir
                 for (String plan : warehouseplan) {
                     String[] planParts = plan.split("=");

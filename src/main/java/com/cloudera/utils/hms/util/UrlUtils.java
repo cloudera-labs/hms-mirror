@@ -30,7 +30,7 @@ public class UrlUtils {
             String matchStr = matcher.group(1);
             // Remove last occurrence ONLY.
             int lastIndexOf = urlString.lastIndexOf(matchStr);
-            return urlString.substring(lastIndexOf, urlString.length());
+            return urlString.substring(lastIndexOf);
         } else {
             return urlString;
         }

@@ -845,7 +845,7 @@ public class DatabaseService {
                             sbL.append(COMMENT).append(" \"").append(dbDefLeft.get(COMMENT)).append("\"\n");
                         }
                         dbMirror.getSql(Environment.RIGHT).add(new Pair(CREATE_DB_DESC, sbL.toString()));
-                        log.trace("RIGHT DB Create SQL: {}", sbL.toString());
+                        log.trace("RIGHT DB Create SQL: {}", sbL);
                     }
 
                     if (nonNull(targetLocation) && !config.getCluster(Environment.RIGHT).isHdpHive3()) {

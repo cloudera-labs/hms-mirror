@@ -119,8 +119,6 @@ public class ConnectionMVController {
                 executeSessionService.getSession().getRunStatus().setProgress(ProgressEnum.FAILED);
                 executeSessionService.getSession().getRunStatus().addError(MessageCode.CONNECTION_ISSUE);
                 throw new SessionException(rte.getMessage());
-            } finally {
-                //executeSessionService.endSession();
             }
         }
 

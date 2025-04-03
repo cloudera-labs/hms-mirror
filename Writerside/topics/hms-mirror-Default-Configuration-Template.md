@@ -4,7 +4,7 @@ Use this as a template for the `default.yaml` configuration file used by the `cl
 
 
 ```yaml
-# Copyright 2024 Cloudera, Inc. All Rights Reserved.
+# Copyright 2021 Cloudera, Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,7 +29,9 @@ transfer:
 clusters:
   LEFT:
     # Set for Hive 1/2 environments
-    legacyHive:    true
+    # Remove, see 'platformType' legacyHive:    true
+    # platform type
+    platformType: 'HDP2'
     # Is the 'Hadoop COMPATIBLE File System' used to prefix data locations for this cluster.
     # It is mainly used as the transfer location for metadata (export)
     # If the primary storage for this cluster is 'hdfs' than use 'hdfs://...'
@@ -56,7 +58,7 @@ clusters:
     # This will require the user to install the jdbc driver for the metastoreDirect in $HOME/.hms-mirror/aux_libs
     metastore_direct:
       uri: "<jdbc_url_to_metastore_db_including_db>"
-      type: MYSQL|POSTGRES|ORACLE
+      type: MYSQL|POSTRES|ORACLE
       connectionProperties:
         user: "<db_user>"
         password: "<db_password>"
@@ -64,7 +66,8 @@ clusters:
         min: 3
         max: 5
   RIGHT:
-    legacyHive:    false
+    # Removed, see platformType. ...legacyHive:    false
+    platformType: 'CDP7_1'
     # Is the 'Hadoop COMPATIBLE File System' used to prefix data locations for this cluster.
     # It is mainly used to as a baseline for where "DATA" will be transfered in the
     # STORAGE stage.  The data location in the source location will be move to this
@@ -93,4 +96,5 @@ clusters:
       auto:     true
       # When a table is created, run MSCK when there are partitions.
       initMSCK: true
+
 ```
