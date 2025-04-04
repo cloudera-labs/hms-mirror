@@ -1,3 +1,8 @@
+logging:
+  config: "classpath:logback-hms-spring.xml"
+  dir: "${user.home}/.hms-mirror/logs"
+  filename-prefix: "hms-mirror"
+  threshold: "debug"
 server:
   port: 8090
   servlet:

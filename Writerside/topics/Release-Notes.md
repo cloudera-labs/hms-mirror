@@ -9,6 +9,32 @@ The latest set of known issues can be found [here](https://github.com/cloudera-l
 The latest set of enhancement requests can be found [here](https://github.com/cloudera-labs/hms-mirror/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement). 
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
+
+## 3.0.0.0
+
+This release is based on the 2.3.1.5 release and includes all the features and bug fixes from that release.
+
+This is a Security and CVE release that has upgrading all dependencies to the latest possible versions to eliminate 
+as many of the community CVEs as possible.  This also required us to upgrade the minimum JDK version to 17.
+
+***What's New**
+- JDK 17 Minimum Version Requirement.
+
+## 2.3.1.5
+
+**Bug Fixes**
+- Fixed Web UI session status preventing progress.
+- Handle npe from SQL in-place downgrade of ACID tables.
+- Fixed locale issue with set statements that used numeric values.
+- Fixed floorDiv(long,int) to floorDiv(long,long) for Java8 compatibility.
+
+**What's New**
+- Add support to 'in-place' removal of bucket definitions from an ACID table
+
+**Note**
+This will be the last release in the 2.3.x branch with any feature enhancements. Future releases will be in the 3.x 
+branch.
+
 ## 2.3.0.13
 
 **What's New**

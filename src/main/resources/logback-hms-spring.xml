@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty name="LOGS" source="logging.dir" defaultValue="${user.home}/.hms-mirror/logs" />
+    <springProperty name="LOG_FILE_PREFIX" source="logging.filename-prefix" defaultValue="hms-mirror" />
+
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%black(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] [%boldYellow(%logger{36})]: %msg%n%throwable</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="RollingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS}/${LOG_FILE_PREFIX}.log</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d %p %logger{36} [%t] %m%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOGS}/archived/${LOG_FILE_PREFIX}-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>100MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="RollingFile" />
+        <!-- Uncomment if you want console output by default -->
+        <!-- <appender-ref ref="Console" /> -->
+    </root>
+
+    <logger name="org.springframework" level="warn" additivity="false">
+        <appender-ref ref="RollingFile" />
+        <appender-ref ref="Console" />
+    </logger>
+    <logger name="com.cloudera.utils" level="${logging.threshold:-debug}" additivity="false">
+        <appender-ref ref="RollingFile" />
+    </logger>
+    <logger name="com.cloudera.utils.hms.mirror.cli.HmsMirrorCommandLineOptions" level="info" additivity="true">
+        <appender-ref ref="Console" />
+    </logger>
+    <logger name="com.cloudera.utils.hms.mirror.service.ReportWriterService" level="info" additivity="true">
+        <appender-ref ref="Console" />
+    </logger>
+    <logger name="com.cloudera.utils.hms.mirror.domain.DBMirror" level="info" additivity="true">
+        <appender-ref ref="Console" />
+    </logger>
+    <logger name="com.cloudera.utils.hms.mirror.password" level="info" additivity="true">
+        <appender-ref ref="Console" />
+    </logger>
+    <logger name="com.cloudera.utils.hms.mirror.service.TableService" level="info" additivity="true">
+        <appender-ref ref="Console" />
+    </logger>
+    <logger name="com.cloudera.utils.hms.mirror.service.DomainService" level="info" additivity="true">
+        <appender-ref ref="Console" />
+    </logger>
+    <logger name="com.cloudera.utils.hms.util.NamespaceUtils" level="info" additivity="true">
+        <appender-ref ref="Console" />
+    </logger>
+    <logger name="com.cloudera.utils.hms.mirror.web" level="debug" additivity="true">
+        <appender-ref ref="Console" />
+    </logger>
+    <logger name="com.zaxxer.hikari" level="warn" additivity="false">
+        <appender-ref ref="RollingFile" />
+        <appender-ref ref="Console" />
+    </logger>
+    <logger name="org.apache" level="warn" additivity="false">
+        <appender-ref ref="RollingFile" />
+        <appender-ref ref="Console" />
+    </logger>
+    <logger name="com.jcabi" level="warn" additivity="false">
+        <appender-ref ref="RollingFile" />
+    </logger>
+    <logger name="org.apache.hadoop" level="warn" additivity="false">
+        <appender-ref ref="RollingFile" />
+        <appender-ref ref="Console" />
+    </logger>
+    <logger name="org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener" level="info" additivity="false">
+        <appender-ref ref="RollingFile" />
+    </logger>
+    <logger name="org.springframework.beans.factory" level="warn" additivity="false">
+        <appender-ref ref="RollingFile" />
+    </logger>
+</configuration>
