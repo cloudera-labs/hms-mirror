@@ -1,5 +1,5 @@
 logging:
-  config: "classpath:logback-hms-spring.xml"
+  config: "classpath:/logback-hms-spring.xml"
   dir: "${user.home}/.hms-mirror/logs"
   filename-prefix: "hms-mirror"
   threshold: "debug"
