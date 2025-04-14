@@ -61,7 +61,7 @@ public class PasswordOptions {
 
     @Bean("password")
     @Order(1)
-    Password configPassword() {
+    Password configPasswordInstance() {
         Password password = new Password();
         return password;
     }

@@ -10,15 +10,18 @@ The latest set of enhancement requests can be found [here](https://github.com/cl
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
-## 3.0.0.0
+## 3.0.0.1
 
 This release is based on the 2.3.1.5 release and includes all the features and bug fixes from that release.
 
 This is a Security and CVE release that has upgrading all dependencies to the latest possible versions to eliminate 
 as many of the community CVEs as possible.  This also required us to upgrade the minimum JDK version to 17.
 
-***What's New**
-- JDK 17 Minimum Version Requirement.
+**What's New**
+- JDK 17 Minimum Version Requirement. Addresses dependencies with CVE issues.
+
+**Bug Fixes**
+[--sync not dropping table on right when left is missing.](https://github.com/cloudera-labs/hms-mirror/issues/189)
 
 ## 2.3.1.5
 

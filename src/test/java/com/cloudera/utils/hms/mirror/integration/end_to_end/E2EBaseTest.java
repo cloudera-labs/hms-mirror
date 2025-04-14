@@ -283,6 +283,21 @@ public class E2EBaseTest {
     }
 
 
+    protected void validateTableProperty(String database, String tableName, Environment environment, String key, String value) {
+        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
+        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().containsKey(tableName));
+        assertTrue("Environment doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment));
+        String tblValue = TableUtils.getTblProperty(key, getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironmentTable(environment));
+        assertEquals("Property doesn't match", value, tblValue);
+    }
+
+    protected void validateTablePropertyMissing(String database, String tableName, Environment environment, String key) {
+        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
+        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().containsKey(tableName));
+        assertTrue("Environment doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment));
+        assertNull(TableUtils.getTblProperty(key, getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironmentTable(environment)));
+    }
+
     protected void validateTableLocation(String database, String tableName, Environment environment, String expectedLocation) {
         assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
         assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().containsKey(tableName));

@@ -214,6 +214,11 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
         EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT, tableMirror);
 
+        if (!let.isExists()) {
+            // Nothing to process.
+            return Boolean.FALSE;
+        }
+
         Boolean strictIssues = Boolean.FALSE;
 
         try {

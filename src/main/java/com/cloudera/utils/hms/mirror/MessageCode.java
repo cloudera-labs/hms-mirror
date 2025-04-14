@@ -190,6 +190,7 @@ public enum MessageCode {
     SAME_CLUSTER_COPY_WITHOUT_DBPR("You must specify `-dbp` or `-dbr` when the cluster configurations use the same storage."),
     SAME_CLUSTER_COPY_WITHOUT_RDL("You must specify `-rdl` when the cluster configurations use the same storage."),
     SCHEMA_EXISTS_NO_ACTION("Schema exists already and matches. No action necessary"),
+    SCHEMA_EXISTS_TARGET_MISMATCH("Schema exists on the target, but not on the source."),
     SCHEMA_EXISTS_NO_ACTION_DATA("Schema exists already. Drop it and " +
             "try again or add `--sync` to OVERWRITE current tables data."),
     SCHEMA_EXISTS_NOT_MATCH_WITH_PURGE("Schema exists AND DOESN'T match.  But the 'RIGHT' table is has a PURGE option set. " +

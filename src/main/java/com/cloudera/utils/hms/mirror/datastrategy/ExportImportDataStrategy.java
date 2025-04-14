@@ -289,13 +289,17 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
         EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
         EnvironmentTable ret = tableMirror.getEnvironmentTable(Environment.RIGHT);
         if (ret.isExists()) {
-            if (!hmsMirrorConfig.isSync()) {
+            if (!hmsMirrorConfig.isSync() && let.isExists()) {
                 let.addIssue(MessageCode.SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                 let.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                 String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                         SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                 log.error(msg);
                 return Boolean.FALSE;
+            } else {
+                ret.addIssue(SCHEMA_EXISTS_TARGET_MISMATCH.getDesc());
+                ret.setCreateStrategy(CreateStrategy.LEAVE);
+                return Boolean.TRUE;
             }
         }
 

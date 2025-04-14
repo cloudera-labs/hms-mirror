@@ -87,17 +87,27 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
         }
 
         if (ret.isExists()) {
-            if (config.isSync() && config.getCluster(Environment.RIGHT).isCreateIfNotExists()) {
-                // sync with overwrite.
-                ret.addIssue(SQL_SYNC_W_CINE.getDesc());
-                ret.setCreateStrategy(CreateStrategy.CREATE);
+            if (let.isExists()) {
+                if (config.isSync() && config.getCluster(Environment.RIGHT).isCreateIfNotExists()) {
+                    // sync with overwrite.
+                    ret.addIssue(SQL_SYNC_W_CINE.getDesc());
+                    ret.setCreateStrategy(CreateStrategy.CREATE);
+                } else {
+                    ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
+                    ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION.getDesc());
+                    String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                            SCHEMA_EXISTS_NO_ACTION.getDesc());
+                    log.error(msg);
+                    return Boolean.FALSE;
+                }
             } else {
-                ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
-                ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION.getDesc());
-                String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
-                        SCHEMA_EXISTS_NO_ACTION.getDesc());
-                log.error(msg);
-                return Boolean.FALSE;
+                ret.addIssue(SCHEMA_EXISTS_TARGET_MISMATCH.getDesc());
+                if (config.isSync()) {
+                    ret.setCreateStrategy(CreateStrategy.DROP);
+                } else {
+                    ret.setCreateStrategy(CreateStrategy.LEAVE);
+                }
+                return Boolean.TRUE;
             }
         } else {
             ret.addIssue(SCHEMA_WILL_BE_CREATED.getDesc());

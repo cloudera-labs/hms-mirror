@@ -76,75 +76,77 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
 
         copySpec = new CopySpec(tableMirror, Environment.LEFT, Environment.RIGHT);
         // Can't LINK ACID tables.
-        if (TableUtils.isHiveNative(let) && !TableUtils.isACID(let)) {
-            // For COMMON, we're assuming the namespace is used by 'both' so we don't change anything..
-            copySpec.setReplaceLocation(Boolean.FALSE);
-            if (hmsMirrorConfig.convertManaged())
-                copySpec.setUpgrade(Boolean.TRUE);
-            // COMMON owns the data unless readonly specified.
-            if (!hmsMirrorConfig.isReadOnly())
-                copySpec.setTakeOwnership(Boolean.TRUE);
-            if (hmsMirrorConfig.isNoPurge())
-                copySpec.setTakeOwnership(Boolean.FALSE);
+        if (let.isExists()) {
+            if (TableUtils.isHiveNative(let) && !TableUtils.isACID(let)) {
+                // For COMMON, we're assuming the namespace is used by 'both' so we don't change anything..
+                copySpec.setReplaceLocation(Boolean.FALSE);
+                if (hmsMirrorConfig.convertManaged())
+                    copySpec.setUpgrade(Boolean.TRUE);
+                // COMMON owns the data unless readonly specified.
+                if (!hmsMirrorConfig.isReadOnly())
+                    copySpec.setTakeOwnership(Boolean.TRUE);
+                if (hmsMirrorConfig.isNoPurge())
+                    copySpec.setTakeOwnership(Boolean.FALSE);
 
-            if (hmsMirrorConfig.isSync()) {
-                // We assume that the 'definitions' are only there if the
-                //     table exists.
-                if (!let.isExists() && ret.isExists()) {
-                    // If left is empty and right is not, DROP RIGHT.
-                    ret.addIssue("Schema doesn't exist in 'source'.  Will be DROPPED.");
-                    ret.setCreateStrategy(CreateStrategy.DROP);
-                } else if (let.isExists() && !ret.isExists()) {
-                    // If left is defined and right is not, CREATE RIGHT.
-                    ret.addIssue("Schema missing, will be CREATED");
-                    ret.setCreateStrategy(CreateStrategy.CREATE);
-                } else if (let.isExists() && ret.isExists()) {
-                    // If left and right, check schema change and replace if necessary.
-                    // Compare Schemas.
-                    if (tableMirror.schemasEqual(Environment.LEFT, Environment.RIGHT)) {
+                if (hmsMirrorConfig.isSync()) {
+                    // We assume that the 'definitions' are only there if the
+                    //     table exists.
+                    if (let.isExists() && !ret.isExists()) {
+                        // If left is defined and right is not, CREATE RIGHT.
+                        ret.addIssue("Schema missing, will be CREATED");
+                        ret.setCreateStrategy(CreateStrategy.CREATE);
+                    } else if (let.isExists() && ret.isExists()) {
+                        // If left and right, check schema change and replace if necessary.
+                        // Compare Schemas.
+                        if (tableMirror.schemasEqual(Environment.LEFT, Environment.RIGHT)) {
+                            ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                            ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                            ret.setCreateStrategy(CreateStrategy.LEAVE);
+                            String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                                    SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                            log.error(msg);
+                        } else {
+                            if (TableUtils.isExternalPurge(ret)) {
+                                ret.addIssue(SCHEMA_EXISTS_NOT_MATCH_WITH_PURGE.getDesc());
+                                ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NOT_MATCH_WITH_PURGE.getDesc());
+                                ret.setCreateStrategy(CreateStrategy.LEAVE);
+                                String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                                        SCHEMA_EXISTS_NOT_MATCH_WITH_PURGE.getDesc());
+                                log.error(msg);
+                                return Boolean.FALSE;
+                            } else {
+                                ret.addIssue("Schema exists AND DOESN'T match.  It will be REPLACED (DROPPED and RECREATED).");
+                                ret.setCreateStrategy(CreateStrategy.REPLACE);
+                            }
+                        }
+                    }
+                    // With sync, don't own data.
+                    copySpec.setTakeOwnership(Boolean.FALSE);
+                } else {
+                    if (ret.isExists()) {
+                        // Already exists, no action.
                         ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                         ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                         ret.setCreateStrategy(CreateStrategy.LEAVE);
                         String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
                                 SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
                         log.error(msg);
+                        return Boolean.FALSE;
                     } else {
-                        if (TableUtils.isExternalPurge(ret)) {
-                            ret.addIssue(SCHEMA_EXISTS_NOT_MATCH_WITH_PURGE.getDesc());
-                            ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NOT_MATCH_WITH_PURGE.getDesc());
-                            ret.setCreateStrategy(CreateStrategy.LEAVE);
-                            String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
-                                    SCHEMA_EXISTS_NOT_MATCH_WITH_PURGE.getDesc());
-                            log.error(msg);
-                            return Boolean.FALSE;
-                        } else {
-                            ret.addIssue("Schema exists AND DOESN'T match.  It will be REPLACED (DROPPED and RECREATED).");
-                            ret.setCreateStrategy(CreateStrategy.REPLACE);
-                        }
+                        ret.addIssue("Schema will be created");
+                        ret.setCreateStrategy(CreateStrategy.CREATE);
                     }
                 }
-                // With sync, don't own data.
-                copySpec.setTakeOwnership(Boolean.FALSE);
+                // Rebuild Target from Source.
+                rtn = buildTableSchema(copySpec);
             } else {
-                if (ret.isExists()) {
-                    // Already exists, no action.
-                    ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
-                    ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
-                    ret.setCreateStrategy(CreateStrategy.LEAVE);
-                    String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
-                            SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
-                    log.error(msg);
-                    return Boolean.FALSE;
-                } else {
-                    ret.addIssue("Schema will be created");
-                    ret.setCreateStrategy(CreateStrategy.CREATE);
-                }
+                let.addIssue("Can't use COMMON for ACID tables");
+                ret.setCreateStrategy(CreateStrategy.NOTHING);
             }
-            // Rebuild Target from Source.
-            rtn = buildTableSchema(copySpec);
         } else {
-            let.addIssue("Can't use COMMON for ACID tables");
+            let.addIssue(SCHEMA_EXISTS_TARGET_MISMATCH.getDesc());
             ret.setCreateStrategy(CreateStrategy.NOTHING);
+            rtn = Boolean.TRUE;
         }
         return rtn;
     }

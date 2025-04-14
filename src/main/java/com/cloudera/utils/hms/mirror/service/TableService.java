@@ -37,8 +37,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
-import java.sql.Connection;
 import java.sql.*;
+import java.sql.Connection;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
@@ -53,6 +53,7 @@ import static com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.DUMP
 import static com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.STORAGE_MIGRATION;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static org.apache.commons.lang3.ObjectUtils.isEmpty;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Service
@@ -86,51 +87,55 @@ public class TableService {
         RunStatus runStatus = session.getRunStatus();
         OperationStatistics stats = runStatus.getOperationStatistics();
 
-        if (environment == Environment.LEFT) {
-            if (config.getMigrateVIEW().isOn() && config.getDataStrategy() != DUMP) {
-                if (!TableUtils.isView(et)) {
+        if (isNull(et) | isEmpty(et.getDefinition())) {
+            return;
+        }
+
+//        if (environment == Environment.LEFT) {
+        if (config.getMigrateVIEW().isOn() && config.getDataStrategy() != DUMP) {
+            if (!TableUtils.isView(et)) {
+                tableMirror.setRemove(Boolean.TRUE);
+                tableMirror.setRemoveReason("VIEW's only processing selected.");
+            }
+        } else {
+            // Check if ACID for only the LEFT cluster.  If it's the RIGHT cluster, other steps will deal with
+            // the conflict.  IE: Rename or exists already.
+            if (TableUtils.isManaged(et)) {
+//                        && environment == Environment.LEFT) {
+                if (TableUtils.isACID(et)) {
+                    // For ACID tables, check that Migrate is ON.
+                    if (config.getMigrateACID().isOn()) {
+                        tableMirror.addStep("TRANSACTIONAL", Boolean.TRUE);
+                    } else {
+                        tableMirror.setRemove(Boolean.TRUE);
+                        tableMirror.setRemoveReason("ACID table and ACID processing not selected (-ma|-mao).");
+                    }
+                } else if (config.getMigrateACID().isOnly()) {
+                    // Non ACID Tables should NOT be process if 'isOnly' is set.
                     tableMirror.setRemove(Boolean.TRUE);
-                    tableMirror.setRemoveReason("VIEW's only processing selected.");
+                    tableMirror.setRemoveReason("Non-ACID table and ACID only processing selected `-mao`");
+                }
+            } else if (TableUtils.isHiveNative(et)) {
+                // Non ACID Tables should NOT be process if 'isOnly' is set.
+                if (config.getMigrateACID().isOnly()) {
+                    tableMirror.setRemove(Boolean.TRUE);
+                    tableMirror.setRemoveReason("Non-ACID table and ACID only processing selected `-mao`");
+                }
+            } else if (TableUtils.isView(et)) {
+                if (config.getDataStrategy() != DUMP) {
+                    tableMirror.setRemove(Boolean.TRUE);
+                    tableMirror.setRemoveReason("This is a VIEW and VIEW processing wasn't selected.");
                 }
             } else {
-                // Check if ACID for only the LEFT cluster.  If it's the RIGHT cluster, other steps will deal with
-                // the conflict.  IE: Rename or exists already.
-                if (TableUtils.isManaged(et)
-                        && environment == Environment.LEFT) {
-                    if (TableUtils.isACID(et)) {
-                        // For ACID tables, check that Migrate is ON.
-                        if (config.getMigrateACID().isOn()) {
-                            tableMirror.addStep("TRANSACTIONAL", Boolean.TRUE);
-                        } else {
-                            tableMirror.setRemove(Boolean.TRUE);
-                            tableMirror.setRemoveReason("ACID table and ACID processing not selected (-ma|-mao).");
-                        }
-                    } else if (config.getMigrateACID().isOnly()) {
-                        // Non ACID Tables should NOT be process if 'isOnly' is set.
-                        tableMirror.setRemove(Boolean.TRUE);
-                        tableMirror.setRemoveReason("Non-ACID table and ACID only processing selected `-mao`");
-                    }
-                } else if (TableUtils.isHiveNative(et)) {
-                    // Non ACID Tables should NOT be process if 'isOnly' is set.
-                    if (config.getMigrateACID().isOnly()) {
-                        tableMirror.setRemove(Boolean.TRUE);
-                        tableMirror.setRemoveReason("Non-ACID table and ACID only processing selected `-mao`");
-                    }
-                } else if (TableUtils.isView(et)) {
-                    if (config.getDataStrategy() != DUMP) {
-                        tableMirror.setRemove(Boolean.TRUE);
-                        tableMirror.setRemoveReason("This is a VIEW and VIEW processing wasn't selected.");
-                    }
-                } else {
-                    // Non-Native Tables.
-                    if (!config.isMigrateNonNative()) {
-                        tableMirror.setRemove(Boolean.TRUE);
-                        tableMirror.setRemoveReason("This is a Non-Native hive table and non-native process wasn't " +
-                                "selected.");
-                    }
+                // Non-Native Tables.
+                if (!config.isMigrateNonNative()) {
+                    tableMirror.setRemove(Boolean.TRUE);
+                    tableMirror.setRemoveReason("This is a Non-Native hive table and non-native process wasn't " +
+                            "selected.");
                 }
             }
         }
+//        }
 
         // Check for tables migration flag, to avoid 're-migration'.
         if (config.getDataStrategy() == STORAGE_MIGRATION) {
@@ -161,33 +166,31 @@ public class TableService {
         StringBuilder createStatement = new StringBuilder();
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
         Cluster cluster = hmsMirrorConfig.getCluster(environment);
+        Boolean cine = Boolean.FALSE;
         if (nonNull(cluster)) {
-            Boolean cine = cluster.isCreateIfNotExists();
-
-            List<String> tblDef = tableMirror.getTableDefinition(environment);
-            if (tblDef != null) {
-                Iterator<String> iter = tblDef.iterator();
-                while (iter.hasNext()) {
-                    String line = iter.next();
-                    if (cine && line.startsWith("CREATE TABLE")) {
-                        line = line.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
-                    } else if (cine && line.startsWith("CREATE EXTERNAL TABLE")) {
-                        line = line.replace("CREATE EXTERNAL TABLE", "CREATE EXTERNAL TABLE IF NOT EXISTS");
-                    }
-                    createStatement.append(line);
-                    if (iter.hasNext()) {
-                        createStatement.append("\n");
-                    }
+            cine = cluster.isCreateIfNotExists();
+        }
+        List<String> tblDef = tableMirror.getTableDefinition(environment);
+        if (tblDef != null) {
+            Iterator<String> iter = tblDef.iterator();
+            while (iter.hasNext()) {
+                String line = iter.next();
+                if (cine && line.startsWith("CREATE TABLE")) {
+                    line = line.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
+                } else if (cine && line.startsWith("CREATE EXTERNAL TABLE")) {
+                    line = line.replace("CREATE EXTERNAL TABLE", "CREATE EXTERNAL TABLE IF NOT EXISTS");
                 }
-            } else {
-                log.error("Couldn't location definition for table: {} in environment: {}", tableMirror.getName(), environment.toString());
+                createStatement.append(line);
+                if (iter.hasNext()) {
+                    createStatement.append("\n");
+                }
+            }
+        } else {
+            log.error("Couldn't location definition for table: {} in environment: {}", tableMirror.getName(), environment.toString());
 //                throw new RuntimeException("Couldn't location definition for table: " + tableMirror.getName() +
 //                        " in environment: " + environment.toString());
-            }
-            return createStatement.toString();
-        } else {
-            return null;
         }
+        return createStatement.toString();
     }
 
     public void getTableDefinition(TableMirror tableMirror, Environment environment) throws SQLException {

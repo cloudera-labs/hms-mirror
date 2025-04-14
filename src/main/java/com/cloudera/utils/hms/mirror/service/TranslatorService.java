@@ -468,10 +468,10 @@ public class TranslatorService {
                 }
             }
         }
-        if (!dryrun) {
+//        if (!dryrun) {
             translator.setAutoGlobalLocationMap(lclGlobalLocationMap);
             translator.rebuildOrderedGlobalLocationMap();
-        }
+//        }
         return lclGlobalLocationMap;
     }
 }

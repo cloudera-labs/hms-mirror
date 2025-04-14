@@ -32,7 +32,7 @@ import static org.junit.Assert.assertEquals;
         args = {
                 "--hms-mirror.config.data-strategy=SQL",
                 "--hms-mirror.config.migrate-acid=true",
-//                "--hms-mirror.config.migrate-acid-only=true",
+                "--hms-mirror.config.migrate-acid-only=true",
                 "--hms-mirror.config.warehouse-directory=/warehouse/managed",
                 "--hms-mirror.config.external-warehouse-directory=/warehouse/external",
                 "--hms-mirror.config.downgrade-acid=true",

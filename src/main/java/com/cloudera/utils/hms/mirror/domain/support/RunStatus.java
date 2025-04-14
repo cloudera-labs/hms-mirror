@@ -97,6 +97,16 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
     }
 
     @JsonIgnore
+    // Get Start Datetime as String in local format from startDate
+    public String getStartDateTime() {
+        if (nonNull(start)) {
+            return start.toString();
+        } else {
+            return null;
+        }
+    }
+
+    @JsonIgnore
     public long getRuntimeMS() {
         if (nonNull(start) && nonNull(end)) {
             return end.getTime() - start.getTime();

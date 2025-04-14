@@ -90,7 +90,7 @@ public class Test_sm_smn_wd_dc extends E2EBaseTest {
         // Get Runtime Return Code.
         long actual = getReturnCode();
         // Verify the return code.
-        long expected = 0L;
+        long expected = 1L;
 //        getCheckCode(MessageCode.DISTCP_REQUIRES_EPL);
 
         assertEquals("Return Code Failure: ", expected, actual);

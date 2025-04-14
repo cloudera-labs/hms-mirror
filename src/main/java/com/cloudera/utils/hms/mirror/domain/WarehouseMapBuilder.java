@@ -137,7 +137,10 @@ public class WarehouseMapBuilder implements Cloneable {
         SourceLocationMap locationMap = sources.computeIfAbsent(database, k -> new SourceLocationMap());
 
         String reducedLocation = null;
-
+        if (isBlank(database) || isBlank(table) || isBlank(tableLocation)) {
+            // No location to process.  Just return.
+            return;
+        }
         if (isBlank(partitionSpec)) {
             // Process Table Source
             reducedLocation = UrlUtils.reduceUrlBy(tableLocation, consolidationLevelBase);

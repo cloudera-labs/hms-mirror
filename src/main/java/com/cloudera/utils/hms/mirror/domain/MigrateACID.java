@@ -106,9 +106,9 @@ public class MigrateACID implements Cloneable {
             if (!on) {
                 this.on = Boolean.TRUE;
             }
-            if (!only) {
-                this.only = Boolean.TRUE;
-            }
+//            if (!only) {
+//                this.only = Boolean.TRUE;
+//            }
         }
     }
 

@@ -318,14 +318,15 @@ public class CliInit {
                 for (DBMirror dbMirror : conversion.getDatabases().values()) {
                     String database = dbMirror.getName();
                     for (TableMirror tableMirror : dbMirror.getTableMirrors().values()) {
+                        EnvironmentTable et = tableMirror.getEnvironmentTable(Environment.LEFT);
                         String tableName = tableMirror.getName();
                         if (config.isDatabaseOnly()) {
                             // Only work with the database.
                             tableMirror.setRemove(true);
-                        } else if (TableUtils.isACID(tableMirror.getEnvironmentTable(Environment.LEFT))
+                        } else if (TableUtils.isACID(et)
                                 && !config.getMigrateACID().isOn()) {
                             tableMirror.setRemove(true);
-                        } else if (!TableUtils.isACID(tableMirror.getEnvironmentTable(Environment.LEFT))
+                        } else if (!TableUtils.isACID(et)
                                 && config.getMigrateACID().isOnly()) {
                             tableMirror.setRemove(true);
                         } else {

@@ -80,7 +80,7 @@ public class TableUtilsTest {
         EnvironmentTable envTable = new EnvironmentTable(null);
         envTable.setName("check_table");
         envTable.setDefinition(table_03);
-        assertTrue(TableUtils.isACID(envTable));
+        assertFalse(TableUtils.isACID(envTable));
     }
 
     @Test

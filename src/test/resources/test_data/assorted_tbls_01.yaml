@@ -943,6 +943,40 @@ databases:
             issues: []
             sql: []
             cleanUpSql: []
+      ext_missing_01:
+        name: "ext_missing_01"
+        reMapped: false
+        strategy: null
+        phaseState: "INIT"
+        environments:
+          RIGHT:
+            name: "ext_missing_01"
+            exists: true
+            createStrategy: "NOTHING"
+            definition:
+              - "CREATE EXTERNAL TABLE `ext_missing_01`("
+              - "`id` string,"
+              - "`checkvalue` string)"
+              - "ROW FORMAT SERDE"
+              - "'org.apache.hadoop.hive.ql.io.orc.OrcSerde'"
+              - "STORED AS INPUTFORMAT"
+              - "'org.apache.hadoop.hive.ql.io.orc.OrcInputFormat'"
+              - "OUTPUTFORMAT"
+              - "'org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat'"
+              - "LOCATION"
+              - "'hdfs://HDP50/warehouse/tablespace/external/hive/assorted_test_db.db/ext_missing_01'"
+              - "TBLPROPERTIES ("
+              - "'bucketing_version'='2',"
+              - "'transient_lastDdlTime'='1685371291')"
+            owner: null
+            partitions: {}
+            actions: []
+            addProperties: {}
+            statistics:
+              transactional: true
+            issues: []
+            sql: []
+            cleanUpSql: []
     phaseSummary:
       INIT: 6
     properties:

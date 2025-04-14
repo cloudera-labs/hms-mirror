@@ -66,65 +66,71 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
 
         copySpec = new CopySpec(tableMirror, Environment.LEFT, Environment.RIGHT);
         // Can't LINK ACID tables.
-        if (TableUtils.isHiveNative(let) && !TableUtils.isACID(let)) {
-            // Swap out the namespace of the LEFT with the RIGHT.
-            copySpec.setReplaceLocation(Boolean.FALSE);
-            if (hmsMirrorConfig.convertManaged())
-                copySpec.setUpgrade(Boolean.TRUE);
-            // LINKED doesn't own the data.
-            copySpec.setTakeOwnership(Boolean.FALSE);
+        if (let.isExists()) {
+            if (TableUtils.isHiveNative(let) && !TableUtils.isACID(let)) {
+                // Swap out the namespace of the LEFT with the RIGHT.
+                copySpec.setReplaceLocation(Boolean.FALSE);
+                if (hmsMirrorConfig.convertManaged())
+                    copySpec.setUpgrade(Boolean.TRUE);
+                // LINKED doesn't own the data.
+                copySpec.setTakeOwnership(Boolean.FALSE);
 
-            if (hmsMirrorConfig.isSync()) {
-                // We assume that the 'definitions' are only there is the
-                //     table exists.
-                if (!let.isExists() && ret.isExists()) {
-                    // If left is empty and right is not, DROP RIGHT.
-                    ret.addIssue("Schema doesn't exist in 'source'.  Will be DROPPED.");
-                    ret.setCreateStrategy(CreateStrategy.DROP);
-                } else if (let.isExists() && !ret.isExists()) {
-                    // If left is defined and right is not, CREATE RIGHT.
-                    ret.addIssue("Schema missing, will be CREATED");
-                    ret.setCreateStrategy(CreateStrategy.CREATE);
-                } else if (let.isExists() && ret.isExists()) {
-                    // If left and right, check schema change and replace if necessary.
-                    // Compare Schemas.
-                    if (tableMirror.schemasEqual(Environment.LEFT, Environment.RIGHT)) {
-                        ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
-                        ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION.getDesc());
-                        ret.setCreateStrategy(CreateStrategy.LEAVE);
-                        String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
-                                SCHEMA_EXISTS_NO_ACTION.getDesc());
-                        log.error(msg);
-                    } else {
-                        if (TableUtils.isExternalPurge(ret)) {
-                            ret.addError("Schema exists AND DOESN'T match.  But the 'RIGHT' table is has a PURGE option set. " +
-                                    "We can NOT safely replace the table without compromising the data. No action will be taken.");
+                if (hmsMirrorConfig.isSync()) {
+                    // We assume that the 'definitions' are only there is the
+                    //     table exists.
+                    if (!let.isExists() && ret.isExists()) {
+                        // If left is empty and right is not, DROP RIGHT.
+                        ret.addIssue("Schema doesn't exist in 'source'.  Will be DROPPED.");
+                        ret.setCreateStrategy(CreateStrategy.DROP);
+                    } else if (let.isExists() && !ret.isExists()) {
+                        // If left is defined and right is not, CREATE RIGHT.
+                        ret.addIssue("Schema missing, will be CREATED");
+                        ret.setCreateStrategy(CreateStrategy.CREATE);
+                    } else if (let.isExists() && ret.isExists()) {
+                        // If left and right, check schema change and replace if necessary.
+                        // Compare Schemas.
+                        if (tableMirror.schemasEqual(Environment.LEFT, Environment.RIGHT)) {
+                            ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
+                            ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION.getDesc());
                             ret.setCreateStrategy(CreateStrategy.LEAVE);
-                            return Boolean.FALSE;
+                            String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                                    SCHEMA_EXISTS_NO_ACTION.getDesc());
+                            log.error(msg);
                         } else {
-                            ret.addIssue("Schema exists AND DOESN'T match.  It will be REPLACED (DROPPED and RECREATED).");
-                            ret.setCreateStrategy(CreateStrategy.REPLACE);
+                            if (TableUtils.isExternalPurge(ret)) {
+                                ret.addError("Schema exists AND DOESN'T match.  But the 'RIGHT' table is has a PURGE option set. " +
+                                        "We can NOT safely replace the table without compromising the data. No action will be taken.");
+                                ret.setCreateStrategy(CreateStrategy.LEAVE);
+                                return Boolean.FALSE;
+                            } else {
+                                ret.addIssue("Schema exists AND DOESN'T match.  It will be REPLACED (DROPPED and RECREATED).");
+                                ret.setCreateStrategy(CreateStrategy.REPLACE);
+                            }
                         }
                     }
-                }
-                copySpec.setTakeOwnership(Boolean.FALSE);
-            } else {
-                if (ret.isExists()) {
-                    // Already exists, no action.
-                    ret.addError("Schema exists already, no action. If you wish to rebuild the schema, " +
-                            "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
-                    ret.setCreateStrategy(CreateStrategy.LEAVE);
-                    return Boolean.FALSE;
+                    copySpec.setTakeOwnership(Boolean.FALSE);
                 } else {
-                    ret.addError("Schema will be created");
-                    ret.setCreateStrategy(CreateStrategy.CREATE);
+                    if (ret.isExists()) {
+                        // Already exists, no action.
+                        ret.addError("Schema exists already, no action. If you wish to rebuild the schema, " +
+                                "drop it first and try again. <b>Any following messages MAY be irrelevant about schema adjustments.</b>");
+                        ret.setCreateStrategy(CreateStrategy.LEAVE);
+                        return Boolean.FALSE;
+                    } else {
+                        ret.addError("Schema will be created");
+                        ret.setCreateStrategy(CreateStrategy.CREATE);
+                    }
                 }
+                // Rebuild Target from Source.
+                rtn = buildTableSchema(copySpec);
+            } else {
+                let.addError("Can't LINK ACID tables");
+                ret.setCreateStrategy(CreateStrategy.NOTHING);
             }
-            // Rebuild Target from Source.
-            rtn = buildTableSchema(copySpec);
         } else {
-            let.addError("Can't LINK ACID tables");
+            let.addIssue(SCHEMA_EXISTS_TARGET_MISMATCH.getDesc());
             ret.setCreateStrategy(CreateStrategy.NOTHING);
+            rtn = Boolean.TRUE;
         }
         return rtn;
     }

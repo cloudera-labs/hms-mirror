@@ -690,6 +690,10 @@ public class TableUtils {
 
     public static Boolean isACID(EnvironmentTable envTable) {
         Boolean rtn = Boolean.FALSE;
+        if (envTable == null || !envTable.isExists()) {
+            log.error("EnvironmentTable is null.");
+            return rtn;
+        }
         log.trace("Checking if table '{}' is 'transactional(ACID)'", envTable.getName());
         if (isNull(envTable.getDefinition())) {
             log.error("Table definition for " + envTable.getName() + " is null.");

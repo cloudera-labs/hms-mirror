@@ -19,6 +19,7 @@ package com.cloudera.utils.hms.mirror.integration.end_to_end.legacy_to_cdp;
 
 import com.cloudera.utils.hms.mirror.MessageCode;
 import com.cloudera.utils.hms.mirror.cli.Mirror;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -26,6 +27,7 @@ import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import static com.cloudera.utils.hms.mirror.TablePropertyVars.EXTERNAL_TABLE_PURGE;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringRunner.class)
@@ -79,6 +81,5 @@ public class Test_sql_ro extends E2EBaseTest {
         long check = getCheckCode(MessageCode.RO_DB_DOESNT_EXIST);
         assertEquals("Return Code Failure: " + rtn, check, rtn);
     }
-
 
 }

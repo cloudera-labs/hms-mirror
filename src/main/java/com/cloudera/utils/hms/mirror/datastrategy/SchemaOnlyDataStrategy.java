@@ -65,7 +65,7 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
     public Boolean buildOutDefinition(TableMirror tableMirror) throws RequiredConfigurationException {
         Boolean rtn = Boolean.FALSE;
         log.debug("Table: {} buildout SCHEMA_ONLY Definition", tableMirror.getName());
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         EnvironmentTable let = null;
         EnvironmentTable ret = null;
@@ -77,13 +77,13 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
         copySpec = new CopySpec(tableMirror, Environment.LEFT, Environment.RIGHT);
         // Swap out the namespace of the LEFT with the RIGHT.
         copySpec.setReplaceLocation(Boolean.TRUE);
-        if (hmsMirrorConfig.convertManaged())
+        if (config.convertManaged())
             copySpec.setUpgrade(Boolean.TRUE);
-        if (!hmsMirrorConfig.isReadOnly() || !hmsMirrorConfig.isSync()) {
-            if ((TableUtils.isExternal(let) && hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) ||
+        if (!config.isReadOnly() || !config.isSync()) {
+            if ((TableUtils.isExternal(let) && config.getCluster(Environment.LEFT).isLegacyHive()) ||
                     // Don't add purge for non-legacy environments...
                     // https://github.com/cloudera-labs/hms-mirror/issues/5
-                    (TableUtils.isExternal(let) && !hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive())) {
+                    (TableUtils.isExternal(let) && !config.getCluster(Environment.LEFT).isLegacyHive())) {
                 copySpec.setTakeOwnership(Boolean.FALSE);
             } else {
                 copySpec.setTakeOwnership(Boolean.TRUE);
@@ -91,20 +91,21 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
         } else if (copySpec.isUpgrade()) {
             ret.addIssue("Ownership (PURGE Option) not set because of either: `sync` or `ro|read-only` was specified in the config.");
         }
-        if (hmsMirrorConfig.isReadOnly()) {
+        if (config.isReadOnly()) {
             copySpec.setTakeOwnership(Boolean.FALSE);
         }
-        if (hmsMirrorConfig.isNoPurge()) {
+        if (config.isNoPurge()) {
             copySpec.setTakeOwnership(Boolean.FALSE);
         }
 
-        if (hmsMirrorConfig.isSync()) {
+        if (config.isSync()) {
             // We assume that the 'definitions' are only there if the
             //     table exists.
             if (!let.isExists() && ret.isExists()) {
                 // If left is empty and right is not, DROP RIGHT.
                 ret.addIssue("Schema doesn't exist in 'source'.  Will be DROPPED.");
                 ret.setCreateStrategy(CreateStrategy.DROP);
+                return Boolean.TRUE;
             } else if (let.isExists() && !ret.isExists()) {
                 // If left is defined and right is not, CREATE RIGHT.
                 ret.addIssue("Schema missing, will be CREATED");
@@ -113,7 +114,7 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
                 // If left and right, check schema change and replace if necessary.
                 // Compare Schemas.
                 if (tableMirror.schemasEqual(Environment.LEFT, Environment.RIGHT)) {
-                    if (let.getPartitioned() && hmsMirrorConfig.loadMetadataDetails()) {
+                    if (let.getPartitioned() && config.loadMetadataDetails()) {
                         ret.setCreateStrategy(CreateStrategy.AMEND_PARTS);
                         ret.addIssue(SCHEMA_EXISTS_SYNC_PARTS.getDesc());
                     } else {
@@ -140,23 +141,35 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
             copySpec.setTakeOwnership(Boolean.FALSE);
         } else {
             if (ret.isExists()) {
-                if (TableUtils.isView(ret)) {
-                    ret.addIssue("View exists already.  Will REPLACE.");
-                    ret.setCreateStrategy(CreateStrategy.REPLACE);
+                if (!let.isExists()) {
+                    // Account for the schema only being on the right.
+                    // Issue warning that the right isn't in sync.  Try using the `--sync` option.
+                    // The warning is that no action will be taken and we'll only warning that they aren't in sync.
+                    ret.addIssue(SCHEMA_EXISTS_TARGET_MISMATCH.getDesc());
+                    ret.setCreateStrategy(CreateStrategy.LEAVE);
+                    String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                            SCHEMA_EXISTS_TARGET_MISMATCH.getDesc());
+                    log.warn(msg);
+                    return Boolean.TRUE;
                 } else {
-                    if (hmsMirrorConfig.getCluster(Environment.RIGHT).isCreateIfNotExists()) {
-                        ret.addIssue("Schema exists already.  But you've specified 'createIfNotExist', which will attempt to create " +
-                                "(possibly fail, softly) and continue with the remainder sql statements for the table/partitions.");
-                        ret.setCreateStrategy(CreateStrategy.CREATE);
+                    if (TableUtils.isView(ret)) {
+                        ret.addIssue("View exists already.  Will REPLACE.");
+                        ret.setCreateStrategy(CreateStrategy.REPLACE);
                     } else {
-                        // Already exists, no action.
-                        ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
-                        ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION.getDesc());
-                        ret.setCreateStrategy(CreateStrategy.LEAVE);
-                        String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
-                                SCHEMA_EXISTS_NO_ACTION.getDesc());
-                        log.error(msg);
-                        return Boolean.FALSE;
+                        if (config.getCluster(Environment.RIGHT).isCreateIfNotExists()) {
+                            ret.addIssue("Schema exists already.  But you've specified 'createIfNotExist', which will attempt to create " +
+                                    "(possibly fail, softly) and continue with the remainder sql statements for the table/partitions.");
+                            ret.setCreateStrategy(CreateStrategy.CREATE);
+                        } else {
+                            // Already exists, no action.
+                            ret.addIssue(SCHEMA_EXISTS_NO_ACTION.getDesc());
+                            ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION.getDesc());
+                            ret.setCreateStrategy(CreateStrategy.LEAVE);
+                            String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                                    SCHEMA_EXISTS_NO_ACTION.getDesc());
+                            log.error(msg);
+                            return Boolean.FALSE;
+                        }
                     }
                 }
             } else {
@@ -174,8 +187,12 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
         // Rebuild Target from Source.
         if (!TableUtils.isACID(let)
                 || (TableUtils.isACID(let)
-                && hmsMirrorConfig.getMigrateACID().isOn())) {
-            rtn = buildTableSchema(copySpec);
+                && config.getMigrateACID().isOn())) {
+            if (!(!let.isExists() & ret.isExists() && config.isSync())) {
+                rtn = buildTableSchema(copySpec);
+            } else {
+                rtn = Boolean.TRUE;
+            }
         } else {
             let.addError(TableUtils.ACID_NOT_ON);
             ret.setCreateStrategy(CreateStrategy.NOTHING);
@@ -183,7 +200,7 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
         }
 
         // If not legacy, remove location from ACID tables.
-        if (rtn && !hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive() &&
+        if (rtn && !config.getCluster(Environment.LEFT).isLegacyHive() &&
                 TableUtils.isACID(let)) {
             TableUtils.stripLocation(let.getName(), let.getDefinition());
         }

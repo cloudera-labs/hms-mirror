@@ -39,7 +39,7 @@ databases:
             owner: null
             partitions:
               num=OJQGDqpNbXutid1: "hdfs://HOME90/warehouse/tablespace/managed/hive/assort_test_db.db/acid_03/num=OJQGDqpNbXutid1"
-              num=cvwYkp4mRuPGpPk: "hdfs://HOME90/warehouse/tablespace/managed/hive/assort_test_db.db/acid_03/num=cvwYkp4mRuPGpPk"
+              num=cvwYkp4mRuPGpPk: "hdfs://HOME90/warehouse/tablespace/managed/hive/assort_test_db.db/acid_SOMEWHERE/num=cvwYkp4mRuPGpPk"
               num=seQJ0ObBxdzRWLL: "hdfs://HOME90/warehouse/tablespace/managed/hive/assort_test_db.db/acid_03/num=seQJ0ObBxdzRWLL"
               num=RriOSG8gQamPDy1: "hdfs://HOME90/warehouse/tablespace/managed/hive/assort_test_db.db/acid_03/num=RriOSG8gQamPDy1"
               num=jDTxFofTg8LEBOf: "hdfs://HOME90/warehouse/tablespace/managed/hive/assort_test_db.db/acid_03/num=jDTxFofTg8LEBOf"

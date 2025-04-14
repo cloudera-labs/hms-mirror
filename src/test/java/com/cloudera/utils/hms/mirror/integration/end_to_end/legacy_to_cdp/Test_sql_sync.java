@@ -18,7 +18,9 @@
 package com.cloudera.utils.hms.mirror.integration.end_to_end.legacy_to_cdp;
 
 import com.cloudera.utils.hms.mirror.cli.Mirror;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
+import com.cloudera.utils.hms.util.TableUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -72,5 +74,9 @@ public class Test_sql_sync extends E2EBaseTest {
         assertEquals("Return Code Failure: " + rtn, check * -1, rtn);
     }
 
-
+    @Test
+    public void checkForDropTableTest() {
+        validateTableSqlPair("assorted_test_db", Environment.RIGHT, "ext_missing_01", TableUtils.DROP_DESC,
+                "DROP TABLE IF EXISTS ext_missing_01");
+    }
 }

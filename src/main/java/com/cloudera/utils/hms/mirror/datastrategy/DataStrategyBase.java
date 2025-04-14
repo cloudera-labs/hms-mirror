@@ -484,14 +484,6 @@ public abstract class DataStrategyBase implements DataStrategy {
                         }
                     }
 
-                    // Add props to definition.
-                    if (tableMirror.whereTherePropsAdded(copySpec.getTarget())) {
-                        Set<String> keys = target.getAddProperties().keySet();
-                        for (String key : keys) {
-                            TableUtils.upsertTblProperty(key, target.getAddProperties().get(key), target);
-                        }
-                    }
-
                     if (!copySpec.isTakeOwnership() && config.getDataStrategy() != DataStrategyEnum.STORAGE_MIGRATION) {
                         TableUtils.removeTblProperty(EXTERNAL_TABLE_PURGE, target);
                     }
@@ -502,6 +494,14 @@ public abstract class DataStrategyBase implements DataStrategy {
                         TableUtils.removeTblProperty(EXTERNAL_TABLE_PURGE, target);
                         TableUtils.removeTblProperty(DISCOVER_PARTITIONS, target);
                         TableUtils.removeTblProperty(BUCKETING_VERSION, target);
+                    }
+
+                    // Add props to definition.
+                    if (tableMirror.whereTherePropsAdded(copySpec.getTarget())) {
+                        Set<String> keys = target.getAddProperties().keySet();
+                        for (String key : keys) {
+                            TableUtils.upsertTblProperty(key, target.getAddProperties().get(key), target);
+                        }
                     }
 
                 } else if (TableUtils.isView(target)) {
@@ -515,6 +515,8 @@ public abstract class DataStrategyBase implements DataStrategy {
 
                 TableUtils.fixTableDefinition(target);
             }
+            // Set this so that checks can be done on the target.
+            target.setExists(Boolean.TRUE);
         } catch (MismatchException e) {
             log.error("Error building table schema: {}", e.getMessage(), e);
             source.addError("Error building table schema: " + e.getMessage());

@@ -81,21 +81,28 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
             CopySpec rightSpec = new CopySpec(tableMirror, Environment.LEFT, Environment.RIGHT);
 
             if (ret.isExists()) {
-                if (!TableUtils.isACID(ret) && hmsMirrorConfig.getCluster(Environment.RIGHT).isCreateIfNotExists() && hmsMirrorConfig.isSync()) {
-                    ret.addIssue(CINE_WITH_EXIST.getDesc());
-                    ret.setCreateStrategy(CreateStrategy.CREATE);
-                } else if (TableUtils.isACID(ret) && hmsMirrorConfig.isSync()) {
-                    ret.addIssue(SCHEMA_EXISTS_SYNC_ACID.getDesc());
-                    ret.setCreateStrategy(CreateStrategy.REPLACE);
+                if (let.isExists()) {
+                    if (!TableUtils.isACID(ret) && hmsMirrorConfig.getCluster(Environment.RIGHT).isCreateIfNotExists() && hmsMirrorConfig.isSync()) {
+                        ret.addIssue(CINE_WITH_EXIST.getDesc());
+                        ret.setCreateStrategy(CreateStrategy.CREATE);
+                    } else if (TableUtils.isACID(ret) && hmsMirrorConfig.isSync()) {
+                        ret.addIssue(SCHEMA_EXISTS_SYNC_ACID.getDesc());
+                        ret.setCreateStrategy(CreateStrategy.REPLACE);
+                    } else {
+                        // Already exists, no action.
+                        ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                        ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                        ret.setCreateStrategy(CreateStrategy.NOTHING);
+                        String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
+                                SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
+                        log.error(msg);
+                        return Boolean.FALSE;
+                    }
                 } else {
-                    // Already exists, no action.
-                    ret.addIssue(SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
-                    ret.addSql(SKIPPED.getDesc(), "-- " + SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
-                    ret.setCreateStrategy(CreateStrategy.NOTHING);
-                    String msg = MessageFormat.format(TABLE_ISSUE.getDesc(), tableMirror.getParent().getName(), tableMirror.getName(),
-                            SCHEMA_EXISTS_NO_ACTION_DATA.getDesc());
-                    log.error(msg);
-                    return Boolean.FALSE;
+                    // Left doesn't exist, but the right does.  Report and do nothing.
+                    ret.setCreateStrategy(CreateStrategy.LEAVE);
+                    ret.addIssue(SCHEMA_EXISTS_TARGET_MISMATCH.getDesc());
+                    return Boolean.TRUE;
                 }
             } else {
                 ret.setCreateStrategy(CreateStrategy.CREATE);

@@ -30,23 +30,16 @@ import static org.junit.Assert.assertEquals;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Mirror.class,
         args = {
-//                "--hms-mirror.config.reset-to-default-location=true",
-                "--hms-mirror.config.align-locations=true",
-                "--hms-mirror.config.warehouse-plans=assorted_test_db=/warehouse/external:/warehouse/managed",
-//                "--hms-mirror.config.warehouse-directory=/warehouse/managed",
-//                "--hms-mirror.config.external-warehouse-directory=/warehouse/external",
-                "--hms-mirror.config.distcp=true",
-                "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_missing_01.yaml",
+                "--hms-mirror.config.read-only=true",
+                "--hms-mirror.config.sync=true",
+                "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_01.yaml",
                 "--hms-mirror.config.filename=/config/default.yaml.cdp-cdp",
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp_cdp/so_rdl_dc_wd"
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp_cdp/so_sync_ro"
         })
 @Slf4j
-public class Test_so_rdl_dc_wd extends E2EBaseTest {
+public class Test_so_sync_ro extends E2EBaseTest {
     //        String[] args = new String[]{
-//                "-rdl",
-//                "-dc",
-//                "-wd", "/warehouse/managed",
-//                "-ewd", "/warehouse/external",
+//                "-ro",
 //                "-ltd", ASSORTED_TBLS_04,
 //                "-cfg", CDP_CDP,
 //                "-o", outputDir
@@ -55,7 +48,7 @@ public class Test_so_rdl_dc_wd extends E2EBaseTest {
 //        long rtn = 0;
 //        MirrorLegacy mirror = new MirrorLegacy();
 //        rtn = mirror.go(args);
-//        int check = 0;
+//        long check = 0;
 //        assertEquals("Return Code Failure: " + rtn + " doesn't match: " + check, check, rtn);
 
     @Test
