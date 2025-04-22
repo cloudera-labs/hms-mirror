@@ -70,7 +70,7 @@
                th:text="#{button.add}"/>
             <!--                        th:formmethod="get"-->
         </div>
-        <div th:replace="fragments/modal::modal1('whAddModal', 'whModalBtn', 'Please wait.  Gathering database list.')">
+        <div th:replace="~{fragments/modal::modal1('whAddModal', 'whModalBtn', 'Please wait.  Gathering database list.')}">
         </div>
     </fieldset>
 </div>

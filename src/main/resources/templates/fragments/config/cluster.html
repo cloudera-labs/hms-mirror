@@ -121,10 +121,10 @@
                     <!--                    </div>-->
                 </div>
                 <div class="pure-u-3-4" style="vertical-align: top;">
-                    <div th:insert="fragments/config/hiveserver2::view(${env})"
+                    <div th:insert="~{fragments/config/hiveserver2::view(${env})}"
                          th:if="${CONFIG.getCluster(env).getHiveServer2() != null}">
                     </div>
-                    <div th:insert="fragments/config/metastoredirect::view(${env})"
+                    <div th:insert="~{fragments/config/metastoredirect::view(${env})}"
                          th:if="${CONFIG.getCluster(env).getMetastoreDirect() != null}">
                     </div>
                 </div>

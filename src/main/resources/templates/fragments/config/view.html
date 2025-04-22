@@ -46,7 +46,7 @@
 <!--               style="horiz-align: center">-->
 <!--                <h4 th:text="#{config.dataStrategy(${CONFIG.dataStrategy})}"/></a>-->
 
-            <div id="messages" th:insert="fragments/messages::view">
+            <div id="messages" th:insert="~{fragments/messages::view}">
             </div>
 
             <div class="pure-menu pure-menu-horizontal menubox">
@@ -173,58 +173,58 @@
 <!--            <div id="password_management" class="tabcontent">-->
 <!--                <div th:insert="fragments/config/passwordManagement::main"></div>-->
 <!--            </div>-->
-            <div id="databases" class="tabcontent" th:insert="fragments/config/databases::view">
+            <div id="databases" class="tabcontent" th:insert="~{fragments/config/databases::view}">
             </div>
-            <div id="dbSkipProperties" class="tabcontent" th:insert="fragments/config/databaseSkipProperties::view">
+            <div id="dbSkipProperties" class="tabcontent" th:insert="~{fragments/config/databaseSkipProperties::view}">
             </div>
-            <div id="warehousePlans" class="tabcontent" th:insert="fragments/config/warehousePlans::view">
+            <div id="warehousePlans" class="tabcontent" th:insert="~{fragments/config/warehousePlans::view}">
             </div>
-            <div id="regex" class="tabcontent" th:insert="fragments/config/regex::view">
+            <div id="regex" class="tabcontent" th:insert="~{fragments/config/regex::view}">
             </div>
-            <div id="limits" class="tabcontent" th:insert="fragments/config/limits::view">
+            <div id="limits" class="tabcontent" th:insert="~{fragments/config/limits::view}">
             </div>
-            <div id="redirects" class="tabcontent" th:insert="fragments/config/redirects::view">
+            <div id="redirects" class="tabcontent" th:insert="~{fragments/config/redirects::view}">
             </div>
 
             <!--            =========================== -->
-            <div id="datamovement" class="tabcontent" th:insert="fragments/config/datamovement::view">
+            <div id="datamovement" class="tabcontent" th:insert="~{fragments/config/datamovement::view}">
             </div>
-            <div id="warehouse" class="tabcontent" th:insert="fragments/config/warehouse::view">
+            <div id="warehouse" class="tabcontent" th:insert="~{fragments/config/warehouse::view}">
             </div>
-            <div id="migrate" class="tabcontent" th:insert="fragments/config/migrate::view">
+            <div id="migrate" class="tabcontent" th:insert="~{fragments/config/migrate::view}">
             </div>
-            <div id="transfer" class="tabcontent" th:insert="fragments/config/transfer::view">
+            <div id="transfer" class="tabcontent" th:insert="~{fragments/config/transfer::view}">
             </div>
-            <div id="misc" class="tabcontent" th:insert="fragments/config/misc::view">
+            <div id="misc" class="tabcontent" th:insert="~{fragments/config/misc::view}">
             </div>
-            <div id="optimizations" class="tabcontent" th:insert="fragments/config/optimizations::optimizations">
+            <div id="optimizations" class="tabcontent" th:insert="~{fragments/config/optimizations::optimizations}">
             </div>
 
             <div id="left_cluster" class="tabcontent" th:if="${CONFIG.getCluster('LEFT') != null}"
-                 th:insert="fragments/config/cluster::main('LEFT')">
+                 th:insert="~{fragments/config/cluster::main('LEFT')}">
             </div>
 
             <div id="right_cluster" class="tabcontent" th:if="${CONFIG.getCluster('RIGHT') != null}"
-                 th:insert="fragments/config/cluster::main('RIGHT')">
+                 th:insert="~{fragments/config/cluster::main('RIGHT')}">
             </div>
         </form>
         <div id="propertyOverrides" class="tabcontent">
-            <div th:insert="fragments/config/propOverrides::view">
+            <div th:insert="~{fragments/config/propOverrides::view}">
 
             </div>
         </div>
         <div id="glmBuild" class="tabcontent">
-            <div th:insert="fragments/config/glmBuild::view">
+            <div th:insert="~{fragments/config/glmBuild::view}">
 
             </div>
         </div>
         <div id="glm" class="tabcontent">
-            <div th:insert="fragments/config/glm::view(false)">
+            <div th:insert="~{fragments/config/glm::view(false)}">
 
             </div>
         </div>
         <div id="sources" class="tabcontent">
-            <div th:insert="fragments/config/glmSources::view"
+            <div th:insert="~{fragments/config/glmSources::view}"
                  th:if="${CONFIG.translator.warehouseMapBuilder != null && CONFIG.translator.warehouseMapBuilder.sources.size() >0 }">
 
             </div>

@@ -29,17 +29,17 @@
 </head>
 <body>
 <div class="pure-g">
-    <div class="pure-u-1" th:insert="fragments/header::header">
+    <div class="pure-u-1" th:insert="~{fragments/header::header}">
     </div>
-    <div class="pure-u-1-6" th:insert="fragments/nav::left_nav">
+    <div class="pure-u-1-6" th:insert="~{fragments/nav::left_nav}">
     </div>
     <div class="pure-u-5-6">
-            <div class="pure-u-1" th:insert="fragments/run_status :: view">
+            <div class="pure-u-1" th:insert="~{fragments/run_status :: view}">
             </div>
-        <div class="pure-u-1" th:insert="fragments/reports :: view">
+        <div class="pure-u-1" th:insert="~{fragments/reports :: view}">
         </div>
     </div>
-    <div class="pure-u-1" th:insert="fragments/footer::footer">
+    <div class="pure-u-1" th:insert="~{fragments/footer::footer}">
     </div>
 </div>
 </body>

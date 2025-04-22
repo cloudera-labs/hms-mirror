@@ -57,7 +57,7 @@
     <div class="pure-u-1">
         <fieldset>
             <legend th:text="#{messages.basic}"/>
-            <div th:insert="fragments/messages::view">
+            <div th:insert="~{fragments/messages::view}">
             </div>
         </fieldset>
     </div>
@@ -67,7 +67,7 @@
     <div class="pure-u-1">
     <fieldset>
         <legend th:text="#{config}"/>
-        <div th:insert="reports/fileview::view">
+        <div th:insert="~{reports/fileview::view}">
         </div>
     </fieldset>
     </div>

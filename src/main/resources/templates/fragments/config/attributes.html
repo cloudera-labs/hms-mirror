@@ -43,38 +43,38 @@
             <!--                    </div>-->
             <!--                </td>-->
             <!--                <td colspan="2" class="pure-form-stacked">-->
-            <!--                    <div th:insert="fragments/config/warehouse::view"-->
+            <!--                    <div th:insert="~{fragments/config/warehouse::view}"-->
             <!--                         th:if="${('HYBRID SQL EXPORT_IMPORT COMMON SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">-->
             <!--                    </div>-->
             <!--                </td>-->
             <!--            </tr>-->
             <tr>
                 <td>
-                    <div th:insert="fragments/config/datamovement::view"
+                    <div th:insert="~{fragments/config/datamovement::view}"
                          th:if="${('HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY COMMON').contains(CONFIG.dataStrategy.toString())}">
                     </div>
                 </td>
                 <td colspan="2">
-                    <div th:insert="fragments/config/warehouse::view"
+                    <div th:insert="~{fragments/config/warehouse::view}"
                          th:if="${('HYBRID SQL EXPORT_IMPORT COMMON SCHEMA_ONLY').contains(CONFIG.dataStrategy.toString())}">
                     </div>
                 </td>
             </tr>
             <tr>
                 <td>
-                    <div th:insert="fragments/config/misc::view">
+                    <div th:insert="~{fragments/config/misc::view}">
                     </div>
                 </td>
                 <td>
-                    <div th:insert="fragments/config/migrate::view"
+                    <div th:insert="~{fragments/config/migrate::view}"
                          th:if="${('HYBRID SQL EXPORT_IMPORT STORAGE_MIGRATION SCHEMA_ONLY DUMP COMMON').contains(CONFIG.dataStrategy.toString())}">
                     </div>
-                    <div th:insert="fragments/config/transfer::view"
+                    <div th:insert="~{fragments/config/transfer::view}"
                          th:unless="${('LINKED').contains(CONFIG.dataStrategy.toString())}">
                     </div>
                 </td>
                 <td>
-                    <div th:insert="fragments/config/optimizations::optimizations"
+                    <div th:insert="~{fragments/config/optimizations::optimizations}"
                          th:unless="${('LINKED').contains(CONFIG.dataStrategy.toString())}">
                     </div>
                     <!--                    <div th:insert="fragments/config/standards::standards"-->

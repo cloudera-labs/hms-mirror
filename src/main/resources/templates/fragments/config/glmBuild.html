@@ -65,7 +65,7 @@
                 <button id="buildModalBtn" class="pure-button pure-button-primary" type="submit"
                         th:text="#{button.build}"/>
             </div>
-            <div th:replace="fragments/modal::modal2('buildModal','buildModalBtn', 'Please wait.  Building Sources from Warehouse Plan Databases.')">
+            <div th:replace="~{fragments/modal::modal2('buildModal','buildModalBtn', 'Please wait.  Building Sources from Warehouse Plan Databases.')}">
 
             </div>
         </fieldset>

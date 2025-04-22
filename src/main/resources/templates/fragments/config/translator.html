@@ -30,17 +30,17 @@
 <div th:fragment="translator">
     <div class="pure-g">
         <div class="pure-u-1-4">
-            <div th:insert="fragments/config/glmBuild::view">
+            <div th:insert="~{fragments/config/glmBuild::view}">
 
             </div>
         </div>
         <div class="pure-u-3-4">
-            <div th:insert="fragments/config/glm::view(false)">
+            <div th:insert="~{fragments/config/glm::view(false)}">
 
             </div>
         </div>
         <div class="pure-u-1">
-            <div th:insert="fragments/config/glmSources::view"
+            <div th:insert="~{fragments/config/glmSources::view}"
             th:if="${CONFIG.translator.warehouseMapBuilder != null && CONFIG.translator.warehouseMapBuilder.sources.size() >0 }">
 
             </div>

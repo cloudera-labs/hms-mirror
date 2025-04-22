@@ -65,7 +65,7 @@
             </div>
             <div class="pure-u-1-3">
                 <!--    Show the Warehouse Plans for STORAGE_MIGRATION -->
-                <div th:insert="fragments/config/warehousePlans::view"
+                <div th:insert="~{fragments/config/warehousePlans::view}"
                      th:if="${('WAREHOUSE_PLANS UNDETERMINED').contains(CONFIG.getDatabaseFilterType().toString())}">
                 </div>
             </div>

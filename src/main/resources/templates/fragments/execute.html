@@ -35,7 +35,7 @@
                     th:if="${RUN_STATUS != null}"
                     th:unless="${RUN_STATUS.getErrorMessages().size() == 0}">
                 <p th:text="#{session.errors}"/>
-                <div th:insert="fragments/messages::view"></div>
+                <div th:insert="~{fragments/messages::view}"></div>
             </th:block>
             <fieldset>
                 <legend th:text="#{execute}"/>
@@ -103,7 +103,7 @@
                     <!--            </div>-->
 
                 </form>
-                <div th:replace="fragments/modal::modal1('execModal', 'execModalBtn', 'Please wait.  Connecting and gathering data points to run.')">
+                <div th:replace="~{fragments/modal::modal1('execModal', 'execModalBtn', 'Please wait.  Connecting and gathering data points to run.')}">
                 </div>
             </fieldset>
         </div>

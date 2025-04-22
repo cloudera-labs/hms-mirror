@@ -1,0 +1,897 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+type: object
+properties:
+  acceptance:
+    type: object
+    description: "Configures safety checks to ensure the migration environment is prepared, preventing accidental data loss or misconfiguration. All fields must be acknowledge (true) before being allowed to 'execute' the process."
+    default:
+      silentOverride: false
+      backedUpHDFS: false
+      backedUpMetastore: false
+      trashConfigured: false
+      potentialDataLoss: false
+    properties:
+      silentOverride:
+        type: boolean
+        description: "When true, bypasses interactive prompts for safety checks, assuming all conditions are met. Use cautiously to avoid errors."
+        default: false
+      backedUpHDFS:
+        type: boolean
+        description: "Indicates whether the HDFS filesystem for Hive data has been backed up. Set to true to confirm backups exist before migration."
+        default: false
+      backedUpMetastore:
+        type: boolean
+        description: "Confirms that the Hive metastore database is backed up. Set to true to ensure metadata safety before migration."
+        default: false
+      trashConfigured:
+        type: boolean
+        description: "Verifies that HDFS trash is enabled to recover deleted files. Set to true to confirm trash is configured."
+        default: false
+      potentialDataLoss:
+        type: boolean
+        description: "Acknowledges the risk of data loss during migration. Set to true to proceed despite potential risks (rarely used)."
+        default: false
+    required:
+      - silentOverride
+      - backedUpHDFS
+      - backedUpMetastore
+      - trashConfigured
+      - potentialDataLoss
+  beta:
+    type: boolean
+    description: "Enables experimental features of HMS-Mirror when true. Use with caution, as beta features may be unstable."
+    default: false
+  clusters:
+    type: object
+    description: "Defines the source (LEFT) and destination (RIGHT) clusters for migration, including connectivity and Hive settings."
+    default:
+      LEFT: {}
+      RIGHT: {}
+    properties:
+      LEFT:
+        $ref: "#/definitions/cluster"
+        description: "Configuration for the source cluster (LEFT), where Hive tables and metadata are read from."
+      RIGHT:
+        $ref: "#/definitions/cluster"
+        description: "Configuration for the destination cluster (RIGHT), where tables and metadata are migrated to."
+    required:
+      - LEFT
+      - RIGHT
+  commandLineOptions:
+    type: [string, "null"]
+    description: "Stores additional command-line arguments passed to HMS-Mirror, if any. Typically null unless overriding config via CLI."
+    default: null
+  copyAvroSchemaUrls:
+    type: boolean
+    description: "When true, copies Avro schema URLs during migration to ensure compatibility for Avro-based tables. This feature does require line of site between cluster in order for `hms-mirror` to copy the schema between clusters. The copy will be performed by the user credentials used to run `hms-mirror`."
+    default: false
+  connectionPoolLib:
+    type: [string, "null"]
+    enum: ["DBCP2", "HIKARICP", "HYBRID"]
+    description: "Specifies an external library for connection pooling, if used. Null for default HikariCP pooling. This value is set by the choices made regarding the cluster version."
+    default: null
+  dataStrategy:
+    type: string
+    enum: ["SQL", "SCHEMA_ONLY", "EXPORT_IMPORT", "HYBRID", "LINKED", "CONVERT_LINKED", "STORAGE_MIGRATION", "COMMON"]
+    description: "Defines how data and schemas are migrated. Options include SCHEMA_ONLY (metadata only), SQL (data via SQL queries), EXPORT_IMPORT (export/import tables), HYBRID (combined approach), and others."
+    default: "SQL"
+  databaseOnly:
+    type: boolean
+    description: "When true, migrates only database definitions without tables. Useful for setting up empty databases."
+    default: false
+  dumpTestData:
+    type: boolean
+    description: "When true, generates test data for validation during migration. Primarily for debugging."
+    default: false
+  loadTestDataFile:
+    type: [string, "null"]
+    description: "Path to a file containing test data to load during migration. Null if not using test data."
+    default: null
+  filter:
+    type: object
+    description: "Applies filters to select specific databases or tables for migration based on patterns or limits."
+    default:
+      dbRegEx: ""
+      dbPropertySkipList: []
+      tblExcludeRegEx: ""
+      tblRegEx: ""
+      tblSizeLimit: -1
+      tblPartitionLimit: -1
+    properties:
+      dbRegEx:
+        type: string
+        description: "Regular expression to match database names for migration. Empty string includes all databases."
+        default: ""
+      dbPropertySkipList:
+        type: array
+        items:
+          type: string
+        description: "List of database properties to exclude during migration (e.g., custom metadata keys)."
+        default: []
+      tblExcludeRegEx:
+        type: string
+        description: "Regular expression to exclude tables from migration. Empty string includes all tables."
+        default: ""
+      tblRegEx:
+        type: string
+        description: "Regular expression to include specific tables for migration. Empty string includes all tables."
+        default: ""
+      tblSizeLimit:
+        type: integer
+        description: "Maximum table size (in bytes) to migrate. -1 for no limit."
+        default: -1
+      tblPartitionLimit:
+        type: integer
+        description: "Maximum number of partitions per table to migrate. -1 for no limit."
+        default: -1
+    required:
+      - dbRegEx
+      - dbPropertySkipList
+      - tblExcludeRegEx
+      - tblRegEx
+      - tblSizeLimit
+      - tblPartitionLimit
+  skipLinkCheck:
+    type: boolean
+    description: "When true, skips validation of links between clusters, speeding up setup but risking connectivity issues."
+    default: false
+  databases:
+    type: array
+    items:
+      type: string
+    description: "List of specific database names to migrate. Empty array migrates all databases matching filters."
+    default: []
+  legacyTranslations:
+    type: object
+    description: "Maps legacy Hive SerDe definitions to modern equivalents for compatibility during migration."
+    default:
+      rowSerde: {}
+    properties:
+      rowSerde:
+        type: object
+        additionalProperties:
+          type: string
+        description: "Key-value pairs mapping old SerDe classes to new ones (e.g., fixing deprecated Hive SerDes)."
+        default: {}
+    required:
+      - rowSerde
+  dbPrefix:
+    type: string
+    description: "Prefix to add to database names on the destination cluster. Empty string for no prefix."
+    default: ""
+  dbRename:
+    type: string
+    description: "New name for databases on the destination. Empty string retains original names."
+    default: ""
+  dumpSource:
+    type: string
+    enum: ["LEFT"]
+    description: "Specifies the source cluster for dumping schemas or data. Typically set to 'LEFT'."
+    default: "LEFT"
+  execute:
+    type: boolean
+    description: "When true, executes the migration. False performs a dry run, generating scripts without applying changes."
+    default: false
+  hybrid:
+    type: object
+    description: "Configures thresholds for the HYBRID data strategy, balancing SQL and EXPORT_IMPORT approaches."
+    default:
+      exportImportPartitionLimit: 100
+      sqlPartitionLimit: 500
+      sqlSizeLimit: 1073741824
+    properties:
+      exportImportPartitionLimit:
+        type: integer
+        description: "Maximum partitions for using EXPORT_IMPORT in HYBRID strategy. Above this, SQL is used."
+        default: 100
+      sqlPartitionLimit:
+        type: integer
+        description: "Maximum partitions for using SQL in HYBRID strategy. Above this, other methods apply."
+        default: 500
+      sqlSizeLimit:
+        type: integer
+        description: "Maximum table size (bytes) for SQL in HYBRID strategy. Above this, other methods apply."
+        default: 1073741824
+    required:
+      - exportImportPartitionLimit
+      - sqlPartitionLimit
+      - sqlSizeLimit
+  icebergConversion:
+    type: object
+    description: "Controls conversion of tables to Iceberg format during migration."
+    default:
+      enable: false
+      fileTypeTranslation: "STANDARD"
+      version: 2
+      tableProperties: {}
+      inplace: false
+    properties:
+      enable:
+        type: boolean
+        description: "When true, converts tables to Apache Iceberg format on the destination."
+        default: false
+      fileTypeTranslation:
+        type: string
+        enum: ["STANDARD"]
+        description: "Defines how file formats are translated for Iceberg (e.g., 'STANDARD' for default mapping)."
+        default: "STANDARD"
+      version:
+        type: integer
+        description: "Iceberg table format version (e.g., 2 for current standard)."
+        default: 2
+      tableProperties:
+        type: object
+        additionalProperties: true
+        description: "Custom properties to apply to Iceberg tables (e.g., storage settings)."
+        default: {}
+      inplace:
+        type: boolean
+        description: "When true, converts tables in place. False creates new Iceberg tables."
+        default: false
+    required:
+      - enable
+      - fileTypeTranslation
+      - version
+      - tableProperties
+      - inplace
+  migrateACID:
+    type: object
+    description: "Manages migration of ACID (transactional) Hive tables, including downgrading options."
+    default:
+      on: false
+      only: false
+      artificialBucketThreshold: 2
+      partitionLimit: 500
+      downgrade: false
+      inplace: false
+    properties:
+      on:
+        type: boolean
+        description: "When true, includes ACID tables in the migration."
+        default: false
+      only:
+        type: boolean
+        description: "When true, migrates only ACID tables, excluding non-ACID tables."
+        default: false
+      artificialBucketThreshold:
+        type: integer
+        description: "Minimum number of buckets for ACID tables to optimize performance."
+        default: 2
+      partitionLimit:
+        type: integer
+        description: "Maximum partitions per ACID table to migrate, controlling resource usage."
+        default: 500
+      downgrade:
+        type: boolean
+        description: "When true, converts ACID tables to non-ACID (external) tables on the destination."
+        default: false
+      inplace:
+        type: boolean
+        description: "When true, modifies ACID tables in place. False creates new tables."
+        default: false
+    required:
+      - on
+      - only
+      - artificialBucketThreshold
+      - partitionLimit
+      - downgrade
+      - inplace
+  migrateVIEW:
+    type: object
+    description: "Controls migration of Hive views between clusters."
+    default:
+      on: false
+    properties:
+      on:
+        type: boolean
+        description: "When true, migrates views. Requires dependent tables to exist on the destination."
+        default: false
+    required:
+      - on
+  migrateNonNative:
+    type: boolean
+    description: "When true, migrates non-native Hive tables (e.g., HBase-backed tables), if supported."
+    default: false
+  optimization:
+    type: object
+    description: "Configures performance optimizations for the migration process."
+    default:
+      sortDynamicPartitionInserts: false
+      skip: false
+      autoTune: false
+      compressTextOutput: false
+      skipStatsCollection: false
+      overrides:
+        properties: {}
+      buildShadowStatistics: false
+    properties:
+      sortDynamicPartitionInserts:
+        type: boolean
+        description: "When true, sorts data during dynamic partition inserts for better performance."
+        default: false
+      skip:
+        type: boolean
+        description: "When true, disables all optimizations, using default migration settings."
+        default: false
+      autoTune:
+        type: boolean
+        description: "When true, automatically adjusts migration settings for optimal performance."
+        default: false
+      compressTextOutput:
+        type: boolean
+        description: "When true, compresses text output files to reduce storage needs."
+        default: false
+      skipStatsCollection:
+        type: boolean
+        description: "When true, skips collecting table statistics, speeding up migration."
+        default: false
+      overrides:
+        type: object
+        description: "Custom Hive properties to override during migration."
+        default:
+          properties: {}
+        properties:
+          properties:
+            type: object
+            additionalProperties: true
+            description: "Custom Hive properties to override during migration (e.g., execution engine)."
+            default: {}
+        required:
+          - properties
+      buildShadowStatistics:
+        type: boolean
+        description: "When true, generates shadow statistics for tables, aiding query performance."
+        default: false
+    required:
+      - sortDynamicPartitionInserts
+      - skip
+      - autoTune
+      - compressTextOutput
+      - skipStatsCollection
+      - overrides
+      - buildShadowStatistics
+  encryptedPasswords:
+    type: boolean
+    description: "When true, expects encrypted passwords in cluster configurations for enhanced security."
+    default: false
+  quiet:
+    type: boolean
+    description: "When true, suppresses detailed console output, showing only critical messages."
+    default: false
+  readOnly:
+    type: boolean
+    description: "When true, prevents any write operations, limiting HMS-Mirror to read-only analysis."
+    default: false
+  noPurge:
+    type: boolean
+    description: "When true, prevents purging of destination tables, preserving existing data."
+    default: false
+  replace:
+    type: boolean
+    description: "When true, replaces existing tables on the destination with migrated versions."
+    default: false
+  resetRight:
+    type: boolean
+    description: "When true, resets the destination (RIGHT) cluster’s metastore before migration."
+    default: false
+  saveWorkingTables:
+    type: boolean
+    description: "When true, retains temporary working tables created during migration."
+    default: false
+  skipFeatures:
+    type: boolean
+    description: "When true, skips special feature checks (e.g., fixing bad ORC definitions) during migration."
+    default: false
+  skipLegacyTranslation:
+    type: boolean
+    description: "When true, bypasses translation of legacy Hive formats, using native definitions."
+    default: false
+  sqlOutput:
+    type: boolean
+    description: "When true, generates SQL scripts for migration actions, stored in output reports."
+    default: true
+  suppressCliWarnings:
+    type: boolean
+    description: "When true, suppresses CLI warnings, reducing noise during execution."
+    default: false
+  sync:
+    type: boolean
+    description: "When true, synchronizes source and destination databases, ensuring consistency."
+    default: false
+  transfer:
+    type: object
+    description: "Configures data transfer settings, including prefixes and storage migration details."
+    default:
+      transferPrefix: "hms_mirror_transfer_"
+      shadowPrefix: "hms_mirror_shadow_"
+      storageMigrationPostfix: "_storage_migration"
+      exportBaseDirPrefix: "/apps/hive/warehouse/export_"
+      remoteWorkingDirectory: "hms_mirror_working"
+      intermediateStorage: ""
+      targetNamespace: null
+      storageMigration:
+        translationType: "RELATIVE"
+        dataMovementStrategy: "SQL"
+        dataFlow: "PULL"
+        skipDatabaseLocationAdjustments: false
+        createArchive: false
+        consolidateTablesForDistcp: false
+        strict: false
+      warehouse:
+        source: "GLOBAL"
+        externalDirectory: null
+        managedDirectory: null
+    properties:
+      transferPrefix:
+        type: string
+        description: "Prefix for temporary transfer tables (e.g., 'hms_mirror_transfer_')."
+        default: "hms_mirror_transfer_"
+      shadowPrefix:
+        type: string
+        description: "Prefix for shadow tables used during migration (e.g., 'hms_mirror_shadow_')."
+        default: "hms_mirror_shadow_"
+      storageMigrationPostfix:
+        type: string
+        description: "Postfix for tables during storage migration (e.g., '_storage_migration')."
+        default: "_storage_migration"
+      exportBaseDirPrefix:
+        type: string
+        description: "Base directory for exported tables (e.g., '/apps/hive/warehouse/export_')."
+        default: "/apps/hive/warehouse/export_"
+      remoteWorkingDirectory:
+        type: string
+        description: "Temporary working directory on the remote cluster for migration tasks."
+        default: "hms_mirror_working"
+      intermediateStorage:
+        type: string
+        description: "Intermediate storage location for data transfer. Empty for default."
+        default: ""
+      targetNamespace:
+        type: [string, "null"]
+        description: "Target namespace for migrated tables. Null for default namespace."
+        default: null
+      storageMigration:
+        type: object
+        description: "Settings for migrating storage locations between clusters."
+        default:
+          translationType: "RELATIVE"
+          dataMovementStrategy: "SQL"
+          dataFlow: "PULL"
+          skipDatabaseLocationAdjustments: false
+          createArchive: false
+          consolidateTablesForDistcp: false
+          strict: false
+        properties:
+          translationType:
+            type: string
+            enum: ["RELATIVE"]
+            description: "Path translation method for storage migration ('RELATIVE' keeps relative paths)."
+            default: "RELATIVE"
+          dataMovementStrategy:
+            type: string
+            enum: ["SQL"]
+            description: "Method for moving data during storage migration ('SQL' uses SQL queries)."
+            default: "SQL"
+          dataFlow:
+            type: string
+            enum: ["PULL"]
+            description: "Direction of data movement ('PULL' retrieves data to destination)."
+            default: "PULL"
+          skipDatabaseLocationAdjustments:
+            type: boolean
+            description: "When true, skips adjusting database locations on the destination."
+            default: false
+          createArchive:
+            type: boolean
+            description: "When true, creates an archive of migrated data for backup."
+            default: false
+          consolidateTablesForDistcp:
+            type: boolean
+            description: "When true, consolidates tables for efficient distcp data transfer."
+            default: false
+          strict:
+            type: boolean
+            description: "When true, enforces strict validation during storage migration."
+            default: false
+        required:
+          - translationType
+          - dataMovementStrategy
+          - dataFlow
+          - skipDatabaseLocationAdjustments
+          - createArchive
+          - consolidateTablesForDistcp
+          - strict
+      warehouse:
+        type: object
+        description: "Configures warehouse directory mappings for Hive tables."
+        default:
+          source: "GLOBAL"
+          externalDirectory: null
+          managedDirectory: null
+        properties:
+          source:
+            type: string
+            enum: ["GLOBAL"]
+            description: "Source warehouse scope ('GLOBAL' for default Hive warehouse)."
+            default: "GLOBAL"
+          externalDirectory:
+            type: [string, "null"]
+            description: "Custom directory for external tables. Null for default."
+            default: null
+          managedDirectory:
+            type: [string, "null"]
+            description: "Custom directory for managed tables. Null for default."
+            default: null
+        required:
+          - source
+          - externalDirectory
+          - managedDirectory
+    required:
+      - transferPrefix
+      - shadowPrefix
+      - storageMigrationPostfix
+      - exportBaseDirPrefix
+      - remoteWorkingDirectory
+      - intermediateStorage
+      - targetNamespace
+      - storageMigration
+      - warehouse
+  ownershipTransfer:
+    type: object
+    description: "Controls transfer of ownership metadata for databases and tables."
+    default:
+      database: false
+      table: false
+    properties:
+      database:
+        type: boolean
+        description: "When true, transfers database ownership to the destination cluster."
+        default: false
+      table:
+        type: boolean
+        description: "When true, transfers table ownership to the destination cluster."
+        default: false
+    required:
+      - database
+      - table
+  translator:
+    type: object
+    description: "Configures translation rules for table locations and warehouse mappings."
+    default:
+      forceExternalLocation: false
+      autoGlobalLocationMap: null
+      userGlobalLocationMap: null
+      warehouseMapBuilder:
+        sources: {}
+        inSync: false
+        warehousePlans: {}
+    properties:
+      forceExternalLocation:
+        type: boolean
+        description: "When true, forces tables to use external locations on the destination."
+        default: false
+      autoGlobalLocationMap:
+        type: [object, "null"]
+        description: "Automatic mapping of global locations. Null for no auto-mapping."
+        default: null
+      userGlobalLocationMap:
+        type: [object, "null"]
+        description: "User-defined mapping of global locations. Null for no custom mapping."
+        default: null
+      warehouseMapBuilder:
+        type: object
+        description: "Builds mappings for warehouse directories across clusters."
+        default:
+          sources: {}
+          inSync: false
+          warehousePlans: {}
+        properties:
+          sources:
+            type: object
+            additionalProperties: true
+            description: "Source warehouse directory mappings."
+            default: {}
+          inSync:
+            type: boolean
+            description: "When true, ensures source and destination warehouses are synchronized."
+            default: false
+          warehousePlans:
+            type: object
+            additionalProperties: true
+            description: "Custom plans for warehouse directory mappings."
+            default: {}
+        required:
+          - sources
+          - inSync
+          - warehousePlans
+    required:
+      - forceExternalLocation
+      - autoGlobalLocationMap
+      - userGlobalLocationMap
+      - warehouseMapBuilder
+required:
+  - requiredFields
+  - acceptance
+  - beta
+  - clusters
+  - commandLineOptions
+  - copyAvroSchemaUrls
+  - connectionPoolLib
+  - dataStrategy
+  - databaseOnly
+  - dumpTestData
+  - loadTestDataFile
+  - filter
+  - skipLinkCheck
+  - databases
+  - legacyTranslations
+  - dbPrefix
+  - dbRename
+  - dumpSource
+  - execute
+  - hybrid
+  - icebergConversion
+  - migrateACID
+  - migrateVIEW
+  - migrateNonNative
+  - optimization
+  - encryptedPasswords
+  - quiet
+  - readOnly
+  - noPurge
+  - replace
+  - resetRight
+  - saveWorkingTables
+  - skipFeatures
+  - skipLegacyTranslation
+  - sqlOutput
+  - suppressCliWarnings
+  - sync
+  - transfer
+  - ownershipTransfer
+  - translator
+definitions:
+  cluster:
+    type: object
+    description: "Configuration for a single cluster (source or destination), including Hive connectivity and metastore settings."
+    default:
+      environment: "LEFT"
+      createIfNotExists: false
+      platformType: "CDP7_3"
+      hcfsNamespace: ""
+      hiveServer2:
+        uri: ""
+        disconnected: false
+        connectionProperties:
+          maxWaitMillis: "5000"
+          hikari.validationTimeout: ""
+          maxTotal: "1"
+          hikari.initializationFailTimeout: ""
+          user: ""
+          hikari.connectionTimeout: ""
+        driverClassName: "org.apache.hive.jdbc.HiveDriver"
+        jarFile: ""
+        version: null
+      partitionDiscovery:
+        auto: true
+        initMSCK: true
+      enableAutoTableStats: false
+      enableAutoColumnStats: false
+      metastore_direct: null
+    properties:
+      environment:
+        type: string
+        enum: ["LEFT","RIGHT"]
+        description: "Name of the cluster environment (e.g., 'LEFT' or 'RIGHT') for identification."
+        default: ""
+      createIfNotExists:
+        type: boolean
+        description: "When true, creates the cluster configuration if it doesn’t exist. Typically false."
+        default: false
+      platformType:
+        type: string
+        enum: ["CDH5","CDH6","CDP7_0","CDP7_1","CDP7_1_9_SP1","CDP7_2","CDP7_3","HDP2","HDP3","MAPR","EMR","APACHE_HIVE1","APACHE_HIVE2","APACHE_HIVE3","APACHE_HIVE4"]
+        description: "Cluster platform type (e.g., 'CDP7_3' for Cloudera Data Platform 7.3)."
+        default: "CDP7_3"
+      hcfsNamespace:
+        type: string
+        description: "HDFS namespace for the cluster’s filesystem (e.g., 'hdfs://hostname:port')."
+        default: ""
+      hiveServer2:
+        type: object
+        description: "Configures connectivity to the HiveServer2 instance for querying tables."
+        default:
+          uri: ""
+          disconnected: false
+          connectionProperties:
+            maxWaitMillis: "5000"
+            hikari.validationTimeout: ""
+            maxTotal: "1"
+            hikari.initializationFailTimeout: ""
+            user: ""
+            hikari.connectionTimeout: ""
+          driverClassName: "org.apache.hive.jdbc.HiveDriver"
+          jarFile: ""
+          version: null
+        properties:
+          uri:
+            type: string
+            description: "JDBC URI for HiveServer2, including protocol, host, port, and security settings."
+            default: ""
+          disconnected:
+            type: boolean
+            description: "When true, assumes HiveServer2 is disconnected, limiting operations."
+            default: false
+          connectionProperties:
+            type: object
+            description: "JDBC connection properties for HiveServer2, such as timeouts and credentials."
+            default:
+              maxWaitMillis: "5000"
+              hikari.validationTimeout: ""
+              maxTotal: "1"
+              hikari.initializationFailTimeout: ""
+              user: ""
+              hikari.connectionTimeout: ""
+            properties:
+              maxWaitMillis:
+                type: string
+                description: "Maximum wait time (ms) for a connection from the pool."
+                default: "5000"
+              hikari.validationTimeout:
+                type: string
+                description: "Timeout for validating connections. Empty for default."
+                default: ""
+              maxTotal:
+                type: string
+                description: "Maximum total connections in the pool."
+                default: "1"
+              hikari.initializationFailTimeout:
+                type: string
+                description: "Timeout for pool initialization failure. Empty for default."
+                default: ""
+              user:
+                type: string
+                description: "Username for HiveServer2 authentication."
+                default: ""
+              hikari.connectionTimeout:
+                type: string
+                description: "Timeout for establishing a connection. Empty for default."
+                default: ""
+            required:
+              - maxWaitMillis
+              - hikari.validationTimeout
+              - maxTotal
+              - hikari.initializationFailTimeout
+              - user
+              - hikari.connectionTimeout
+          driverClassName:
+            type: string
+            description: "JDBC driver class for Hive (e.g., 'org.apache.hive.jdbc.HiveDriver')."
+            default: "org.apache.hive.jdbc.HiveDriver"
+          jarFile:
+            type: string
+            description: "Path to JDBC driver JAR files, including dependencies."
+            default: ""
+          version:
+            type: [string, "null"]
+            description: "HiveServer2 version. Null if not specified."
+            default: null
+        required:
+          - uri
+          - disconnected
+          - connectionProperties
+          - driverClassName
+          - jarFile
+          - version
+      partitionDiscovery:
+        type: object
+        description: "Controls automatic discovery of table partitions."
+        default:
+          auto: true
+          initMSCK: true
+        properties:
+          auto:
+            type: boolean
+            description: "When true, automatically discovers partitions during migration."
+            default: true
+          initMSCK:
+            type: boolean
+            description: "When true, runs MSCK REPAIR TABLE to initialize partitions."
+            default: true
+        required:
+          - auto
+          - initMSCK
+      enableAutoTableStats:
+        type: boolean
+        description: "When true, collects table-level statistics during migration."
+        default: false
+      enableAutoColumnStats:
+        type: boolean
+        description: "When true, collects column-level statistics during migration."
+        default: false
+      metastore_direct:
+        type: [object, "null"]
+        description: "Direct connection to the Hive metastore database, bypassing HiveServer2."
+        default: null
+        properties:
+          uri:
+            type: string
+            description: "JDBC URI for the metastore database (e.g., MySQL, PostgreSQL)."
+            default: ""
+          type:
+            type: string
+            enum: ["MYSQL"]
+            description: "Database type for the metastore (e.g., 'MYSQL')."
+            default: "MYSQL"
+          initSql:
+            type: string
+            description: "SQL statements to initialize the metastore connection."
+            default: ""
+          resource:
+            type: [string, "null"]
+            description: "Resource identifier for the metastore. Null for default."
+            default: null
+          version:
+            type: [string, "null"]
+            description: "Metastore database version. Null if not specified."
+            default: null
+          connectionProperties:
+            type: object
+            description: "Connection properties for the metastore database."
+            default:
+              password: ""
+              user: ""
+            properties:
+              password:
+                type: string
+                description: "Password for metastore database authentication."
+                default: ""
+              user:
+                type: string
+                description: "Username for metastore database authentication."
+                default: ""
+            required:
+              - password
+              - user
+          connectionPool:
+            type: object
+            description: "Connection pool settings for the metastore database."
+            default:
+              min: 1
+              max: 3
+              timeout: 120
+            properties:
+              min:
+                type: integer
+                description: "Minimum number of connections in the pool."
+                default: 1
+              max:
+                type: integer
+                description: "Maximum number of connections in the pool."
+                default: 3
+              timeout:
+                type: integer
+                description: "Connection timeout in seconds."
+                default: 120
+            required:
+              - min
+              - max
+              - timeout
+        required:
+          - uri
+          - type
+          - initSql
+          - resource
+          - version
+          - connectionProperties
+          - connectionPool
+    required:
+      - environment
+      - createIfNotExists
+      - platformType
+      - hcfsNamespace
+      - hiveServer2
+      - partitionDiscovery
+      - enableAutoTableStats
+      - enableAutoColumnStats
+      - metastore_direct
