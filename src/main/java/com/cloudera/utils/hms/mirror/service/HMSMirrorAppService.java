@@ -32,7 +32,6 @@ import com.cloudera.utils.hms.stage.ReturnStatus;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
 import java.net.URISyntaxException;
@@ -41,6 +40,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
@@ -51,6 +51,22 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
+/**
+ * The HMSMirrorAppService class provides the main application service logic for handling
+ * tasks such as database operations, configuration management, reporting, and data transfer.
+ * It integrates various specialized services to perform its operations efficiently.
+ * Fields:
+ * - configService: Manages application configuration parameters.
+ * - connectionPoolService: Handles the connection pooling for database connections.
+ * - databaseService: Manages operations related to database interaction.
+ * - environmentService: Provides services related to the application environment.
+ * - executeSessionService: Controls execution sessions for the application.
+ * - reportWriterService: Handles generating and writing reports.
+ * - tableService: Manages interactions related to database tables.
+ * - translatorService: Executes data translation or mapping logic.
+ * - transferService: Responsible for managing data transfer operations.
+ * - log: Used for logging information or events related to the application.
+ */
 @Service
 @Getter
 @Slf4j
@@ -107,13 +123,19 @@ public class HMSMirrorAppService {
     }
 
     @Async("executionThreadPool")
-    public Future<Boolean> run() {
+    public CompletableFuture<Boolean> run() {
         Boolean rtn = Boolean.TRUE;
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();
         // Clean up session before continuing.
         config.reset();
         RunStatus runStatus = session.getRunStatus();
+        // Transfer the Comment.
+        if (config.getComment() != null) {
+            runStatus.setComment(config.getComment());
+        } else {
+            runStatus.setComment("No comments provided for this run.  Consider adding one for easier tracking.");
+        }
         Conversion conversion = session.getConversion();
         // Reset Start time to the actual 'execution' start time.
         runStatus.setStart(new Date());
@@ -127,7 +149,7 @@ public class HMSMirrorAppService {
             runStatus.setStage(StageEnum.VALIDATING_CONFIG, CollectionEnum.ERRORED);
             reportWriterService.wrapup();
             runStatus.setProgress(ProgressEnum.FAILED);
-            return new AsyncResult<>(Boolean.FALSE);
+            return CompletableFuture.completedFuture(Boolean.FALSE);
         }
 
         if (!config.isLoadingTestData()) {
@@ -151,7 +173,7 @@ public class HMSMirrorAppService {
                     runStatus.setProgress(ProgressEnum.FAILED);
                     connectionPoolService.close();
                     runStatus.setProgress(ProgressEnum.FAILED);
-                    return new AsyncResult<>(Boolean.FALSE);
+                    return CompletableFuture.completedFuture(Boolean.FALSE);
                 }
             } catch (SQLException sqle) {
                 log.error("Issue refreshing connections pool", sqle);
@@ -159,35 +181,35 @@ public class HMSMirrorAppService {
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
                 connectionPoolService.close();
                 runStatus.setProgress(ProgressEnum.FAILED);
-                return new AsyncResult<>(Boolean.FALSE);
+                return CompletableFuture.completedFuture(Boolean.FALSE);
             } catch (URISyntaxException e) {
                 log.error("URI issue with connections pool", e);
                 runStatus.addError(CONNECTION_ISSUE, e.getMessage());
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
                 connectionPoolService.close();
                 runStatus.setProgress(ProgressEnum.FAILED);
-                return new AsyncResult<>(Boolean.FALSE);
+                return CompletableFuture.completedFuture(Boolean.FALSE);
             } catch (SessionException se) {
                 log.error("Issue with Session", se);
                 runStatus.addError(SESSION_ISSUE, se.getMessage());
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
                 connectionPoolService.close();
                 runStatus.setProgress(ProgressEnum.FAILED);
-                return new AsyncResult<>(Boolean.FALSE);
+                return CompletableFuture.completedFuture(Boolean.FALSE);
             } catch (EncryptionException ee) {
                 log.error("Issue with Decryption", ee);
                 runStatus.addError(ENCRYPTION_ISSUE, ee.getMessage());
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
                 connectionPoolService.close();
                 runStatus.setProgress(ProgressEnum.FAILED);
-                return new AsyncResult<>(Boolean.FALSE);
+                return CompletableFuture.completedFuture(Boolean.FALSE);
             } catch (RuntimeException rte) {
                 log.error("Runtime Issue", rte);
                 runStatus.addError(SESSION_ISSUE, rte.getMessage());
                 runStatus.setStage(StageEnum.CONNECTION, CollectionEnum.ERRORED);
                 connectionPoolService.close();
                 runStatus.setProgress(ProgressEnum.FAILED);
-                return new AsyncResult<>(Boolean.FALSE);
+                return CompletableFuture.completedFuture(Boolean.FALSE);
             }
         } else {
             runStatus.setStage(StageEnum.VALIDATE_CONNECTION_CONFIG, CollectionEnum.SKIPPED);
@@ -259,7 +281,7 @@ public class HMSMirrorAppService {
                 reportWriterService.wrapup();
                 connectionPoolService.close();
                 runStatus.setProgress(ProgressEnum.FAILED);
-                return new AsyncResult<>(Boolean.FALSE);
+                return CompletableFuture.completedFuture(Boolean.FALSE);
             } finally {
                 if (nonNull(conn)) {
                     try {
@@ -284,7 +306,7 @@ public class HMSMirrorAppService {
                 reportWriterService.wrapup();
                 connectionPoolService.close();
                 runStatus.setProgress(ProgressEnum.FAILED);
-                return new AsyncResult<>(Boolean.FALSE);
+                return CompletableFuture.completedFuture(Boolean.FALSE);
             }
         } else {
             runStatus.setStage(StageEnum.ENVIRONMENT_VARS, CollectionEnum.SKIPPED);
@@ -295,7 +317,7 @@ public class HMSMirrorAppService {
             runStatus.addError(MISC_ERROR, "No databases specified OR found if you used dbRegEx");
             connectionPoolService.close();
             runStatus.setProgress(ProgressEnum.FAILED);
-            return new AsyncResult<>(Boolean.FALSE);
+            return CompletableFuture.completedFuture(Boolean.FALSE);
         }
 
         List<Future<ReturnStatus>> gtf = new ArrayList<>();
@@ -326,7 +348,7 @@ public class HMSMirrorAppService {
                     reportWriterService.wrapup();
                     connectionPoolService.close();
                     runStatus.setProgress(ProgressEnum.FAILED);
-                    return new AsyncResult<>(Boolean.FALSE);
+                    return CompletableFuture.completedFuture(Boolean.FALSE);
                 } catch (RuntimeException rte) {
                     log.error("Runtime Issue", rte);
                     runStatus.addError(MISC_ERROR, rte.getMessage());
@@ -335,7 +357,7 @@ public class HMSMirrorAppService {
                     reportWriterService.wrapup();
                     connectionPoolService.close();
                     runStatus.setProgress(ProgressEnum.FAILED);
-                    return new AsyncResult<>(Boolean.FALSE);
+                    return CompletableFuture.completedFuture(Boolean.FALSE);
                 }
 
                 // Build out the table in a database.
@@ -381,7 +403,7 @@ public class HMSMirrorAppService {
                 reportWriterService.wrapup();
                 connectionPoolService.close();
                 runStatus.setProgress(ProgressEnum.FAILED);
-                return new AsyncResult<>(Boolean.FALSE);
+                return CompletableFuture.completedFuture(Boolean.FALSE);
             }
         } else {
             runStatus.setStage(StageEnum.DATABASES, CollectionEnum.SKIPPED);
@@ -416,7 +438,7 @@ public class HMSMirrorAppService {
 
                 runStatus.setProgress(ProgressEnum.FAILED);
 
-                return new AsyncResult<>(Boolean.FALSE);
+                return CompletableFuture.completedFuture(Boolean.FALSE);
             }
         }
 
@@ -752,6 +774,6 @@ public class HMSMirrorAppService {
             connectionPoolService.close();
         }
 
-        return new AsyncResult<>(rtn);
+        return CompletableFuture.completedFuture(rtn);
     }
 }

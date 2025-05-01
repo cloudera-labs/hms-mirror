@@ -49,6 +49,13 @@
             <div id="messages" th:insert="~{fragments/messages::view}">
             </div>
 
+            <div class="pure-control-group">
+                <label class="pure-input-1-4" for="comment" th:text="#{comment}"/>
+                <input class="pure-input-3-4" id="comment" type="text" name="comment"
+                       th:field="*{comment}"/>
+            </div>
+
+
             <div class="pure-menu pure-menu-horizontal menubox">
 
                 <ul class="pure-menu-list">

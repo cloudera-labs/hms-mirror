@@ -20,7 +20,6 @@ package com.cloudera.utils.hms.mirror.cli;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -32,9 +31,8 @@ import org.springframework.core.annotation.Order;
 @Setter
 @Slf4j
 public class CliReporterConfig {
-    private CliReporter cliReporter;
+    private final CliReporter cliReporter;
 
-    @Autowired
     public CliReporterConfig(CliReporter cliReporter) {
         this.cliReporter = cliReporter;
     }
@@ -48,9 +46,7 @@ public class CliReporterConfig {
     public CommandLineRunner launchCliReporting() {
         return args -> {
             log.info("Launching CLI Reporting");
-            getCliReporter().run();
+            cliReporter.run();
         };
     }
-
-
 }

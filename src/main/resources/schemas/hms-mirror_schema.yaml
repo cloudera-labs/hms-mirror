@@ -165,7 +165,7 @@ properties:
     default: ""
   dumpSource:
     type: string
-    enum: ["LEFT"]
+    enum: ["LEFT", "RIGHT"]
     description: "Specifies the source cluster for dumping schemas or data. Typically set to 'LEFT'."
     default: "LEFT"
   execute:
@@ -212,7 +212,7 @@ properties:
         default: false
       fileTypeTranslation:
         type: string
-        enum: ["STANDARD"]
+        enum: ["STANDARD", "SAME", "PARQUET", "ORC", "AVRO"]
         description: "Defines how file formats are translated for Iceberg (e.g., 'STANDARD' for default mapping)."
         default: "STANDARD"
       version:
@@ -464,17 +464,17 @@ properties:
         properties:
           translationType:
             type: string
-            enum: ["RELATIVE"]
+            enum: ["RELATIVE", "ALIGNED"]
             description: "Path translation method for storage migration ('RELATIVE' keeps relative paths)."
             default: "RELATIVE"
           dataMovementStrategy:
             type: string
-            enum: ["SQL"]
+            enum: ["SQL", "EXPORT_IMPORT", "HYBRID", "DISTCP", "MANUAL", "NA"]
             description: "Method for moving data during storage migration ('SQL' uses SQL queries)."
             default: "SQL"
           dataFlow:
             type: string
-            enum: ["PULL"]
+            enum: ["PULL", "PUSH"]
             description: "Direction of data movement ('PULL' retrieves data to destination)."
             default: "PULL"
           skipDatabaseLocationAdjustments:
@@ -511,7 +511,7 @@ properties:
         properties:
           source:
             type: string
-            enum: ["GLOBAL"]
+            enum: ["GLOBAL", "PLAN", "DEFINITION", "ENVIRONMENT"]
             description: "Source warehouse scope ('GLOBAL' for default Hive warehouse)."
             default: "GLOBAL"
           externalDirectory:
@@ -820,7 +820,7 @@ definitions:
             default: ""
           type:
             type: string
-            enum: ["MYSQL"]
+            enum: ["MYSQL", "POSTGRES", "ORACLE"]
             description: "Database type for the metastore (e.g., 'MYSQL')."
             default: "MYSQL"
           initSql:

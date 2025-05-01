@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.net.URL;
@@ -37,25 +36,35 @@ import java.util.Map;
 
 import static java.util.Objects.isNull;
 
+/**
+ * The QueryDefinitionsService class is responsible for managing and providing access to
+ * query definitions associated with different environments. It utilizes an execute session
+ * service to retrieve configuration details necessary for loading query definitions from
+ * external resources.
+ */
 @Service
 @Slf4j
 public class QueryDefinitionsService {
 
-    private ExecuteSessionService executeSessionService;
-
+    private final ExecuteSessionService executeSessionService;
     private final Map<Environment, QueryDefinitions> queryDefinitionsMap = new HashMap<>();
 
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
+    /**
+     * Constructor for QueryDefinitionsService.
+     *
+     * @param executeSessionService Service for executing sessions
+     */
+    public QueryDefinitionsService(ExecuteSessionService executeSessionService) {
         this.executeSessionService = executeSessionService;
+        log.debug("QueryDefinitionsService initialized");
     }
 
     public QueryDefinitions getQueryDefinitions(Environment environment) {
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
 
         QueryDefinitions queryDefinitions = queryDefinitionsMap.get(environment);
         if (isNull(queryDefinitions)) {
-            Cluster cluster = hmsMirrorConfig.getCluster(environment);
+            Cluster cluster = config.getCluster(environment);
             DBStore metastoreDirect = cluster.getMetastoreDirect();
             if (metastoreDirect != null) {
                 DBStore.DB_TYPE dbType = metastoreDirect.getType();

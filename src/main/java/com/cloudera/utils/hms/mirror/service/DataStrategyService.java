@@ -19,159 +19,63 @@ package com.cloudera.utils.hms.mirror.service;
 
 import com.cloudera.utils.hms.mirror.datastrategy.*;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
-import lombok.Getter;
-import lombok.Setter;
+import com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.EnumMap;
+import java.util.Map;
+
+/**
+ * Service class responsible for managing and providing the appropriate data strategy
+ * based on a given configuration. This class contains multiple types of data strategies
+ * and determines which one to use depending on the data strategy specified in the provided configuration.
+ *
+ * Each data strategy is injected into the service using Spring's dependency injection mechanism.
+ */
 @Service
-@Getter
-@Setter
 public class DataStrategyService {
+    private final Map<DataStrategyEnum, DataStrategy> strategies;
+    private final DataStrategy defaultStrategy;
 
-    private AcidDataStrategy acidDataStrategy = null;
-    private CommonDataStrategy commonDataStrategy = null;
-    private ConvertLinkedDataStrategy convertLinkedDataStrategy = null;
-    private DumpDataStrategy dumpDataStrategy = null;
-    private ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy = null;
-    private ExportImportDataStrategy exportImportDataStrategy = null;
-    private HybridDataStrategy hybridDataStrategy = null;
-    private HybridAcidDowngradeInPlaceDataStrategy hybridAcidDowngradeInPlaceDataStrategy = null;
-    private LinkedDataStrategy linkedDataStrategy = null;
-    private SchemaOnlyDataStrategy schemaOnlyDataStrategy = null;
-    private StorageMigrationDataStrategy storageMigrationDataStrategy = null;
-    private SQLDataStrategy sqlDataStrategy = null;
-    private SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy = null;
-    private IntermediateDataStrategy intermediateDataStrategy = null;
-    private IcebergConversionDataStrategy icebergConversionDataStrategy = null;
-
-    public DataStrategy getDefaultDataStrategy(HmsMirrorConfig hmsMirrorConfig) {
-        DataStrategy dataStrategy = null;
-        switch (hmsMirrorConfig.getDataStrategy()) {
-            case STORAGE_MIGRATION:
-                dataStrategy = storageMigrationDataStrategy;
-                break;
-            case ICEBERG_CONVERSION:
-                dataStrategy = icebergConversionDataStrategy;
-                break;
-            case DUMP:
-                dataStrategy = dumpDataStrategy;
-                break;
-            case EXPORT_IMPORT:
-                dataStrategy = exportImportDataStrategy;
-                break;
-            case HYBRID:
-                dataStrategy = hybridDataStrategy;
-                break;
-            case LINKED:
-                dataStrategy = linkedDataStrategy;
-                break;
-            case SCHEMA_ONLY:
-                dataStrategy = schemaOnlyDataStrategy;
-                break;
-            case SQL:
-                dataStrategy = sqlDataStrategy;
-                break;
-            case CONVERT_LINKED:
-                dataStrategy = convertLinkedDataStrategy;
-                break;
-            case COMMON:
-                dataStrategy = commonDataStrategy;
-                break;
-            case INTERMEDIATE:
-                dataStrategy = intermediateDataStrategy;
-                break;
-            case ACID:
-                dataStrategy = acidDataStrategy;
-                break;
-            case HYBRID_ACID_DOWNGRADE_INPLACE:
-                dataStrategy = hybridAcidDowngradeInPlaceDataStrategy;
-                break;
-            case SQL_ACID_DOWNGRADE_INPLACE:
-                dataStrategy = sqlAcidInPlaceDataStrategy;
-                break;
-            case EXPORT_IMPORT_ACID_DOWNGRADE_INPLACE:
-                dataStrategy = exportImportAcidDowngradeInPlaceDataStrategy;
-                break;
-            default:
-                dataStrategy = schemaOnlyDataStrategy;
-        }
-        return dataStrategy;
+    public DataStrategyService(
+            AcidDataStrategy acidDataStrategy,
+            CommonDataStrategy commonDataStrategy,
+            ConvertLinkedDataStrategy convertLinkedDataStrategy,
+            DumpDataStrategy dumpDataStrategy,
+            ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy,
+            ExportImportDataStrategy exportImportDataStrategy,
+            HybridDataStrategy hybridDataStrategy,
+            HybridAcidDowngradeInPlaceDataStrategy hybridAcidDowngradeInPlaceDataStrategy,
+            LinkedDataStrategy linkedDataStrategy,
+            SchemaOnlyDataStrategy schemaOnlyDataStrategy,
+            StorageMigrationDataStrategy storageMigrationDataStrategy,
+            SQLDataStrategy sqlDataStrategy,
+            SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy,
+            IntermediateDataStrategy intermediateDataStrategy,
+            IcebergConversionDataStrategy icebergConversionDataStrategy) {
+        
+        this.defaultStrategy = schemaOnlyDataStrategy;
+        this.strategies = new EnumMap<>(DataStrategyEnum.class);
+        
+        strategies.put(DataStrategyEnum.STORAGE_MIGRATION, storageMigrationDataStrategy);
+        strategies.put(DataStrategyEnum.ICEBERG_CONVERSION, icebergConversionDataStrategy);
+        strategies.put(DataStrategyEnum.DUMP, dumpDataStrategy);
+        strategies.put(DataStrategyEnum.EXPORT_IMPORT, exportImportDataStrategy);
+        strategies.put(DataStrategyEnum.HYBRID, hybridDataStrategy);
+        strategies.put(DataStrategyEnum.LINKED, linkedDataStrategy);
+        strategies.put(DataStrategyEnum.SCHEMA_ONLY, schemaOnlyDataStrategy);
+        strategies.put(DataStrategyEnum.SQL, sqlDataStrategy);
+        strategies.put(DataStrategyEnum.CONVERT_LINKED, convertLinkedDataStrategy);
+        strategies.put(DataStrategyEnum.COMMON, commonDataStrategy);
+        strategies.put(DataStrategyEnum.INTERMEDIATE, intermediateDataStrategy);
+        strategies.put(DataStrategyEnum.ACID, acidDataStrategy);
+        strategies.put(DataStrategyEnum.HYBRID_ACID_DOWNGRADE_INPLACE, hybridAcidDowngradeInPlaceDataStrategy);
+        strategies.put(DataStrategyEnum.SQL_ACID_DOWNGRADE_INPLACE, sqlAcidInPlaceDataStrategy);
+        strategies.put(DataStrategyEnum.EXPORT_IMPORT_ACID_DOWNGRADE_INPLACE, exportImportAcidDowngradeInPlaceDataStrategy);
     }
 
-    @Autowired
-    public void setAcidDataStrategy(AcidDataStrategy acidDataStrategy) {
-        this.acidDataStrategy = acidDataStrategy;
+    public DataStrategy getDefaultDataStrategy(HmsMirrorConfig config) {
+        return strategies.getOrDefault(config.getDataStrategy(), defaultStrategy);
     }
-
-    @Autowired
-    public void setCommonDataStrategy(CommonDataStrategy commonDataStrategy) {
-        this.commonDataStrategy = commonDataStrategy;
-    }
-
-    @Autowired
-    public void setConvertLinkedDataStrategy(ConvertLinkedDataStrategy convertLinkedDataStrategy) {
-        this.convertLinkedDataStrategy = convertLinkedDataStrategy;
-    }
-
-    @Autowired
-    public void setDumpDataStrategy(DumpDataStrategy dumpDataStrategy) {
-        this.dumpDataStrategy = dumpDataStrategy;
-    }
-
-    @Autowired
-    public void setExportImportAcidDowngradeInPlaceDataStrategy(ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy) {
-        this.exportImportAcidDowngradeInPlaceDataStrategy = exportImportAcidDowngradeInPlaceDataStrategy;
-    }
-
-    @Autowired
-    public void setExportImportDataStrategy(ExportImportDataStrategy exportImportDataStrategy) {
-        this.exportImportDataStrategy = exportImportDataStrategy;
-    }
-
-    @Autowired
-    public void setHybridAcidDowngradeInPlaceDataStrategy(HybridAcidDowngradeInPlaceDataStrategy hybridAcidDowngradeInPlaceDataStrategy) {
-        this.hybridAcidDowngradeInPlaceDataStrategy = hybridAcidDowngradeInPlaceDataStrategy;
-    }
-
-    @Autowired
-    public void setHybridDataStrategy(HybridDataStrategy hybridDataStrategy) {
-        this.hybridDataStrategy = hybridDataStrategy;
-    }
-
-    @Autowired
-    public void setIcebergConversionDataStrategy(IcebergConversionDataStrategy icebergConversionDataStrategy) {
-        this.icebergConversionDataStrategy = icebergConversionDataStrategy;
-    }
-
-    @Autowired
-    public void setIntermediateDataStrategy(IntermediateDataStrategy intermediateDataStrategy) {
-        this.intermediateDataStrategy = intermediateDataStrategy;
-    }
-
-    @Autowired
-    public void setLinkedDataStrategy(LinkedDataStrategy linkedDataStrategy) {
-        this.linkedDataStrategy = linkedDataStrategy;
-    }
-
-    @Autowired
-    public void setSchemaOnlyDataStrategy(SchemaOnlyDataStrategy schemaOnlyDataStrategy) {
-        this.schemaOnlyDataStrategy = schemaOnlyDataStrategy;
-    }
-
-    @Autowired
-    public void setSqlAcidInPlaceDataStrategy(SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy) {
-        this.sqlAcidInPlaceDataStrategy = sqlAcidInPlaceDataStrategy;
-    }
-
-    @Autowired
-    public void setSqlDataStrategy(SQLDataStrategy sqlDataStrategy) {
-        this.sqlDataStrategy = sqlDataStrategy;
-    }
-
-    @Autowired
-    public void setStorageMigrationDataStrategy(StorageMigrationDataStrategy storageMigrationDataStrategy) {
-        this.storageMigrationDataStrategy = storageMigrationDataStrategy;
-    }
-
 }

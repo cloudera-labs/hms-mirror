@@ -20,19 +20,19 @@ package com.cloudera.utils.hms.mirror.domain;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.utils.ConfigTest;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Slf4j
 public class HmsMirrorConfigCloneHDP2ToCDPTest {
 
     private HmsMirrorConfig hmsMirrorConfig;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         log.info("Setting up HmsMirrorConfigCloneTest");
         hmsMirrorConfig = ConfigTest.deserializeResource("/config/default.yaml.hdp2-cdp");

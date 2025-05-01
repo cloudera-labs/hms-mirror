@@ -20,16 +20,17 @@ package com.cloudera.utils.hms.mirror.integration.end_to_end.legacy_to_cdp;
 import com.cloudera.utils.hms.mirror.cli.Mirror;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = Mirror.class,
         args = {
+                "--hms-mirror.config.comment='Test the Common Storage Migration'",
                 "--hms-mirror.config.data-strategy=COMMON",
 //                "--hms-mirror.config.migrate-acid-only=true",
                 "--hms-mirror.config.warehouse-directory=/warehouse/managed",
@@ -62,7 +63,7 @@ public class Test_common extends E2EBaseTest {
         long rtn = getReturnCode();
         // Verify the return code.
         long check = 0L;
-        assertEquals("Return Code Failure: " + rtn, check * -1, rtn);
+        assertEquals(check * -1, rtn, "Return Code Failure: " + rtn);
     }
 
 }

@@ -17,21 +17,21 @@
 
 package com.cloudera.utils.hms.mirror.datastrategy;
 
-import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.MirrorConf;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.feature.IcebergState;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
+import com.cloudera.utils.hms.mirror.service.StatsCalculatorService;
 import com.cloudera.utils.hms.mirror.service.TableService;
 import com.cloudera.utils.hms.mirror.service.TranslatorService;
 import com.cloudera.utils.hms.util.FileFormatType;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
@@ -56,13 +56,16 @@ import static java.util.Objects.isNull;
 @Component
 @Slf4j
 @Getter
-public class IcebergConversionDataStrategy extends DataStrategyBase implements DataStrategy {
+public class IcebergConversionDataStrategy extends DataStrategyBase {
 
-    private TableService tableService;
+    private final TableService tableService;
 
-    public IcebergConversionDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
-        this.executeSessionService = executeSessionService;
-        this.translatorService = translatorService;
+    public IcebergConversionDataStrategy(StatsCalculatorService statsCalculatorService,
+                                         ExecuteSessionService executeSessionService,
+                                         TranslatorService translatorService,
+                                         TableService tableService) {
+        super(statsCalculatorService, executeSessionService, translatorService);
+        this.tableService = tableService;
     }
 
     @Override
@@ -160,8 +163,4 @@ public class IcebergConversionDataStrategy extends DataStrategyBase implements D
         return  getTableService().runTableSql(tableMirror, Environment.LEFT);
     }
 
-    @Autowired
-    public void setTableService(TableService tableService) {
-        this.tableService = tableService;
-    }
 }

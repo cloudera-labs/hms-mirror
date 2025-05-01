@@ -27,11 +27,24 @@ import java.text.MessageFormat;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
+/**
+ * Service class responsible for encrypting and decrypting passwords.
+ * Provides functionalities for secure password transformations
+ * using a user-defined password key.
+ */
 @Service
 @Slf4j
 @Getter
 public class PasswordService {
 
+    /**
+     * Decrypts an encrypted password using the provided password key.
+     *
+     * @param passwordKey the key used to decrypt the password; must not be blank
+     * @param decryptPassword the encrypted password to be decrypted; must not be blank
+     * @return the decrypted password as a string, or null if the provided encrypted password is blank
+     * @throws EncryptionException if an error occurs during the decryption process
+     */
     public String decryptPassword(String passwordKey, String decryptPassword) throws EncryptionException {
         Protect protect = new Protect(passwordKey);
         String password = null;
@@ -47,6 +60,14 @@ public class PasswordService {
         return password;
     }
 
+    /**
+     * Encrypts the provided plain text password using the given password key.
+     *
+     * @param passwordKey the key used to encrypt the password; must not be blank
+     * @param password the plain text password to be encrypted; must not be blank
+     * @return the encrypted password as a string, or null if the password or key is invalid
+     * @throws EncryptionException if an error occurs during the encryption process
+     */
     public String encryptPassword(String passwordKey, String password) throws EncryptionException {
         // Used to generate encrypted password.
         String epassword = null;

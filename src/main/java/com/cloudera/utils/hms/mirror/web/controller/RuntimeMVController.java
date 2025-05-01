@@ -30,7 +30,6 @@ import com.cloudera.utils.hms.mirror.service.UIModelService;
 import com.cloudera.utils.hms.mirror.web.service.RunStatusService;
 import com.cloudera.utils.hms.mirror.web.service.RuntimeService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -45,34 +44,23 @@ import static com.cloudera.utils.hms.mirror.web.controller.ControllerReferences.
 @Slf4j
 public class RuntimeMVController {
 
-    private ConfigService configService;
-    private ExecuteSessionService executeSessionService;
-    private RunStatusService runStatusService;
-    private RuntimeService runtimeService;
-    private UIModelService uiModelService;
+    private final ConfigService configService;
+    private final ExecuteSessionService executeSessionService;
+    private final RunStatusService runStatusService;
+    private final RuntimeService runtimeService;
+    private final UIModelService uiModelService;
 
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    public RuntimeMVController(
+            ConfigService configService,
+            ExecuteSessionService executeSessionService,
+            RunStatusService runStatusService,
+            RuntimeService runtimeService,
+            UIModelService uiModelService
+    ) {
         this.configService = configService;
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
         this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setRunStatusService(RunStatusService runStatusService) {
         this.runStatusService = runStatusService;
-    }
-
-    @Autowired
-    public void setRuntimeService(RuntimeService runtimeService) {
         this.runtimeService = runtimeService;
-    }
-
-    @Autowired
-    public void setUiModelService(UIModelService uiModelService) {
         this.uiModelService = uiModelService;
     }
 
@@ -102,12 +90,10 @@ public class RuntimeMVController {
         return "runtime/reports";
     }
 
-
     @RequestMapping(method = RequestMethod.POST, value = "/doStart")
     public String doStart(Model model,
             @ModelAttribute(RUN_CONTAINER) RunContainer runContainer,
                         @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws MismatchException, RequiredConfigurationException, SessionException, EncryptionException {
-
         if (!runContainer.isDryrun()) {
             // Ensure the Acceptance Criteria is set.
             if (runContainer.getAcceptance() == null) {
@@ -125,9 +111,7 @@ public class RuntimeMVController {
         }
         RunStatus runStatus =  runtimeService.start(runContainer.isDryrun(),
                 maxThreads);
-
         return "redirect:/runtime/status";
     }
-
 
 }

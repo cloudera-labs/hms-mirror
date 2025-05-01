@@ -33,7 +33,6 @@ import com.cloudera.utils.hms.util.ConfigUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.net.URISyntaxException;
@@ -57,33 +56,30 @@ public class ConnectionPoolService {
 
     private boolean connected = false;
 
-    //    private HmsMirrorConfig hmsMirrorConfig;
     private ExecuteSession executeSession;
     private ConnectionPools connectionPools = null;
-    private EnvironmentService environmentService;
-    private CliEnvironment cliEnvironment;
-    private ConfigService configService;
+    private final EnvironmentService environmentService;
+    private final CliEnvironment cliEnvironment;
+    private final ConfigService configService;
+    private final PasswordService passwordService;
 
-    private PasswordService passwordService;
-
-    @Autowired
-    public void setEnvironmentService(EnvironmentService environmentService) {
+    /**
+     * Constructor for ConnectionPoolService.
+     *
+     * @param environmentService Service for environment operations
+     * @param passwordService Service for password operations
+     * @param cliEnvironment CLI environment
+     * @param configService Service for configuration
+     */
+    public ConnectionPoolService(EnvironmentService environmentService, 
+                               PasswordService passwordService, 
+                               CliEnvironment cliEnvironment, 
+                               ConfigService configService) {
         this.environmentService = environmentService;
-    }
-
-    @Autowired
-    public void setPasswordService(PasswordService passwordService) {
         this.passwordService = passwordService;
-    }
-
-    @Autowired
-    public void setCliEnvironment(CliEnvironment cliEnvironment) {
         this.cliEnvironment = cliEnvironment;
-    }
-
-    @Autowired
-    public void setConfigService(ConfigService configService) {
         this.configService = configService;
+        log.debug("ConnectionPoolService initialized");
     }
 
     public ExecuteSession getExecuteSession() throws SessionException {

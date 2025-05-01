@@ -17,20 +17,16 @@
 
 package com.cloudera.utils.hms.mirror.datastrategy;
 
-import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.MirrorConf;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
-import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
-import com.cloudera.utils.hms.mirror.service.ExportCircularResolveService;
-import com.cloudera.utils.hms.mirror.service.TableService;
-import com.cloudera.utils.hms.mirror.service.TranslatorService;
+import com.cloudera.utils.hms.mirror.service.*;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
@@ -38,15 +34,20 @@ import java.text.MessageFormat;
 @Component
 @Slf4j
 @Getter
-public class ExportImportAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implements DataStrategy {
+public class ExportImportAcidDowngradeInPlaceDataStrategy extends DataStrategyBase {
 
-    private ExportCircularResolveService exportCircularResolveService;
-    private TableService tableService;
+    private final ExportCircularResolveService exportCircularResolveService;
+    private final TableService tableService;
 
 
-    public ExportImportAcidDowngradeInPlaceDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
-        this.executeSessionService = executeSessionService;
-        this.translatorService = translatorService;
+    public ExportImportAcidDowngradeInPlaceDataStrategy(StatsCalculatorService statsCalculatorService,
+                                                        ExecuteSessionService executeSessionService,
+                                                        TranslatorService translatorService,
+                                                        ExportCircularResolveService exportCircularResolveService,
+                                                        TableService tableService) {
+        super(statsCalculatorService, executeSessionService, translatorService);
+        this.exportCircularResolveService = exportCircularResolveService;
+        this.tableService = tableService;
     }
 
     @Override
@@ -107,13 +108,4 @@ public class ExportImportAcidDowngradeInPlaceDataStrategy extends DataStrategyBa
         return getTableService().runTableSql(tableMirror, Environment.LEFT);
     }
 
-    @Autowired
-    public void setExportCircularResolveService(ExportCircularResolveService exportCircularResolveService) {
-        this.exportCircularResolveService = exportCircularResolveService;
-    }
-
-    @Autowired
-    public void setTableService(TableService tableService) {
-        this.tableService = tableService;
-    }
 }

@@ -19,13 +19,13 @@ package com.cloudera.utils.hms.mirror.features;
 
 import com.cloudera.utils.hms.mirror.feature.Feature;
 import com.cloudera.utils.hms.mirror.feature.FeaturesEnum;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class FeaturesCombinedTest {
 
@@ -37,8 +37,8 @@ public class FeaturesCombinedTest {
                 System.out.println("Adjusting: " + feature.getDescription());
                 if (feature.fixSchema(schema)) {
                     if (appliedFeature != null) {
-                        assertFalse("Feature: " + appliedFeature + " was already applied." +
-                                "Now attempting to applied second feature: " + features, Boolean.TRUE);
+                        assertFalse(Boolean.TRUE, "Feature: " + appliedFeature + " was already applied." +
+                                "Now attempting to applied second feature: " + features);
                     }
                     appliedFeature = features;
                 }
@@ -51,7 +51,7 @@ public class FeaturesCombinedTest {
     public void test_orc_003() {
         List<String> schema = toList(BadOrcDefFeatureTest.schema_01);
         FeaturesEnum check = doit(schema);
-        assertEquals(check, FeaturesEnum.BAD_ORC_DEF);
+        assertEquals(FeaturesEnum.BAD_ORC_DEF, check);
         schema.stream().forEach(System.out::println);
     }
 
@@ -67,7 +67,7 @@ public class FeaturesCombinedTest {
     public void test_parquet_001() {
         List<String> schema = toList(BadParquetDefFeatureTest.schema_01);
         FeaturesEnum check = doit(schema);
-        assertEquals(check, FeaturesEnum.BAD_PARQUET_DEF);
+        assertEquals(FeaturesEnum.BAD_PARQUET_DEF, check);
         schema.stream().forEach(System.out::println);
     }
 
@@ -75,7 +75,7 @@ public class FeaturesCombinedTest {
     public void test_parquet_002() {
         List<String> schema = toList(BadParquetDefFeatureTest.schema_02);
         FeaturesEnum check = doit(schema);
-        assertEquals(check, FeaturesEnum.BAD_PARQUET_DEF);
+        assertEquals(FeaturesEnum.BAD_PARQUET_DEF, check);
         schema.stream().forEach(System.out::println);
     }
 
@@ -83,7 +83,7 @@ public class FeaturesCombinedTest {
     public void test_rc_005() {
         List<String> schema = toList(BadRCDefFeatureTest.schema_01);
         FeaturesEnum check = doit(schema);
-        assertEquals(check, FeaturesEnum.BAD_RC_DEF);
+        assertEquals(FeaturesEnum.BAD_RC_DEF, check);
         schema.stream().forEach(System.out::println);
     }
 
@@ -91,7 +91,7 @@ public class FeaturesCombinedTest {
     public void test_textfile_007() {
         List<String> schema = toList(BadTextfileDefFeatureTest.schema_01);
         FeaturesEnum check = doit(schema);
-        assertEquals(check, FeaturesEnum.BAD_TEXTFILE_DEF);
+        assertEquals(FeaturesEnum.BAD_TEXTFILE_DEF, check);
         schema.stream().forEach(System.out::println);
     }
 
@@ -99,7 +99,7 @@ public class FeaturesCombinedTest {
     public void test_textfile_008() {
         List<String> schema = toList(BadTextfileDefFeatureTest.schema_02);
         FeaturesEnum check = doit(schema);
-        assertEquals(check, FeaturesEnum.BAD_TEXTFILE_DEF);
+        assertEquals(FeaturesEnum.BAD_TEXTFILE_DEF, check);
         schema.stream().forEach(System.out::println);
     }
 

@@ -31,7 +31,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -47,22 +46,17 @@ import java.util.Set;
 @RequestMapping(path = "/api/v1/runtime")
 public class RuntimeController {
 
-    private ExecuteSessionService executeSessionService;
-    private ReportService reportService;
-    private RuntimeService runtimeService;
+    private final ExecuteSessionService executeSessionService;
+    private final ReportService reportService;
+    private final RuntimeService runtimeService;
 
-    @Autowired
-    public void setHmsMirrorCfgService(ExecuteSessionService executeSessionService) {
+    public RuntimeController(
+            ExecuteSessionService executeSessionService,
+            ReportService reportService,
+            RuntimeService runtimeService
+    ) {
         this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setReportService(ReportService reportService) {
         this.reportService = reportService;
-    }
-
-    @Autowired
-    public void setRuntimeService(RuntimeService runtimeService) {
         this.runtimeService = runtimeService;
     }
 
@@ -71,34 +65,22 @@ public class RuntimeController {
             @ApiResponse(responseCode = "200", description = "Operation started successfully",
                     content = {@Content(mediaType = "application/json",
                             schema = @Schema(implementation = RunStatus.class))})
-//            , @ApiResponse(responseCode = "400", description = "Invalid id supplied",
-//                    content = @Content)
-//            , @ApiResponse(responseCode = "404", description = "Config not found",
-//                    content = @Content)
     })
     @ResponseBody
     @RequestMapping(method = RequestMethod.POST, value = "/start")
     public RunStatus start(
-//            @RequestParam(name = "sessionId", required = false) String sessionId,
-                           @RequestParam(name = "dryrun") Boolean dryrun,
-//                           @RequestParam(name = "autoGLM", required = false) Boolean autoGLM,
-                           @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws MismatchException, RequiredConfigurationException, SessionException, EncryptionException {
-//        boolean lclAutoGLM = autoGLM != null && autoGLM;
-        return runtimeService.start(dryrun,
-//                lclAutoGLM,
-                maxThreads);
-    }
+            @RequestParam(name = "dryrun") Boolean dryrun,
+            @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) 
+            throws MismatchException, RequiredConfigurationException, SessionException, EncryptionException {
 
+        return runtimeService.start(dryrun, maxThreads);
+    }
 
     @Operation(summary = "Cancel the Operation")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Operation cancelled successfully",
                     content = {@Content(mediaType = "application/json",
                             schema = @Schema(implementation = RunStatus.class))})
-//            , @ApiResponse(responseCode = "400", description = "Invalid id supplied",
-//                    content = @Content)
-//            , @ApiResponse(responseCode = "404", description = "Config not found",
-//                    content = @Content)
     })
     @ResponseBody
     @RequestMapping(method = RequestMethod.POST, value = "/cancel")
@@ -113,10 +95,6 @@ public class RuntimeController {
             @ApiResponse(responseCode = "200", description = "Reports retrieved successfully",
                     content = {@Content(mediaType = "application/zip",
                             schema = @Schema(implementation = HttpEntity.class))})
-//            , @ApiResponse(responseCode = "400", description = "Invalid id supplied",
-//                    content = @Content)
-//            , @ApiResponse(responseCode = "404", description = "Config not found",
-//                    content = @Content)
     })
     @ResponseBody
     @RequestMapping(method = RequestMethod.GET, value = "/reports/latest/download")
@@ -134,10 +112,6 @@ public class RuntimeController {
             @ApiResponse(responseCode = "200", description = "Reports retrieved successfully",
                     content = {@Content(mediaType = "application/zip",
                             schema = @Schema(implementation = HttpEntity.class))})
-//            , @ApiResponse(responseCode = "400", description = "Invalid id supplied",
-//                    content = @Content)
-//            , @ApiResponse(responseCode = "404", description = "Config not found",
-//                    content = @Content)
     })
     @ResponseBody
     @RequestMapping(method = RequestMethod.GET, value = "/reports/{id}/download")
@@ -145,21 +119,15 @@ public class RuntimeController {
         return reportService.getZippedReport(id);
     }
 
-
     @Operation(summary = "Available Reports")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "List of available reports",
                     content = {@Content(mediaType = "application/json",
                             schema = @Schema(implementation = Set.class))})
-//            , @ApiResponse(responseCode = "400", description = "Invalid id supplied",
-//                    content = @Content)
-//            , @ApiResponse(responseCode = "404", description = "Config not found",
-//                    content = @Content)
     })
     @ResponseBody
     @RequestMapping(method = RequestMethod.GET, value = "/reports/list")
     public Set<String> availableReports() {
         return reportService.getAvailableReports();
     }
-
 }

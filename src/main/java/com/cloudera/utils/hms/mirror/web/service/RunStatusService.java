@@ -14,7 +14,6 @@
  *  limitations under the License.
  *
  */
-
 package com.cloudera.utils.hms.mirror.web.service;
 
 import com.cloudera.utils.hms.mirror.PhaseState;
@@ -22,9 +21,7 @@ import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.support.Conversion;
 import com.cloudera.utils.hms.mirror.domain.support.RunStatus;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -37,39 +34,31 @@ import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Service
-@Setter
 @Slf4j
 public class RunStatusService {
 
-    private ExecuteSessionService executeSessionService;
+    private final ExecuteSessionService executeSessionService;
 
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
+    public RunStatusService(ExecuteSessionService executeSessionService) {
         this.executeSessionService = executeSessionService;
     }
 
     public RunStatus getRunStatus(String sessionId) {
-        RunStatus runStatus = null;
+        RunStatus runStatus;
         if (isBlank(sessionId)) {
             runStatus = executeSessionService.getSession().getRunStatus();
         } else {
             runStatus = executeSessionService.getSession(sessionId).getRunStatus();
         }
-
         updateProgress(runStatus);
-
         return runStatus;
     }
 
     public synchronized void updateProgress(RunStatus runStatus) {
-
         Conversion conversion = executeSessionService.getSession().getConversion();
-
         if (nonNull(conversion)) {
-
             // Reset the inProgressTables with what's currently working.
             runStatus.getInProgressTables().clear();
-
             // In a safe concurrent stream fashion, go thru the conversion databases
             // and tables to update the inProgressTables.
             List<TableMirror> inProgressTables = new ArrayList<>();
@@ -82,7 +71,6 @@ public class RunStatusService {
                 // If we get a concurrent modification exception, move ahead and get it next time..
                 log.warn("ConcurrentModificationException caught while updating inProgressTables. Will retry next time.");
             }
-
             runStatus.setInProgressTables(inProgressTables);
         }
     }

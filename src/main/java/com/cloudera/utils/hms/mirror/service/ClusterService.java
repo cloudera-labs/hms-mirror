@@ -19,26 +19,29 @@ package com.cloudera.utils.hms.mirror.service;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service for managing cluster-related operations.
+ * This service coordinates between different services to perform cluster-level operations.
+ */
 @Service
 @Slf4j
 @Getter
 public class ClusterService {
 
-    private ExecuteSessionService executeSessionService;
+    private final ExecuteSessionService executeSessionService;
+    private final DatabaseService databaseService;
 
-    private DatabaseService databaseService;
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
+    /**
+     * Constructor for ClusterService.
+     *
+     * @param executeSessionService Service for executing sessions
+     * @param databaseService Service for database operations
+     */
+    public ClusterService(ExecuteSessionService executeSessionService, DatabaseService databaseService) {
         this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setDatabaseService(DatabaseService databaseService) {
         this.databaseService = databaseService;
+        log.debug("ClusterService initialized");
     }
-
 }

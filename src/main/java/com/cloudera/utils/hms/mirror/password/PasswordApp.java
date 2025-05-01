@@ -41,8 +41,8 @@ public class PasswordApp {
         // Translate the legacy command line arguments to Spring Boot arguments
         //    before starting the application.
         log.info("Translating command line arguments to Spring Boot arguments");
-        HmsMirrorCommandLineOptions hmsMirrorCommandLineOptions = new HmsMirrorCommandLineOptions();
-        String[] springArgs = hmsMirrorCommandLineOptions.toSpringBootOption(Boolean.TRUE, args);
+//        HmsMirrorCommandLineOptions hmsMirrorCommandLineOptions = new HmsMirrorCommandLineOptions();
+        String[] springArgs = HmsMirrorCommandLineOptions.toSpringBootOption(Boolean.TRUE, args);
         log.info("Translated Spring Boot arguments: {}", String.join(" ", springArgs));
         log.info("STARTING THE APPLICATION");
 

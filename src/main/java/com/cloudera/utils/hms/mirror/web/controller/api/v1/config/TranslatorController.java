@@ -32,7 +32,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -43,22 +42,15 @@ import java.util.Map;
 @RequestMapping(path = "/api/v1/translator")
 public class TranslatorController {
 
-    private DatabaseService databaseService;
-    private ExecuteSessionService executeSessionService;
-    private TranslatorService translatorService;
+    private final DatabaseService databaseService;
+    private final ExecuteSessionService executeSessionService;
+    private final TranslatorService translatorService;
 
-    @Autowired
-    public void setDatabaseService(DatabaseService databaseService) {
+    public TranslatorController(DatabaseService databaseService,
+                               ExecuteSessionService executeSessionService,
+                               TranslatorService translatorService) {
         this.databaseService = databaseService;
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
         this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setTranslatorService(TranslatorService translatorService) {
         this.translatorService = translatorService;
     }
 
@@ -74,7 +66,6 @@ public class TranslatorController {
         return executeSessionService.getSession().getConfig().getTranslator();
     }
 
-    // Translator
     @Operation(summary = "Set Translator Details")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Translator Details set",
@@ -84,10 +75,8 @@ public class TranslatorController {
     @RequestMapping(method = RequestMethod.PUT, value = "/")
     public Translator setTransfer(
             @RequestParam(value = "forceExternalLocation", required = false) Boolean forceExternalLocation ) throws SessionException {
-
         // Don't reload if running.
         executeSessionService.closeSession();
-
         if (forceExternalLocation != null) {
             log.info("Setting Translator 'forceExternalLocation' to: {}", forceExternalLocation);
             executeSessionService.getSession().getConfig().getTranslator().setForceExternalLocation(forceExternalLocation);
@@ -112,7 +101,6 @@ public class TranslatorController {
         log.info("Adding global location map for source: {} and target: {}", source, target);
         // Don't reload if running.
         executeSessionService.closeSession();
-
         translatorService.addGlobalLocationMap(tableType, source, target);
     }
 
@@ -128,15 +116,13 @@ public class TranslatorController {
     @ResponseBody
     @RequestMapping(method = RequestMethod.DELETE, value = "/globalLocationMap")
     public void removeGlobalLocationMap(@RequestParam(name = "source", required = true) String source,
-                                          @RequestParam(name = "tableType", required = true) TableType tableType) throws SessionException {
+                                        @RequestParam(name = "tableType", required = true) TableType tableType) throws SessionException {
         // Don't reload if running.
         executeSessionService.closeSession();
-
         log.info("Removing global location map for source: {}", source);
         translatorService.removeGlobalLocationMap(source, tableType);
     }
 
-    // Get Global Location Map
     @Operation(summary = "Get GLM's")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "GLM's retrieved",
@@ -153,8 +139,6 @@ public class TranslatorController {
         return translatorService.getGlobalLocationMap();
     }
 
-    // Get Global Location Map
-    // TODO: Remove this?  As this is a part of the runtime process.
     @Deprecated
     @Operation(summary = "Build GLM from Warehouse Plan")
     @ApiResponses(value = {
@@ -168,9 +152,9 @@ public class TranslatorController {
     @ResponseBody
     @RequestMapping(method = RequestMethod.POST, value = "/globalLocationMap/build")
     public Map<String, Map<TableType, String>> buildGLMFromPlans(@RequestParam(name = "dryrun", required = false) Boolean dryrun,
-                                                 @RequestParam(name = "buildSources", required = false) Boolean buildSources,
-                                                 @RequestParam(name = "partitionLevelMisMatch", required = false) Boolean partitionLevelMisMatch,
-                                                 @RequestParam(name = "consolidationLevel", required = false) Integer consolidationLevel)
+                                                                 @RequestParam(name = "buildSources", required = false) Boolean buildSources,
+                                                                 @RequestParam(name = "partitionLevelMisMatch", required = false) Boolean partitionLevelMisMatch,
+                                                                 @RequestParam(name = "consolidationLevel", required = false) Integer consolidationLevel)
             throws MismatchException, SessionException, RequiredConfigurationException, EncryptionException {
         log.info("Building global location maps");
         boolean lclDryrun = dryrun != null ? dryrun : true;
@@ -180,12 +164,10 @@ public class TranslatorController {
         boolean lclBuildSources = buildSources != null ? buildSources : false;
         int lclConsolidationLevel = consolidationLevel != null ? consolidationLevel : 1;
         boolean lclPartitionLevelMismatch = partitionLevelMisMatch != null && partitionLevelMisMatch;
-
         if (lclBuildSources) {
             databaseService.buildDatabaseSources(lclConsolidationLevel, false);
         }
         return translatorService.buildGlobalLocationMapFromWarehousePlansAndSources(lclDryrun, lclConsolidationLevel);
     }
-
 
 }

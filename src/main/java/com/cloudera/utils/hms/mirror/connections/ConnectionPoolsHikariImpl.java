@@ -17,7 +17,6 @@
 
 package com.cloudera.utils.hms.mirror.connections;
 
-import com.cloudera.utils.hive.config.DBStore;
 import com.cloudera.utils.hms.mirror.domain.HiveServer2Config;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
@@ -25,13 +24,10 @@ import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import com.cloudera.utils.hms.mirror.service.PasswordService;
 import com.cloudera.utils.hms.util.ConfigUtils;
-import com.cloudera.utils.hms.util.DriverUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.sql.DataSource;
-import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;

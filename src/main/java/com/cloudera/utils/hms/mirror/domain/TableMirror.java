@@ -283,17 +283,17 @@ public class TableMirror {
     @JsonIgnore
     public boolean isThereAnIssue(Environment environment) {
         EnvironmentTable et = getEnvironmentTable(environment);
-        return !et.getIssues().isEmpty() ? Boolean.TRUE : Boolean.FALSE;
+        return !et.getIssues().isEmpty();
     }
 
     public boolean isThereCleanupSql(Environment environment) {
         EnvironmentTable et = getEnvironmentTable(environment);
-        return !et.getCleanUpSql().isEmpty() ? Boolean.TRUE : Boolean.FALSE;
+        return !et.getCleanUpSql().isEmpty();
     }
 
     public boolean isThereSql(Environment environment) {
         EnvironmentTable et = getEnvironmentTable(environment);
-        return !et.getSql().isEmpty() ? Boolean.TRUE : Boolean.FALSE;
+        return !et.getSql().isEmpty();
     }
 
     public void nextPhase(String msg) {
@@ -313,14 +313,9 @@ public class TableMirror {
         if (nonNull(schemaOne) && nonNull(schemaTwo)) {
             String fpOne = TableUtils.tableFieldsFingerPrint(schemaOne);
             String fpTwo = TableUtils.tableFieldsFingerPrint(schemaTwo);
-            if (fpOne.equals(fpTwo)) {
-                return Boolean.TRUE;
-            } else {
-                return Boolean.FALSE;
-            }
-        } else {
-            return Boolean.FALSE;
+            return fpOne.equals(fpTwo);
         }
+        return false;
     }
 
     public void setMigrationStageMessage(String migrationStageMessage) {

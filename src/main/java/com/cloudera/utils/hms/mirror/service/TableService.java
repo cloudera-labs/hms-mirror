@@ -32,9 +32,7 @@ import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
 import java.sql.*;
@@ -43,7 +41,7 @@ import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 
 import static com.cloudera.utils.hms.mirror.MessageCode.METASTORE_PARTITION_LOCATIONS_NOT_FETCHED;
@@ -64,20 +62,27 @@ public class TableService {
     private final DateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
     private final DateFormat tdf = new SimpleDateFormat("HH:mm:ss.SSS");
 
-    private ConfigService configService;
-    private ExecuteSessionService executeSessionService;
-    private ConnectionPoolService connectionPoolService;
-    private QueryDefinitionsService queryDefinitionsService;
-    private TranslatorService translatorService;
-    private StatsCalculatorService statsCalculatorService;
+    private final ConfigService configService;
+    private final ExecuteSessionService executeSessionService;
+    private final ConnectionPoolService connectionPoolService;
+    private final QueryDefinitionsService queryDefinitionsService;
+    private final TranslatorService translatorService;
+    private final StatsCalculatorService statsCalculatorService;
 
-//    protected HmsMirrorConfig getConfig() {
-//        return getExecuteSessionService().getHmsMirrorConfig();
-//    }
-
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    public TableService(
+            ConfigService configService,
+            ExecuteSessionService executeSessionService,
+            ConnectionPoolService connectionPoolService,
+            QueryDefinitionsService queryDefinitionsService,
+            TranslatorService translatorService,
+            StatsCalculatorService statsCalculatorService
+    ) {
         this.configService = configService;
+        this.executeSessionService = executeSessionService;
+        this.connectionPoolService = connectionPoolService;
+        this.queryDefinitionsService = queryDefinitionsService;
+        this.translatorService = translatorService;
+        this.statsCalculatorService = statsCalculatorService;
     }
 
     protected void checkTableFilter(TableMirror tableMirror, Environment environment) {
@@ -91,7 +96,6 @@ public class TableService {
             return;
         }
 
-//        if (environment == Environment.LEFT) {
         if (config.getMigrateVIEW().isOn() && config.getDataStrategy() != DUMP) {
             if (!TableUtils.isView(et)) {
                 tableMirror.setRemove(Boolean.TRUE);
@@ -101,7 +105,6 @@ public class TableService {
             // Check if ACID for only the LEFT cluster.  If it's the RIGHT cluster, other steps will deal with
             // the conflict.  IE: Rename or exists already.
             if (TableUtils.isManaged(et)) {
-//                        && environment == Environment.LEFT) {
                 if (TableUtils.isACID(et)) {
                     // For ACID tables, check that Migrate is ON.
                     if (config.getMigrateACID().isOn()) {
@@ -164,8 +167,8 @@ public class TableService {
 
     public String getCreateStatement(TableMirror tableMirror, Environment environment) {
         StringBuilder createStatement = new StringBuilder();
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
-        Cluster cluster = hmsMirrorConfig.getCluster(environment);
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
+        Cluster cluster = config.getCluster(environment);
         Boolean cine = Boolean.FALSE;
         if (nonNull(cluster)) {
             cine = cluster.isCreateIfNotExists();
@@ -187,8 +190,6 @@ public class TableService {
             }
         } else {
             log.error("Couldn't location definition for table: {} in environment: {}", tableMirror.getName(), environment.toString());
-//                throw new RuntimeException("Couldn't location definition for table: " + tableMirror.getName() +
-//                        " in environment: " + environment.toString());
         }
         return createStatement.toString();
     }
@@ -229,7 +230,6 @@ public class TableService {
                         } catch (DisabledException e) {
                             log.warn("Stats collection is disabled because the CLI Interface has been disabled. " +
                                     " Skipping stats collection for table: {}", et.getName());
-//                            throw new RuntimeException(e);
                         } catch (RuntimeException rte) {
                             log.error("Issue loading table stats for {}.{}", et.getName(), et.getParent().getName());
                             tableMirror.addIssue(environment, rte.getMessage());
@@ -268,7 +268,7 @@ public class TableService {
     }
 
     @Async("metadataThreadPool")
-    public Future<ReturnStatus> getTableMetadata(TableMirror tableMirror) {
+    public CompletableFuture<ReturnStatus> getTableMetadata(TableMirror tableMirror) {
         ReturnStatus rtn = new ReturnStatus();
         rtn.setTableMirror(tableMirror);
         HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
@@ -278,8 +278,7 @@ public class TableService {
             getTableDefinition(tableMirror, Environment.LEFT);
             if (tableMirror.isRemove()) {
                 rtn.setStatus(ReturnStatus.Status.SKIP);
-//                runStatus.getOperationStatistics().getSkipped().incrementTables();
-                return new AsyncResult<>(rtn);
+                return CompletableFuture.completedFuture(rtn);
             } else {
                 switch (hmsMirrorConfig.getDataStrategy()) {
                     case DUMP:
@@ -289,7 +288,6 @@ public class TableService {
                             tableMirror.getEnvironments().put(Environment.RIGHT, tableMirror.getEnvironmentTable(Environment.LEFT).clone());
                         } catch (CloneNotSupportedException e) {
                             log.error("Clone not supported for table: {}.{}", tableMirror.getParent().getName(), tableMirror.getName());
-//                            throw new RuntimeException(e);
                         }
                         rtn.setStatus(ReturnStatus.Status.SUCCESS);//successful = Boolean.TRUE;
                         break;
@@ -297,19 +295,17 @@ public class TableService {
                         getTableDefinition(tableMirror, Environment.RIGHT);
                         rtn.setStatus(ReturnStatus.Status.SUCCESS);//successful = Boolean.TRUE;
                 }
-//                runStatus.getOperationStatistics().getSuccesses().incrementTables();
             }
         } catch (SQLException throwables) {
             log.error(throwables.getMessage(), throwables);
             rtn.setStatus(ReturnStatus.Status.ERROR);
             rtn.setException(throwables);
-//            runStatus.getOperationStatistics().getFailures().incrementTables();
         }
-        return new AsyncResult<>(rtn);
+        return CompletableFuture.completedFuture(rtn);
     }
 
     @Async("metadataThreadPool")
-    public Future<ReturnStatus> getTables(DBMirror dbMirror) {
+    public CompletableFuture<ReturnStatus> getTables(DBMirror dbMirror) {
         ReturnStatus rtn = new ReturnStatus();
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig hmsMirrorConfig = session.getConfig();
@@ -335,7 +331,7 @@ public class TableService {
             rtn.setStatus(ReturnStatus.Status.ERROR);
             rtn.setException(rte);
         }
-        return new AsyncResult<>(rtn);
+        return CompletableFuture.completedFuture(rtn);
     }
 
     public void getTables(DBMirror dbMirror, Environment environment) throws SQLException {
@@ -410,36 +406,30 @@ public class TableService {
                                 if (isBlank(config.getFilter().getTblRegEx()) && isBlank(config.getFilter().getTblExcludeRegEx())) {
                                     log.info("{}.{} added to processing list.", database, tableName);
                                     TableMirror tableMirror = dbMirror.addTable(tableName);
-//                                    stats.getCounts().incrementTables();
                                     tableMirror.setUnique(df.format(config.getInitDate()));
                                     tableMirror.setMigrationStageMessage("Added to evaluation inventory");
-//                                    runStatus.getOperationStatistics().getCounts().incrementTables();
                                 } else if (!isBlank(config.getFilter().getTblRegEx())) {
                                     // Filter Tables
                                     assert (config.getFilter().getTblFilterPattern() != null);
                                     Matcher matcher = config.getFilter().getTblFilterPattern().matcher(tableName);
-//                                    stats.getCounts().incrementTables();
                                     if (matcher.matches()) {
                                         log.info("{}.{} added to processing list.", database, tableName);
                                         TableMirror tableMirror = dbMirror.addTable(tableName);
                                         tableMirror.setUnique(df.format(config.getInitDate()));
                                         tableMirror.setMigrationStageMessage("Added to evaluation inventory");
                                     } else {
-//                                        stats.getSkipped().incrementTables();
                                         log.info("{}.{} didn't match table regex filter and " +
                                                 "will NOT be added to processing list.", database, tableName);
                                     }
                                 } else if (config.getFilter().getTblExcludeRegEx() != null) {
                                     assert (config.getFilter().getTblExcludeFilterPattern() != null);
                                     Matcher matcher = config.getFilter().getTblExcludeFilterPattern().matcher(tableName);
-//                                    stats.getCounts().incrementTables();
                                     if (!matcher.matches()) { // ANTI-MATCH
                                         log.info("{}.{} added to processing list.", database, tableName);
                                         TableMirror tableMirror = dbMirror.addTable(tableName);
                                         tableMirror.setUnique(df.format(config.getInitDate()));
                                         tableMirror.setMigrationStageMessage("Added to evaluation inventory");
                                     } else {
-//                                        stats.getSkipped().incrementTables();
                                         log.info("{}.{} matched exclude table regex filter and " +
                                                 "will NOT be added to processing list.", database, tableName);
                                     }
@@ -927,30 +917,4 @@ public class TableService {
         }
         return rtn;
     }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
-        this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setConnectionPoolService(ConnectionPoolService connectionPoolService) {
-        this.connectionPoolService = connectionPoolService;
-    }
-
-    @Autowired
-    public void setQueryDefinitionsService(QueryDefinitionsService queryDefinitionsService) {
-        this.queryDefinitionsService = queryDefinitionsService;
-    }
-
-    @Autowired
-    public void setStatsCalculatorService(StatsCalculatorService statsCalculatorService) {
-        this.statsCalculatorService = statsCalculatorService;
-    }
-
-    @Autowired
-    public void setTranslatorService(TranslatorService translatorService) {
-        this.translatorService = translatorService;
-    }
-
 }

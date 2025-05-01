@@ -22,12 +22,16 @@ import com.cloudera.utils.hms.mirror.domain.support.ConnectionPoolType;
 import com.cloudera.utils.hms.mirror.domain.support.DataMovementStrategyEnum;
 import com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum;
 import com.cloudera.utils.hms.mirror.web.controller.ControllerReferences;
+import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
+@Slf4j
 public class ModelUtils implements ControllerReferences {
+
+    private static final String[] BOOLEAN_VALUES = new String[]{"false", "true"};
 
     public static void allEnumsForMap(DataStrategyEnum dataStrategy, Map<String, Object> map) {
         enumForMap(com.cloudera.utils.hms.mirror.domain.support.SerdeType.class, map);
@@ -38,7 +42,6 @@ public class ModelUtils implements ControllerReferences {
         enumForMap(com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.class, map);
         enumForMap(com.cloudera.utils.hms.mirror.domain.support.DistcpFlowEnum.class, map);
         enumForMap(com.cloudera.utils.hms.mirror.domain.support.TranslationTypeEnum.class, map);
-//        enumForMap(DBStore.DB_TYPE.class, map);
         configSupportedDBType(map);
         configIcebergVersions(map);
         configSupportDataMovementStrategyForModel(dataStrategy, map);
@@ -48,9 +51,7 @@ public class ModelUtils implements ControllerReferences {
         enumForMap(ConnectionPoolType.class, map);
         map.put("FALSE", "false");
         map.put("TRUE", "true");
-
         booleanForModel(map);
-
     }
 
     public static void configSupportedDBType(Map<String, Object> map) {
@@ -62,7 +63,6 @@ public class ModelUtils implements ControllerReferences {
     }
 
     public static void configEnvironmentForModel(DataStrategyEnum dataStrategy, Map<String, Object> map) {
-        // Add LEFT and RIGHT to the model
         switch (dataStrategy) {
             case STORAGE_MIGRATION:
             case DUMP:
@@ -75,17 +75,16 @@ public class ModelUtils implements ControllerReferences {
     }
 
     public static List<DataStrategyEnum> getSupportedDataStrategies() {
-        List<DataStrategyEnum> supportedDataStrategies = new ArrayList<>();
-        supportedDataStrategies.add(DataStrategyEnum.STORAGE_MIGRATION);
-        supportedDataStrategies.add(DataStrategyEnum.DUMP);
-        supportedDataStrategies.add(DataStrategyEnum.SCHEMA_ONLY);
-        supportedDataStrategies.add(DataStrategyEnum.SQL);
-        supportedDataStrategies.add(DataStrategyEnum.EXPORT_IMPORT);
-        supportedDataStrategies.add(DataStrategyEnum.HYBRID);
-        supportedDataStrategies.add(DataStrategyEnum.COMMON);
-        supportedDataStrategies.add(DataStrategyEnum.LINKED);
-
-        return supportedDataStrategies;
+        return Arrays.asList(
+            DataStrategyEnum.STORAGE_MIGRATION,
+            DataStrategyEnum.DUMP,
+            DataStrategyEnum.SCHEMA_ONLY,
+            DataStrategyEnum.SQL,
+            DataStrategyEnum.EXPORT_IMPORT,
+            DataStrategyEnum.HYBRID,
+            DataStrategyEnum.COMMON,
+            DataStrategyEnum.LINKED
+        );
     }
 
     public static void configSupportDataStrategyForModel(Map<String, Object> map) {
@@ -107,16 +106,14 @@ public class ModelUtils implements ControllerReferences {
     }
 
     public static void configSupportedHiveDriverClassesForModel(Map<String, Object> map) {
-        // Add SUPPORTED and UNSUPPORTED to the model
         map.put(SUPPORTED_HIVE_DRIVER_CLASSES,
                 new String[]{"org.apache.hive.jdbc.HiveDriver", "com.cloudera.hive.jdbc.HS2Driver"});
     }
 
-    public static void enumForMap(Class clazz, Map<String, Object> map) {
+    public static void enumForMap(Class<?> clazz, Map<String, Object> map) {
         if (clazz.isEnum()) {
-            Method method = null;
             try {
-                method = clazz.getMethod("values");
+                Method method = clazz.getMethod("values");
                 Enum<?>[] enums = (Enum<?>[]) method.invoke(null);
                 String[] enumNames = new String[enums.length];
                 for (int i = 0; i < enums.length; i++) {
@@ -124,16 +121,12 @@ public class ModelUtils implements ControllerReferences {
                 }
                 map.put(clazz.getSimpleName().toLowerCase() + "s", enumNames);
             } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-//                throw new RuntimeException(e);
+                log.error("Failed to process enum class {}: {}", clazz.getName(), e.getMessage());
             }
         }
     }
 
     public static void booleanForModel(Map<String, Object> map) {
-        String[] bools = new String[2];
-        bools[0] = "false";
-        bools[1] = "true";
-        map.put(BOOLEANS, bools);
+        map.put(BOOLEANS, BOOLEAN_VALUES);
     }
-
 }

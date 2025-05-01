@@ -24,7 +24,6 @@ import com.cloudera.utils.hms.mirror.service.ConfigService;
 import com.cloudera.utils.hms.mirror.service.DatabaseService;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,21 +38,14 @@ import javax.validation.constraints.NotNull;
 @Slf4j
 public class DatabaseMVController implements ControllerReferences {
 
-    private ConfigService configService;
-    private DatabaseService databaseService;
-    private ExecuteSessionService executeSessionService;
+    private final ConfigService configService;
+    private final DatabaseService databaseService;
+    private final ExecuteSessionService executeSessionService;
 
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    public DatabaseMVController(ConfigService configService, DatabaseService databaseService,
+                                ExecuteSessionService executeSessionService) {
         this.configService = configService;
-    }
-    @Autowired
-    public void setDatabaseService(DatabaseService databaseService) {
         this.databaseService = databaseService;
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
         this.executeSessionService = executeSessionService;
     }
 
@@ -61,62 +53,47 @@ public class DatabaseMVController implements ControllerReferences {
     public String addDatabase(Model model,
                               @RequestParam(value = DATABASES, required = true) String databases) throws SessionException {
         executeSessionService.closeSession();
-
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();
-
         String[] dbs = databases.split(",");
-        for (String db: dbs) {
+        for (String db : dbs) {
             config.getDatabases().add(db);
         }
-
         configService.validate(session, null);
-
         return "redirect:/config/edit";
     }
 
     @RequestMapping(value = "/{database}/delete", method = RequestMethod.GET)
     public String deleteDatabase(Model model,
-                                      @PathVariable @NotNull String database) throws SessionException {
+                                 @PathVariable @NotNull String database) throws SessionException {
         executeSessionService.closeSession();
-
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();
-
         config.getDatabases().remove(database);
-
         return "redirect:/config/edit";
     }
 
     @RequestMapping(value = "/property/add", method = RequestMethod.POST)
     public String addDatabaseSkipProperty(Model model,
-                              @RequestParam(value = DBPROPERTIES, required = true) String properties) throws SessionException {
+                                          @RequestParam(value = DBPROPERTIES, required = true) String properties) throws SessionException {
         executeSessionService.closeSession();
-
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();
-
         String[] props = properties.split(",");
-        for (String property: props) {
+        for (String property : props) {
             config.getFilter().addDbPropertySkipItem(property);
         }
-
         configService.validate(session, null);
-
         return "redirect:/config/edit";
     }
 
     @RequestMapping(value = "/property/{index}/delete", method = RequestMethod.GET)
     public String deleteDatabaseSkipProperty(Model model,
-                                 @PathVariable @NotNull Integer index) throws SessionException {
+                                             @PathVariable @NotNull Integer index) throws SessionException {
         executeSessionService.closeSession();
-
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();
-
         config.getFilter().removeDbPropertySkipItemByIndex(index);
-
         return "redirect:/config/edit";
     }
-
 }

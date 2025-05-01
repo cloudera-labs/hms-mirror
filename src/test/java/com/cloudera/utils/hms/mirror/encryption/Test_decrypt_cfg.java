@@ -21,15 +21,15 @@ import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
 import com.cloudera.utils.hms.mirror.password.PasswordApp;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = PasswordApp.class,
         args = {
 //                "--hms-mirror.config.data-strategy=EXPORT_IMPORT",
@@ -55,7 +55,7 @@ import static org.junit.Assert.assertEquals;
 @Slf4j
 public class Test_decrypt_cfg extends PasswordTestBase {
 
-//    @Before
+//    @BeforeEach
 //    public void setup() {
 //        passwordService.decryptConfigPasswords(getExecuteSession().getConfig());
 //    }
@@ -65,7 +65,7 @@ public class Test_decrypt_cfg extends PasswordTestBase {
     public void validateDecryptPassword() throws EncryptionException {
         // Get Runtime Return Code.
         String value = doIt();
-        assertEquals("Decrypt PasswordApp Failure: ", "myspecialpassword", value);
+        assertEquals("myspecialpassword", value, "Decrypt PasswordApp Failure: ");
     }
 
 }

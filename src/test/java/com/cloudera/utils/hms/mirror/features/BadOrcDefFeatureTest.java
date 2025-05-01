@@ -19,12 +19,12 @@ package com.cloudera.utils.hms.mirror.features;
 
 import com.cloudera.utils.hms.mirror.feature.BadOrcDefFeature;
 import com.cloudera.utils.hms.mirror.feature.Feature;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BadOrcDefFeatureTest extends BaseFeatureTest {
 

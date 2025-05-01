@@ -24,7 +24,6 @@ import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import com.cloudera.utils.hms.mirror.service.UIModelService;
 import com.cloudera.utils.hms.mirror.web.controller.ControllerReferences;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -38,17 +37,15 @@ import java.sql.SQLInvalidAuthorizationSpecException;
 @ControllerAdvice
 public class MirrorExceptionHandler {
 
-    private UIModelService uiModelService;
+    private final UIModelService uiModelService;
 
-    @Autowired
-    public void setUiModelService(UIModelService uiModelService) {
+    public MirrorExceptionHandler(UIModelService uiModelService) {
         this.uiModelService = uiModelService;
     }
 
     @ExceptionHandler(value = SessionException.class)
     public ModelAndView sessionExceptionHandler(HttpServletRequest request, SessionException exception) {
         ModelAndView mv = new ModelAndView();
-
         mv.addObject(ControllerReferences.TYPE, "Session Exception");
         mv.addObject(ControllerReferences.MESSAGE, exception.getMessage());
         uiModelService.sessionToModel(mv, 0, false);
@@ -59,24 +56,12 @@ public class MirrorExceptionHandler {
     @ExceptionHandler(value = RequiredConfigurationException.class)
     public ModelAndView reqConfigExceptionHandler(HttpServletRequest request, RequiredConfigurationException exception) {
         ModelAndView mv = new ModelAndView();
-
         mv.getModel().put(ControllerReferences.TYPE, "Required Configuration");
         mv.getModel().put(ControllerReferences.MESSAGE, exception.getMessage());
         uiModelService.sessionToModel(mv.getModel(), 0, false);
         mv.setViewName("error");
         return mv;
     }
-
-//    @ExceptionHandler(value = EncryptionException.class)
-//    public ModelAndView encryptionExceptionHandler(HttpServletRequest request, EncryptionException exception) {
-//        ModelAndView mv = new ModelAndView();
-//
-//        mv.getModel().put(ControllerReferences.TYPE, "Encryption/Decryption Issue");
-//        mv.getModel().put(ControllerReferences.MESSAGE, exception.getMessage());
-//        uiModelService.sessionToModel(mv.getModel(), 0, false);
-//        mv.setViewName("error");
-//        return mv;
-//    }
 
     @ExceptionHandler(value = EncryptionException.class)
     public String encryptionExceptionHandler(Model model, EncryptionException exception) {
@@ -93,7 +78,6 @@ public class MirrorExceptionHandler {
         uiModelService.sessionToModel(model, 0, false);
         return "error";
     }
-
 
     @ExceptionHandler(value = IOException.class)
     public String ioExceptionHandler(Model model, IOException exception) {
@@ -126,5 +110,4 @@ public class MirrorExceptionHandler {
         uiModelService.sessionToModel(model, 0, false);
         return "error";
     }
-
 }

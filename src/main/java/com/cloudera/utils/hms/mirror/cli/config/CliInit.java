@@ -32,13 +32,13 @@ import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,37 +53,45 @@ import java.util.regex.Matcher;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
-@Configuration
+@Component
 @Slf4j
 public class CliInit {
 
-    private ConfigService configService;
-    private DomainService domainService;
-    private ExecuteSessionService executeSessionService;
-    private ObjectMapper yamlMapper;
+    private final DomainService domainService;
+    private final ExecuteSessionService executeSessionService;
+    private final ObjectMapper yamlMapper;
 
-    @Autowired
-    public void setConfigService(ConfigService configService) {
-        this.configService = configService;
-    }
-
-    @Autowired
-    public void setDomainService(DomainService domainService) {
+    /**
+     * Initializes the CliInit class with required services and utilities.
+     *
+     * @param domainService the service responsible for managing domain-specific logic.
+     * @param executeSessionService the service responsible for managing execution sessions.
+     * @param yamlMapper the object mapper for parsing and generating YAML files.
+     */
+    public CliInit(
+            DomainService domainService,
+            ExecuteSessionService executeSessionService,
+            ObjectMapper yamlMapper
+    ) {
         this.domainService = domainService;
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
         this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setYamlMapper(ObjectMapper yamlMapper) {
         this.yamlMapper = yamlMapper;
     }
 
+    /**
+     * Initializes the HmsMirrorConfig object by loading the configuration information
+     * from the specified YAML file. This method attempts to locate the configuration file
+     * first from the filesystem and then from the classpath, providing compatibility for
+     * various runtime environments.
+     *
+     * @param configFilename the name of the configuration file to load; it can be a file path
+     *                       or a resource name on the classpath.
+     * @return the initialized HmsMirrorConfig object created from the provided configuration file.
+     * @throws RuntimeException if the configuration file cannot be found or if an I/O error
+     *                          occurs while reading or parsing the file.
+     */
     private HmsMirrorConfig initializeConfig(String configFilename) {
-        HmsMirrorConfig hmsMirrorConfig;
+        HmsMirrorConfig config;
         log.info("Initializing Config.");
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
@@ -111,14 +119,14 @@ public class CliInit {
             }
 
             String yamlCfgFile = IOUtils.toString(cfgUrl, StandardCharsets.UTF_8);
-            hmsMirrorConfig = mapper.readerFor(HmsMirrorConfig.class).readValue(yamlCfgFile);
-            hmsMirrorConfig.setConfigFilename(configFilename);
+            config = mapper.readerFor(HmsMirrorConfig.class).readValue(yamlCfgFile);
+            config.setConfigFilename(configFilename);
         } catch (IOException e) {
             log.error("IO Exception", e);
             throw new RuntimeException(e);
         }
         log.info("Config loaded.");
-        return hmsMirrorConfig;
+        return config;
     }
 
     @Bean
@@ -157,9 +165,6 @@ public class CliInit {
         return new HmsMirrorConfig();
     }
 
-    /*
-
-     */
     @Bean
     @Order(5)
     @ConditionalOnProperty(
@@ -403,15 +408,6 @@ public class CliInit {
             // Identify it as being set by the user.
             hmsMirrorConfig.setUserSetOutputDirectory(userSetOutputDir);
             executeSessionService.setReportOutputDirectory(value, false);
-//            File reportPathDir = new File(value);
-//            if (!reportPathDir.exists()) {
-//                reportPathDir.mkdirs();
-//            }
-//            reporter.setReportOutputFile(value + FileSystems.getDefault().getSeparator() + "<db>_hms-mirror.md|html|yaml");
-//            reporter.setLeftExecuteFile(value + FileSystems.getDefault().getSeparator() + "<db>_LEFT_execute.sql");
-//            reporter.setLeftCleanUpFile(value + FileSystems.getDefault().getSeparator() + "<db>_LEFT_CleanUp_execute.sql");
-//            reporter.setRightExecuteFile(value + FileSystems.getDefault().getSeparator() + "<db>_RIGHT_execute.sql");
-//            reporter.setRightCleanUpFile(value + FileSystems.getDefault().getSeparator() + "<db>_RIGHT_CleanUp_execute.sql");
 
             File testFile = new File(value + FileSystems.getDefault().getSeparator() + ".dir-check");
 
@@ -422,14 +418,6 @@ public class CliInit {
                 retryPath.mkdirs();
             }
 
-            // Test file to ensure we can write to it for the report.
-//            try {
-//                new FileOutputStream(testFile).close();
-//            } catch (IOException e) {
-//                throw new RuntimeException("Can't write to output directory: " + value, e);
-//            }
-
         };
     }
-
 }

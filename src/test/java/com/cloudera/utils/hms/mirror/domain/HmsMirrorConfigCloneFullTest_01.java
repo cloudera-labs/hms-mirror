@@ -20,22 +20,22 @@ package com.cloudera.utils.hms.mirror.domain;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.utils.ConfigTest;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 import static java.util.Objects.isNull;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 public class HmsMirrorConfigCloneFullTest_01 {
 
     private HmsMirrorConfig config;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         log.info("Setting up HmsMirrorConfigCloneTest");
         config = ConfigTest.deserializeResource("/config/clone/full_test_01.yaml");

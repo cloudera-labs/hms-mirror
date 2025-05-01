@@ -36,7 +36,6 @@ import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
@@ -57,27 +56,23 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Component
 @Slf4j
 @Getter
-public class StorageMigrationDataStrategy extends DataStrategyBase implements DataStrategy {
+public class StorageMigrationDataStrategy extends DataStrategyBase {
 
-    private DatabaseService databaseService;
-    private TableService tableService;
-    //    private TranslatorService translatorService;
-    private StatsCalculatorService statsCalculatorService;
-    private WarehouseService warehouseService;
+    private final DatabaseService databaseService;
+    private final TableService tableService;
+    private final WarehouseService warehouseService;
 
-    @Autowired
-    public void setWarehouseService(WarehouseService warehouseService) {
-        this.warehouseService = warehouseService;
-    }
 
-    @Autowired
-    public void setDatabaseService(DatabaseService databaseService) {
+    public StorageMigrationDataStrategy(StatsCalculatorService statsCalculatorService,
+                                        ExecuteSessionService executeSessionService,
+                                        TranslatorService translatorService,
+                                        DatabaseService databaseService,
+                                        TableService tableService,
+                                        WarehouseService warehouseService) {
+        super(statsCalculatorService, executeSessionService, translatorService);
         this.databaseService = databaseService;
-    }
-
-    public StorageMigrationDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
-        this.executeSessionService = executeSessionService;
-        this.translatorService = translatorService;
+        this.tableService = tableService;
+        this.warehouseService = warehouseService;
     }
 
     @Override
@@ -652,18 +647,4 @@ public class StorageMigrationDataStrategy extends DataStrategyBase implements Da
         return tableService.runTableSql(tableMirror, Environment.LEFT);
     }
 
-    @Autowired
-    public void setStatsCalculatorService(StatsCalculatorService statsCalculatorService) {
-        this.statsCalculatorService = statsCalculatorService;
-    }
-
-    @Autowired
-    public void setTableService(TableService tableService) {
-        this.tableService = tableService;
-    }
-
-//    @Autowired
-//    public void setTranslatorService(TranslatorService translatorService) {
-//        this.translatorService = translatorService;
-//    }
 }

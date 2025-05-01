@@ -35,12 +35,11 @@ import com.cloudera.utils.hms.util.NamespaceUtils;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.net.URISyntaxException;
-import java.sql.Connection;
 import java.sql.*;
+import java.sql.Connection;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -53,50 +52,45 @@ import static com.cloudera.utils.hms.mirror.SessionVars.EXT_DB_LOCATION_PROP;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.apache.commons.lang3.Validate.notNull;
 
+/**
+ * DatabaseService is responsible for managing database operations, configurations,
+ * and environments. It integrates with various services for executing sessions, maintaining
+ * connection pools, managing query definitions, and handling warehouse-related operations.
+ */
 @Service
 @Slf4j
 @Getter
 public class DatabaseService {
 
-    private ConnectionPoolService connectionPoolService;
-    private ExecuteSessionService executeSessionService;
-    private QueryDefinitionsService queryDefinitionsService;
-    //    private TranslatorService translatorService;
-    private WarehouseService warehouseService;
-    private ConfigService configService;
+    private final ConnectionPoolService connectionPoolService;
+    private final ExecuteSessionService executeSessionService;
+    private final QueryDefinitionsService queryDefinitionsService;
+    private final WarehouseService warehouseService;
+    private final ConfigService configService;
 
     public static final Set<String> skipList = new HashSet<String>(Arrays.asList(DB_LOCATION, DB_MANAGED_LOCATION, COMMENT, DB_NAME, OWNER_NAME, OWNER_TYPE));
 
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    /**
+     * Constructor for DatabaseService.
+     *
+     * @param configService           Service for configuration
+     * @param executeSessionService   Service for executing sessions
+     * @param connectionPoolService   Service for managing connection pools
+     * @param queryDefinitionsService Service for query definitions
+     * @param warehouseService        Service for warehouse operations
+     */
+    public DatabaseService(ConfigService configService,
+                           ExecuteSessionService executeSessionService,
+                           ConnectionPoolService connectionPoolService,
+                           QueryDefinitionsService queryDefinitionsService,
+                           WarehouseService warehouseService) {
         this.configService = configService;
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
         this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setConnectionPoolService(ConnectionPoolService connectionPoolService) {
         this.connectionPoolService = connectionPoolService;
-    }
-
-    @Autowired
-    public void setQueryDefinitionsService(QueryDefinitionsService queryDefinitionsService) {
         this.queryDefinitionsService = queryDefinitionsService;
-    }
-
-//    @Autowired
-//    public void setTranslatorService(TranslatorService translatorService) {
-//        this.translatorService = translatorService;
-//    }
-
-    @Autowired
-    public void setWarehouseService(WarehouseService warehouseService) {
         this.warehouseService = warehouseService;
+        log.debug("DatabaseService initialized");
     }
 
     // Look at the Warehouse Plans and pull the database/table/partition locations the metastoreDirect.

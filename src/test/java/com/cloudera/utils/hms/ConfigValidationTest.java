@@ -17,7 +17,7 @@
 
 package com.cloudera.utils.hms;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ConfigValidationTest {
 

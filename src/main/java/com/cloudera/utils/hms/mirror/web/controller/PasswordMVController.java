@@ -28,7 +28,6 @@ import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.PasswordService;
 import com.cloudera.utils.hms.mirror.service.UIModelService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -36,7 +35,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import static com.cloudera.utils.hms.mirror.web.controller.ControllerReferences.PASSWORDS;
 import static com.cloudera.utils.hms.mirror.web.controller.ControllerReferences.PASSWORD_CONTAINER;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -47,22 +45,17 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Slf4j
 public class PasswordMVController {
 
-    private ExecuteSessionService executeSessionService;
-    private PasswordService passwordService;
-    private UIModelService uiModelService;
+    private final ExecuteSessionService executeSessionService;
+    private final PasswordService passwordService;
+    private final UIModelService uiModelService;
 
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
+    public PasswordMVController(
+            ExecuteSessionService executeSessionService,
+            PasswordService passwordService,
+            UIModelService uiModelService
+    ) {
         this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setPasswordService(PasswordService passwordService) {
         this.passwordService = passwordService;
-    }
-
-    @Autowired
-    public void setUiModelService(UIModelService uiModelService) {
         this.uiModelService = uiModelService;
     }
 
@@ -77,7 +70,6 @@ public class PasswordMVController {
         PasswordContainer passwordContainer = new PasswordContainer();
         passwordContainer.setPasswordKey(config.getPasswordKey());
         passwordContainer.setEncrypted(config.isEncryptedPasswords());
-
         if (nonNull(config.getCluster(Environment.LEFT)) && nonNull(config.getCluster(Environment.LEFT).getHiveServer2())) {
             passwordContainer.setLeftHS2(config.getCluster(Environment.LEFT).getHiveServer2().getConnectionProperties().getProperty("password"));
         }
@@ -91,15 +83,13 @@ public class PasswordMVController {
             passwordContainer.setRightMetastore(config.getCluster(Environment.RIGHT).getMetastoreDirect().getConnectionProperties().getProperty("password"));
         }
         model.addAttribute(PASSWORD_CONTAINER, passwordContainer);
-
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
-
         return "password/view";
     }
 
     @RequestMapping(value = "/reveal", method = RequestMethod.GET)
     public String reveal(Model model,
-                       @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) {
+                         @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) {
         // From View Page of Config, collect passwords and check them for
         //   decrypt and encrypt.  Doesn't save them, just tests.
         // Get current config.
@@ -108,7 +98,6 @@ public class PasswordMVController {
         PasswordContainer passwordContainer = new PasswordContainer();
         passwordContainer.setPasswordKey(config.getPasswordKey());
         passwordContainer.setEncrypted(config.isEncryptedPasswords());
-
         if (nonNull(config.getCluster(Environment.LEFT)) && nonNull(config.getCluster(Environment.LEFT).getHiveServer2())) {
             passwordContainer.setLeftHS2(config.getCluster(Environment.LEFT).getHiveServer2().getConnectionProperties().getProperty("password"));
         }
@@ -122,9 +111,7 @@ public class PasswordMVController {
             passwordContainer.setRightMetastore(config.getCluster(Environment.RIGHT).getMetastoreDirect().getConnectionProperties().getProperty("password"));
         }
         model.addAttribute(PASSWORD_CONTAINER, passwordContainer);
-
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
-
         return "password/reveal";
     }
 
@@ -138,12 +125,9 @@ public class PasswordMVController {
         ExecuteSession executeSession = executeSessionService.getSession();
         HmsMirrorConfig config = executeSession.getConfig();
         config.setPasswordKey(container.getPasswordKey());
-
         // should retain the other values.
         model.addAttribute(PASSWORD_CONTAINER, container);
-
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
-
         return "password/view";
     }
 

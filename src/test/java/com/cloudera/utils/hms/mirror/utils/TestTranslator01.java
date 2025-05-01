@@ -17,333 +17,230 @@
 
 package com.cloudera.utils.hms.mirror.utils;
 
+import com.cloudera.utils.hadoop.cli.CliEnvironment;
 import com.cloudera.utils.hms.mirror.domain.DBMirror;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
+import com.cloudera.utils.hms.mirror.domain.Translator;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import com.cloudera.utils.hms.mirror.service.*;
+import com.cloudera.utils.hms.mirror.util.SerializationUtils;
 import com.cloudera.utils.hms.util.UrlUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.inject.Inject;
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.util.AssertionErrors.assertTrue;
 
-
+@ExtendWith(MockitoExtension.class)
 @Slf4j
 public class TestTranslator01 extends TranslatorTestBase {
+    private static final String LEFT_HDFS = "hdfs://LEFT";
+    private static final String RIGHT_HDFS = "hdfs://RIGHT";
+    private static final String TEST_DB_NAME = "tpcds_10";
+    private static final String TEST_TABLE_NAME = "call_center";
+    private static final String TRANSLATOR_CONFIG = "/translator/testcase_01.yaml";
+    private static final String DEFAULT_CONFIG = "/config/default_01.yaml";
 
-    @Before
-    public void setup() throws IOException {
+    @BeforeEach
+    public void setup1() throws IOException {
         log.info("Setting up TestTranslator01");
-        translator = deserializeResource("/translator/testcase_01.yaml");
-        HmsMirrorConfig config = ConfigTest.deserializeResource("/config/default_01.yaml");
+    }
+
+    @Override
+    protected void initializeConfig() throws IOException {
+        translator = deserializeResource(TRANSLATOR_CONFIG);
+
+        config = ConfigTest.deserializeResource(DEFAULT_CONFIG);
         config.setTranslator(translator);
-        ExecuteSessionService executeSessionService = new ExecuteSessionService();
-
-        // Used to prevent attempting to init connections.
         config.setLoadTestDataFile("something.yaml");
-        ConnectionPoolService connectionPoolService = new ConnectionPoolService();
-        executeSessionService.setConnectionPoolService(connectionPoolService);
 
-        ExecuteSession session = executeSessionService.createSession(null, config);
-        ConfigService configService = new ConfigService();
-        executeSessionService.setConfigService(configService);
-        executeSessionService.setSession(session);
-        try {
-            executeSessionService.startSession(1);
-        } catch (SessionException e) {
-            throw new RuntimeException(e);
-        }
-
-        warehouseService = new WarehouseService();
-        warehouseService.setExecuteSessionService(executeSessionService);
-
-//        configService.setExecuteSessionService(executeSessionService);
-        translatorService = new TranslatorService();
-        translatorService.setExecuteSessionService(executeSessionService);
-        translatorService.setWarehouseService(warehouseService);
-
-//        translatorService.setConfigService(configService);
     }
 
-    @Test
-    public void lastDirInUrl_01() {
-        String dir = "hdfs://apps/hive/warehouse/my.db/call";
-        dir = UrlUtils.getLastDirFromUrl(dir);
-        assertEquals("Directory Reduction Failed: " + dir, "call", dir);
-    }
-
-    @Test
-    public void removeLastDirInUrl_01() {
-        String dir = "hdfs://apps/hive/warehouse/my.db/call";
-        dir = UrlUtils.removeLastDirFromUrl(dir);
-        assertEquals("Remove Last Directory Failed: " + dir, "hdfs://apps/hive/warehouse/my.db", dir);
-    }
-
-    @Test
-    public void lastUrlBit_01() {
-        String dir = "hdfs://apps/hive/warehouse/my.db/call/";
-        dir = UrlUtils.reduceUrlBy(dir, 1);
-        assertEquals("Directory Reduction Failed: " + dir, "hdfs://apps/hive/warehouse/my.db", dir);
-    }
-
-    @Test
-    public void lastUrlBit_02() {
-        String dir = "hdfs://apps/hive/warehouse/my.db/call";
-        dir = UrlUtils.reduceUrlBy(dir, 2);
-        assertEquals("Directory Reduction Failed: " + dir, "hdfs://apps/hive/warehouse", dir);
-    }
-
-    @Test
-    public void lastUrlBit_03() {
-        String dir = "hdfs://apps/hive/warehouse/my.db/warehouse";
-        dir = UrlUtils.reduceUrlBy(dir, 1);
-        assertEquals("Directory Reduction Failed: " + dir, "hdfs://apps/hive/warehouse/my.db", dir);
-    }
-
-
-//    @Test
-//    public void translateDatabase_01() throws IOException {
-//        Translator translator = deserializeResource("/translator/testcase_01.yaml");
-//        HmsMirrorConfig hmsMirrorConfig = new HmsMirrorConfig();
-//        HmsMirrorCfgService hmsMirrorCfgService = new HmsMirrorCfgService();
-//        hmsMirrorCfgService.setHmsMirrorConfig(hmsMirrorConfig);
-//        hmsMirrorConfig.setTranslator(translator);
-//        TranslatorService translatorService = new TranslatorService();
-//        translatorService.setHmsMirrorCfgService(hmsMirrorCfgService);
-//
-//        Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
-//        Assert.assertTrue("DB Rename Failed", translatorService.translateDatabase("tpcds_10").equals("tpc_ds_10"));
-//    }
-
-    @Test
-    public void translateTableLocation_03() throws IOException {
-
+    private TableMirror createTestTableMirror() {
         DBMirror dbMirror = new DBMirror();
-        dbMirror.setName("tpcds_10");
+        dbMirror.setName(TEST_DB_NAME);
+        
         TableMirror tableMirror = new TableMirror();
-        tableMirror.setName("call_center");
+        tableMirror.setName(TEST_TABLE_NAME);
         tableMirror.setParent(dbMirror);
-        // Needed to help identify as EXTERNAL.
         tableMirror.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
+        return tableMirror;
+    }
 
-        // Need by translation to get location.
+    private void assertLocationTranslation(String originalLoc, String expectedLoc, 
+                                         TableMirror tableMirror) {
+        try {
+            String translatedLocation = translatorService.translateTableLocation(
+                tableMirror, originalLoc, 1, null);
+            assertEquals(expectedLoc, translatedLocation, "Table Location Failed");
+        } catch (Throwable t) {
+            fail("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
+                t.getMessage());
+        }
+    }
+
+    /**
+     * Tests for URL manipulation utility functions
+     */
+    @Test
+    public void testUrlManipulationFunctions() {
+        // Test getLastDirFromUrl function
+        String testUrl = "hdfs://apps/hive/warehouse/my.db/call";
+        assertEquals("call", UrlUtils.getLastDirFromUrl(testUrl));
+        
+        // Test removeLastDirFromUrl function
+        assertEquals("hdfs://apps/hive/warehouse/my.db", 
+            UrlUtils.removeLastDirFromUrl(testUrl));
+        
+        // Test reduceUrlBy with different levels
+        assertEquals("hdfs://apps/hive/warehouse", 
+            UrlUtils.reduceUrlBy(testUrl, 2));
+            
+        // Test with trailing slash
+        String urlWithSlash = "hdfs://apps/hive/warehouse/my.db/call/";
+        assertEquals("hdfs://apps/hive/warehouse/my.db", 
+            UrlUtils.reduceUrlBy(urlWithSlash, 1));
+            
+        // Test with different last directory name
+        String warehouseUrl = "hdfs://apps/hive/warehouse/my.db/warehouse";
+        assertEquals("hdfs://apps/hive/warehouse/my.db", 
+            UrlUtils.reduceUrlBy(warehouseUrl, 1));
+    }
+    
+    /**
+     * Tests for basic table location translation
+     */
+    @Test
+    public void testBasicTableLocationTranslation() throws IOException {
+        TableMirror tableMirror = createTestTableMirror();
+        assertTrue("Couldn't validate translator configuration", translator.validate());
+    
+        // Test basic location translations
+        assertLocationTranslation(
+            LEFT_HDFS + "/tpcds_base_dir",
+            RIGHT_HDFS + "/alt/ext/location/new_location",
+            tableMirror
+        );
+    
+        assertLocationTranslation(
+            LEFT_HDFS + "/tpcds_base_dir2",
+            RIGHT_HDFS + "/myspace/alt/ext/call_center",
+            tableMirror
+        );
+    }
+    
+    /**
+     * Test for standard HDFS namespace translation
+     */
+    @Test
+    public void testStandardHdfsNamespaceTranslation() throws IOException {
+        // Create table mirror with LEFT location definition
+        TableMirror tableMirror = createTestTableMirror();
         tableMirror.getTableDefinition(Environment.LEFT).add("mytable");
         tableMirror.getTableDefinition(Environment.LEFT).add("LOCATION");
         tableMirror.getTableDefinition(Environment.LEFT).add("hdfs://LEFT/apps/hive/warehouse/tpcds_09.db");
-
-        Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
-
-        String originalLoc = "hdfs://LEFT/apps/hive/warehouse/tpcds_09.db";
-        String expectedLoc = "hdfs://RIGHT/apps/hive/warehouse/tpcds_09.db";
-        try {
-            String translatedLocation =
-                    translatorService.translateTableLocation(tableMirror, originalLoc, 1, null);
-            Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    translatedLocation, expectedLoc, translatedLocation);
-        } catch (Throwable t) {
-            Assert.fail("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    t.getMessage());
-        }
+        
+        assertTrue("Couldn't validate translator configuration", translator.validate());
+    
+        // Test standard location translation (namespace substitution)
+        assertLocationTranslation(
+            "hdfs://LEFT/apps/hive/warehouse/tpcds_09.db",
+            "hdfs://RIGHT/apps/hive/warehouse/tpcds_09.db",
+            tableMirror
+        );
     }
-
-    @Test
-    public void translateTableLocation_consolidate_01() throws IOException {
-//        Translator translator = deserializeResource("/translator/testcase_01.yaml");
-//        HmsMirrorConfig config = ConfigTest.deserializeResource("/config/default_01.yaml");
-//        config.setTranslator(translator);
-//        ExecuteSessionService executeSessionService = new ExecuteSessionService();
-//        executeSessionService.getSession().setHmsMirrorConfig(config);
-////        hmsMirrorCfgService.setHmsMirrorConfig(config);
-//        TranslatorService translatorService = new TranslatorService();
-//        translatorService.setExecuteSessionService(executeSessionService);
-
-        DBMirror dbMirror = new DBMirror();
-        dbMirror.setName("tpcds_10");
-        TableMirror tableMirror = new TableMirror();
-        tableMirror.setName("call_center");
-        tableMirror.setParent(dbMirror);
-        tableMirror.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
-        Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
-        String originalLoc = "hdfs://LEFT/tpcds_base_dir";
-        String expectedLoc = "hdfs://RIGHT/alt/ext/location/new_location";
-        try {
-            String translatedLocation =
-                    translatorService.translateTableLocation(tableMirror, originalLoc, 1, null);
-            Assert.assertEquals("Table Location Assertion Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    translatedLocation, expectedLoc, translatedLocation);
-        } catch (Throwable t) {
-            Assert.fail("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    t.getMessage());
-        }
-    }
-
-    @Test
-    public void translateTableLocation_tbl_alt_02() throws IOException {
-        DBMirror dbMirror = new DBMirror();
-        dbMirror.setName("tpcds_10");
-        TableMirror tableMirror = new TableMirror();
-        tableMirror.setName("call_center");
-        tableMirror.setParent(dbMirror);
-        tableMirror.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
-
-        Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
-
-        String originalLoc = "hdfs://LEFT/tpcds_base_dir2";
-        String expectedLoc = "hdfs://RIGHT/myspace/alt/ext/call_center";
-        try {
-            String translatedLocation =
-                    translatorService.translateTableLocation(tableMirror, originalLoc, 1, null);
-            Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    translatedLocation, expectedLoc, translatedLocation);
-        } catch (Throwable t) {
-            Assert.fail("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    t.getMessage());
-        }
-    }
-
-    @Test
-    /*
-     * Test when db translation defined with consolidation.  But the table is NOT listed.
-     * This should consolidate the table to the db location in a directory named after the table.
+    
+    /**
+     * Test for table location translation consolidation
      */
-    public void translateTableLocation_tbl_alt_03() throws IOException {
-        DBMirror dbMirror = new DBMirror();
-        dbMirror.setName("tpcds_10");
-        TableMirror tableMirror = new TableMirror();
-        tableMirror.setName("call_center");
-        tableMirror.setParent(dbMirror);
-        tableMirror.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
-        Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
-
-        String originalLoc = "hdfs://LEFT/tpcds_base_dir3";
-        String expectedLoc = "hdfs://RIGHT/alt/ext/location/web_sales";
-        try {
-            String translatedLocation =
-                    translatorService.translateTableLocation(tableMirror, originalLoc, 1, null);
-            Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    translatedLocation, expectedLoc, translatedLocation);
-        } catch (Throwable t) {
-            Assert.fail("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    t.getMessage());
-        }
-    }
-
     @Test
-    public void translateTableLocation_tbl_alt_04() throws IOException {
-        DBMirror dbMirror = new DBMirror();
-        dbMirror.setName("tpcds_10");
-        TableMirror tableMirror = new TableMirror();
-        tableMirror.setName("call_center");
-        tableMirror.setParent(dbMirror);
-        tableMirror.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
-        Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
-
-        String originalLoc = "hdfs://LEFT/tpcds_base_dir5/web_sales";
-        String expectedLoc = "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_10.db/web_sales";
-        try {
-            String translatedLocation =
-                    translatorService.translateTableLocation(tableMirror, originalLoc, 1, null);
-            Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    translatedLocation, expectedLoc, translatedLocation);
-        } catch (Throwable t) {
-            Assert.fail("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    t.getMessage());
-        }
-
-        TableMirror tableMirror1 = new TableMirror();
-        tableMirror1.setName("call_center");
-        tableMirror1.setParent(dbMirror);
-        tableMirror1.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
-        originalLoc = "hdfs://LEFT/tpcds_base_dir4/call_center2";
-        expectedLoc = "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_10.db/call_center2";
-        try {
-            String translatedLocation =
-                    translatorService.translateTableLocation(tableMirror1, originalLoc, 1, null);
-            Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    translatedLocation, expectedLoc, translatedLocation);
-        } catch (Throwable t) {
-            Assert.fail("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    t.getMessage());
-        }
-
-        TableMirror tableMirror2 = new TableMirror();
-        tableMirror2.setName("web_returns");
-        tableMirror2.setParent(dbMirror);
-        tableMirror2.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
-        originalLoc = "hdfs://LEFT/tpcds_base_dir4/web/web_returns";
-        expectedLoc = "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_10.db/web_returns";
-        try {
-            String translatedLocation =
-                    translatorService.translateTableLocation(tableMirror2, originalLoc, 1, null);
-            Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    translatedLocation, expectedLoc, translatedLocation);
-        } catch (Throwable t) {
-            Assert.fail("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    t.getMessage());
-        }
-        TableMirror tableMirror3 = new TableMirror();
-        tableMirror3.setName("web_returns");
-        tableMirror3.setParent(dbMirror);
-        tableMirror3.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
-        originalLoc = "hdfs://LEFT/tpcds_base_dir/web/web_returns2";
-        expectedLoc = "hdfs://RIGHT/user/dstreev/datasets/tpcds_11.db/web_returns";
-        try {
-            String translatedLocation =
-                    translatorService.translateTableLocation(tableMirror3, originalLoc, 1, null);
-            Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    translatedLocation, expectedLoc, translatedLocation);
-        } catch (Throwable t) {
-            Assert.fail("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    t.getMessage());
-        }
-        TableMirror tableMirror4 = new TableMirror();
-        tableMirror4.setName("call_center");
-        tableMirror4.setParent(dbMirror);
-        tableMirror4.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
-        originalLoc = "hdfs://LEFT/tpcds_base_dir/web/call_center";
-        expectedLoc = "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_11.db/call_center";
-        try {
-            String translatedLocation =
-                    translatorService.translateTableLocation(tableMirror4, originalLoc, 1, null);
-            Assert.assertEquals("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    translatedLocation, expectedLoc, translatedLocation);
-        } catch (Throwable t) {
-            Assert.fail("Table Location Failed: " + originalLoc + " : " + expectedLoc + " : " +
-                    t.getMessage());
-        }
-
-        log.debug("dbLocationMap:\n");
+    public void testTableLocationConsolidation() throws IOException {
+        // Create test table mirror
+        TableMirror tableMirror = createTestTableMirror();
+        assertTrue("Couldn't validate translator configuration", translator.validate());
+    
+        // Test basic consolidation
+        assertLocationTranslation(
+            "hdfs://LEFT/tpcds_base_dir",
+            "hdfs://RIGHT/alt/ext/location/new_location",
+            tableMirror
+        );
+        
+        // Test when db translation defined with consolidation but table is NOT listed
+        assertLocationTranslation(
+            "hdfs://LEFT/tpcds_base_dir3",
+            "hdfs://RIGHT/alt/ext/location/web_sales",
+            tableMirror
+        );
     }
-
-//    @Test
-//    public void translateTable_01() throws IOException {
-//        Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
-//        String dbName = "tpcds_12";
-//        String tblName = "call_center";
-//        String tblExpectedName = "call_center_new";
-//        String tblNewName = translatorService.translateTable(dbName, tblName);
-//        Assert.assertTrue("Table Rename Failed " + dbName + " : " + tblName + " : " + tblNewName +
-//                " : " + tblExpectedName, tblNewName.equals(tblExpectedName));
-//    }
-
-//    @Test
-//    public void translateTable_02() throws IOException {
-//        Translator translator = deserializeResource("/translator/testcase_01.yaml");
-////        translator.setOn(true);
-//        Assert.assertTrue("Couldn't validate translator configuration", translator.validate());
-//        String dbName = "unknown";
-//        String tblName = "my_table";
-//        String tblExpectedName = "my_table";
-//        String tblNewName = translator.translateTable(dbName, tblName);
-//        Assert.assertTrue("Table Rename Failed " + dbName + " : " + tblName + " : " + tblNewName +
-//                " : " + tblExpectedName, tblNewName.equals(tblExpectedName));
-//    }
-
+    
+    /**
+     * Test for multiple table location translation patterns
+     */
+    @Test
+    public void testMultipleTableLocationPatterns() throws IOException {
+        // Setup common test objects
+        DBMirror dbMirror = new DBMirror();
+        dbMirror.setName(TEST_DB_NAME);
+        TableMirror callCenterTable = new TableMirror();
+        callCenterTable.setName("call_center");
+        callCenterTable.setParent(dbMirror);
+        callCenterTable.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
+        
+        assertTrue("Couldn't validate translator configuration", translator.validate());
+        
+        // Test warehouse path pattern with web_sales
+        assertLocationTranslation(
+            "hdfs://LEFT/tpcds_base_dir5/web_sales",
+            "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_10.db/web_sales",
+            callCenterTable
+        );
+        
+        // Test base directory 4 with call_center2
+        assertLocationTranslation(
+            "hdfs://LEFT/tpcds_base_dir4/call_center2",
+            "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_10.db/call_center2",
+            callCenterTable
+        );
+        
+        // Test nested paths with web_returns
+        TableMirror webReturnsTable = new TableMirror();
+        webReturnsTable.setName("web_returns");
+        webReturnsTable.setParent(dbMirror);
+        webReturnsTable.getTableDefinition(Environment.RIGHT).add("CREATE EXTERNAL TABLE");
+        
+        assertLocationTranslation(
+            "hdfs://LEFT/tpcds_base_dir4/web/web_returns",
+            "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_10.db/web_returns",
+            webReturnsTable
+        );
+        
+        // Test web returns path with user directory
+        assertLocationTranslation(
+            "hdfs://LEFT/tpcds_base_dir/web/web_returns2",
+            "hdfs://RIGHT/user/dstreev/datasets/tpcds_11.db/web_returns",
+            webReturnsTable
+        );
+        
+        // Test call_center path with different database
+        assertLocationTranslation(
+            "hdfs://LEFT/tpcds_base_dir/web/call_center",
+            "hdfs://RIGHT/warehouse/tablespace/external/hive/tpcds_11.db/call_center",
+            callCenterTable
+        );
+    }
 }

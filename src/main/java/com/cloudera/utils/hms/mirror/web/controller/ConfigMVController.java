@@ -19,14 +19,15 @@ package com.cloudera.utils.hms.mirror.web.controller;
 
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.Translator;
-import com.cloudera.utils.hms.mirror.domain.support.*;
-import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
+import com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum;
+import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
+import com.cloudera.utils.hms.mirror.domain.support.PersistContainer;
+import com.cloudera.utils.hms.mirror.domain.support.SideType;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import com.cloudera.utils.hms.mirror.service.*;
 import com.cloudera.utils.hms.mirror.util.ModelUtils;
 import com.cloudera.utils.hms.mirror.web.service.WebConfigService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -36,57 +37,37 @@ import javax.validation.constraints.NotNull;
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
-import static com.cloudera.utils.hms.mirror.MessageCode.ENCRYPTED_PASSWORD_CHANGE_ATTEMPT;
 import static com.cloudera.utils.hms.mirror.web.controller.ReportsMVController.countLines;
-import static java.util.Objects.nonNull;
 
 @Controller
 @RequestMapping(path = "/config")
 @Slf4j
 public class ConfigMVController implements ControllerReferences {
 
-    private ConfigService configService;
-    private ExecuteSessionService executeSessionService;
-    private PasswordService passwordService;
-    private ReportService reportService;
-    private WebConfigService webConfigService;
-    private DatabaseService databaseService;
-    private UIModelService uiModelService;
+    private final ConfigService configService;
+    private final ExecuteSessionService executeSessionService;
+    private final PasswordService passwordService;
+    private final ReportService reportService;
+    private final WebConfigService webConfigService;
+    private final DatabaseService databaseService;
+    private final UIModelService uiModelService;
 
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    public ConfigMVController(
+            ConfigService configService,
+            ExecuteSessionService executeSessionService,
+            PasswordService passwordService,
+            ReportService reportService,
+            WebConfigService webConfigService,
+            DatabaseService databaseService,
+            UIModelService uiModelService
+    ) {
         this.configService = configService;
-    }
-
-    @Autowired
-    public void setDatabaseService(DatabaseService databaseService) {
-        this.databaseService = databaseService;
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
         this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setPasswordService(PasswordService passwordService) {
         this.passwordService = passwordService;
-    }
-
-    @Autowired
-    public void setReportService(ReportService reportService) {
         this.reportService = reportService;
-    }
-
-    @Autowired
-    public void setWebConfigService(WebConfigService webConfigService) {
         this.webConfigService = webConfigService;
-    }
-
-    @Autowired
-    public void setUiModelService(UIModelService uiModelService) {
+        this.databaseService = databaseService;
         this.uiModelService = uiModelService;
     }
 
@@ -104,12 +85,9 @@ public class ConfigMVController implements ControllerReferences {
         // Get list of available configs
         Set<String> configs = webConfigService.getConfigList();
         model.addAttribute(CONFIG_LIST, configs);
-
         uiModelService.sessionToModel(model, maxThreads, testing);
-
         // Get list of Reports
         model.addAttribute(REPORT_LIST, reportService.getAvailableReports());
-
         return "home";
     }
 
@@ -117,13 +95,10 @@ public class ConfigMVController implements ControllerReferences {
     public String init(Model model,
                        @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
         model.addAttribute(ACTION, "init");
-
         // Get list of available configs
         Set<String> configs = webConfigService.getConfigList();
         model.addAttribute(CONFIG_LIST, configs);
-
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
-
         return "config/init";
     }
 
@@ -137,21 +112,15 @@ public class ConfigMVController implements ControllerReferences {
         executeSessionService.closeSession();
         // Create new Session (with blank config)
         HmsMirrorConfig config = configService.createForDataStrategy(DataStrategyEnum.valueOf(dataStrategy));
-
         // Control Beta Features
         config.setBeta(beta);
-
         ExecuteSession session = executeSessionService.createSession(NEW_CONFIG, config);
         // Set the Loaded Session
         executeSessionService.setSession(session);
-
         model.addAttribute(READ_ONLY, Boolean.FALSE);
-
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
-
         return "config/view";
     }
-
 
     @RequestMapping(value = "/edit", method = RequestMethod.GET)
     public String edit(Model model,
@@ -164,21 +133,17 @@ public class ConfigMVController implements ControllerReferences {
 
     @RequestMapping(value = "/summary", method = RequestMethod.GET)
     public String summary(Model model,
-                       @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
+                          @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws SessionException {
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();
-
         String reportFileString = configService.configToString(config);
-
         model.addAttribute(SESSION_ID, session.getSessionId());
         model.addAttribute(CONTENT, reportFileString);
         int lines = countLines(reportFileString);
         model.addAttribute(LINES, lines + 3);
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
-
         return "config/summary";
     }
-
 
     @RequestMapping(value = "/doSave", method = RequestMethod.POST)
     public String doSave(Model model,
@@ -186,31 +151,22 @@ public class ConfigMVController implements ControllerReferences {
                          @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads,
                          @Value("${hms-mirror.config.beta}") boolean beta) throws SessionException {
         executeSessionService.closeSession();
-
         // Set beta capabilities. This is driven by the startup of the application.
         config.setBeta(beta);
-
         if (!executeSessionService.save(config, maxThreads)) {
             return "error";
         }
-
         ExecuteSession session = executeSessionService.getSession();
-
         // After a 'save', the session connections statuses should be reset.
         session.resetConnectionStatuses();
-
         uiModelService.sessionToModel(model, maxThreads, Boolean.FALSE);
-
         return "config/view";
     }
-
 
     @RequestMapping(value = "/persist", method = RequestMethod.GET)
     public String persist(Model model,
                           @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws IOException, SessionException {
-
         uiModelService.sessionToModel(model, maxThreads, false);
-
         return "config/persist";
     }
 
@@ -221,14 +177,11 @@ public class ConfigMVController implements ControllerReferences {
                             @Value("${hms-mirror.concurrency.max-threads}") Integer maxThreads) throws IOException, SessionException {
         // Get the current session config.
         executeSessionService.closeSession();
-
         ExecuteSession curSession = executeSessionService.getSession();
         HmsMirrorConfig currentConfig = curSession.getConfig();
-
         if (persistContainer.isFlipConfigs()) {
             configService.flipConfig(currentConfig);
         }
-
         // Clone and save clone
         HmsMirrorConfig config = currentConfig.clone();
         if (persistContainer.isStripMappings()) {

@@ -14,7 +14,6 @@
  *  limitations under the License.
  *
  */
-
 package com.cloudera.utils.hms.mirror.cli.run;
 
 import com.cloudera.utils.hms.mirror.cli.CliReporter;
@@ -23,7 +22,6 @@ import com.cloudera.utils.hms.mirror.service.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -34,7 +32,6 @@ import java.util.concurrent.Future;
 
 /*
 Using the config, go through the databases and tables and collect the current states.
-
 Create the target databases, where needed to support the migration.
  */
 @Configuration
@@ -42,30 +39,37 @@ Create the target databases, where needed to support the migration.
 @Getter
 @Setter
 public class HmsMirrorAppCfg {
-//    private static final Logger log = LoggerFactory.getLogger(Setup.class);
 
-    @Getter
-    private ReportWriterService reportWriterService = null;
+    private final ReportWriterService reportWriterService;
+    private final CliReporter cliReporter;
+    private final HmsMirrorCommandLineOptions hmsMirrorCommandLineOptions;
+    private final ExecuteSessionService executeSessionService;
+    private final ConnectionPoolService connectionPoolService;
+    private final DatabaseService databaseService;
+    private final HMSMirrorAppService hmsMirrorAppService;
+    private final TableService tableService;
+    private final TransferService transferService;
 
-    private CliReporter cliReporter = null;
-    @Getter
-    private HmsMirrorCommandLineOptions hmsMirrorCommandLineOptions = null;
-    @Getter
-    private ExecuteSessionService executeSessionService = null;
-    @Getter
-    private ConnectionPoolService connectionPoolService = null;
-    @Getter
-    private DatabaseService databaseService = null;
-    @Getter
-    private HMSMirrorAppService hmsMirrorAppService = null;
-    @Getter
-    private TableService tableService = null;
-    @Getter
-    private TransferService transferService = null;
-
-    @Autowired
-    public void setHmsMirrorAppService(HMSMirrorAppService hmsMirrorAppService) {
+    public HmsMirrorAppCfg(
+            ReportWriterService reportWriterService,
+            CliReporter cliReporter,
+            HmsMirrorCommandLineOptions hmsMirrorCommandLineOptions,
+            ExecuteSessionService executeSessionService,
+            ConnectionPoolService connectionPoolService,
+            DatabaseService databaseService,
+            HMSMirrorAppService hmsMirrorAppService,
+            TableService tableService,
+            TransferService transferService
+    ) {
+        this.reportWriterService = reportWriterService;
+        this.cliReporter = cliReporter;
+        this.hmsMirrorCommandLineOptions = hmsMirrorCommandLineOptions;
+        this.executeSessionService = executeSessionService;
+        this.connectionPoolService = connectionPoolService;
+        this.databaseService = databaseService;
         this.hmsMirrorAppService = hmsMirrorAppService;
+        this.tableService = tableService;
+        this.transferService = transferService;
     }
 
     // TODO: Need to address failures here...
@@ -89,45 +93,4 @@ public class HmsMirrorAppCfg {
             cliReporter.refresh(Boolean.TRUE);
         };
     }
-
-    @Autowired
-    public void setCliReporter(CliReporter cliReporter) {
-        this.cliReporter = cliReporter;
-    }
-
-    @Autowired
-    public void setReportWriterService(ReportWriterService reportWriterService) {
-        this.reportWriterService = reportWriterService;
-    }
-
-    @Autowired
-    public void setHmsMirrorCommandLineOptions(HmsMirrorCommandLineOptions hmsMirrorCommandLineOptions) {
-        this.hmsMirrorCommandLineOptions = hmsMirrorCommandLineOptions;
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
-        this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setConnectionPoolService(ConnectionPoolService connectionPoolService) {
-        this.connectionPoolService = connectionPoolService;
-    }
-
-    @Autowired
-    public void setDatabaseService(DatabaseService databaseService) {
-        this.databaseService = databaseService;
-    }
-
-    @Autowired
-    public void setTableService(TableService tableService) {
-        this.tableService = tableService;
-    }
-
-    @Autowired
-    public void setTransferService(TransferService transferService) {
-        this.transferService = transferService;
-    }
-
 }

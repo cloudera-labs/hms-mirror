@@ -17,12 +17,10 @@
 
 package com.cloudera.utils.hms.mirror.service;
 
-import com.cloudera.utils.hms.mirror.MessageCode;
 import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.domain.DBMirror;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.support.*;
-import com.cloudera.utils.hms.util.UrlUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.Setter;
@@ -32,16 +30,17 @@ import org.commonmark.ext.front.matter.YamlFrontMatterExtension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.node.Node;
 import org.commonmark.renderer.html.HtmlRenderer;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.math.RoundingMode;
-import java.nio.file.FileSystems;
 import java.text.DecimalFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 import static java.util.Objects.nonNull;
 
@@ -50,41 +49,25 @@ import static java.util.Objects.nonNull;
 @Getter
 @Setter
 public class ReportWriterService {
+    private final DistCpService distCpService;
+    private final ObjectMapper yamlMapper;
+    private final ConfigService configService;
+    private final ExecuteSessionService executeSessionService;
+    private final TranslatorService translatorService;
+    private final DatabaseService databaseService;
 
-    private DistCpService distCpService;
-    private ObjectMapper yamlMapper;
-    private ConfigService configService;
-    private ExecuteSessionService executeSessionService;
-    private TranslatorService translatorService;
-    private DatabaseService databaseService;
-
-    @Autowired
-    public void setDistCpService(DistCpService distCpService) {
+    public ReportWriterService(
+            DistCpService distCpService,
+            ObjectMapper yamlMapper,
+            ConfigService configService,
+            ExecuteSessionService executeSessionService,
+            TranslatorService translatorService,
+            DatabaseService databaseService) {
         this.distCpService = distCpService;
-    }
-
-    @Autowired
-    public void setYamlMapper(ObjectMapper yamlMapper) {
         this.yamlMapper = yamlMapper;
-    }
-
-    @Autowired
-    public void setConfigService(ConfigService configService) {
         this.configService = configService;
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
         this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setTranslatorService(TranslatorService translatorService) {
         this.translatorService = translatorService;
-    }
-
-    @Autowired
-    public void setDatabaseService(DatabaseService databaseService) {
         this.databaseService = databaseService;
     }
 
@@ -93,20 +76,19 @@ public class ReportWriterService {
         Conversion conversion = executeSessionService.getSession().getConversion();
         log.info("Wrapping up the Application Workflow");
         log.info("Setting 'running' to FALSE");
-//        executeSessionService.getSession().getRunning().set(Boolean.FALSE);
-
+        //        executeSessionService.getSession().getRunning().set(Boolean.FALSE);
         // Give the underlying threads a chance to finish.
         try {
             Thread.sleep(200);
         } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
+            //            throw new RuntimeException(e);
         }
         log.info("Writing out report(s)");
         writeReport();
-//        getCliReporter().refresh(Boolean.TRUE);
-//        log.trace("==============================");
-//        log.trace(conversion.toString());
-//        log.trace("==============================");
+        //        getCliReporter().refresh(Boolean.TRUE);
+        //        log.trace("==============================");
+        //        log.trace(conversion.toString());
+        //        log.trace("==============================");
         Date endTime = new Date();
         DecimalFormat df = new DecimalFormat("#.###");
         df.setRoundingMode(RoundingMode.CEILING);
@@ -117,9 +99,7 @@ public class ReportWriterService {
         HmsMirrorConfig config = session.getConfig();
         RunStatus runStatus = session.getRunStatus();
         runStatus.setReportName(session.getSessionId());
-
         Conversion conversion = session.getConversion();
-
         // Remove the abstract environments from config before reporting output.
         config.getClusters().remove(Environment.TRANSFER);
         config.getClusters().remove(Environment.SHADOW);
@@ -128,7 +108,6 @@ public class ReportWriterService {
         if (!config.isUserSetOutputDirectory()) {
             reportOutputDir = reportOutputDir + File.separator + session.getSessionId();
         }
-
         File reportOutputDirFile = new File(reportOutputDir);
         if (!reportOutputDirFile.exists()) {
             reportOutputDirFile.mkdirs();
@@ -154,9 +133,7 @@ public class ReportWriterService {
                 i++;
             }
         }
-
         log.info("Writing CLI report and artifacts to directory: {}", reportOutputDir);
-
         // Used by display and report writer to convey the actual output directory.  We don't modify the config object
         //    because that is a 'base' directory and we want to keep it that way.
         config.setFinalOutputDirectory(reportOutputDir);
@@ -182,7 +159,6 @@ public class ReportWriterService {
         try {
             // We need to mask usernames and passwords.
             String yamlStr = yamlMapper.writeValueAsString(runStatus);
-
             FileWriter configFW = new FileWriter(runStatusOutputFile);
             configFW.write(yamlStr);
             configFW.close();
@@ -195,18 +171,14 @@ public class ReportWriterService {
         for (Map.Entry<String, DBMirror> dbEntry : conversion.getDatabases().entrySet()) {
             String database = HmsMirrorConfigUtil.getResolvedDB(dbEntry.getKey(), config);
             String originalDatabase = dbEntry.getKey();
-
             Map<String, Number> leftSummaryStats = databaseService.getEnvironmentSummaryStatistics(dbEntry.getValue(), Environment.LEFT);
-
             dbEntry.getValue().getEnvironmentStatistics().put(Environment.LEFT, leftSummaryStats);
-
             String dbReportOutputFile = reportOutputDir + File.separator + originalDatabase + "_hms-mirror";
             String dbLeftExecuteFile = reportOutputDir + File.separator + originalDatabase + "_LEFT_execute.sql";
             String dbLeftCleanUpFile = reportOutputDir + File.separator + originalDatabase + "_LEFT_CleanUp_execute.sql";
             String dbRightExecuteFile = reportOutputDir + File.separator + originalDatabase + "_RIGHT_execute.sql";
             String dbRightCleanUpFile = reportOutputDir + File.separator + originalDatabase + "_RIGHT_CleanUp_execute.sql";
             String dbRunbookFile = reportOutputDir + File.separator + originalDatabase + "_runbook.md";
-
             try {
                 // Output directory maps
                 boolean dcLeft = Boolean.FALSE;

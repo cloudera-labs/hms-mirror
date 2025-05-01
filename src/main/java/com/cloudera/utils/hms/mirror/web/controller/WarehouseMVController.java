@@ -25,7 +25,6 @@ import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import com.cloudera.utils.hms.mirror.service.*;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,43 +43,26 @@ import static com.cloudera.utils.hms.mirror.web.controller.ControllerReferences.
 @RequestMapping(path = "/warehouse")
 @Slf4j
 public class WarehouseMVController {
+    private final ConfigService configService;
+    private final ExecuteSessionService executeSessionService;
+    private final DatabaseService databaseService;
+    private final ConnectionPoolService connectionPoolService;
+    private final UIModelService uiModelService;
+    private final WarehouseService warehouseService;
 
-    private ConfigService configService;
-    private ExecuteSessionService executeSessionService;
-    private DatabaseService databaseService;
-    private ConnectionPoolService connectionPoolService;
-    private UIModelService uiModelService;
-    private WarehouseService warehouseService;
-
-    @Autowired
-    public void setWarehouseService(WarehouseService warehouseService) {
-        this.warehouseService = warehouseService;
-    }
-
-
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    public WarehouseMVController(
+            ConfigService configService,
+            ExecuteSessionService executeSessionService,
+            DatabaseService databaseService,
+            ConnectionPoolService connectionPoolService,
+            UIModelService uiModelService,
+            WarehouseService warehouseService) {
         this.configService = configService;
-    }
-
-    @Autowired
-    public void setConnectionPoolService(ConnectionPoolService connectionPoolService) {
-        this.connectionPoolService = connectionPoolService;
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
         this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setDatabaseService(DatabaseService databaseService) {
         this.databaseService = databaseService;
-    }
-
-    @Autowired
-    public void setUiModelService(UIModelService uiModelService) {
+        this.connectionPoolService = connectionPoolService;
         this.uiModelService = uiModelService;
+        this.warehouseService = warehouseService;
     }
 
     @RequestMapping(value = "/plan/add", method = RequestMethod.GET)
@@ -89,9 +71,7 @@ public class WarehouseMVController {
         // Set this incase it wasn't set yet.
         ExecuteSession session = executeSessionService.getSession();
         connectionPoolService.setExecuteSession(session);
-
         if (connectionPoolService.init()) {
-
             List<String> availableDatabases = databaseService.listAvailableDatabases(Environment.LEFT);
             model.addAttribute(AVAILABLE_DATABASES, availableDatabases);
             uiModelService.sessionToModel(model, 1, Boolean.FALSE);
@@ -118,16 +98,12 @@ public class WarehouseMVController {
     ) throws RequiredConfigurationException {
         // Don't reload if running.
 //        executeSessionService.clearActiveSession();
-
         log.info("Adding Warehouse Plan: {} E:{} M:{}", database, externalDirectory, managedDirectory);
-
         warehouseService.addWarehousePlan(database, externalDirectory, managedDirectory);
-
         configService.validate(executeSessionService.getSession(), null);
 //        model.addAttribute(ACTION, "view");
 //        model.addAttribute(READ_ONLY, Boolean.TRUE);
 //        sessionToModel(model, Boolean.FALSE);
-
         return "redirect:/config/edit";
     }
 
@@ -139,35 +115,22 @@ public class WarehouseMVController {
     ) throws RequiredConfigurationException {
         // Don't reload if running.
 //        executeSessionService.clearActiveSession();
-
         log.info("Adding Warehouse Plan: {} E:{} M:{}", database, externalDirectory, managedDirectory);
-
         warehouseService.addWarehousePlan(database, externalDirectory, managedDirectory);
-
         configService.validate(executeSessionService.getSession(), null);
-
         List<String> availableDatabases = databaseService.listAvailableDatabases(Environment.LEFT);
         model.addAttribute(AVAILABLE_DATABASES, availableDatabases);
-
         uiModelService.sessionToModel(model, 1, Boolean.FALSE);
-
         return "warehouse/plan/add";
 //        return "redirect:/config/view";
     }
-
 
     @RequestMapping(value = "/plan/{database}/delete", method = RequestMethod.GET)
     public String deleteWarehousePlan(Model model,
                                       @PathVariable @NotNull String database) throws SessionException {
         executeSessionService.closeSession();
-
         warehouseService.removeWarehousePlan(database);
-
         configService.validate(executeSessionService.getSession(), null);
-
         return "redirect:/config/view";
     }
-
-
-
 }

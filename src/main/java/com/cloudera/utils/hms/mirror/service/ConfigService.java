@@ -28,7 +28,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -37,81 +36,108 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.cloudera.utils.hms.mirror.MessageCode.*;
+import static com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.SQL;
 import static com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.STORAGE_MIGRATION;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
+/**
+ * Service class responsible for managing HMS Mirror configuration operations.
+ * This class handles configuration validation, loading, saving, and various configuration-related
+ * operations for the HMS Mirror tool. It ensures that configurations are valid for different
+ * data strategies and cluster setups.
+ *
+ * Key responsibilities include:
+ * - Configuration validation for different data strategies
+ * - Cluster connection validation
+ * - Configuration adjustments based on data strategies
+ * - Warehouse and namespace validation
+ * - Link testing between clusters
+ * - Configuration file operations (load/save)
+ */
 @Service
 @Slf4j
 @Getter
 public class ConfigService {
 
-    private ObjectMapper yamlMapper;
-
-    private org.springframework.core.env.Environment springEnv;
-
-    private DomainService domainService;
+    private final ObjectMapper yamlMapper;
+    private final org.springframework.core.env.Environment springEnv;
+    private final DomainService domainService;
 //    private TranslatorService translatorService;
 
-    @Autowired
-    public void setYamlMapper(ObjectMapper yamlMapper) {
+    /**
+     * Constructor for ConfigService.
+     *
+     * @param yamlMapper ObjectMapper for YAML processing
+     * @param springEnv Spring environment
+     * @param domainService Service for domain operations
+     */
+    public ConfigService(ObjectMapper yamlMapper, 
+                        org.springframework.core.env.Environment springEnv, 
+                        DomainService domainService) {
         this.yamlMapper = yamlMapper;
-    }
-
-    @Autowired
-    public void setDomainService(DomainService domainService) {
-        this.domainService = domainService;
-    }
-
-    @Autowired
-    public void setSpringEnv(org.springframework.core.env.Environment springEnv) {
         this.springEnv = springEnv;
+        this.domainService = domainService;
+        log.debug("ConfigService initialized");
     }
 
+    /**
+     * Checks if warehouse plans exist in the configuration.
+     * This method verifies if either warehouse map builder plans are defined or
+     * if warehouse directories (external and managed) are configured.
+     *
+     * @param session The execute session containing the configuration
+     * @return true if warehouse plans exist, false otherwise
+     */
     public boolean doWareHousePlansExist(ExecuteSession session) {
         HmsMirrorConfig config = session.getConfig();
-        boolean rtn = Boolean.FALSE;
+        
         WarehouseMapBuilder warehouseMapBuilder = config.getTranslator().getWarehouseMapBuilder();
         if (!warehouseMapBuilder.getWarehousePlans().isEmpty()) {
-            rtn = Boolean.TRUE;
+            return true;
         }
-        if (!rtn) {
-            Warehouse warehouse = config.getTransfer().getWarehouse();
-            if (nonNull(warehouse) && !(isBlank(warehouse.getExternalDirectory())
-                    || isBlank(warehouse.getManagedDirectory()))) {
-                rtn = Boolean.TRUE;
-            }
-        }
-        return rtn;
+        
+        Warehouse warehouse = config.getTransfer().getWarehouse();
+        return nonNull(warehouse) && !(isBlank(warehouse.getExternalDirectory())
+                || isBlank(warehouse.getManagedDirectory()));
     }
 
+    /**
+     * Checks if metastore direct configuration is available for a specific environment.
+     *
+     * @param session The execute session containing the configuration
+     * @param environment The environment (LEFT/RIGHT) to check
+     * @return true if metastore direct is configured, false otherwise
+     */
     public boolean isMetastoreDirectConfigured(ExecuteSession session, Environment environment) {
         HmsMirrorConfig config = session.getConfig();
-        boolean rtn = Boolean.FALSE;
+        
         if (nonNull(config.getCluster(environment).getMetastoreDirect())) {
             DBStore dbStore = config.getCluster(environment).getMetastoreDirect();
-            if (!isBlank(dbStore.getUri())) {
-                rtn = Boolean.TRUE;
-            }
+            return !isBlank(dbStore.getUri());
         }
-        return rtn;
+        return false;
     }
 
+    /**
+     * Determines if a DistCp plan can be derived from the current configuration.
+     *
+     * @param session The execute session containing the configuration
+     * @return true if DistCp plan can be derived, false otherwise
+     */
     public boolean canDeriveDistcpPlan(ExecuteSession session) {
-        boolean rtn = Boolean.FALSE;
         HmsMirrorConfig config = session.getConfig();
-
-        if (config.getTransfer().getStorageMigration().isDistcp()) {
-            rtn = Boolean.TRUE;
-//            if (!isBlank(config.getDbRename()) || !isBlank(config.getDbPrefix())) {
-//                rtn = Boolean.FALSE;
-//                session.addError(DISTCP_W_RENAME_NOT_SUPPORTED);
-//            }
-        }
-        return rtn;
+        return config.getTransfer().getStorageMigration().isDistcp();
     }
 
+    /**
+     * Converts the configuration to a string representation, masking sensitive information.
+     * This method converts the configuration to YAML format and masks passwords for security.
+     *
+     * @param config The HMS Mirror configuration to convert
+     * @return String representation of the configuration with masked sensitive data
+     */
     public String configToString(HmsMirrorConfig config) {
         String rtn = null;
         try {
@@ -121,52 +147,35 @@ public class ConfigService {
             rtn = rtn.replaceAll("password:\\s\".*\"", "password: \"*****\"");
         } catch (JsonProcessingException e) {
             log.error("Parsing issue", e);
-//            throw new RuntimeException(e);
         }
         return rtn;
     }
 
-    /*
-    Using our alignment table, make the necessary adjustment and record changes to the session for information.
-
-    Return should be true 'if there are no breaking errors'.
+    /**
+     * Aligns configuration settings based on the data strategy and other parameters.
+     * This method adjusts various configuration settings to ensure they are compatible
+     * with the selected data strategy and other configuration options.
+     *
+     * @param session The execute session containing the configuration
+     * @param config The HMS Mirror configuration to align
+     * @return true if alignment was successful without breaking errors, false otherwise
      */
     public boolean alignConfigurationSettings(ExecuteSession session, HmsMirrorConfig config) {
         boolean rtn = Boolean.TRUE;
+        // Iceberg Conversions is a beta feature.
+        if (config.getIcebergConversion().isEnable()) {
+            // Check that the DataStategy is either STORAGE_MIGRATION or SQL before allowing the Iceberg Conversion can be set.
+            if (!EnumSet.of(STORAGE_MIGRATION, SQL).contains(config.getDataStrategy())) {
+                session.addConfigAdjustmentMessage(config.getDataStrategy(),
+                        "icebergConversion:enabled",
+                        Boolean.toString(config.getIcebergConversion().isEnable()),
+                        Boolean.toString(false), "Only available w/ Data Strategies STORAGE_MIGRATION and SQL.");
+                config.getIcebergConversion().setEnable(false);
+            }
+        }
+
         switch (config.getDataStrategy()) {
             case DUMP:
-                // Adjustments for DUMP strategy to ensure we get everything.
-                // We were setting these to ensure we got everything, but this prevents the user from filtering out
-                //   items they might want.  So we're going to remove these settings.
-//                if (!config.getMigrateACID().isOn()) {
-//                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
-//                            "MigrateACID",
-//                            Boolean.FALSE.toString(),
-//                            Boolean.TRUE.toString(), "MigrateACID automatically turned ON for DUMP strategy.");
-//                    config.getMigrateACID().setOn(Boolean.TRUE);
-//                }
-//                if (config.getMigrateACID().isOnly()) {
-//                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
-//                            "MigrateACIDOnly",
-//                            Boolean.TRUE.toString(),
-//                            Boolean.FALSE.toString(), "MigrateACIDOnly automatically turned OFF for DUMP strategy.");
-//                    config.getMigrateACID().setOnly(Boolean.FALSE);
-//                }
-//                if (!config.getMigrateVIEW().isOn()) {
-//                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
-//                            "MigrateVIEW",
-//                            Boolean.FALSE.toString(),
-//                            Boolean.TRUE.toString(), "MigrateVIEW automatically turned ON for DUMP strategy.");
-//                    config.getMigrateVIEW().setOn(Boolean.TRUE);
-//                }
-//                if (!config.isMigrateNonNative()) {
-//                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
-//                            "MigrateNonNative",
-//                            Boolean.FALSE.toString(),
-//                            Boolean.TRUE.toString(), "MigrateNonNative automatically turned ON for DUMP strategy.");
-//                    config.setMigrateNonNative(Boolean.TRUE);
-//                }
-
                 // Translation Type need to be RELATIVE.
                 if (config.getTransfer().getStorageMigration().getTranslationType() != TranslationTypeEnum.RELATIVE) {
                     session.addConfigAdjustmentMessage(config.getDataStrategy(),
@@ -180,7 +189,6 @@ public class ConfigService {
                 if (config.isExecute()) {
                     config.setExecute(Boolean.FALSE);
                 }
-
                 break;
             case SCHEMA_ONLY:
                 switch (config.getTransfer().getStorageMigration().getTranslationType()) {
@@ -218,14 +226,6 @@ public class ConfigService {
                 break;
             case SQL:
             case HYBRID:
-                // Correct to the only supported translation type (ALIGNED).
-//                if (config.getTransfer().getStorageMigration().getTranslationType() != TranslationTypeEnum.ALIGNED) {
-//                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
-//                            "TranslationType",
-//                            config.getTransfer().getStorageMigration().getTranslationType().toString(),
-//                            TranslationTypeEnum.ALIGNED.toString(), "Only the ALIGNED Translation Type is supported for SQL and HYBRID.");
-//                    config.getTransfer().getStorageMigration().setTranslationType(TranslationTypeEnum.ALIGNED);
-//                }
                 // Ensure the proper Data Movement Strategy is set. (which is SQL)
                 switch (config.getTransfer().getStorageMigration().getDataMovementStrategy()) {
                     case SQL:
@@ -240,13 +240,6 @@ public class ConfigService {
                 }
                 break;
             case EXPORT_IMPORT:
-//                if (config.getTransfer().getStorageMigration().getTranslationType() == TranslationTypeEnum.RELATIVE) {
-//                    session.addConfigAdjustmentMessage(config.getDataStrategy(),
-//                            "TranslationType",
-//                            config.getTransfer().getStorageMigration().getTranslationType().toString(),
-//                            TranslationTypeEnum.ALIGNED.toString(), "Only the ALIGNED Translation Type is supported for EXPORT_IMPORT.");
-//                    config.getTransfer().getStorageMigration().setTranslationType(TranslationTypeEnum.ALIGNED);
-//                }
                 if (config.getTransfer().getStorageMigration().getDataMovementStrategy() != DataMovementStrategyEnum.NA) {
                     session.addConfigAdjustmentMessage(config.getDataStrategy(),
                             "DataMovementStrategy",
@@ -312,14 +305,6 @@ public class ConfigService {
         if (config.loadMetadataDetails()) {
             switch (config.getDatabaseFilterType()) {
                 case WAREHOUSE_PLANS:
-//                    if (config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().isEmpty() &&
-//                            !config.getDatabases().isEmpty()) {
-//                        session.addConfigAdjustmentMessage(config.getDataStrategy(),
-//                                "Databases",
-//                                config.getDatabases().toString(), "",
-//                                "Only Warehouse Plans supported with ALIGNED/DISTCP combination.");
-//                        rtn = Boolean.FALSE;
-//                    }
                     // Need to ensure we have Warehouse Plans and Databases are in sync.
                     config.getDatabases().clear();
                     if (!config.getTranslator().getWarehouseMapBuilder().getWarehousePlans().isEmpty()) {
@@ -361,9 +346,15 @@ public class ConfigService {
         return rtn;
     }
 
+    /**
+     * Gets the skip stats collection setting based on the configuration and data strategy.
+     * This method determines whether statistics collection should be skipped based on
+     * various configuration parameters and the selected data strategy.
+     *
+     * @param config The HMS Mirror configuration
+     * @return Boolean indicating whether to skip stats collection
+     */
     public Boolean getSkipStatsCollection(HmsMirrorConfig config) {
-//        HmsMirrorConfig config = executeSessionService.getActiveSession().getConfig();
-
         // Reset skipStatsCollection to true if we're doing a dump or schema only. (and a few other conditions)
         if (!config.getOptimization().isSkipStatsCollection()) {
             try {
@@ -387,15 +378,15 @@ public class ConfigService {
         return config.getOptimization().isSkipStatsCollection();
     }
 
-//    @JsonIgnore
-//    public Boolean isConnectionKerberized() {
-//        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getActiveSession().getResolvedConfig();
-//        return hmsMirrorConfig.isConnectionKerberized();
-//    }
-
+    /**
+     * Determines if the current configuration represents a legacy migration.
+     * A legacy migration is when one cluster is using legacy Hive and the other isn't.
+     *
+     * @param config The HMS Mirror configuration
+     * @return true if this is a legacy migration, false otherwise
+     */
     public Boolean legacyMigration(HmsMirrorConfig config) {
         Boolean rtn = Boolean.FALSE;
-//        HmsMirrorConfig config = executeSessionService.getActiveSession().getConfig();
 
         if (config.getCluster(Environment.LEFT).isLegacyHive() != config.getCluster(Environment.RIGHT).isLegacyHive()) {
             if (config.getCluster(Environment.LEFT).isLegacyHive()) {
@@ -405,6 +396,15 @@ public class ConfigService {
         return rtn;
     }
 
+    /**
+     * Tests the link between clusters to validate namespace availability.
+     * This method checks if the configured HCFS namespaces are accessible.
+     *
+     * @param session The execute session
+     * @param cli The CLI environment
+     * @return true if link test passes, false otherwise
+     * @throws DisabledException if the CLI interface is disabled
+     */
     protected Boolean linkTest(ExecuteSession session, CliEnvironment cli) throws DisabledException {
         Boolean rtn = Boolean.TRUE;
         HmsMirrorConfig config = session.getConfig();
@@ -452,28 +452,37 @@ public class ConfigService {
         return rtn;
     }
 
-//    public Boolean loadPartitionMetadata() {
-//        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getActiveSession().getResolvedConfig();
-//        return hmsMirrorConfig.loadPartitionMetadata();
-//    }
-
-    /*
-    Load a config for the default config directory.
-    Check that it is valid, if not, revert to the previous config.
-
-    TODO: Need to return an error that can be shown via the REST API.
+    /**
+     * Loads a configuration from the default config directory.
+     *
+     * @param configFileName The name of the configuration file to load
+     * @return The loaded HMS Mirror configuration
      */
     public HmsMirrorConfig loadConfig(String configFileName) {
         HmsMirrorConfig rtn = domainService.deserializeConfig(configFileName);
         return rtn;
     }
 
+    /**
+     * Saves the configuration to a file.
+     *
+     * @param config The configuration to save
+     * @param configFileName The name of the file to save to
+     * @param overwrite Whether to overwrite an existing file
+     * @return true if save was successful, false otherwise
+     * @throws IOException if there is an error writing the file
+     */
     public boolean saveConfig(HmsMirrorConfig config, String configFileName, Boolean overwrite) throws IOException {
         return HmsMirrorConfig.save(config, configFileName, overwrite);
     }
 
+    /**
+     * Overlays one configuration onto another, merging their settings.
+     *
+     * @param config The base configuration
+     * @param overlay The configuration to overlay on top
+     */
     public void overlayConfig(HmsMirrorConfig config, HmsMirrorConfig overlay) {
-//        config.overlay(overlay);
         List<Environment> envs = Arrays.asList(Environment.LEFT, Environment.RIGHT);
         for (Environment env : envs) {
             if (nonNull(config.getCluster(env))) {
@@ -502,41 +511,35 @@ public class ConfigService {
         setDefaultsForDataStrategy(config);
     }
 
-    /*
-    Apply a set of rules based on a hierarchy of settings and make adjustments to other configuration elements.
+    /**
+     * Sets default configuration values based on the data strategy.
+     *
+     * @param config The configuration to set defaults for
      */
     public void setDefaultsForDataStrategy(HmsMirrorConfig config) {
         // Set Attribute for the config.
         switch (config.getDataStrategy()) {
             case DUMP:
-//                config.setEvaluatePartitionLocation(Boolean.FALSE);
                 break;
             case STORAGE_MIGRATION:
-//                config.setEvaluatePartitionLocation(Boolean.TRUE);
                 config.getTransfer().getStorageMigration().setDataMovementStrategy(DataMovementStrategyEnum.DISTCP);
                 break;
             case SCHEMA_ONLY:
-//                config.setEvaluatePartitionLocation(Boolean.FALSE);
                 config.getTransfer().getStorageMigration().setDataMovementStrategy(DataMovementStrategyEnum.MANUAL);
                 break;
             case SQL:
-//                config.setEvaluatePartitionLocation(Boolean.TRUE);
                 config.getTransfer().getStorageMigration().setDataMovementStrategy(DataMovementStrategyEnum.SQL);
                 break;
             case EXPORT_IMPORT:
-//                config.setEvaluatePartitionLocation(Boolean.TRUE);
                 config.getTransfer().getStorageMigration().setDataMovementStrategy(DataMovementStrategyEnum.EXPORT_IMPORT);
                 break;
             case HYBRID:
-//                config.setEvaluatePartitionLocation(Boolean.TRUE);
                 config.getTransfer().getStorageMigration().setDataMovementStrategy(DataMovementStrategyEnum.HYBRID);
                 break;
             case COMMON:
-//                config.setEvaluatePartitionLocation(Boolean.TRUE);
                 config.getTransfer().getStorageMigration().setDataMovementStrategy(DataMovementStrategyEnum.SQL);
                 break;
             case LINKED:
-//                config.setEvaluatePartitionLocation(Boolean.FALSE);
                 // Set to ensure 'dr' doesn't delete LINKED tables.
                 config.setNoPurge(Boolean.TRUE);
                 config.setReadOnly(Boolean.TRUE);
@@ -549,6 +552,12 @@ public class ConfigService {
 
     }
 
+    /**
+     * Creates a new configuration for a specific data strategy with appropriate defaults.
+     *
+     * @param dataStrategy The data strategy to create configuration for
+     * @return A new HMS Mirror configuration
+     */
     public HmsMirrorConfig createForDataStrategy(DataStrategyEnum dataStrategy) {
         HmsMirrorConfig rtn = new HmsMirrorConfig();
         rtn.setDataStrategy(dataStrategy);
@@ -607,8 +616,6 @@ public class ConfigService {
                 rightC.setLegacyHive(Boolean.FALSE);
                 rtn.getClusters().put(Environment.RIGHT, rightC);
                 break;
-//            case ICEBERG_CONVERSION:
-//                break;
             default:
                 break;
         }
@@ -617,61 +624,20 @@ public class ConfigService {
         return rtn;
     }
 
-//    @Autowired
-//    public void setTranslatorService(TranslatorService translatorService) {
-//        this.translatorService = translatorService;
-//    }
-
-//    public void setupGSS() {
-//        try {
-//            String CURRENT_USER_PROP = "current.user";
-//
-//            String HADOOP_CONF_DIR = "HADOOP_CONF_DIR";
-//            String[] HADOOP_CONF_FILES = {"core-site.xml", "hdfs-site.xml", "mapred-site.xml", "yarn-site.xml"};
-//
-//            // Get a value that over rides the default, if nothing then use default.
-//            String hadoopConfDirProp = System.getenv().getOrDefault(HADOOP_CONF_DIR, "/etc/hadoop/conf");
-//
-//            // Set a default
-//            if (hadoopConfDirProp == null)
-//                hadoopConfDirProp = "/etc/hadoop/conf";
-//
-//            Configuration hadoopConfig = new Configuration(true);
-//
-//            File hadoopConfDir = new File(hadoopConfDirProp).getAbsoluteFile();
-//            for (String file : HADOOP_CONF_FILES) {
-//                File f = new File(hadoopConfDir, file);
-//                if (f.exists()) {
-//                    log.debug("Adding conf resource: '{}'", f.getAbsolutePath());
-//                    try {
-//                        // I found this new Path call failed on the Squadron Clusters.
-//                        // Not sure why.  Anyhow, the above seems to work the same.
-//                        hadoopConfig.addResource(new Path(f.getAbsolutePath()));
-//                    } catch (Throwable t) {
-//                        // This worked for the Squadron Cluster.
-//                        // I think it has something to do with the Docker images.
-//                        hadoopConfig.addResource("file:" + f.getAbsolutePath());
-//                    }
-//                }
-//            }
-//
-//            // hadoop.security.authentication
-//            if (hadoopConfig.get("hadoop.security.authentication", "simple").equalsIgnoreCase("kerberos")) {
-//                try {
-//                    UserGroupInformation.setConfiguration(hadoopConfig);
-//                } catch (Throwable t) {
-//                    // Revert to non JNI. This happens in Squadron (Docker Imaged Hosts)
-//                    log.error("Failed GSS Init.  Attempting different Group Mapping");
-//                    hadoopConfig.set("hadoop.security.group.mapping", "org.apache.hadoop.security.ShellBasedUnixGroupsMapping");
-//                    UserGroupInformation.setConfiguration(hadoopConfig);
-//                }
-//            }
-//        } catch (Throwable t) {
-//            log.error("Issue initializing Kerberos", t);
-//            throw t;
-//        }
-//    }
-
+    /**
+     * Validates the configuration for cluster connections.
+     * This method performs comprehensive validation of connection-related configurations including:
+     * - Password encryption and key validation
+     * - Cluster configuration validation based on data strategy
+     * - HiveServer2 and Metastore connection configuration validation
+     * - URI validation for both LEFT and RIGHT clusters
+     * - Driver JAR file validation
+     * - Kerberos configuration validation across versions
+     *
+     * @param session The execute session containing the configuration to validate
+     * @return Boolean TRUE if all connection configurations are valid, FALSE otherwise.
+     *         The method will add appropriate error messages to the session's RunStatus for any validation failures.
+     */
     public Boolean validateForConnections(ExecuteSession session) {
         Boolean rtn = Boolean.TRUE;
 
@@ -769,7 +735,6 @@ public class ConfigService {
                 DBStore leftMS = config.getCluster(Environment.LEFT).getMetastoreDirect();
 
                 if (isBlank(leftMS.getUri())) {
-//                    rtn = Boolean.FALSE;
                     runStatus.addWarning(LEFT_METASTORE_URI_NOT_DEFINED);
                 }
             }
@@ -836,24 +801,6 @@ public class ConfigService {
         }
 
         // ==============================================================================================================
-        // BETA FEATURES
-        // ALL NEW BETA FEATURES will have an option to enable/disable.
-        // When they are considered BETA, we will automatically disable them if the BETA flag is not set.
-        // ==============================================================================================================
-        // Iceberg Conversions is a beta feature.
-        if (config.getIcebergConversion().isEnable() && !config.isBeta()) {
-            session.addWarning(BETA_FEATURE, "Iceberg Conversion");
-            config.getIcebergConversion().setEnable(Boolean.FALSE);
-        }
-
-        if (config.getIcebergConversion().isEnable()) {
-            if (config.getDataStrategy() != STORAGE_MIGRATION) {
-                session.addError(ICEBERG_CONVERSION_AVAILABILITY);
-                rtn.set(Boolean.FALSE);
-            }
-        }
-
-        // ==============================================================================================================
 
         // Validate the jar files listed in the configs for each cluster.
         // Visible Environment Variables:
@@ -906,7 +853,6 @@ public class ConfigService {
         }
 
         if ((isNull(config.getDatabases()) || config.getDatabases().isEmpty()) && (isBlank(config.getFilter().getDbRegEx()))) {
-//            log.error("No databases specified OR found if you used dbRegEx");
             session.addError(MISC_ERROR, "No databases specified OR found if you used dbRegEx");
             rtn.set(Boolean.FALSE);
         }
@@ -1014,7 +960,7 @@ public class ConfigService {
         // Check for valid acid downgrade scenario.
         // Can't downgrade without SQL.
         if (config.getMigrateACID().isInplace()) {
-            if (config.getDataStrategy() != DataStrategyEnum.SQL) {
+            if (config.getDataStrategy() != SQL) {
                 runStatus.addError(VALID_ACID_DA_IP_STRATEGIES);
                 rtn.set(Boolean.FALSE);
             }
@@ -1063,14 +1009,14 @@ public class ConfigService {
                 runStatus.addWarning(DISTCP_WO_TABLE_FILTERS);
             }
             // Need to work through the ACID Inplace Downgrade.
-            if (config.getDataStrategy() == DataStrategyEnum.SQL
+            if (config.getDataStrategy() == SQL
                     && config.getMigrateACID().isOn()
                     && config.getMigrateACID().isDowngrade()
                     && (!doWareHousePlansExist(session))) {
                 runStatus.addError(SQL_ACID_DA_DISTCP_WO_EXT_WAREHOUSE);
                 rtn.set(Boolean.FALSE);
             }
-            if (config.getDataStrategy() == DataStrategyEnum.SQL) {
+            if (config.getDataStrategy() == SQL) {
                 // For SQL, we can only migrate ACID tables with `distcp` if we're downgrading of them.
                 if (config.getMigrateACID().isOn() ||
                         config.getMigrateACID().isOnly()) {
@@ -1079,10 +1025,6 @@ public class ConfigService {
                         rtn.set(Boolean.FALSE);
                     }
                 }
-//                if (!isBlank(config.getTransfer().getTargetNamespace())) {
-//                    runStatus.addError(SQL_DISTCP_ACID_W_STORAGE_OPTS);
-//                    rtn.set(Boolean.FALSE);
-//                }
             }
 
 
@@ -1123,7 +1065,7 @@ public class ConfigService {
         if (config.isSync()
                 && !(config.getDataStrategy() == DataStrategyEnum.SCHEMA_ONLY
                 || config.getDataStrategy() == DataStrategyEnum.LINKED ||
-                config.getDataStrategy() == DataStrategyEnum.SQL ||
+                config.getDataStrategy() == SQL ||
                 config.getDataStrategy() == DataStrategyEnum.EXPORT_IMPORT ||
                 config.getDataStrategy() == DataStrategyEnum.HYBRID)) {
             runStatus.addError(VALID_SYNC_STRATEGIES);
@@ -1135,7 +1077,7 @@ public class ConfigService {
                 || config.getDataStrategy() == DataStrategyEnum.DUMP
                 || config.getDataStrategy() == DataStrategyEnum.EXPORT_IMPORT
                 || config.getDataStrategy() == DataStrategyEnum.HYBRID
-                || config.getDataStrategy() == DataStrategyEnum.SQL
+                || config.getDataStrategy() == SQL
                 || config.getDataStrategy() == STORAGE_MIGRATION)) {
             runStatus.addError(VALID_ACID_STRATEGIES);
             rtn.set(Boolean.FALSE);
@@ -1143,7 +1085,7 @@ public class ConfigService {
 
         if (config.getMigrateACID().isOn()
                 && config.getMigrateACID().isInplace()) {
-            if (!(config.getDataStrategy() == DataStrategyEnum.SQL)) {
+            if (!(config.getDataStrategy() == SQL)) {
                 runStatus.addError(VALID_ACID_DA_IP_STRATEGIES);
                 rtn.set(Boolean.FALSE);
             }
@@ -1275,18 +1217,8 @@ public class ConfigService {
                 break;
         }
 
-        // Check the use of downgrades and replace.
-        // Removing.  If you use -ma, you'll also be processing non-ACID tables.
-        // Logic further down will check for this.
-//        if (getConfig().getMigrateACID().isDowngrade()) {
-//            if (!getConfig().getMigrateACID().isOn()) {
-//                getConfig().addError(DOWNGRADE_ONLY_FOR_ACID);
-//                rtn = Boolean.FALSE;
-//            }
-//        }
-
         if (config.isReplace()) {
-            if (config.getDataStrategy() != DataStrategyEnum.SQL) {
+            if (config.getDataStrategy() != SQL) {
                 runStatus.addError(REPLACE_ONLY_WITH_SQL);
                 rtn.set(Boolean.FALSE);
             }
@@ -1336,10 +1268,16 @@ public class ConfigService {
                 rtn.set(Boolean.FALSE);
             }
         }
-//        runStatus.setConfigValidated(rtn);
         return rtn.get();
     }
 
+    /**
+     * Flips the configuration between LEFT and RIGHT clusters.
+     * This method creates a new configuration with the LEFT and RIGHT cluster configurations swapped.
+     *
+     * @param config The configuration to flip
+     * @return The flipped configuration
+     */
     public HmsMirrorConfig flipConfig(HmsMirrorConfig config) {
         if (config != null) {
             Cluster leftClone = config.getCluster(Environment.LEFT).clone();

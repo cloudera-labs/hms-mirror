@@ -61,31 +61,6 @@ public class ConnectionMVController {
         this.cliEnvironment = cliEnvironment;
     }
 
-    //    @Autowired
-//    public void setCliEnvironment(CliEnvironment cliEnvironment) {
-//        this.cliEnvironment = cliEnvironment;
-//    }
-//
-//    @Autowired
-//    public void setConfigService(ConfigService configService) {
-//        this.configService = configService;
-//    }
-//
-//    @Autowired
-//    public void setConnectionPoolService(ConnectionPoolService connectionPoolService) {
-//        this.connectionPoolService = connectionPoolService;
-//    }
-//
-//    @Autowired
-//    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
-//        this.executeSessionService = executeSessionService;
-//    }
-//
-//    @Autowired
-//    public void setUiModelService(UIModelService uiModelService) {
-//        this.uiModelService = uiModelService;
-//    }
-
     @RequestMapping(value = "/validate", method = RequestMethod.GET)
     public String validate(Model model) {
         uiModelService.sessionToModel(model, 1, false);

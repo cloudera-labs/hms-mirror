@@ -19,11 +19,11 @@ package com.cloudera.utils.hms.mirror.features;
 
 import com.cloudera.utils.hms.mirror.feature.Feature;
 import com.cloudera.utils.hms.mirror.feature.StructEscapeFieldsFeature;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StructEscapeFieldsFeatureTest extends BaseFeatureTest {
     public static final String[] schema_01 = new String[]{

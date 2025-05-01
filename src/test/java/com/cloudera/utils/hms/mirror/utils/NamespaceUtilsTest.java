@@ -18,7 +18,7 @@
 package com.cloudera.utils.hms.mirror.utils;
 
 import com.cloudera.utils.hms.util.NamespaceUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

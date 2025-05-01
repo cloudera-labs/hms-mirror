@@ -17,22 +17,18 @@
 
 package com.cloudera.utils.hms.mirror.datastrategy;
 
-import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.MirrorConf;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.HmsMirrorConfigUtil;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
-import com.cloudera.utils.hms.mirror.service.ConfigService;
-import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
-import com.cloudera.utils.hms.mirror.service.TableService;
-import com.cloudera.utils.hms.mirror.service.TranslatorService;
+import com.cloudera.utils.hms.mirror.service.*;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
@@ -43,21 +39,22 @@ import static java.util.Objects.isNull;
 @Component
 @Slf4j
 @Getter
-public class ConvertLinkedDataStrategy extends DataStrategyBase implements DataStrategy {
+public class ConvertLinkedDataStrategy extends DataStrategyBase {
 
-    private ConfigService configService;
-    private SchemaOnlyDataStrategy schemaOnlyDataStrategy;
-    private TableService tableService;
-//    private TranslatorService translatorService;
+    private final ConfigService configService;
+    private final SchemaOnlyDataStrategy schemaOnlyDataStrategy;
+    private final TableService tableService;
 
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    public ConvertLinkedDataStrategy(StatsCalculatorService statsCalculatorService,
+                                     ExecuteSessionService executeSessionService,
+                                     TranslatorService translatorService,
+                                     ConfigService configService,
+                                     SchemaOnlyDataStrategy schemaOnlyDataStrategy,
+                                     TableService tableService) {
+        super(statsCalculatorService, executeSessionService, translatorService);
         this.configService = configService;
-    }
-
-    public ConvertLinkedDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
-        this.executeSessionService = executeSessionService;
-        this.translatorService = translatorService;
+        this.schemaOnlyDataStrategy = schemaOnlyDataStrategy;
+        this.tableService = tableService;
     }
 
     @Override
@@ -125,10 +122,6 @@ public class ConvertLinkedDataStrategy extends DataStrategyBase implements DataS
                         }
                         rtn = Boolean.TRUE;
 
-                        // Execute the RIGHT sql if config.execute.
-//                        if (rtn) {
-//                            rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
-//                        }
                     }
                 }
             }
@@ -144,16 +137,6 @@ public class ConvertLinkedDataStrategy extends DataStrategyBase implements DataS
     @Override
     public Boolean execute(TableMirror tableMirror) {
         return tableService.runTableSql(tableMirror, Environment.RIGHT);
-    }
-
-    @Autowired
-    public void setSchemaOnlyDataStrategy(SchemaOnlyDataStrategy schemaOnlyDataStrategy) {
-        this.schemaOnlyDataStrategy = schemaOnlyDataStrategy;
-    }
-
-    @Autowired
-    public void setTableService(TableService tableService) {
-        this.tableService = tableService;
     }
 
 }

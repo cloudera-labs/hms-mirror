@@ -28,7 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 
-import static com.cloudera.utils.hms.mirror.MessageCode.TABLE_ISSUE;
 import static java.util.Objects.nonNull;
 
 @Getter

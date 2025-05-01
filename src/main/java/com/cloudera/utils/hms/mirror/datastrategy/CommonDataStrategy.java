@@ -19,22 +19,18 @@ package com.cloudera.utils.hms.mirror.datastrategy;
 
 import com.cloudera.utils.hms.mirror.CopySpec;
 import com.cloudera.utils.hms.mirror.CreateStrategy;
-import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.MirrorConf;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.HmsMirrorConfigUtil;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
-import com.cloudera.utils.hms.mirror.service.ConfigService;
-import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
-import com.cloudera.utils.hms.mirror.service.TableService;
-import com.cloudera.utils.hms.mirror.service.TranslatorService;
+import com.cloudera.utils.hms.mirror.service.*;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
@@ -45,21 +41,19 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Component
 @Slf4j
 @Getter
-public class CommonDataStrategy extends DataStrategyBase implements DataStrategy {
+public class CommonDataStrategy extends DataStrategyBase {
 
-    private ConfigService configService;
+    private final ConfigService configService;
+    private final TableService tableService;
 
-    private TableService tableService;
-//    private TranslatorService translatorService;
-
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    public CommonDataStrategy(StatsCalculatorService statsCalculatorService,
+                              ExecuteSessionService executeSessionService,
+                              TranslatorService translatorService,
+                              ConfigService configService,
+                              TableService tableService) {
+        super(statsCalculatorService, executeSessionService, translatorService);
         this.configService = configService;
-    }
-
-    public CommonDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
-        this.executeSessionService = executeSessionService;
-        this.translatorService = translatorService;
+        this.tableService = tableService;
     }
 
     @Override
@@ -176,7 +170,11 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
                 break;
             case DROP:
                 ret.addSql(TableUtils.USE_DESC, useDb);
-                String dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                String dropStmt;
+                if (TableUtils.isView(ret))
+                    dropStmt = MessageFormat.format(MirrorConf.DROP_VIEW, ret.getName());
+                else
+                    dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
                 ret.addSql(TableUtils.DROP_DESC, dropStmt);
                 break;
             case REPLACE:
@@ -236,8 +234,6 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
     @Override
     public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
-
         EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
 
         if (TableUtils.isACID(let)) {
@@ -261,10 +257,6 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
                 rtn = Boolean.FALSE;
             }
         }
-        // Execute the RIGHT sql if config.execute.
-//        if (rtn) {
-//            rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
-//        }
 
         return rtn;
     }
@@ -274,13 +266,4 @@ public class CommonDataStrategy extends DataStrategyBase implements DataStrategy
         return tableService.runTableSql(tableMirror, Environment.RIGHT);
     }
 
-    @Autowired
-    public void setTableService(TableService tableService) {
-        this.tableService = tableService;
-    }
-
-//    @Autowired
-//    public void setTranslatorService(TranslatorService translatorService) {
-//        this.translatorService = translatorService;
-//    }
 }

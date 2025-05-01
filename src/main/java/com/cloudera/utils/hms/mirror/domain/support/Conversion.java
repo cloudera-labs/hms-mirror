@@ -198,6 +198,9 @@ public class Conversion {
                 .append(" | ").append(elsecStr).append(" secs | ")
                 .append(runStatus.getProgress()).append("|\n\n");
 
+        sb.append("**Comment**\n");
+        sb.append("> ").append(runStatus.getComment()).append("\n\n");
+
         sb.append("## Config:\n");
 
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());

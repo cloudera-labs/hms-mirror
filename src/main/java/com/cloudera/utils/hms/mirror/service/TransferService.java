@@ -37,15 +37,13 @@ import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
 import static com.cloudera.utils.hms.mirror.MessageCode.DISTCP_FOR_SO_ACID;
@@ -61,80 +59,53 @@ public class TransferService {
     public static Pattern lastDirPattern = Pattern.compile(".*/([^/?]+).*");
     private final DateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
     private final DateFormat tdf = new SimpleDateFormat("HH:mm:ss.SSS");
-    private ConfigService configService;
-    private ExecuteSessionService executeSessionService;
-    private TableService tableService;
-    private DatabaseService databaseService;
-    private WarehouseService warehouseService;
-    private DataStrategyService dataStrategyService;
-    private HybridDataStrategy hybridDataStrategy;
-    private HybridAcidDowngradeInPlaceDataStrategy hybridAcidDowngradeInPlaceDataStrategy;
+    private final ConfigService configService;
+    private final ExecuteSessionService executeSessionService;
+    private final TableService tableService;
+    private final DatabaseService databaseService;
+    private final WarehouseService warehouseService;
+    private final DataStrategyService dataStrategyService;
+    private final HybridDataStrategy hybridDataStrategy;
+    private final HybridAcidDowngradeInPlaceDataStrategy hybridAcidDowngradeInPlaceDataStrategy;
 
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    public TransferService(
+            ConfigService configService,
+            ExecuteSessionService executeSessionService,
+            TableService tableService,
+            DatabaseService databaseService,
+            WarehouseService warehouseService,
+            DataStrategyService dataStrategyService,
+            HybridDataStrategy hybridDataStrategy,
+            HybridAcidDowngradeInPlaceDataStrategy hybridAcidDowngradeInPlaceDataStrategy
+    ) {
         this.configService = configService;
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
         this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setDataStrategyService(DataStrategyService dataStrategyService) {
-        this.dataStrategyService = dataStrategyService;
-    }
-
-    @Autowired
-    public void setDatabaseService(DatabaseService databaseService) {
+        this.tableService = tableService;
         this.databaseService = databaseService;
-    }
-
-    @Autowired
-    public void setWarehouseService(WarehouseService warehouseService) {
         this.warehouseService = warehouseService;
-    }
-
-    @Autowired
-    public void setHybridAcidDowngradeInPlaceDataStrategy(HybridAcidDowngradeInPlaceDataStrategy hybridAcidDowngradeInPlaceDataStrategy) {
+        this.dataStrategyService = dataStrategyService;
+        this.hybridDataStrategy = hybridDataStrategy;
         this.hybridAcidDowngradeInPlaceDataStrategy = hybridAcidDowngradeInPlaceDataStrategy;
     }
 
-    @Autowired
-    public void setHybridDataStrategy(HybridDataStrategy hybridDataStrategy) {
-        this.hybridDataStrategy = hybridDataStrategy;
-    }
-
-    @Autowired
-    public void setTableService(TableService tableService) {
-        this.tableService = tableService;
-    }
-
     @Async("jobThreadPool")
-    public Future<ReturnStatus> build(TableMirror tableMirror) {
+    public CompletableFuture<ReturnStatus> build(TableMirror tableMirror) {
         ReturnStatus rtn = new ReturnStatus();
         rtn.setTableMirror(tableMirror);
-
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
         RunStatus runStatus = executeSessionService.getSession().getRunStatus();
-
         Warehouse warehouse = null;
         try {
             Date start = new Date();
             log.info("Building migration for {}.{}", tableMirror.getParent().getName(), tableMirror.getName());
-
             EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
             EnvironmentTable tet = tableMirror.getEnvironmentTable(Environment.TRANSFER);
             EnvironmentTable set = tableMirror.getEnvironmentTable(Environment.SHADOW);
             EnvironmentTable ret = tableMirror.getEnvironmentTable(Environment.RIGHT);
 
-
             // Set Database to Transfer DB.
             tableMirror.setPhaseState(PhaseState.CALCULATING_SQL);
-
             tableMirror.setStrategy(config.getDataStrategy());
-//            tblMirror.setResolvedDbName(config.getResolvedDB(tblMirror.getParent().getName()));
-
             tableMirror.incPhase();
             tableMirror.addStep("Build TRANSFER", config.getDataStrategy().toString());
             try {
@@ -199,11 +170,6 @@ public class TransferService {
                             fnlLoc = TableUtils.getLocation(tableMirror.getName(), ret.getDefinition());
                             if (isBlank(fnlLoc) && config.loadMetadataDetails()) {
                                 String sbDir = config.getTargetNamespace() +
-//                                if (!isBlank(config.getTransfer().getTargetNamespace())) {
-//                                    sbDir.append(config.getTransfer().getTargetNamespace());
-//                                } else {
-//                                    sbDir.append(config.getCluster(Environment.RIGHT).getHcfsNamespace());
-//                                }
                                         warehouse.getExternalDirectory() + "/" +
                                         HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config) + ".db" + "/" + tableMirror.getName();
                                 fnlLoc = sbDir;
@@ -248,11 +214,6 @@ public class TransferService {
                             String rLoc = TableUtils.getLocation(tableMirror.getName(), ret.getDefinition());
                             if (isBlank(rLoc) && config.loadMetadataDetails()) {
                                 String sbDir = config.getTargetNamespace() +
-//                                if (!isBlank(config.getTransfer().getTargetNamespace())) {
-//                                    sbDir.append(config.getTransfer().getTargetNamespace());
-//                                } else {
-//                                    sbDir.append(config.getCluster(Environment.RIGHT).getHcfsNamespace());
-//                                }
                                         warehouse.getExternalDirectory() + "/" +
                                         HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config) + ".db" + "/" + tableMirror.getName();
                                 rLoc = sbDir;
@@ -264,11 +225,6 @@ public class TransferService {
                             String rLoc = TableUtils.getLocation(tableMirror.getName(), ret.getDefinition());
                             if (isBlank(rLoc) && config.loadMetadataDetails()) {
                                 String sbDir = config.getTargetNamespace() +
-//                                if (!isBlank(config.getTransfer().getTargetNamespace())) {
-//                                    sbDir.append(config.getTransfer().getTargetNamespace());
-//                                } else {
-//                                    sbDir.append(config.getCluster(Environment.RIGHT).getHcfsNamespace());
-//                                }
                                         warehouse.getExternalDirectory() + "/" +
                                         HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config) + ".db" + "/" + tableMirror.getName();
                                 rLoc = sbDir;
@@ -307,11 +263,11 @@ public class TransferService {
             rtn.setStatus(ReturnStatus.Status.FATAL);
             rtn.setException(mde);
         }
-        return new AsyncResult<>(rtn);
+        return CompletableFuture.completedFuture(rtn);
     }
 
     @Async("jobThreadPool")
-    public Future<ReturnStatus> execute(TableMirror tableMirror) {
+    public CompletableFuture<ReturnStatus> execute(TableMirror tableMirror) {
         ReturnStatus rtn = new ReturnStatus();
         rtn.setTableMirror(tableMirror);
 
@@ -322,16 +278,11 @@ public class TransferService {
         log.info("Processing migration for {}.{}", tableMirror.getParent().getName(), tableMirror.getName());
 
         EnvironmentTable let = tableMirror.getEnvironmentTable(Environment.LEFT);
-//        EnvironmentTable tet = tableMirror.getEnvironmentTable(Environment.TRANSFER);
-//        EnvironmentTable set = tableMirror.getEnvironmentTable(Environment.SHADOW);
-//        EnvironmentTable ret = tableMirror.getEnvironmentTable(Environment.RIGHT);
-
 
         // Set Database to Transfer DB.
         tableMirror.setPhaseState(PhaseState.APPLYING_SQL);
 
         tableMirror.setStrategy(config.getDataStrategy());
-//            tblMirror.setResolvedDbName(config.getResolvedDB(tblMirror.getParent().getName()));
 
         tableMirror.incPhase();
         tableMirror.addStep("Processing TRANSFER", config.getDataStrategy().toString());
@@ -384,7 +335,6 @@ public class TransferService {
         tableMirror.setStageDuration(diff);
         log.info("Migration processing complete for {}.{} in {}ms", tableMirror.getParent().getName(), tableMirror.getName(), diff);
 
-        return new AsyncResult<>(rtn);
+        return CompletableFuture.completedFuture(rtn);
     }
-
 }

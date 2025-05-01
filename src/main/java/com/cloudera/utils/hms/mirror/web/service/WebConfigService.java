@@ -21,7 +21,6 @@ import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.service.DomainService;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -39,10 +38,15 @@ import static com.cloudera.utils.hms.mirror.util.ModelUtils.getSupportedDataStra
 @Slf4j
 public class WebConfigService {
 
-    private DomainService domainService;
+    private final DomainService domainService;
+    private final ExecuteSessionService executeSessionService;
     private String configPath = System.getProperty("user.home") + File.separator + ".hms-mirror/cfg";
 
-    private ExecuteSessionService executeSessionService;
+    public WebConfigService(DomainService domainService,
+                            ExecuteSessionService executeSessionService) {
+        this.domainService = domainService;
+        this.executeSessionService = executeSessionService;
+    }
 
     @Bean
     @ConditionalOnProperty(
@@ -58,27 +62,14 @@ public class WebConfigService {
         };
     }
 
-    @Autowired
-    public void setDomainService(DomainService domainService) {
-        this.domainService = domainService;
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
-        this.executeSessionService = executeSessionService;
-    }
-
-
     /*
     Scan the config directory and return a list of all the config files.
      */
     public Set<String> getConfigList() {
         // Scan a directory and return a list of all the files with a .yaml extension.
         Set<String> configList = new TreeSet<>();
-
         // Users home directory
         String cfgPath = System.getProperty("user.home") + File.separator + ".hms-mirror/cfg";
-
         File folder = new File(cfgPath);
         File[] listOfFiles = folder.listFiles(new FilenameFilter() {
             public boolean accept(File dir, String name) {
@@ -110,15 +101,14 @@ public class WebConfigService {
             configList.add("--non defined--");
             log.warn("No valid config files found in the config directory: " + cfgPath);
         }
-
         return configList;
     }
 
-//    public HmsMirrorConfig getCurrentConfig() {
-//        return executeSessionService.getHmsMirrorConfig();
-//    }
-//
-//    public HmsMirrorConfig loadConfig(String configFileName) {
-//        return executeSessionService.loadConfig(configFileName);
-//    }
+    //    public HmsMirrorConfig getCurrentConfig() {
+    //        return executeSessionService.getHmsMirrorConfig();
+    //    }
+    //
+    //    public HmsMirrorConfig loadConfig(String configFileName) {
+    //        return executeSessionService.loadConfig(configFileName);
+    //    }
 }

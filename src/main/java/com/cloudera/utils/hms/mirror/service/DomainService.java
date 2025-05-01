@@ -25,7 +25,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -42,10 +41,10 @@ import static java.util.Objects.isNull;
 @Slf4j
 public class DomainService {
 
-    private ObjectMapper yamlMapper;
+    private final ObjectMapper yamlMapper;
 
-    @Autowired
-    public void setYamlMapper(ObjectMapper yamlMapper) {
+    // Use constructor injection instead of setter injection
+    public DomainService(ObjectMapper yamlMapper) {
         this.yamlMapper = yamlMapper;
     }
 
@@ -114,10 +113,8 @@ public class DomainService {
                     return null;
                 }
             }
-
             fileAsString = IOUtils.toString(cfgUrl, StandardCharsets.UTF_8);
 //            config = yamlMapper.readerFor(HmsMirrorConfig.class).readValue(yamlCfgFile);
-
 //            config.setConfigFilename(configFilename);
         } catch (IOException e) {
             log.error("IO Exception", e);
@@ -159,5 +156,4 @@ public class DomainService {
         }
         return distcpWorkbook;
     }
-
 }

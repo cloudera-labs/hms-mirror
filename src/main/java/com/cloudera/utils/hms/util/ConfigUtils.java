@@ -13,8 +13,8 @@ import static java.util.Objects.isNull;
 
 public class ConfigUtils {
 
-    public static String TEZ_QUEUE_PROPERTY = "tez.queue.name";
-    public static String MAPRED_QUEUE_PROPERTY = "mapred.job.queue.name";
+    public final static String TEZ_QUEUE_PROPERTY = "tez.queue.name";
+    public final static String MAPRED_QUEUE_PROPERTY = "mapred.job.queue.name";
 
     public static List<String> getPropertyOverridesFor(Environment target, HmsMirrorConfig config) {
         final ArrayList<String> overrides = new ArrayList<>();

@@ -30,7 +30,6 @@ import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.Order;
@@ -59,27 +58,24 @@ public class CliReporter {
     private final List<String> reportTemplateOutput = new ArrayList<>();
     private final Map<String, String> varMap = new TreeMap<>();
     private final List<TableMirror> startedTables = new ArrayList<>();
+    private final ConfigService configService;
+    private final ExecuteSessionService executeSessionService;
+
     private Thread worker;
     private Boolean retry = Boolean.FALSE;
     private Boolean quiet = Boolean.FALSE;
-
-    private ConfigService configService;
-    private ExecuteSessionService executeSessionService;
-
     private boolean tiktok = false;
 
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    // Constructor injection for dependencies
+    public CliReporter(ConfigService configService, ExecuteSessionService executeSessionService) {
         this.configService = configService;
+        this.executeSessionService = executeSessionService;
     }
-
 
     @Bean
     @Order(20)
     CommandLineRunner configQuiet(HmsMirrorConfig hmsMirrorConfig) {
-        return args -> {
-            setQuiet(hmsMirrorConfig.isQuiet());
-        };
+        return args -> setQuiet(hmsMirrorConfig.isQuiet());
     }
 
     protected void displayReport(Boolean showAll) {
@@ -301,11 +297,6 @@ public class CliReporter {
         } catch (IOException ioe) {
             System.out.println("Missing Reporting Template");
         }
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
-        this.executeSessionService = executeSessionService;
     }
 
     public void setVariable(String key, String value) {

@@ -34,7 +34,6 @@ import com.cloudera.utils.hms.util.NamespaceUtils;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
@@ -46,34 +45,32 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Component
 @Slf4j
 @Getter
-public class ExportImportDataStrategy extends DataStrategyBase implements DataStrategy {
+public class ExportImportDataStrategy extends DataStrategyBase {
 
-    private ExportCircularResolveService exportCircularResolveService;
+    private final ExportCircularResolveService exportCircularResolveService;
     //    private TranslatorService translatorService;
-    private ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy;
-    private ConfigService configService;
-    private DatabaseService databaseService;
-    private TableService tableService;
-    private WarehouseService warehouseService;
+    private final ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy;
+    private final ConfigService configService;
+    private final DatabaseService databaseService;
+    private final TableService tableService;
+    private final WarehouseService warehouseService;
 
-    @Autowired
-    public void setWarehouseService(WarehouseService warehouseService) {
-        this.warehouseService = warehouseService;
-    }
-
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    public ExportImportDataStrategy(StatsCalculatorService statsCalculatorService,
+                                    ExecuteSessionService executeSessionService,
+                                    TranslatorService translatorService,
+                                    ExportCircularResolveService exportCircularResolveService,
+                                    ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy,
+                                    ConfigService configService,
+                                    DatabaseService databaseService,
+                                    TableService tableService,
+                                    WarehouseService warehouseService) {
+        super(statsCalculatorService, executeSessionService, translatorService);
+        this.exportCircularResolveService = exportCircularResolveService;
+        this.exportImportAcidDowngradeInPlaceDataStrategy = exportImportAcidDowngradeInPlaceDataStrategy;
         this.configService = configService;
-    }
-
-    @Autowired
-    public void setDatabaseService(DatabaseService databaseService) {
         this.databaseService = databaseService;
-    }
-
-    public ExportImportDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
-        this.executeSessionService = executeSessionService;
-        this.translatorService = translatorService;
+        this.tableService = tableService;
+        this.warehouseService = warehouseService;
     }
 
     @Override
@@ -199,13 +196,6 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
             }
 
             String importLoc = exportLoc;
-//            if (!isBlank(config.getTransfer().getIntermediateStorage())
-//                    || !isBlank(config.getTransfer().getTargetNamespace())) {
-//                importLoc = exportLoc;
-//            } else {
-//                // checked
-//                importLoc = leftNamespace + exportLoc;
-//            }
 
             String sourceLocation = TableUtils.getLocation(let.getName(), let.getDefinition());
             String targetLocation = getTranslatorService().translateTableLocation(tableMirror, sourceLocation, 1, null);
@@ -222,17 +212,11 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
                 }
             } else {
                 if (config.loadMetadataDetails()) {
-//                    if (dbWarehouse.getExternalDirectory() != null) {
-                    // Build default location, because in some cases when location isn't specified, it will use the "FROM"
-                    // location in the IMPORT statement.
                     targetLocation = config.getTargetNamespace()
                             + dbWarehouse.getExternalDirectory() +
                             "/" + HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config) + ".db/"
                             + tableMirror.getName();
                     importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
-//                    } else {
-//                        importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
-//                    }
                 } else {
                     importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
                 }
@@ -330,15 +314,6 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
                 if (rtn)
                     rtn = AVROCheck(tableMirror);
             }
-//            // If EXPORT_IMPORT, need to run LEFT queries.
-//            if (rtn) {
-//                rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
-//            }
-//
-//            // Execute the RIGHT sql if config.execute.
-//            if (rtn) {
-//                rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
-//            }
         }
 
         return rtn;
@@ -355,23 +330,7 @@ public class ExportImportDataStrategy extends DataStrategyBase implements DataSt
         if (rtn) {
             rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
         }
-
         return rtn;
-    }
-
-    @Autowired
-    public void setExportCircularResolveService(ExportCircularResolveService exportCircularResolveService) {
-        this.exportCircularResolveService = exportCircularResolveService;
-    }
-
-    @Autowired
-    public void setExportImportAcidDowngradeInPlaceDataStrategy(ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy) {
-        this.exportImportAcidDowngradeInPlaceDataStrategy = exportImportAcidDowngradeInPlaceDataStrategy;
-    }
-
-    @Autowired
-    public void setTableService(TableService tableService) {
-        this.tableService = tableService;
     }
 
 }

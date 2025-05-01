@@ -23,24 +23,29 @@ import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
+import com.cloudera.utils.hms.mirror.service.StatsCalculatorService;
 import com.cloudera.utils.hms.mirror.service.TranslatorService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
 @Getter
-public class HybridAcidDowngradeInPlaceDataStrategy extends DataStrategyBase implements DataStrategy {
+public class HybridAcidDowngradeInPlaceDataStrategy extends DataStrategyBase {
 
-    private SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy;
+    private final SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy;
 
-    private ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy;
+    private final ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy;
 
-    public HybridAcidDowngradeInPlaceDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
-        this.executeSessionService = executeSessionService;
-        this.translatorService = translatorService;
+    public HybridAcidDowngradeInPlaceDataStrategy(StatsCalculatorService statsCalculatorService,
+                                                  ExecuteSessionService executeSessionService,
+                                                  TranslatorService translatorService,
+                                                  SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy,
+                                                  ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy) {
+        super(statsCalculatorService, executeSessionService, translatorService);
+        this.sqlAcidInPlaceDataStrategy = sqlAcidInPlaceDataStrategy;
+        this.exportImportAcidDowngradeInPlaceDataStrategy = exportImportAcidDowngradeInPlaceDataStrategy;
     }
 
     @Override
@@ -125,13 +130,4 @@ public class HybridAcidDowngradeInPlaceDataStrategy extends DataStrategyBase imp
         return rtn;
     }
 
-    @Autowired
-    public void setExportImportAcidDowngradeInPlaceDataStrategy(ExportImportAcidDowngradeInPlaceDataStrategy exportImportAcidDowngradeInPlaceDataStrategy) {
-        this.exportImportAcidDowngradeInPlaceDataStrategy = exportImportAcidDowngradeInPlaceDataStrategy;
-    }
-
-    @Autowired
-    public void setSqlAcidInPlaceDataStrategy(SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy) {
-        this.sqlAcidInPlaceDataStrategy = sqlAcidInPlaceDataStrategy;
-    }
 }

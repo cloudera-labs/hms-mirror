@@ -18,9 +18,9 @@
 package com.cloudera.utils.hms.mirror.datastrategy;
 
 import com.cloudera.utils.hms.mirror.CopySpec;
-import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.MirrorConf;
 import com.cloudera.utils.hms.mirror.Pair;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
@@ -34,7 +34,6 @@ import com.cloudera.utils.hms.util.ConfigUtils;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
@@ -48,14 +47,16 @@ import static com.cloudera.utils.hms.mirror.TablePropertyVars.TRANSLATED_TO_EXTE
 @Component
 @Slf4j
 @Getter
-public class SQLAcidInPlaceDataStrategy extends DataStrategyBase implements DataStrategy {
+public class SQLAcidInPlaceDataStrategy extends DataStrategyBase {
 
-    private TableService tableService;
-    private StatsCalculatorService statsCalculatorService;
+    private final TableService tableService;
 
-    public SQLAcidInPlaceDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
-        this.executeSessionService = executeSessionService;
-        this.translatorService = translatorService;
+    public SQLAcidInPlaceDataStrategy(StatsCalculatorService statsCalculatorService,
+                                      ExecuteSessionService executeSessionService,
+                                      TranslatorService translatorService,
+                                      TableService tableService) {
+        super(statsCalculatorService, executeSessionService, translatorService);
+        this.tableService = tableService;
     }
 
     @Override
@@ -156,17 +157,14 @@ public class SQLAcidInPlaceDataStrategy extends DataStrategyBase implements Data
         // Set Override Properties.
         // Get the LEFT overrides for the DOWNGRADE.
         List<String> overrides = ConfigUtils.getPropertyOverridesFor(Environment.LEFT, hmsMirrorConfig);
-//        Map<String, String> overrides = hmsMirrorConfig.getOptimization().getOverrides().getFor(Environment.LEFT);
-//        if (!overrides.isEmpty()) {
-            for (String setCmd : overrides) {
-                let.addSql(setCmd, setCmd);
-            }
-//        }
+        for (String setCmd : overrides) {
+            let.addSql(setCmd, setCmd);
+        }
 
         if (let.getPartitioned()) {
             if (hmsMirrorConfig.getOptimization().isSkip()) {
                 if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE_STRING,SORT_DYNAMIC_PARTITION,"false"));
+                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE_STRING, SORT_DYNAMIC_PARTITION, "false"));
                 }
                 String partElement = TableUtils.getPartitionElements(let);
                 String transferSql = MessageFormat.format(MirrorConf.SQL_DATA_TRANSFER_WITH_PARTITIONS_DECLARATIVE,
@@ -175,9 +173,9 @@ public class SQLAcidInPlaceDataStrategy extends DataStrategyBase implements Data
                 let.addSql(new Pair(transferDesc, transferSql));
             } else if (hmsMirrorConfig.getOptimization().isSortDynamicPartitionInserts()) {
                 if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE_STRING,SORT_DYNAMIC_PARTITION ,"true"));
+                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE_STRING, SORT_DYNAMIC_PARTITION, "true"));
                     if (!hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
-                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE_INT,SORT_DYNAMIC_PARTITION_THRESHOLD , 0));
+                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE_INT, SORT_DYNAMIC_PARTITION_THRESHOLD, 0));
                     }
                 }
                 String partElement = TableUtils.getPartitionElements(let);
@@ -188,9 +186,9 @@ public class SQLAcidInPlaceDataStrategy extends DataStrategyBase implements Data
             } else {
                 // Prescriptive Optimization.
                 if (!hmsMirrorConfig.getCluster(Environment.LEFT).isLegacyHive()) {
-                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE_STRING,SORT_DYNAMIC_PARTITION ,"false"));
+                    let.addSql("Setting " + SORT_DYNAMIC_PARTITION, MessageFormat.format(SET_SESSION_VALUE_STRING, SORT_DYNAMIC_PARTITION, "false"));
                     if (!hmsMirrorConfig.getCluster(Environment.LEFT).isHdpHive3()) {
-                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE_INT,SORT_DYNAMIC_PARTITION_THRESHOLD , -1));
+                        let.addSql("Setting " + SORT_DYNAMIC_PARTITION_THRESHOLD, MessageFormat.format(SET_SESSION_VALUE_INT, SORT_DYNAMIC_PARTITION_THRESHOLD, -1));
                     }
                 }
 
@@ -262,26 +260,11 @@ public class SQLAcidInPlaceDataStrategy extends DataStrategyBase implements Data
             }
         }
 
-        // run queries.
-//        if (rtn) {
-//            getTableService().runTableSql(tableMirror, Environment.LEFT);
-//        }
-
         return rtn;
     }
 
     @Override
     public Boolean execute(TableMirror tableMirror) {
         return getTableService().runTableSql(tableMirror, Environment.LEFT);
-    }
-
-    @Autowired
-    public void setStatsCalculatorService(StatsCalculatorService statsCalculatorService) {
-        this.statsCalculatorService = statsCalculatorService;
-    }
-
-    @Autowired
-    public void setTableService(TableService tableService) {
-        this.tableService = tableService;
     }
 }

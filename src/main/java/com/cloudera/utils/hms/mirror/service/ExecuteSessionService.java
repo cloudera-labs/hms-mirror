@@ -28,7 +28,6 @@ import com.jcabi.manifests.Manifests;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.DateFormat;
@@ -50,9 +49,9 @@ public class ExecuteSessionService {
 
     public static final String DEFAULT = "default.yaml";
 
-    private CliEnvironment cliEnvironment;
-    private ConfigService configService;
-    private ConnectionPoolService connectionPoolService;
+    private final CliEnvironment cliEnvironment;
+    private final ConfigService configService;
+    private final ConnectionPoolService connectionPoolService;
 
     /*
     This is the current session that can be modified (but not running yet).  This is where
@@ -67,26 +66,25 @@ public class ExecuteSessionService {
 
     private boolean amendSessionIdToReportDir = Boolean.TRUE;
 
-    /*
-    Used to limit the number of sessionHistory that are retained in memory.
+    /**
+     * Used to limit the number of sessionHistory that are retained in memory.
      */
-//    private int maxRetainedSessions = 5;
-//    private final Map<String, ExecuteSession> executeSessionMap = new TreeMap<>();
     private final Map<String, ExecuteSession> sessionHistory = new HashMap<>();
 
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    /**
+     * Constructor for ExecuteSessionService.
+     *
+     * @param configService Service for configuration
+     * @param cliEnvironment CLI environment
+     * @param connectionPoolService Service for managing connection pools
+     */
+    public ExecuteSessionService(ConfigService configService, 
+                                CliEnvironment cliEnvironment, 
+                                ConnectionPoolService connectionPoolService) {
         this.configService = configService;
-    }
-
-    @Autowired
-    public void setCliEnvironment(CliEnvironment cliEnvironment) {
         this.cliEnvironment = cliEnvironment;
-    }
-
-    @Autowired
-    public void setConnectionPoolService(ConnectionPoolService connectionPoolService) {
         this.connectionPoolService = connectionPoolService;
+        log.debug("ExecuteSessionService initialized");
     }
 
     public void setReportOutputDirectory(String reportOutputDirectory, boolean amendSessionIdToReportDir) {
@@ -94,6 +92,20 @@ public class ExecuteSessionService {
         this.reportOutputDirectory = reportOutputDirectory;
     }
 
+    /**
+     * Saves the provided HmsMirrorConfig instance after merging it with the current configuration.
+     * Adjusts connection settings and applies configuration rules, ensuring the
+     * correct management of encrypted and non-encrypted password changes as well
+     * as property overrides. Throws an exception if the session is currently running.
+     *
+     * @param config The HmsMirrorConfig object containing the configuration to be saved.
+     *               This configuration will be merged with the existing configuration
+     *               of the associated session.
+     * @param maxThreads The Thread used by the application at the time of the report.
+     * @return {@code true} if the save operation is successful, or {@code false}
+     *         if there were issues such as an attempted encrypted password change.
+     * @throws SessionException If the session is running or encounters a problem during the save operation.
+     */
     public boolean save(HmsMirrorConfig config, int maxThreads) throws SessionException {
         boolean rtn = Boolean.TRUE;
         AtomicReference<Boolean> passwordCheck = new AtomicReference<>(Boolean.FALSE);
@@ -185,58 +197,36 @@ public class ExecuteSessionService {
 
     public ExecuteSession createSession(String sessionId, HmsMirrorConfig hmsMirrorConfig) {
         String sessionName = !isBlank(sessionId) ? sessionId : DEFAULT;
-//
-        ExecuteSession session;
-//        if (sessionHistory.containsKey(sessionName)) {
-//            session = sessionHistory.get(sessionName);
-//            session.setConfig(hmsMirrorConfig);
-//        } else {
-        session = new ExecuteSession();
+        
+        ExecuteSession session = new ExecuteSession();
         session.setSessionId(sessionName);
         session.setConfig(hmsMirrorConfig);
-//        sessionHistory.put(sessionName, session);
-//        }
         return session;
     }
 
-//    public void clear2Session() throws SessionException {
-//        closeSession();
-//        session = null;
-//    }
-
     public void closeSession() throws SessionException {
-//        if (nonNull(session)) {
-//            if (session.isRunning()) {
-//                throw new SessionException("Session is still running.  You can't change the session while it is running.");
-//            }
-//        }
+        // No-op for now, but keeping method for future implementation
     }
 
     public ExecuteSession getSession() {
         return session;
     }
 
-    /*
-    If sessionId is null, then pull the 'current' session.
-    If sessionId is NOT null, look for it in the session map and return it.
-    When not found, throw exception.
-     */
     public ExecuteSession getSession(String sessionId) {
         if (isBlank(sessionId)) {
             if (isNull(session)) {
                 log.error("No session loaded");
                 return null;
-//                throw new RuntimeException("No session loaded.");
             }
             return session;
-        } else {
-            if (sessionHistory.containsKey(sessionId)) {
-                return sessionHistory.get(sessionId);
-            } else {
-                log.error("Session not found: " + sessionId);
-                return null;
-            }
         }
+        
+        if (sessionHistory.containsKey(sessionId)) {
+            return sessionHistory.get(sessionId);
+        }
+        
+        log.error("Session not found: {}", sessionId);
+        return null;
     }
 
     /*

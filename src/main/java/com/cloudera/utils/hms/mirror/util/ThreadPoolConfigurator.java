@@ -31,69 +31,49 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Slf4j
 public class ThreadPoolConfigurator {
 
-    @Bean("jobThreadPool")
-    @Order(20)
-    @ConditionalOnProperty(
-            name = "hms-mirror.concurrency.max-threads")
-    public TaskExecutor jobThreadPool(ExecuteSessionService executeSessionService,  @Value("${hms-mirror.concurrency.max-threads}") Integer value) {
+    private static final int ORDER = 20;
+    private static final int DEFAULT_QUEUE_CAPACITY = 1000;
+    private static final int SINGLE_THREAD_POOL_SIZE = 1;
+
+    private ThreadPoolTaskExecutor createThreadPool(String threadNamePrefix, int corePoolSize, int maxPoolSize) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-
-        log.info("Setting up jobThreadPool with max threads: {}", value);
-
-        executor.setCorePoolSize(value);
-        executor.setMaxPoolSize(value);
-
-        executor.setQueueCapacity(Integer.MAX_VALUE);
-        executor.setThreadNamePrefix("job-");
+        executor.setCorePoolSize(corePoolSize);
+        executor.setMaxPoolSize(maxPoolSize);
+        executor.setQueueCapacity(DEFAULT_QUEUE_CAPACITY);
+        executor.setThreadNamePrefix(threadNamePrefix);
         executor.initialize();
         return executor;
+    }
+
+    @Bean("jobThreadPool")
+    @Order(ORDER)
+    @ConditionalOnProperty(name = "hms-mirror.concurrency.max-threads")
+    public TaskExecutor jobThreadPool(ExecuteSessionService executeSessionService, 
+                                    @Value("${hms-mirror.concurrency.max-threads}") Integer value) {
+        log.info("Setting up jobThreadPool with max threads: {}", value);
+        return createThreadPool("job-", value, value);
     }
 
     @Bean("metadataThreadPool")
-    @Order(20)
-    @ConditionalOnProperty(
-            name = "hms-mirror.concurrency.max-threads")
-    public TaskExecutor metadataThreadPool(ExecuteSessionService executeSessionService,  @Value("${hms-mirror.concurrency.max-threads}") Integer value) {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-
+    @Order(ORDER)
+    @ConditionalOnProperty(name = "hms-mirror.concurrency.max-threads")
+    public TaskExecutor metadataThreadPool(ExecuteSessionService executeSessionService, 
+                                         @Value("${hms-mirror.concurrency.max-threads}") Integer value) {
         log.info("Setting up metadataThreadPool with max threads: {}", value);
-
-        executor.setCorePoolSize(value);
-        executor.setMaxPoolSize(value);
-
-        executor.setQueueCapacity(Integer.MAX_VALUE);
-        executor.setThreadNamePrefix("metadata-");
-        executor.initialize();
-        return executor;
+        return createThreadPool("metadata-", value, value);
     }
 
     @Bean("reportingThreadPool")
-    @Order(20)
+    @Order(ORDER)
     public TaskExecutor reportingThreadPool() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-
-        log.info("Setting up reportingThreadPool with max threads: 1");
-
-        executor.setCorePoolSize(1);
-        executor.setMaxPoolSize(1);
-
-        executor.setQueueCapacity(Integer.MAX_VALUE);
-        executor.setThreadNamePrefix("reporting-");
-        executor.initialize();
-        return executor;
+        log.info("Setting up reportingThreadPool with max threads: {}", SINGLE_THREAD_POOL_SIZE);
+        return createThreadPool("reporting-", SINGLE_THREAD_POOL_SIZE, SINGLE_THREAD_POOL_SIZE);
     }
 
     @Bean("executionThreadPool")
-    @Order(20)
+    @Order(ORDER)
     public TaskExecutor executionThreadPool() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        // We only want 1 running at a time.
-        executor.setCorePoolSize(1);
-        executor.setMaxPoolSize(1);
-        executor.setQueueCapacity(Integer.MAX_VALUE);
-        executor.setThreadNamePrefix("execution-");
-        executor.initialize();
-        return executor;
+        log.info("Setting up executionThreadPool with max threads: {}", SINGLE_THREAD_POOL_SIZE);
+        return createThreadPool("execution-", SINGLE_THREAD_POOL_SIZE, SINGLE_THREAD_POOL_SIZE);
     }
-
 }

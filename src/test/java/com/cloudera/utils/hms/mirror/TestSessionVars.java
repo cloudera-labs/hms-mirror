@@ -1,10 +1,11 @@
 package com.cloudera.utils.hms.mirror;
 
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static com.cloudera.utils.hms.mirror.SessionVars.*;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+//import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.text.MessageFormat;
 

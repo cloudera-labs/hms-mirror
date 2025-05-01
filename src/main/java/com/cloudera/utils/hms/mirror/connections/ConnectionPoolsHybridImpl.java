@@ -26,7 +26,6 @@ import com.cloudera.utils.hms.mirror.service.PasswordService;
 import com.cloudera.utils.hms.util.ConfigUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import com.zaxxer.hikari.hibernate.HikariConfigurationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.*;
 import org.apache.commons.pool2.ObjectPool;

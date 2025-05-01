@@ -22,14 +22,14 @@ import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.data-strategy=SQL",
@@ -48,7 +48,8 @@ import static org.junit.Assert.assertEquals;
 //                "--hms-mirror.config.distcp=true",
                 "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_01.yaml",
                 "--hms-mirror.config.filename=/config/default.yaml.hdp2-cdp",
-                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/legacy_cdp/sql_sync"
+                "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/legacy_cdp/sql_sync",
+                "--hms-mirror.config.comment='SQL Sync test.  Should result in a table being DROP on the RIGHT because it's missing on the LEFT'"
         })
 @Slf4j
 public class Test_sql_sync extends E2EBaseTest {
@@ -71,7 +72,7 @@ public class Test_sql_sync extends E2EBaseTest {
         long rtn = getReturnCode();
         // Verify the return code.
         long check = 0L;
-        assertEquals("Return Code Failure: " + rtn, check * -1, rtn);
+        assertEquals(check * -1, rtn, "Return Code Failure: " + rtn);
     }
 
     @Test

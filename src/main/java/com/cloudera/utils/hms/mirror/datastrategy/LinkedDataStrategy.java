@@ -26,12 +26,12 @@ import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
+import com.cloudera.utils.hms.mirror.service.StatsCalculatorService;
 import com.cloudera.utils.hms.mirror.service.TableService;
 import com.cloudera.utils.hms.mirror.service.TranslatorService;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
@@ -41,14 +41,19 @@ import static com.cloudera.utils.hms.mirror.MessageCode.*;
 @Component
 @Slf4j
 @Getter
-public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy {
+public class LinkedDataStrategy extends DataStrategyBase {
 
-    private SchemaOnlyDataStrategy schemaOnlyDataStrategy;
-    private TableService tableService;
+    private final SchemaOnlyDataStrategy schemaOnlyDataStrategy;
+    private final TableService tableService;
 
-    public LinkedDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
-        this.executeSessionService = executeSessionService;
-        this.translatorService = translatorService;
+    public LinkedDataStrategy(StatsCalculatorService statsCalculatorService,
+                              ExecuteSessionService executeSessionService,
+                              TranslatorService translatorService,
+                              SchemaOnlyDataStrategy schemaOnlyDataStrategy,
+                              TableService tableService) {
+        super(statsCalculatorService, executeSessionService, translatorService);
+        this.schemaOnlyDataStrategy = schemaOnlyDataStrategy;
+        this.tableService = tableService;
     }
 
     @Override
@@ -144,8 +149,6 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
     @Override
     public Boolean build(TableMirror tableMirror) {
         Boolean rtn = Boolean.FALSE;
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
-
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
 
         if (TableUtils.isACID(let)) {
@@ -183,13 +186,4 @@ public class LinkedDataStrategy extends DataStrategyBase implements DataStrategy
         return tableService.runTableSql(tableMirror, Environment.RIGHT);
     }
 
-    @Autowired
-    public void setSchemaOnlyDataStrategy(SchemaOnlyDataStrategy schemaOnlyDataStrategy) {
-        this.schemaOnlyDataStrategy = schemaOnlyDataStrategy;
-    }
-
-    @Autowired
-    public void setTableService(TableService tableService) {
-        this.tableService = tableService;
-    }
 }

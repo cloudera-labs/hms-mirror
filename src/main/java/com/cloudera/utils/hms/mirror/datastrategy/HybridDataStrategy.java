@@ -25,11 +25,11 @@ import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.service.ConfigService;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
+import com.cloudera.utils.hms.mirror.service.StatsCalculatorService;
 import com.cloudera.utils.hms.mirror.service.TranslatorService;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -37,22 +37,26 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Component
 @Slf4j
 @Getter
-public class HybridDataStrategy extends DataStrategyBase implements DataStrategy {
+public class HybridDataStrategy extends DataStrategyBase {
 
-    private ConfigService configService;
+    private final ConfigService configService;
 
-    private IntermediateDataStrategy intermediateDataStrategy;
-    private SQLDataStrategy sqlDataStrategy;
-    private ExportImportDataStrategy exportImportDataStrategy;
+    private final IntermediateDataStrategy intermediateDataStrategy;
+    private final SQLDataStrategy sqlDataStrategy;
+    private final ExportImportDataStrategy exportImportDataStrategy;
 
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    public HybridDataStrategy(StatsCalculatorService statsCalculatorService,
+                              ExecuteSessionService executeSessionService,
+                              TranslatorService translatorService,
+                              ConfigService configService,
+                              IntermediateDataStrategy intermediateDataStrategy,
+                              SQLDataStrategy sqlDataStrategy,
+                              ExportImportDataStrategy exportImportDataStrategy) {
+        super(statsCalculatorService, executeSessionService, translatorService);
         this.configService = configService;
-    }
-
-    public HybridDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
-        this.executeSessionService = executeSessionService;
-        this.translatorService = translatorService;
+        this.intermediateDataStrategy = intermediateDataStrategy;
+        this.sqlDataStrategy = sqlDataStrategy;
+        this.exportImportDataStrategy = exportImportDataStrategy;
     }
 
     @Override
@@ -150,18 +154,4 @@ public class HybridDataStrategy extends DataStrategyBase implements DataStrategy
         return rtn;
     }
 
-    @Autowired
-    public void setExportImportDataStrategy(ExportImportDataStrategy exportImportDataStrategy) {
-        this.exportImportDataStrategy = exportImportDataStrategy;
-    }
-
-    @Autowired
-    public void setIntermediateDataStrategy(IntermediateDataStrategy intermediateDataStrategy) {
-        this.intermediateDataStrategy = intermediateDataStrategy;
-    }
-
-    @Autowired
-    public void setSqlDataStrategy(SQLDataStrategy sqlDataStrategy) {
-        this.sqlDataStrategy = sqlDataStrategy;
-    }
 }

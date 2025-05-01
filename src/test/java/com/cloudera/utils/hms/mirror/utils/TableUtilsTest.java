@@ -21,15 +21,15 @@ import com.cloudera.utils.hms.mirror.domain.Cluster;
 import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import static com.cloudera.utils.hms.mirror.TablePropertyVars.TRANSACTIONAL;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 public class TableUtilsTest {
@@ -152,7 +152,7 @@ public class TableUtilsTest {
     public void removeTblProperty() {
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         String[] strTable_01 = new String[]{
                 "CREATE EXTERNAL TABLE `tpcds_bin_partitioned_orc_10`.`call_center`("
@@ -542,7 +542,7 @@ public class TableUtilsTest {
         List<String> working = fromStatic(table_05);
         String REPLACEMENT_TEST_LOCATION = "hdfs://HOME90/mynew/location";
         Boolean rtn = TableUtils.updateTableLocation("hello_manager", working, REPLACEMENT_TEST_LOCATION);
-        assertEquals("Location mismatch: ", TableUtils.getSerdePath("hello_manager", working), REPLACEMENT_TEST_LOCATION);
+        assertEquals(TableUtils.getSerdePath("hello_manager", working), REPLACEMENT_TEST_LOCATION, "Location mismatch: ");
 //        System.out.println("Def: ");
     }
 

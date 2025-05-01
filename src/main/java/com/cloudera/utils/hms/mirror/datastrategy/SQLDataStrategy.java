@@ -29,14 +29,10 @@ import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.HmsMirrorConfigUtil;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
-import com.cloudera.utils.hms.mirror.service.ConfigService;
-import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
-import com.cloudera.utils.hms.mirror.service.TableService;
-import com.cloudera.utils.hms.mirror.service.TranslatorService;
+import com.cloudera.utils.hms.mirror.service.*;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
@@ -48,22 +44,25 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Component
 @Slf4j
 @Getter
-public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
+public class SQLDataStrategy extends DataStrategyBase {
 
-    private ConfigService configService;
+    private final ConfigService configService;
+    private final SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy;
+    private final TableService tableService;
+    private final IntermediateDataStrategy intermediateDataStrategy;
 
-    private SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy;
-    private TableService tableService;
-    private IntermediateDataStrategy intermediateDataStrategy;
-
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    public SQLDataStrategy(StatsCalculatorService statsCalculatorService,
+                           ExecuteSessionService executeSessionService,
+                           TranslatorService translatorService,
+                           ConfigService configService,
+                           SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy,
+                           TableService tableService,
+                           IntermediateDataStrategy intermediateDataStrategy) {
+        super(statsCalculatorService, executeSessionService, translatorService);
         this.configService = configService;
-    }
-
-    public SQLDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
-        this.executeSessionService = executeSessionService;
-        this.translatorService = translatorService;
+        this.sqlAcidInPlaceDataStrategy = sqlAcidInPlaceDataStrategy;
+        this.tableService = tableService;
+        this.intermediateDataStrategy = intermediateDataStrategy;
     }
 
     @Override
@@ -219,11 +218,17 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
                     // Do Nothing.
                     break;
                 case DROP:
-                    dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                    if (TableUtils.isView(ret))
+                        dropStmt = MessageFormat.format(MirrorConf.DROP_VIEW, ret.getName());
+                    else
+                        dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
                     ret.addSql(TableUtils.DROP_DESC, dropStmt);
                     break;
                 case REPLACE:
-                    dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                    if (TableUtils.isView(ret))
+                        dropStmt = MessageFormat.format(MirrorConf.DROP_VIEW, ret.getName());
+                    else
+                        dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
                     ret.addSql(TableUtils.DROP_DESC, dropStmt);
                     String createStmt = tableService.getCreateStatement(tableMirror, Environment.RIGHT);
                     //tableMirror.getCreateStatement(Environment.RIGHT);
@@ -321,18 +326,4 @@ public class SQLDataStrategy extends DataStrategyBase implements DataStrategy {
         return rtn;
     }
 
-    @Autowired
-    public void setIntermediateDataStrategy(IntermediateDataStrategy intermediateDataStrategy) {
-        this.intermediateDataStrategy = intermediateDataStrategy;
-    }
-
-    @Autowired
-    public void setSqlAcidInPlaceDataStrategy(SQLAcidInPlaceDataStrategy sqlAcidInPlaceDataStrategy) {
-        this.sqlAcidInPlaceDataStrategy = sqlAcidInPlaceDataStrategy;
-    }
-
-    @Autowired
-    public void setTableService(TableService tableService) {
-        this.tableService = tableService;
-    }
 }

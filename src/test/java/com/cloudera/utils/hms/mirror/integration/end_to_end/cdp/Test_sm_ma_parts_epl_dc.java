@@ -17,20 +17,20 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end.cdp;
 
-import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.Pair;
 import com.cloudera.utils.hms.mirror.PhaseState;
 import com.cloudera.utils.hms.mirror.cli.Mirror;
+import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.integration.end_to_end.E2EBaseTest;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = Mirror.class,
         args = {
                 "--hms-mirror.config.data-strategy=STORAGE_MIGRATION",
@@ -74,7 +74,7 @@ public class Test_sm_ma_parts_epl_dc extends E2EBaseTest {
         long rtn = getReturnCode();
         // Verify the return code.
         long check = 0L;
-        assertEquals("Return Code Failure: " + rtn, check, rtn);
+        assertEquals(check, rtn, "Return Code Failure: " + rtn);
     }
 
     @Test
@@ -87,11 +87,12 @@ public class Test_sm_ma_parts_epl_dc extends E2EBaseTest {
                 .getTableMirrors().get("acid_03")
                 .getEnvironmentTable(Environment.LEFT).getSql()) {
             if (pair.getDescription().trim().equals("Alter Table Location")) {
-                assertEquals("Location doesn't match", "ALTER TABLE acid_03 SET LOCATION \"ofs://OHOME90/new/warehouse/managed/assort_test_db.db/acid_03\"", pair.getAction());
+                assertEquals("ALTER TABLE acid_03 SET LOCATION \"ofs://OHOME90/new/warehouse/managed/assort_test_db.db/acid_03\"", pair.getAction(), "Location doesn't match");
                 foundAT = Boolean.TRUE;
             }
             if (pair.getDescription().trim().equals("Alter Table Partition Spec `num`='R0L8KsIYFnLbrye' Location")) {
-                assertEquals("Location doesn't match", "ALTER TABLE acid_03 PARTITION (`num`='R0L8KsIYFnLbrye') SET LOCATION \"ofs://OHOME90/new/warehouse/managed/assort_test_db.db/acid_03/num=R0L8KsIYFnLbrye\"", pair.getAction());
+                assertEquals("ALTER TABLE acid_03 PARTITION (`num`='R0L8KsIYFnLbrye') SET LOCATION \"ofs://OHOME90/new/warehouse/managed/assort_test_db.db/acid_03/num=R0L8KsIYFnLbrye\"",
+                        pair.getAction(), "Location doesn't match");
                 foundOddPart = Boolean.TRUE;
             }
 //            if (pair.getDescription().trim().equals("Alter Table Partition Spec `ws_sold_date_sk`='2451188' Location")) {
@@ -100,8 +101,8 @@ public class Test_sm_ma_parts_epl_dc extends E2EBaseTest {
 //                foundOddPart2 = Boolean.TRUE;
 //            }
         }
-        assertEquals("Alter Table Location not found", Boolean.TRUE, foundAT);
-        assertEquals("Alter Odd Part Location not found", Boolean.TRUE, foundOddPart);
+        assertEquals(Boolean.TRUE, foundAT, "Alter Table Location not found");
+        assertEquals(Boolean.TRUE, foundOddPart, "Alter Odd Part Location not found");
 //        assertEquals("Alter Odd Part 2 Location not found", Boolean.TRUE, foundOddPart2);
     }
 

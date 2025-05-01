@@ -28,28 +28,59 @@ import com.cloudera.utils.hms.util.NamespaceUtils;
 import com.cloudera.utils.hms.util.UrlUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.FileSystems;
 import java.util.*;
 
 import static java.util.Objects.nonNull;
 
+/**
+ * Service responsible for generating DistCp (distributed copy) reports and scripts
+ * for Hive Metastore mirroring operations.
+ * 
+ * <p>This service creates detailed reports and executable scripts that facilitate
+ * data migration between different environments using Hadoop's DistCp utility.</p>
+ * 
+ * <p>The service generates:
+ * <ul>
+ *   <li>DistCp workbooks (markdown files) documenting the migration plan</li>
+ *   <li>DistCp scripts (shell scripts) that can be executed to perform the migration</li>
+ *   <li>DistCp source files containing the list of paths to be copied</li>
+ * </ul>
+ * </p>
+ */
 @Component
 @Slf4j
 public class DistCpService {
 
-    private ObjectMapper yamlMapper;
+    private final ObjectMapper yamlMapper;
 
-    @Autowired
-    public void setYamlMapper(ObjectMapper yamlMapper) {
+    /**
+     * Constructor for DistCpService.
+     *
+     * @param yamlMapper The ObjectMapper configured for YAML serialization
+     */
+    public DistCpService(ObjectMapper yamlMapper) {
         this.yamlMapper = yamlMapper;
     }
 
+    /**
+     * Builds DistCp reports and scripts for all databases in the conversion.
+     *
+     * <p>This method generates:
+     * <ul>
+     *   <li>DistCp workbooks (markdown files) documenting the migration plan</li>
+     *   <li>DistCp scripts (shell scripts) that can be executed to perform the migration</li>
+     *   <li>DistCp source files containing the list of paths to be copied</li>
+     * </ul>
+     * </p>
+     *
+     * @param session The execution session containing configuration and conversion data
+     * @param outputDir The directory where the generated files will be written
+     */
     public void buildAllDistCpReports(ExecuteSession session, String outputDir) {
         HmsMirrorConfig config = session.getConfig();
         Conversion conversion = session.getConversion();
@@ -58,11 +89,9 @@ public class DistCpService {
             String database = HmsMirrorConfigUtil.getResolvedDB(dbEntry.getKey(), config);
             String originalDatabase = dbEntry.getKey();
 
-
             try {
                 Environment[] environments = null;
                 switch (config.getDataStrategy()) {
-
                     case DUMP:
                     case STORAGE_MIGRATION:
                         environments = new Environment[]{Environment.LEFT};
@@ -111,9 +140,13 @@ public class DistCpService {
 
                     FileWriter distcpSourceFW = null;
 
-                    Map<String, Map<String, Set<String>>> distcpPlans = buildDistcpListForDatabase(config, originalDatabase, distcpEnv, 1, config.getTransfer().getStorageMigration().isConsolidateTablesForDistcp());
+                    Map<String, Map<String, Set<String>>> distcpPlans = buildDistcpListForDatabase(
+                            config, originalDatabase, distcpEnv, 1, 
+                            config.getTransfer().getStorageMigration().isConsolidateTablesForDistcp());
+                    
                     if (!distcpPlans.isEmpty()) {
-                        String distcpPlansFile = outputDir + File.separator + originalDatabase + "_" + distcpEnv.toString() + "_distcp_plans.yaml";
+                        String distcpPlansFile = outputDir + File.separator + originalDatabase + "_" + 
+                                distcpEnv.toString() + "_distcp_plans.yaml";
                         FileWriter distcpPlansFW = new FileWriter(distcpPlansFile);
                         String planYaml = yamlMapper.writeValueAsString(distcpPlans);
                         distcpPlansFW.write(planYaml);
@@ -121,16 +154,10 @@ public class DistCpService {
                     }
 
                     for (Map.Entry<String, Map<String, Set<String>>> entry : distcpPlans.entrySet()) {
-
                         distcpWorkbookSb.append("| ").append(entry.getKey()).append(" | | |\n");
                         Map<String, Set<String>> value = entry.getValue();
                         int i = 1;
-                        // https://github.com/cloudera-labs/hms-mirror/issues/105
-                        // When there are multiple sources, we need to create a file for each source. BUT, when
-                        // there is only one source, we can skip uses a file and just use the source directly.
-                        // With 'distcp' and the '-f' option when there is only one source the last path element is
-                        //   NOT carried over to the target. When there are multiple sources, the last path element
-                        //   is carried over. Hence, the logic adjustment here to address the behavioral differences.
+                        
                         for (Map.Entry<String, Set<String>> dbMap : value.entrySet()) {
                             if (dbMap.getValue().size() > 1) {
                                 String distcpSourceFile = entry.getKey() + "_" + distcpEnv + "_" + i++ + "_distcp_source.txt";
@@ -161,7 +188,7 @@ public class DistCpService {
                                 // Only 1 entry, so we can skip the file and just use the source directly.
                                 String source = dbMap.getValue().iterator().next();
                                 // Get last path element
-                                String lastPathElement = UrlUtils.getLastDirFromUrl(source);//).substring(source.lastIndexOf("/") + 1);
+                                String lastPathElement = UrlUtils.getLastDirFromUrl(source);
 
                                 distcpScriptSb.append("echo \"Only one element in path.\"").append("\n");
 
@@ -170,19 +197,9 @@ public class DistCpService {
                                 if (config.getTransfer().getStorageMigration().isConsolidateTablesForDistcp()) {
                                     // Reduce the target by 1 level
                                     target = UrlUtils.reduceUrlBy(target, 1);
-                                    // Concatenate the last path element to the target
-//                                    if (!target.endsWith("/") && !lastPathElement.startsWith("/")) {
-//                                        target += "/" + lastPathElement;
-//                                    } else if (target.endsWith("/") && lastPathElement.startsWith("/")) {
-//                                        target += lastPathElement.substring(1);
-//                                    } else {
-//                                        target += lastPathElement;
-//                                    }
                                 }
 
-                                String line = "| | " + target + " | " +
-                                        source + " |\n";
-
+                                String line = "| | " + target + " | " + source + " |\n";
                                 distcpWorkbookSb.append(line);
 
                                 distcpScriptSb.append("echo \"Running 'distcp'\"").append("\n");
@@ -191,9 +208,9 @@ public class DistCpService {
                                 String targetProtocol = NamespaceUtils.getProtocol(target);
 
                                 if (nonNull(sourceProtocol) && nonNull(targetProtocol) && !sourceProtocol.equals(targetProtocol)) {
-                                        distcpScriptSb.append("#  Source and target protocols are different. This may cause issues with 'distcp' is -skipcrccheck isn't set.");
-                                        // Add -skipcrccheck to the distcp command
-                                        distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} -skipcrccheck ").append(source).append(" ").append(target).append("\n").append("\n");
+                                    distcpScriptSb.append("#  Source and target protocols are different. This may cause issues with 'distcp' is -skipcrccheck isn't set.");
+                                    // Add -skipcrccheck to the distcp command
+                                    distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} -skipcrccheck ").append(source).append(" ").append(target).append("\n").append("\n");
                                 } else {
                                     distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} ").append(source).append(" ").append(target).append("\n").append("\n");
                                 }
@@ -204,17 +221,6 @@ public class DistCpService {
                     }
 
                     if (dcFound) {
-                        // Set flags for report and workplan
-                        // TODO: Need to re-introduce.
-//                        switch (distcpEnv) {
-//                            case LEFT:
-//                                dcLeft = Boolean.TRUE;
-//                                break;
-//                            case RIGHT:
-//                                dcRight = Boolean.TRUE;
-//                                break;
-//                        }
-
                         String distcpWorkbookFile = outputDir + File.separator + originalDatabase +
                                 "_" + distcpEnv + "_distcp_workbook.md";
                         String distcpScriptFile = outputDir + File.separator + originalDatabase +
@@ -234,40 +240,43 @@ public class DistCpService {
                 log.error("Issue writing distcp workbook", ioe);
             }
         }
-
     }
 
-    public synchronized Map<String, Map<String, Set<String>>> buildDistcpListForDatabase(HmsMirrorConfig config, String database,
-                                                                              Environment environment, int consolidationLevel, boolean consolidateTablesForDistcp) {
+    /**
+     * Builds a list of DistCp operations for a database.
+     *
+     * <p>This method creates a map of target locations to sets of source locations
+     * that need to be copied using DistCp.</p>
+     *
+     * @param config The HmsMirrorConfig
+     * @param database The database name
+     * @param environment The environment (LEFT or RIGHT)
+     * @param consolidationLevel The level at which to consolidate paths
+     * @param consolidateTablesForDistcp Whether to consolidate tables for DistCp
+     * @return A map of database names to maps of target locations to sets of source locations
+     */
+    public synchronized Map<String, Map<String, Set<String>>> buildDistcpListForDatabase(
+            HmsMirrorConfig config, String database, Environment environment, 
+            int consolidationLevel, boolean consolidateTablesForDistcp) {
         Map<String, Map<String, Set<String>>> rtn = new TreeMap<>();
 
-//        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
-
-        // get the map for a db.
-//        Set<String> databases = config.getTranslator().getTranslationMap().keySet();
-
-        // get the map.entry
-        Map<String, Set<String>> reverseMap = new TreeMap<>();
         // Get a static view of set to avoid concurrent modification.
         Set<EnvironmentMap.TranslationLevel> dbTranslationLevel =
                 new HashSet<>(config.getTranslator().getTranslationMap(database, environment));
 
         Map<String, String> dbLocationMap = new TreeMap<>();
 
+        // Build a map of original locations to target locations
         for (EnvironmentMap.TranslationLevel translationLevel : dbTranslationLevel) {
-            if (translationLevel.getOriginal() != null &&
-                    translationLevel.getTarget() != null) {
+            if (translationLevel.getOriginal() != null && translationLevel.getTarget() != null) {
                 dbLocationMap.put(translationLevel.getAdjustedOriginal(), translationLevel.getAdjustedTarget());
             }
         }
 
+        // Build a reverse map of target locations to sets of source locations
+        Map<String, Set<String>> reverseMap = new TreeMap<>();
         for (Map.Entry<String, String> entry : dbLocationMap.entrySet()) {
-            // reduce folder level by 'consolidationLevel' for key and value.
-            // Source
-//            String reducedSource = UrlUtils.reduceUrlBy(entry.getKey(), consolidationLevel);
             String reducedSource = entry.getKey();
-            // Target
-//            String reducedTarget = UrlUtils.reduceUrlBy(entry.getValue(), consolidationLevel);
             String reducedTarget = entry.getValue();
 
             if (reverseMap.get(reducedTarget) != null) {
@@ -277,12 +286,12 @@ public class DistCpService {
                 sourceSet.add(entry.getKey());
                 reverseMap.put(reducedTarget, sourceSet);
             }
-
         }
+        
         if (!reverseMap.isEmpty()) {
             rtn.put(database, reverseMap);
         }
+        
         return rtn;
     }
-
 }

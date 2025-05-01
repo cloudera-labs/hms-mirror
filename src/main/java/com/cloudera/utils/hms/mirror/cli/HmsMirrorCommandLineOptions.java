@@ -28,7 +28,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.*;
 import org.apache.logging.log4j.util.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -51,19 +50,25 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 public class HmsMirrorCommandLineOptions {
     public static String SPRING_CONFIG_PREFIX = "hms-mirror.config";
 
-    private ConfigService configService;
+    private final ConfigService configService;
 
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    /**
+     * Constructor injection for HmsMirrorCommandLineOptions.
+     *
+     * @param configService the injected config service
+     * @param log injected logger
+     */
+    public HmsMirrorCommandLineOptions(ConfigService configService) {
         this.configService = configService;
     }
 
-    public static void main(String[] args) {
-        HmsMirrorCommandLineOptions pcli = new HmsMirrorCommandLineOptions();
-        String[] convertedArgs = pcli.toSpringBootOption(Boolean.TRUE, args);
-        String newCmdLn = String.join(" ", convertedArgs);
-        System.out.println(newCmdLn);
-    }
+
+//    public static void main(String[] args) {
+//        HmsMirrorCommandLineOptions pcli = new HmsMirrorCommandLineOptions();
+//        String[] convertedArgs = pcli.toSpringBootOption(Boolean.TRUE, args);
+//        String newCmdLn = String.join(" ", convertedArgs);
+//        System.out.println(newCmdLn);
+//    }
 
     @Bean
     @Order(1)
@@ -241,6 +246,18 @@ public class HmsMirrorCommandLineOptions {
         return args -> {
             log.info("compress-text-output: {}", Boolean.FALSE);
             hmsMirrorConfig.getOptimization().setCompressTextOutput(Boolean.FALSE);
+        };
+    }
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
+            name = "hms-mirror.config.comment"
+    )
+    CommandLineRunner configComment(HmsMirrorConfig hmsMirrorConfig, @Value("${hms-mirror.config.comment}") String value){
+        return args -> {
+            log.info("comment: {}", value);
+            hmsMirrorConfig.setComment(value);
         };
     }
 
@@ -1506,7 +1523,7 @@ public class HmsMirrorCommandLineOptions {
     }
 
 
-    public CommandLine getCommandLine(String[] args) {
+    public static CommandLine getCommandLine(String[] args) {
         Options options = getOptions();
 
         CommandLineParser parser = new PosixParser();
@@ -1534,7 +1551,7 @@ public class HmsMirrorCommandLineOptions {
         return cmd;
     }
 
-    private Options getOptions() {
+    private static Options getOptions() {
         // create Options object
         Options options = new Options();
 
@@ -1543,6 +1560,11 @@ public class HmsMirrorCommandLineOptions {
         quietOutput.setOptionalArg(Boolean.FALSE);
         quietOutput.setRequired(Boolean.FALSE);
         options.addOption(quietOutput);
+
+        Option commentOption = new Option("com", "comment", true, "Comment to add to report output");
+        commentOption.setRequired(Boolean.FALSE);
+        commentOption.setType(String.class);
+        options.addOption(commentOption);
 
         Option concurrencyOption = new Option("c", "concurrency", true,
                 "Set application concurrency, default is 10");
@@ -2142,7 +2164,7 @@ public class HmsMirrorCommandLineOptions {
         };
     }
 
-    public String[] toSpringBootOption(Boolean withoutWeb, String[] args) {
+    public static String[] toSpringBootOption(Boolean withoutWeb, String[] args) {
         CommandLine cmd = getCommandLine(args);
         List<String> springOptions = new ArrayList<>();
         // Turn off web ui

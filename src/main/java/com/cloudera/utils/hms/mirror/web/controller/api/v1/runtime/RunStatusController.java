@@ -26,7 +26,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin
@@ -35,16 +34,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping(path = "/api/v1/runStatus")
 public class RunStatusController {
 
-    private ExecuteSessionService executeSessionService;
-    private RunStatusService runStatusService;
+    private final ExecuteSessionService executeSessionService;
+    private final RunStatusService runStatusService;
 
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
+    public RunStatusController(ExecuteSessionService executeSessionService, RunStatusService runStatusService) {
         this.executeSessionService = executeSessionService;
-    }
-
-    @Autowired
-    public void setRunStatusService(RunStatusService runStatusService) {
         this.runStatusService = runStatusService;
     }
 
@@ -63,5 +57,4 @@ public class RunStatusController {
     public RunStatus getRunStatus(@RequestParam(name = "sessionId", required = false) String sessionId) {
         return runStatusService.getRunStatus(sessionId);
     }
-
 }

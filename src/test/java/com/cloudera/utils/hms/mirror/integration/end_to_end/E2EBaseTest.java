@@ -17,10 +17,10 @@
 
 package com.cloudera.utils.hms.mirror.integration.end_to_end;
 
-import com.cloudera.utils.hms.mirror.domain.DBMirror;
 import com.cloudera.utils.hms.mirror.MessageCode;
 import com.cloudera.utils.hms.mirror.Pair;
 import com.cloudera.utils.hms.mirror.PhaseState;
+import com.cloudera.utils.hms.mirror.domain.DBMirror;
 import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
@@ -37,6 +37,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.Assertions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -51,9 +52,10 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.cloudera.utils.hms.mirror.MirrorConf.*;
+import static com.cloudera.utils.hms.mirror.MirrorConf.DB_LOCATION;
+import static com.cloudera.utils.hms.mirror.MirrorConf.DB_MANAGED_LOCATION;
 import static java.util.Objects.nonNull;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 @Getter
@@ -191,63 +193,59 @@ public class E2EBaseTest {
     }
 
     protected void validateTableIsACID(String database, String table, Environment environment) {
-        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(table) != null ? Boolean.TRUE : Boolean.FALSE);
+        assertNotNull(getConversion().getDatabase(database), "Database doesn't exist");
+        assertNotNull(getConversion().getDatabase(database).getTableMirrors().get(table), "Table doesn't exist");
         TableMirror tableMirror = getConversion().getDatabase(database).getTableMirrors().get(table);
-        assertTrue("Table Environment doesn't exist", tableMirror.getEnvironmentTable(environment) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("Table is NOT ACID", TableUtils.isACID(tableMirror.getEnvironmentTable(environment)));
+        assertNotNull(tableMirror.getEnvironmentTable(environment), "Table Environment doesn't exist");
+        Assertions.assertTrue(TableUtils.isACID(tableMirror.getEnvironmentTable(environment)), "Table is NOT ACID");
     }
 
     protected void validateTableIsNotACID(String database, String table, Environment environment) {
-        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(table) != null ? Boolean.TRUE : Boolean.FALSE);
+        assertNotNull(getConversion().getDatabase(database), "Database doesn't exist");
+        assertNotNull(getConversion().getDatabase(database).getTableMirrors().get(table), "Table doesn't exist");
         TableMirror tableMirror = getConversion().getDatabase(database).getTableMirrors().get(table);
-        assertTrue("Table Environment doesn't exist", tableMirror.getEnvironmentTable(environment) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("Table is ACID", !TableUtils.isACID(tableMirror.getEnvironmentTable(environment)));
+        assertNotNull(tableMirror.getEnvironmentTable(environment), "Table Environment doesn't exist");
+        assertFalse(TableUtils.isACID(tableMirror.getEnvironmentTable(environment)), "Table is ACID");
     }
 
     protected void validateDBLocation(String database, Environment environment, String expectedLocation) {
-        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("DB Environment doesn't exist", getConversion().getDatabase(database).getProperties().containsKey(environment));
-        assertEquals("Location doesn't match", expectedLocation, getConversion().getDatabase(database).getProperties().get(environment).get(DB_LOCATION));
+        assertNotNull(getConversion().getDatabase(database), "Database doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getProperties().containsKey(environment), "DB Environment doesn't exist");
+        assertEquals(expectedLocation, getConversion().getDatabase(database).getProperties().get(environment).get(DB_LOCATION), "Location doesn't match");
     }
 
     protected void validateDBManagedLocation(String database, Environment environment, String expectedLocation) {
-        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("DB Environment doesn't exist", getConversion().getDatabase(database).getProperties().containsKey(environment));
-        assertEquals("Managed Location doesn't match", expectedLocation, getConversion().getDatabase(database).getProperties().get(environment).get(DB_MANAGED_LOCATION));
+        assertNotNull(getConversion().getDatabase(database), "Database doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getProperties().containsKey(environment), "DB Environment doesn't exist");
+        assertEquals(expectedLocation, getConversion().getDatabase(database).getProperties().get(environment).get(DB_MANAGED_LOCATION), "Managed Location doesn't match");
     }
 
     protected void validatePartitionCount(String database, String tableName, Environment environment, int expectedIssueCount) {
-        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().containsKey(tableName));
-        assertTrue("Environment doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment));
-        assertEquals("Issue count doesn't match", expectedIssueCount, getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironmentTable(environment).getPartitions().size());
+        assertNotNull(getConversion().getDatabase(database), "Database doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().containsKey(tableName), "Table doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment), "Environment doesn't exist");
+        assertEquals(expectedIssueCount, getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironmentTable(environment).getPartitions().size(), "Issue count doesn't match");
     }
 
     protected void validatePartitionLocation(String database, String tableName, Environment environment, String partitionSpec, String partitionLocation) {
-        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().containsKey(tableName));
-        assertTrue("Environment doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment));
-        assertTrue("Partition doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironmentTable(environment).getPartitions().containsKey(partitionSpec));
-        assertEquals("Location doesn't match", partitionLocation, getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironmentTable(environment).getPartitions().get(partitionSpec));
+        assertNotNull(getConversion().getDatabase(database), "Database doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().containsKey(tableName), "Table doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment), "Environment doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironmentTable(environment).getPartitions().containsKey(partitionSpec), "Partition doesn't exist");
+        assertEquals(partitionLocation, getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironmentTable(environment).getPartitions().get(partitionSpec), "Location doesn't match");
     }
 
     protected void validatePhase(String database, String tableName, PhaseState expectedPhaseState) {
-        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("Table doesn't exist", getConversion().getDatabase(database)
-                .getTableMirrors().containsKey(tableName));
-        assertEquals("Phase State doesn't match", expectedPhaseState,
-                getConversion().getDatabase(database)
-                        .getTableMirrors().get(tableName)
-                        .getPhaseState());
+        assertNotNull(getConversion().getDatabase(database), "Database doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().containsKey(tableName), "Table doesn't exist");
+        assertEquals(expectedPhaseState, getConversion().getDatabase(database).getTableMirrors().get(tableName).getPhaseState(), "Phase State doesn't match");
     }
 
     protected Boolean validateDBSqlPair(String database, Environment environment, String description, String actionTest) {
         Boolean found = Boolean.FALSE;
         for (Pair pair : getConversion().getDatabase(database).getSql(environment)) {
             if (pair.getDescription().trim().equals(description)) {
-                assertEquals("DB SQL doesn't match", actionTest, pair.getAction());
+                assertEquals(actionTest, pair.getAction(), "DB SQL doesn't match");
                 found = Boolean.TRUE;
             }
         }
@@ -259,7 +257,7 @@ public class E2EBaseTest {
         Boolean found = Boolean.FALSE;
         for (Pair pair : getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironmentTable(environment).getSql()) {
             if (pair.getDescription().trim().equals(description)) {
-                assertEquals("Table SQL doesn't match", actionTest, pair.getAction());
+                assertEquals(actionTest, pair.getAction(), "Table SQL doesn't match");
                 found = Boolean.TRUE;
             }
         }
@@ -267,63 +265,80 @@ public class E2EBaseTest {
     }
 
     protected void validateTableIssueCount(String database, String tableName, Environment environment, int expectedIssueCount) {
-        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().containsKey(tableName));
-        assertTrue("Environment doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment));
-        assertEquals("Issue count doesn't match", expectedIssueCount, getConversion().getDatabase(database)
-                .getTableMirrors().get(tableName).getEnvironmentTable(environment).getIssues().size());
+        assertNotNull(getConversion().getDatabase(database), "Database doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().containsKey(tableName), "Table doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment), "Environment doesn't exist");
+        assertEquals(expectedIssueCount, getConversion().getDatabase(database)
+                .getTableMirrors().get(tableName).getEnvironmentTable(environment).getIssues().size(), "Issue count doesn't match");
     }
 
     protected void validateTableErrorCount(String database, String tableName, Environment environment, int expectedErrorCount) {
-        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().containsKey(tableName));
-        assertTrue("Environment doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment));
-        assertEquals("Error count doesn't match", expectedErrorCount, getConversion().getDatabase(database)
-                .getTableMirrors().get(tableName).getEnvironmentTable(environment).getErrors().size());
+        assertNotNull(getConversion().getDatabase(database), "Database doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().containsKey(tableName), "Table doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment), "Environment doesn't exist");
+        assertEquals(expectedErrorCount, getConversion().getDatabase(database)
+                .getTableMirrors().get(tableName).getEnvironmentTable(environment).getErrors().size(), "Error count doesn't match");
     }
 
-
     protected void validateTableProperty(String database, String tableName, Environment environment, String key, String value) {
-        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().containsKey(tableName));
-        assertTrue("Environment doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment));
+        assertNotNull(getConversion().getDatabase(database), "Database doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().containsKey(tableName), "Table doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment), "Environment doesn't exist");
         String tblValue = TableUtils.getTblProperty(key, getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironmentTable(environment));
-        assertEquals("Property doesn't match", value, tblValue);
+        assertEquals(value, tblValue, "Property doesn't match");
     }
 
     protected void validateTablePropertyMissing(String database, String tableName, Environment environment, String key) {
-        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().containsKey(tableName));
-        assertTrue("Environment doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment));
+        assertNotNull(getConversion().getDatabase(database), "Database doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().containsKey(tableName), "Table doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment), "Environment doesn't exist");
         assertNull(TableUtils.getTblProperty(key, getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironmentTable(environment)));
     }
 
     protected void validateTableLocation(String database, String tableName, Environment environment, String expectedLocation) {
-        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().containsKey(tableName));
-        assertTrue("Environment doesn't exist", getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment));
-        assertEquals("Location doesn't match", expectedLocation,
+        assertNotNull(getConversion().getDatabase(database), "Database doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().containsKey(tableName), "Table doesn't exist");
+        assertTrue(getConversion().getDatabase(database).getTableMirrors().get(tableName).getEnvironments().containsKey(environment), "Environment doesn't exist");
+        assertEquals(expectedLocation,
                 TableUtils.getLocation(tableName, getConversion().getDatabase(database)
                         .getTableMirrors().get(tableName).getEnvironmentTable(environment)
-                        .getDefinition()));
+                        .getDefinition()), "Location doesn't match");
     }
 
     protected void validateWorkingTableLocation(String database, String tableName, String workingTableName, Environment environment, String expectedLocation) {
         Pattern pattern = Pattern.compile(expectedLocation);
 
+        assertNotNull(getConversion().getDatabase(database), "Database doesn't exist");
 
-        assertTrue("Database doesn't exist", getConversion().getDatabase(database) != null ? Boolean.TRUE : Boolean.FALSE);
-        assertTrue("Table doesn't exist", getConversion().getDatabase(database).getTableMirrors().containsKey(tableName));
+        assertTrue(
+                getConversion().getDatabase(database).getTableMirrors().containsKey(tableName),
+                "Table doesn't exist"
+        );
 
         TableMirror tableMirror = getConversion().getDatabase(database).getTableMirrors().get(tableName);
-        assertTrue("Working Table doesn't exist", nonNull(tableMirror.getEnvironmentTable(environment)) );
+
+        assertTrue(
+                nonNull(tableMirror.getEnvironmentTable(environment)),
+                "Working Table doesn't exist"
+        );
+
         EnvironmentTable environmentTable = tableMirror.getEnvironmentTable(environment);
-        assertEquals("Working Table name doesn't match", environmentTable.getName(), workingTableName);
+
+        assertEquals(
+                workingTableName,
+                environmentTable.getName(),
+                "Working Table name doesn't match"
+        );
+
         String location = TableUtils.getLocation(workingTableName, environmentTable.getDefinition());
         Matcher matcher = pattern.matcher(location);
-        assertTrue("Working Location doesn't match", matcher.matches());
-//        assertEquals("Working Location doesn't match", expectedLocation,
-//                TableUtils.getLocation(workingTableName, environmentTable.getDefinition()));
-    }
 
+        assertTrue(
+                matcher.matches(),
+                "Working Location doesn't match"
+        );
+
+        // JUnit 5: comment left for reference, update if needed
+        // org.junit.jupiter.api.Assertions.assertEquals(expectedLocation, TableUtils.getLocation(workingTableName, environmentTable.getDefinition()), "Working Location doesn't match");
+    }
 }

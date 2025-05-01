@@ -19,7 +19,6 @@ package com.cloudera.utils.hms.mirror.web.controller;
 
 import com.cloudera.utils.hms.mirror.domain.DBMirror;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
-import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.RunStatus;
 import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
 import com.cloudera.utils.hms.mirror.service.ReportService;
@@ -28,7 +27,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.stereotype.Controller;
@@ -49,34 +47,21 @@ import java.util.Set;
 @Slf4j
 public class ReportsMVController implements ControllerReferences {
 
-    private ObjectMapper yamlMapper;
-    private ReportService reportService;
-    private UIModelService uiModelService;
-    private ExecuteSessionService executeSessionService;
+    private final ObjectMapper yamlMapper;
+    private final ReportService reportService;
+    private final UIModelService uiModelService;
+    private final ExecuteSessionService executeSessionService;
 
-    @Autowired
-    public void setYamlMapper(ObjectMapper yamlMapper) {
+    public ReportsMVController(
+            ObjectMapper yamlMapper,
+            ReportService reportService,
+            UIModelService uiModelService,
+            ExecuteSessionService executeSessionService) {
         this.yamlMapper = yamlMapper;
-    }
-
-    @Autowired
-    public void setUiModelService(UIModelService uiModelService) {
-        this.uiModelService = uiModelService;
-    }
-
-    @Autowired
-    public void setReportService(ReportService reportService) {
         this.reportService = reportService;
-    }
-
-    @Autowired
-    public void setExecuteSessionService(ExecuteSessionService executeSessionService) {
+        this.uiModelService = uiModelService;
         this.executeSessionService = executeSessionService;
     }
-
-//    public ReportsMVController(ExecuteSessionService executeSessionService) {
-//        this.executeSessionService = executeSessionService;
-//    }
 
     @RequestMapping(value = "/select", method = RequestMethod.GET)
     public String listReports(Model model) {
@@ -97,7 +82,6 @@ public class ReportsMVController implements ControllerReferences {
 
     /*
     Create an 'Archive' process to move a session to the archive directory.
-
      */
     @RequestMapping(value = "/archive", method = RequestMethod.POST)
     public String archiveReport(Model model,
@@ -148,11 +132,9 @@ public class ReportsMVController implements ControllerReferences {
                              @RequestParam(value = REPORT_ID, required = true) String report_id,
                              @RequestParam(value = FILE, required = true) String file) {
         model.addAttribute(REPORT_ID, report_id);
-//        model.addAttribute(DATABASE, database);
         Map<String, Map<String, Set<String>>> distcpWorkbookPlan = reportService.getDistCpWorkbook(report_id, file);
         model.addAttribute(FILE, file);
         model.addAttribute(DISTCP_PLANS, distcpWorkbookPlan);
-
         RunStatus runStatus = null;
         try {
             runStatus = reportService.getRunStatus(report_id);
@@ -175,7 +157,6 @@ public class ReportsMVController implements ControllerReferences {
         model.addAttribute(CONTENT, reportFileString);
         int lines = countLines(reportFileString);
         model.addAttribute(LINES, lines + 3);
-
         return "reports/fileview";
     }
 
@@ -189,8 +170,6 @@ public class ReportsMVController implements ControllerReferences {
         Map<String, List<String>> artifacts = reportService.reportArtifacts(report_id);
         model.addAttribute(ARTIFACTS, artifacts);
         model.addAttribute(SESSION_ID, report_id);
-//        model.addAttribute(REPORT_LIST, reportService.getAvailableReports());
-
         model.addAttribute(ACTION, "detail"); // Supports which form fragment is loaded.
         return "reports/view";
     }
@@ -203,18 +182,12 @@ public class ReportsMVController implements ControllerReferences {
             response.setContentType("application/zip");
             // Translate headers
             entity.getHeaders().forEach((k, v) -> response.setHeader(k, v.get(0)));
-
             response.setHeader("Content-Disposition", "attachment; filename=\"" + report_id + ".zip\"");
-            // get your file as InputStream
             InputStream is = Objects.requireNonNull(entity.getBody()).getInputStream();
-            // copy it to response's OutputStream
             org.apache.commons.io.IOUtils.copy(is, response.getOutputStream());
             response.flushBuffer();
-        } catch (IOException ex) {
-            log.info("Error writing file to output stream. Filename was ''{}.zip''", report_id, ex);
-//            throw new RuntimeException("IOError writing file to output stream");
+        } catch (IOException e) {
+            log.error("Error while downloading report: {}", report_id, e);
         }
-
     }
-
 }

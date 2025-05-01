@@ -36,7 +36,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static java.util.Objects.isNull;
@@ -51,6 +50,7 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
 
     @Schema(description = "This identifies the sessionId that is running/ran for this status.")
     private String sessionId;
+    private String comment;
     @JsonIgnore
     private Messages errors = null;//new Messages(150);
     @JsonIgnore

@@ -32,7 +32,7 @@ import org.springframework.test.context.ActiveProfiles;
 public class PasswordTestBase {
 
     protected Password password;
-    protected PasswordService passwordService = new PasswordService();
+    protected final PasswordService passwordService = new PasswordService();
 
     @Autowired
     public void setPassword(Password password) {

@@ -8,54 +8,48 @@
     <link rel="stylesheet" type="text/css" th:href="@{/css/base.css}">
     <link rel="stylesheet" type="text/css" th:href="@{/css/tree.css}">
     <link rel="stylesheet" type="text/css" th:href="@{/css/mirror.css}">
-
 </head>
 <body>
-<div class="pure-g">
-    <div class="pure-u-1" th:insert="~{fragments/header::header}">
+    <div class="pure-g">
+        <div class="pure-u-1" th:insert="~{fragments/header::header}"></div>
+        <div class="pure-u-1-6" th:insert="~{fragments/nav::left_nav}"></div>
+        <div class="pure-u-5-6">
+            <fieldset>
+                <legend th:text="#{warehouse.plan.add}"></legend>
+                <form class="pure-form pure-form-aligned" th:action="@{/warehouse/plan/save}" method="post">
+                    <div class="pure-control-group">
+                        <label for="database" th:text="#{database}"></label>
+                        <th:block th:if="${AVAILABLE_DATABASES != null}">
+                            <select id="DATABASE" name="DATABASE" class="pure-input-4-5">
+                                <option th:each="cet: ${AVAILABLE_DATABASES}"
+                                        th:value="${cet}"
+                                        th:text="${cet}"></option>
+                            </select>
+                        </th:block>
+                        <th:block th:unless="${AVAILABLE_DATABASES != null}">
+                            <input id="DATABASE" name="DATABASE" type="text">
+                        </th:block>
+                    </div>
+                    <div class="pure-control-group">
+                        <label for="EXTERNAL_DIRECTORY" th:text="#{external.warehouse}"></label>
+                        <input class="pure-input-4-5" id="EXTERNAL_DIRECTORY" name="EXTERNAL_DIRECTORY" type="text">
+                    </div>
+                    <div class="pure-control-group">
+                        <label for="MANAGED_DIRECTORY" th:text="#{managed.warehouse}"></label>
+                        <input class="pure-input-4-5" id="MANAGED_DIRECTORY" name="MANAGED_DIRECTORY" type="text">
+                    </div>
+                    <div class="pure-control-group">
+                        <button class="pure-button pure-button-primary" type="submit"
+                                th:formaction="@{/warehouse/plan/save}"
+                                th:text="#{button.add}"></button>
+                        <button class="pure-button pure-button-primary" type="submit"
+                                th:formaction="@{/warehouse/plan/saveAdd}"
+                                th:text="#{button.add.again}"></button>
+                    </div>
+                </form>
+            </fieldset>
+        </div>
+        <div class="pure-u-1" th:insert="~{fragments/footer::footer}"></div>
     </div>
-    <div class="pure-u-1-6" th:insert="~{fragments/nav::left_nav}">
-    </div>
-    <div class="pure-u-5-6">
-        <fieldset>
-            <legend th:text="#{warehouse.plan.add}"/>
-            <form class="pure-form pure-form-aligned" th:action="@{/warehouse/plan/save}" method="post">
-                <div class="pure-control-group">
-                    <label for="database" th:text="#{database}"/>
-                    <th:block th:if="${AVAILABLE_DATABASES != null}">
-                        <select id="DATABASE" name="DATABASE" class="pure-input-4-5">
-                            <option th:each="cet: ${AVAILABLE_DATABASES}"
-                                    th:value="${cet}"
-                                    th:text="${cet}"/>
-                        </select>
-                    </th:block>
-                    <th:block th:unless="${AVAILABLE_DATABASES != null}">
-                        <input id="DATABASE" name="DATABASE" type="text"/>
-                    </th:block>
-                </div>
-                <div class="pure-control-group">
-                    <label for="EXTERNAL_DIRECTORY" th:text="#{external.warehouse}"/>
-                    <input class="pure-input-4-5" id="EXTERNAL_DIRECTORY" name="EXTERNAL_DIRECTORY" type="text"/>
-                </div>
-                <div class="pure-control-group">
-                    <label for="MANAGED_DIRECTORY" th:text="#{managed.warehouse}"/>
-                    <input class="pure-input-4-5" id="MANAGED_DIRECTORY" name="MANAGED_DIRECTORY" type="text"/>
-                </div>
-                <div class="pure-control-group">
-                    <button class="pure-button pure-button-primary" type="submit"
-                            th:formaction="@{/warehouse/plan/save}"
-                            th:text="#{button.add}"/>
-                    <button class="pure-button pure-button-primary" type="submit"
-                            th:formaction="@{/warehouse/plan/saveAdd}"
-                            th:text="#{button.add.again}"/>
-                </div>
-            </form>
-            <!--            <div th:replace="~{fragments/modal::modal('whAddModal', 'whAddBtn', 'Please wait.  Adding Warehouse.')}">-->
-            <!--            </div>-->
-        </fieldset>
-    </div>
-    <div class="pure-u-1" th:insert="~{fragments/footer::footer}">
-    </div>
-</div>
 </body>
 </html>

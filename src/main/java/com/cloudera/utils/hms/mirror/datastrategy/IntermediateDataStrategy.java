@@ -28,14 +28,10 @@ import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.HmsMirrorConfigUtil;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
-import com.cloudera.utils.hms.mirror.service.ConfigService;
-import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
-import com.cloudera.utils.hms.mirror.service.TableService;
-import com.cloudera.utils.hms.mirror.service.TranslatorService;
+import com.cloudera.utils.hms.mirror.service.*;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
@@ -48,19 +44,20 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Component
 @Slf4j
 @Getter
-public class IntermediateDataStrategy extends DataStrategyBase implements DataStrategy {
+public class IntermediateDataStrategy extends DataStrategyBase {
 
-    private ConfigService configService;
-    private TableService tableService;
+    private final ConfigService configService;
+    private final TableService tableService;
 
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+
+    public IntermediateDataStrategy(StatsCalculatorService statsCalculatorService,
+                                    ExecuteSessionService executeSessionService,
+                                    TranslatorService translatorService,
+                                    ConfigService configService,
+                                    TableService tableService) {
+        super(statsCalculatorService, executeSessionService, translatorService);
         this.configService = configService;
-    }
-
-    public IntermediateDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
-        this.executeSessionService = executeSessionService;
-        this.translatorService = translatorService;
+        this.tableService = tableService;
     }
 
     @Override
@@ -236,29 +233,9 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
                 // Create Shadow Table
                 ret.addSql(TableUtils.CREATE_SHADOW_DESC, shadowCreateStmt);
                 // Repair Partitions for Shadow Table
-                if (TableUtils.isPartitioned(set)) {
-                    // Only build the partitions if the original table was NOT managed. Which
-                    // means the SHADOW table will be looking for partitions in the original
-                    // locations.  If it was managed, then a 'transfer' table was built and
-                    // the partitions should align with the standard locations, so only msck is needed.
-                    if (config.loadMetadataDetails() && !TableUtils.isManaged(let)) {
-                        // TODO: Write out the SQL to build the partitions.  NOTE: We need to get the partition locations and modify them
-                        //       to the new namespace.
-                        String tableParts = getTranslatorService().buildPartitionAddStatement(let);
-                        // This will be empty when there's no data and we need to handle that.
-                        if (!isBlank(tableParts)) {
-                            String addPartSql = MessageFormat.format(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION, set.getName(), tableParts);
-                            ret.addSql(MirrorConf.ALTER_TABLE_PARTITION_ADD_LOCATION_DESC, addPartSql);
-                        } else {
-                            // When not partitions were loaded, we need to add the MSCK REPAIR TABLE.
-                            // This might be because the metadata_direct wasn't defined.
-                            String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
-                            ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
-                        }
-                    } else {// if (config.getCluster(Environment.RIGHT).getPartitionDiscovery().isInitMSCK()) {
-                        String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
-                        ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
-                    }
+                if (TableUtils.isPartitioned(let)) {
+                    String shadowMSCKStmt = MessageFormat.format(MirrorConf.MSCK_REPAIR_TABLE, set.getName());
+                    ret.addSql(TableUtils.REPAIR_DESC, shadowMSCKStmt);
                 }
             }
         }
@@ -272,11 +249,17 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
                     // Do Nothing.
                     break;
                 case DROP:
-                    rightDrop = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                    if (TableUtils.isView(ret))
+                        rightDrop = MessageFormat.format(MirrorConf.DROP_VIEW, ret.getName());
+                    else
+                        rightDrop = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
                     ret.addSql(TableUtils.DROP_DESC, rightDrop);
                     break;
                 case REPLACE:
-                    rightDrop = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                    if (TableUtils.isView(ret))
+                        rightDrop = MessageFormat.format(MirrorConf.DROP_VIEW, ret.getName());
+                    else
+                        rightDrop = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
                     ret.addSql(TableUtils.DROP_DESC, rightDrop);
                     String createStmt = tableService.getCreateStatement(tableMirror, Environment.RIGHT);
                     ret.addSql(TableUtils.CREATE_DESC, createStmt);
@@ -400,21 +383,6 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
             rtn = buildMigrationSql(tableMirror, Environment.LEFT, Environment.SHADOW, Environment.RIGHT);
         }
 
-        // Execute the LEFT sql if config.execute.
-//        if (rtn) {
-//            rtn = tableService.runTableSql(tableMirror, Environment.LEFT);
-//        }
-//
-//        // Execute the RIGHT sql if config.execute.
-//        if (rtn) {
-//            rtn = tableService.runTableSql(tableMirror, Environment.RIGHT);
-//        }
-//
-//        if (rtn) {
-//            // Run the Cleanup Scripts
-//            tableService.runTableSql(let.getCleanUpSql(), tableMirror, Environment.LEFT);
-//        }
-
         return rtn;
     }
 
@@ -440,10 +408,5 @@ public class IntermediateDataStrategy extends DataStrategyBase implements DataSt
             }
         }
         return rtn;
-    }
-
-    @Autowired
-    public void setTableService(TableService tableService) {
-        this.tableService = tableService;
     }
 }

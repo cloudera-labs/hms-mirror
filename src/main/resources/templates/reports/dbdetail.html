@@ -39,7 +39,6 @@
                 <th th:text="#{version}"/>
                 <th th:text="#{report.runtime}"/>
                 <th th:text="#{job.runtime}"/>
-
             </tr>
             </thead>
             <tr>
@@ -48,6 +47,11 @@
                 <td th:text="${RUN_STATUS.appVersion}"/>
                 <td th:text="${RUN_STATUS.start}"/>
                 <td th:text="${RUN_STATUS.getRuntimeMS()}"/>
+            </tr>
+            <tr></tr>
+            <tr>
+                <th th:text="#{comment}"/>
+                <td th:text="${RUN_STATUS.comment}"/>
             </tr>
         </table>
     </div>

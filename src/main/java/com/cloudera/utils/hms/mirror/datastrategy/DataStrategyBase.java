@@ -43,7 +43,6 @@ import com.cloudera.utils.hms.util.NamespaceUtils;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.text.DateFormat;
 import java.text.MessageFormat;
@@ -64,9 +63,20 @@ public abstract class DataStrategyBase implements DataStrategy {
     public static final Pattern protocolNSPattern = Pattern.compile("(^.*://)([a-zA-Z0-9](?:(?:[a-zA-Z0-9-]*|(?<!-)\\.(?![-.]))*[a-zA-Z0-9]+)?)(:\\d{4})?");
     // Pattern to find the value of the last directory in a url.
     public static final Pattern lastDirPattern = Pattern.compile(".*/([^/?]+).*");
-    protected StatsCalculatorService statsCalculatorService;
-    protected ExecuteSessionService executeSessionService;
-    protected TranslatorService translatorService;
+    protected final StatsCalculatorService statsCalculatorService;
+    protected final ExecuteSessionService executeSessionService;
+    protected final TranslatorService translatorService;
+
+    // Constructor injection replaces Spring's field or setter injection
+    public DataStrategyBase(
+            StatsCalculatorService statsCalculatorService,
+            ExecuteSessionService executeSessionService,
+            TranslatorService translatorService
+    ) {
+        this.statsCalculatorService = statsCalculatorService;
+        this.executeSessionService = executeSessionService;
+        this.translatorService = translatorService;
+    }
 
     protected Boolean AVROCheck(TableMirror tableMirror) {
         Boolean rtn = Boolean.TRUE;
@@ -149,11 +159,6 @@ public abstract class DataStrategyBase implements DataStrategy {
             rtn = Boolean.TRUE;
         }
         return rtn;
-    }
-
-    @Autowired
-    public void setStatsCalculatorService(StatsCalculatorService statsCalculatorService) {
-        this.statsCalculatorService = statsCalculatorService;
     }
 
     @Override

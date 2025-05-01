@@ -29,7 +29,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.NotNull;
@@ -47,29 +46,18 @@ import static java.util.Objects.isNull;
 @RequestMapping(path = "/api/v1/config")
 public class ConfigController {
 
-    private org.springframework.core.env.Environment springEnv;
+    private final org.springframework.core.env.Environment springEnv;
+    private final ConfigService configService;
+    private final WebConfigService webConfigService;
+    private final ExecuteSessionService executeSessionService;
 
-    private ConfigService configService;
-    private WebConfigService webConfigService;
-    private ExecuteSessionService executeSessionService;
-
-    @Autowired
-    public void setSpringEnv(org.springframework.core.env.Environment springEnv) {
+    public ConfigController(org.springframework.core.env.Environment springEnv,
+                            ConfigService configService,
+                            WebConfigService webConfigService,
+                            ExecuteSessionService executeSessionService) {
         this.springEnv = springEnv;
-    }
-
-    @Autowired
-    public void setConfigService(ConfigService configService) {
         this.configService = configService;
-    }
-
-    @Autowired
-    public void setWebConfigService(WebConfigService webConfigService) {
         this.webConfigService = webConfigService;
-    }
-
-    @Autowired
-    public void setHmsMirrorCfgService(ExecuteSessionService executeSessionService) {
         this.executeSessionService = executeSessionService;
     }
 
@@ -78,10 +66,6 @@ public class ConfigController {
             @ApiResponse(responseCode = "200", description = "Found list of Configs",
                     content = {@Content(mediaType = "application/json",
                             schema = @Schema(implementation = List.class))})
-//            , @ApiResponse(responseCode = "400", description = "Invalid id supplied",
-//                    content = @Content)
-//            , @ApiResponse(responseCode = "404", description = "Config not found",
-//                    content = @Content)
     })
     @ResponseBody
     @RequestMapping(method = RequestMethod.GET, value = "/list")
@@ -95,10 +79,6 @@ public class ConfigController {
             @ApiResponse(responseCode = "200", description = "Current Config",
                     content = {@Content(mediaType = "application/json",
                             schema = @Schema(implementation = HmsMirrorConfig.class))})
-//            , @ApiResponse(responseCode = "400", description = "Invalid id supplied",
-//                    content = @Content)
-//            , @ApiResponse(responseCode = "404", description = "Config not found",
-//                    content = @Content)
     })
     @ResponseBody
     @RequestMapping(method = RequestMethod.GET, value = "/")
@@ -125,19 +105,6 @@ public class ConfigController {
         return configService.loadConfig(configFileName);
     }
 
-//    private boolean isCurrentSessionRunning() {
-//        boolean rtn = Boolean.FALSE;
-//        // Need to check that nothing is running currently.
-//        ExecuteSession session = executeSessionService.getActiveSession();
-//        if (session != null) {
-//            RunStatus runStatus = session.getRunStatus();
-//            if (runStatus.isRunning()) {
-//                rtn = Boolean.TRUE;
-//            }
-//        }
-//        return rtn;
-//    }
-
     @Operation(summary = "Load a config by id")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Config loaded",
@@ -151,16 +118,12 @@ public class ConfigController {
                                 @PathVariable @NotNull String id) {
         log.info("{}: Loading Config by id: {}", sessionId, id);
         HmsMirrorConfig config = configService.loadConfig(id);
-        // If they aren't setting the session id, use the id as the session id.
-//        String targetSessionId = sessionId != null? sessionId : id;
-        // Get the session and set the config.
         ExecuteSession session = executeSessionService.getSession(sessionId);
         if (isNull(session)) {
             session = executeSessionService.createSession(sessionId, config);
         } else {
             session.setConfig(config);
         }
-        // Set it as the current session.
         executeSessionService.setSession(session);
         return config;
     }
@@ -175,19 +138,12 @@ public class ConfigController {
     @ResponseBody
     @RequestMapping(method = RequestMethod.POST, value = "/reload/{id}")
     public HmsMirrorConfig reload(@PathVariable @NotNull String id) throws SessionException {
-        // Don't reload if running.
         executeSessionService.closeSession();
-
         log.info("ReLoading Config: {}", id);
         HmsMirrorConfig config = configService.loadConfig(id);
-        // Remove the old session
         executeSessionService.getSessionHistory().remove(id);
-        // Create a new session
         ExecuteSession session = executeSessionService.createSession(id, config);
-
-        // Set it as the current session.
         executeSessionService.setSession(session);
-
         return config;
     }
 
@@ -521,8 +477,8 @@ public class ConfigController {
     @ResponseBody
     @RequestMapping(method = RequestMethod.PUT, value = "/transfer/warehouse")
     public Warehouse setTransferWarehouse(@RequestParam(name = "sessionId", required = false) String sessionId,
-                                                @RequestParam(value = "managedDirectory", required = false) String managedDirectory,
-                                                @RequestParam(value = "externalDirectory", required = false) String externalDirectory
+                                          @RequestParam(value = "managedDirectory", required = false) String managedDirectory,
+                                          @RequestParam(value = "externalDirectory", required = false) String externalDirectory
     ) throws SessionException {
         // Don't reload if running.
         executeSessionService.closeSession();

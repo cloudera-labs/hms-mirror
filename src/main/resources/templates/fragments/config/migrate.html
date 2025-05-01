@@ -34,7 +34,7 @@
     <fieldset>
         <legend th:text="#{migrate.options}"/>
         <div class="pure-g">
-            <div class="pure-u-1-1" th:if="${CONFIG.beta && ('STORAGE_MIGRATION').contains(CONFIG.dataStrategy.toString())}">
+            <div class="pure-u-1-1" th:if="${('STORAGE_MIGRATION SQL').contains(CONFIG.dataStrategy.toString())}">
                 <fieldset>
                     <legend th:text="#{migrate.to.iceberg}"/>
                     <div class="pure-control-group">

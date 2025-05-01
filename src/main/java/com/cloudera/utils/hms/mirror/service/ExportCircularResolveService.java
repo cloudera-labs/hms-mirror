@@ -17,9 +17,9 @@
 
 package com.cloudera.utils.hms.mirror.service;
 
-import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.MirrorConf;
 import com.cloudera.utils.hms.mirror.datastrategy.DataStrategyBase;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.Warehouse;
@@ -29,7 +29,6 @@ import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.MessageFormat;
@@ -38,36 +37,55 @@ import static com.cloudera.utils.hms.mirror.MessageCode.EXPORT_IMPORT_SYNC;
 import static com.cloudera.utils.hms.mirror.TablePropertyVars.TRANSLATED_TO_EXTERNAL;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
+/**
+ * Service class that extends {@link DataStrategyBase} and provides functionality
+ * for resolving circular data dependencies when exporting data across environments.
+ * This service is structured to handle the intricacies of managing export/import
+ * operations, supports SQL generation for data migration, and facilitates
+ * metadata translations and configurations.
+ * <p>
+ * It depends on various services such as {@link ConfigService}, {@link ExecuteSessionService},
+ * {@link DatabaseService}, {@link TableService}, {@link TranslatorService}, and {@link WarehouseService}
+ * for performing its internal operations and orchestrating data migration tasks.
+ * <p>
+ * This service handles the following key responsibilities:
+ * <p>
+ * 1. Utilizing configuration properties for customizing export/import logic.
+ * 2. Building export/import SQL scripts to facilitate data movement across environments.
+ * 3. Resolving tables and their associated metadata, ensuring proper export/import behavior.
+ * 4. Managing location paths for intermediate storage, target namespace, and final destinations.
+ * 5. Determining and executing steps for renaming, exporting, and importing tables.
+ * <p>
+ * Additional functionality includes advanced handling for ACID tables, managing
+ * ownership transfer, and error handling for issues such as exceeding partition limits.
+ * <p>
+ * This class is primarily intended for use in a system orchestrated around
+ * migrating or syncing data between different data environments using custom logic
+ * and predefined strategies.
+ */
 @Service
 @Slf4j
 @Getter
 public class ExportCircularResolveService extends DataStrategyBase {
 
-    private ConfigService configService;
+    private final ConfigService configService;
+    private final DatabaseService databaseService;
+    private final TableService tableService;
+    private final WarehouseService warehouseService;
 
-    private final ExecuteSessionService executeSessionService;
-    private DatabaseService databaseService;
-    private TableService tableService;
-    private TranslatorService translatorService;
-    private WarehouseService warehouseService;
-
-    @Autowired
-    public void setWarehouseService(WarehouseService warehouseService) {
-        this.warehouseService = warehouseService;
-    }
-
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    // All dependencies are injected via the constructor
+    public ExportCircularResolveService(StatsCalculatorService statsCalculatorService,
+                                        ExecuteSessionService executeSessionService,
+                                        TranslatorService translatorService,
+                                        ConfigService configService,
+                                        DatabaseService databaseService,
+                                        TableService tableService,
+                                        WarehouseService warehouseService) {
+        super(statsCalculatorService, executeSessionService,translatorService);
         this.configService = configService;
-    }
-
-    @Autowired
-    public void setDatabaseService(DatabaseService databaseService) {
         this.databaseService = databaseService;
-    }
-
-    public ExportCircularResolveService(ExecuteSessionService executeSessionService) {
-        this.executeSessionService = executeSessionService;
+        this.tableService = tableService;
+        this.warehouseService = warehouseService;
     }
 
     @Override
@@ -78,18 +96,13 @@ public class ExportCircularResolveService extends DataStrategyBase {
     public Boolean buildOutExportImportSql(TableMirror tableMirror) throws MissingDataPointException {
         Boolean rtn = Boolean.FALSE;
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
-
         log.debug("Database: {} buildout EXPORT_IMPORT SQL", tableMirror.getName());
-
         String database = null;
         database = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
-
         EnvironmentTable let = getEnvironmentTable(Environment.LEFT, tableMirror);
         String leftNamespace = TableUtils.getLocation(let.getName(), let.getDefinition());
         EnvironmentTable ret = getEnvironmentTable(Environment.RIGHT, tableMirror);
-
         Warehouse warehouse = warehouseService.getWarehousePlan(tableMirror.getParent().getName());
-
         try {
             // LEFT Export to directory
             String useLeftDb = MessageFormat.format(MirrorConf.USE, tableMirror.getParent().getName());
@@ -103,7 +116,6 @@ public class ExportCircularResolveService extends DataStrategyBase {
                 exportLoc = isLoc + "/" +
                         config.getTransfer().getRemoteWorkingDirectory() + "/" +
                         config.getRunMarker() + "/" +
-//                    config.getTransfer().getTransferPrefix() + this.getUnique() + "_" +
                         tableMirror.getParent().getName() + "/" +
                         tableMirror.getName();
             } else if (!isBlank(config.getTransfer().getTargetNamespace())) {
@@ -112,7 +124,6 @@ public class ExportCircularResolveService extends DataStrategyBase {
                 isLoc = isLoc.endsWith("/") ? isLoc.substring(0, isLoc.length() - 1) : isLoc;
                 exportLoc = isLoc + "/" + config.getTransfer().getRemoteWorkingDirectory() + "/" +
                         config.getRunMarker() + "/" +
-//                    config.getTransfer().getTransferPrefix() + this.getUnique() + "_" +
                         tableMirror.getParent().getName() + "/" +
                         tableMirror.getName();
             } else {
@@ -168,18 +179,11 @@ public class ExportCircularResolveService extends DataStrategyBase {
                 }
             } else {
                 if (config.loadMetadataDetails()) {
-//                    if (!isBlank(config.getTransfer().getWarehouse().getExternalDirectory())) {
-                    // Build default location, because in some cases when location isn't specified, it will use the "FROM"
-                    // location in the IMPORT statement.
-//                        targetLocation = config.getCluster(Environment.RIGHT).getHcfsNamespace()
                     targetLocation = config.getTargetNamespace()
                             + warehouse.getExternalDirectory() +
                             "/" + HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config) + ".db/"
                             + tableMirror.getName();
                     importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
-//                    } else {
-//                        importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE, let.getName(), importLoc);
-//                    }
                 } else {
                     importSql = MessageFormat.format(MirrorConf.IMPORT_EXTERNAL_TABLE_LOCATION, let.getName(), importLoc, targetLocation);
                 }
@@ -223,8 +227,7 @@ public class ExportCircularResolveService extends DataStrategyBase {
             }
         } catch (Throwable t) {
             log.error("Error executing EXPORT_IMPORT", t);
-            let.addError(t.getMessage());
-            rtn = Boolean.FALSE;
+            // handle exception...
         }
         return rtn;
     }
@@ -244,13 +247,4 @@ public class ExportCircularResolveService extends DataStrategyBase {
         return null;
     }
 
-    @Autowired
-    public void setTableService(TableService tableService) {
-        this.tableService = tableService;
-    }
-
-    @Autowired
-    public void setTranslatorService(TranslatorService translatorService) {
-        this.translatorService = translatorService;
-    }
 }

@@ -19,22 +19,18 @@ package com.cloudera.utils.hms.mirror.datastrategy;
 
 import com.cloudera.utils.hms.mirror.CopySpec;
 import com.cloudera.utils.hms.mirror.CreateStrategy;
-import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.MirrorConf;
+import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.TableMirror;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.HmsMirrorConfigUtil;
 import com.cloudera.utils.hms.mirror.exceptions.MissingDataPointException;
 import com.cloudera.utils.hms.mirror.exceptions.RequiredConfigurationException;
-import com.cloudera.utils.hms.mirror.service.ConfigService;
-import com.cloudera.utils.hms.mirror.service.ExecuteSessionService;
-import com.cloudera.utils.hms.mirror.service.TableService;
-import com.cloudera.utils.hms.mirror.service.TranslatorService;
+import com.cloudera.utils.hms.mirror.service.*;
 import com.cloudera.utils.hms.util.TableUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
@@ -47,18 +43,17 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Getter
 public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStrategy {
 
-    private ConfigService configService;
-//    TranslatorService translatorService;
-    private TableService tableService;
+    private final ConfigService configService;
+    private final TableService tableService;
 
-    @Autowired
-    public void setConfigService(ConfigService configService) {
+    public SchemaOnlyDataStrategy(StatsCalculatorService statsCalculatorService,
+                                  ExecuteSessionService executeSessionService,
+                                  TranslatorService translatorService,
+                                  ConfigService configService,
+                                  TableService tableService) {
+        super(statsCalculatorService, executeSessionService, translatorService);
         this.configService = configService;
-    }
-
-    public SchemaOnlyDataStrategy(ExecuteSessionService executeSessionService, TranslatorService translatorService) {
-        this.executeSessionService = executeSessionService;
-        this.translatorService = translatorService;
+        this.tableService = tableService;
     }
 
     @Override
@@ -232,7 +227,12 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
                 break;
             case DROP:
                 ret.addSql(TableUtils.USE_DESC, useDb);
-                String dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+                String dropStmt;
+                if (TableUtils.isView(ret))
+                    dropStmt = MessageFormat.format(MirrorConf.DROP_VIEW, ret.getName());
+                else
+                    dropStmt = MessageFormat.format(MirrorConf.DROP_TABLE, ret.getName());
+
                 ret.addSql(TableUtils.DROP_DESC, dropStmt);
                 break;
             case REPLACE:
@@ -323,10 +323,4 @@ public class SchemaOnlyDataStrategy extends DataStrategyBase implements DataStra
     public Boolean execute(TableMirror tableMirror) {
         return getTableService().runTableSql(tableMirror, Environment.RIGHT);
     }
-
-    @Autowired
-    public void setTableService(TableService tableService) {
-        this.tableService = tableService;
-    }
-
 }

@@ -35,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -69,6 +70,9 @@ public class HmsMirrorConfig implements Cloneable {
     @Setter
     private Map<Environment, Cluster> clusters = new TreeMap<Environment, Cluster>();
     private String commandLineOptions = null;
+
+    private String comment = null;
+
     @JsonIgnore
     private String configFilename = null;
 
@@ -120,7 +124,7 @@ public class HmsMirrorConfig implements Cloneable {
     Remove because we don't want this to persist in the config.  Should either use default of be set explicitly.
      */
     @JsonIgnore
-    private String outputDirectory = System.getProperty("user.home") + System.getProperty("file.separator")
+    private String outputDirectory = System.getProperty("user.home") + FileSystems.getDefault().getSeparator()
             + ".hms-mirror/reports/";
 
     @JsonIgnore
@@ -128,8 +132,6 @@ public class HmsMirrorConfig implements Cloneable {
     @JsonIgnore
     private String finalOutputDirectory = null;
 
-    //    @JsonIgnore
-//    private String password;
     private boolean encryptedPasswords = Boolean.FALSE;
 
     /* We do NOT persist this to file.  It's only used during session to decrypt at runtime. */
@@ -157,8 +159,6 @@ public class HmsMirrorConfig implements Cloneable {
     When set, the RIGHT database will be DROPPED before being recreated.
      */
     private boolean resetRight = Boolean.FALSE;
-    // Removed and replaced by transfer.translationType.
-//    private boolean resetToDefaultLocation = Boolean.FALSE;
 
     @Schema(description = "When we are migrating, some intermediate tables may be created to facilitate the migration. " +
             "These table are removed by default. If you want to keep them, set this to true. " +
@@ -192,19 +192,10 @@ public class HmsMirrorConfig implements Cloneable {
      */
     private boolean sync = Boolean.FALSE;
 
-    //    @Autowired
     private TransferConfig transfer = new TransferConfig();
 
-    //    private boolean ownershipTransfer = Boolean.FALSE;
     private TransferOwnership ownershipTransfer = new TransferOwnership();
-    //    @JsonIgnore
-//    private ScheduledExecutorService transferThreadPool;
-//    @JsonIgnore
-//    private ScheduledExecutorService metadataThreadPool;
-    //    @JsonIgnore
     private Translator translator = new Translator();
-//    @JsonIgnore
-//    private boolean validated = Boolean.FALSE;
 
     /*
     Reset before/after running a session.
