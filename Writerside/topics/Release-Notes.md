@@ -10,6 +10,22 @@ The latest set of enhancement requests can be found [here](https://github.com/cl
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 3.0.0.2
+
+**Bug Fixes**
+[--sync not dropping table on right when left is missing. #189](https://github.com/cloudera-labs/hms-mirror/issues/189)
+
+[When doing a Schema Sync for 'VIEWS', there aren't being dropped. #190](https://github.com/cloudera-labs/hms-mirror/issues/190)
+
+[SHADOW table schema for partitioned tables are creating ALTER TABLE ... PARTITION location details with LEFT locations. #191](https://github.com/cloudera-labs/hms-mirror/issues/191)
+
+[Add ability to save a comment for a run and record it in the report. #192](https://github.com/cloudera-labs/hms-mirror/issues/192)
+
+[Themeleaf syntax causing excessive logging. #193](https://github.com/cloudera-labs/hms-mirror/issues/193)
+
+- Removed Spring Autowiring
+- Function Documentation
+
 ## 3.0.0.1
 
 This release is based on the 2.3.1.5 release and includes all the features and bug fixes from that release.

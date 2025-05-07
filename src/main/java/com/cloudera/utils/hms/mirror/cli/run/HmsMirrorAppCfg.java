@@ -28,6 +28,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 /*
@@ -82,7 +83,7 @@ public class HmsMirrorAppCfg {
     public CommandLineRunner start() {
         return args -> {
             // NOTE: The transitionToActive process happens in another bean....
-            Future<Boolean> result = hmsMirrorAppService.run();
+            CompletableFuture<Boolean> result = hmsMirrorAppService.run();
             while (!result.isDone()) {
                 try {
                     Thread.sleep(1000);

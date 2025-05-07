@@ -31,6 +31,7 @@ import com.cloudera.utils.hms.mirror.exceptions.SessionException;
 import com.cloudera.utils.hms.stage.ReturnStatus;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ratis.thirdparty.io.netty.util.concurrent.CompleteFuture;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -320,7 +321,7 @@ public class HMSMirrorAppService {
             return CompletableFuture.completedFuture(Boolean.FALSE);
         }
 
-        List<Future<ReturnStatus>> gtf = new ArrayList<>();
+        List<CompletableFuture<ReturnStatus>> gtf = new ArrayList<>();
         // ========================================
         // Get the Database definitions for the LEFT and RIGHT clusters.
         // ========================================
@@ -363,7 +364,7 @@ public class HMSMirrorAppService {
                 // Build out the table in a database.
                 if (!config.isLoadingTestData() && !config.isDatabaseOnly()) {
                     runStatus.setStage(StageEnum.TABLES, CollectionEnum.IN_PROGRESS);
-                    Future<ReturnStatus> gt = getTableService().getTables(dbMirror);
+                    CompletableFuture<ReturnStatus> gt = getTableService().getTables(dbMirror);
                     gtf.add(gt);
                 }
             }
@@ -372,7 +373,7 @@ public class HMSMirrorAppService {
             // Collect Table Information and ensure process is complete before moving on.
             while (true) {
                 boolean check = true;
-                for (Future<ReturnStatus> sf : gtf) {
+                for (CompletableFuture<ReturnStatus> sf : gtf) {
                     if (!sf.isDone()) {
                         check = false;
                         break;
@@ -475,7 +476,7 @@ public class HMSMirrorAppService {
             // ========================================
             // Get the table METADATA for the tables collected in the databases.
             // ========================================
-            List<Future<ReturnStatus>> migrationFuture = new ArrayList<>();
+            List<CompletableFuture<ReturnStatus>> migrationFuture = new ArrayList<>();
 
             runStatus.setStage(StageEnum.LOAD_TABLE_METADATA, CollectionEnum.IN_PROGRESS);
             if (rtn) {
@@ -498,7 +499,7 @@ public class HMSMirrorAppService {
                 // ========================================
                 while (true) {
                     boolean check = true;
-                    for (Future<ReturnStatus> sf : gtf) {
+                    for (CompletableFuture<ReturnStatus> sf : gtf) {
                         if (!sf.isDone()) {
                             check = false;
                             break;
@@ -588,7 +589,7 @@ public class HMSMirrorAppService {
             // Check the Migration Futures are done.
             while (true) {
                 boolean check = true;
-                for (Future<ReturnStatus> sf : migrationFuture) {
+                for (CompletableFuture<ReturnStatus> sf : migrationFuture) {
                     if (!sf.isDone()) {
                         check = false;
                         continue;
@@ -684,7 +685,7 @@ public class HMSMirrorAppService {
                     // Check the Migration Futures are done.
                     while (true) {
                         boolean check = true;
-                        for (Future<ReturnStatus> sf : migrationFuture) {
+                        for (CompletableFuture<ReturnStatus> sf : migrationFuture) {
                             if (!sf.isDone()) {
                                 check = false;
                                 break;

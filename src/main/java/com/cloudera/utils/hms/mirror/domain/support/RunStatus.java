@@ -36,6 +36,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import static java.util.Objects.isNull;
@@ -58,7 +59,7 @@ public class RunStatus implements Comparable<RunStatus>, Cloneable {
     //    @JsonIgnore
     Integer concurrency;
     @JsonIgnore
-    Future<Boolean> runningTask = null;
+    CompletableFuture<Boolean> runningTask = null;
 
     List<String> errorMessages = new ArrayList<>();
     List<String> warningMessages = new ArrayList<>();

@@ -340,7 +340,6 @@ public class DatabaseService {
     public List<String> listAvailableDatabases(Environment environment) {
         List<String> dbs = new ArrayList<>();
         Connection conn = null;
-        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
         try {
             conn = connectionPoolService.getHS2EnvironmentConnection(environment);
             if (conn != null) {
@@ -414,8 +413,8 @@ public class DatabaseService {
         boolean skipManagedLocation = Boolean.FALSE;
         boolean forceLocations = Boolean.FALSE;
 
-        Map<String, String> dbDefLeft = dbMirror.getProperty(Environment.LEFT);
-        Map<String, String> dbDefRight = dbMirror.getProperty(Environment.RIGHT);
+        Map<String, String> dbPropsLeft = dbMirror.getProperty(Environment.LEFT);
+        Map<String, String> dbPropsRight = dbMirror.getProperty(Environment.RIGHT);
 
         switch (config.getDataStrategy()) {
             case DUMP:
@@ -438,9 +437,9 @@ public class DatabaseService {
                     config.getClusters().put(Environment.RIGHT, cluster);
                 }
                 // Build the Right Def as a Clone of the Left to Seed it.
-                if (isNull(dbDefRight)) {
-                    dbDefRight = new TreeMap<String, String>();
-                    dbMirror.setProperty(Environment.RIGHT, dbDefRight);
+                if (isNull(dbPropsRight)) {
+                    dbPropsRight = new TreeMap<String, String>();
+                    dbMirror.setProperty(Environment.RIGHT, dbPropsRight);
                 }
 
                 break;
@@ -452,11 +451,11 @@ public class DatabaseService {
                     buildRight = Boolean.FALSE;
                 }
                 // Build the Right Def as a Clone of the Left to Seed it.
-                if (isNull(dbDefRight)) {
+                if (isNull(dbPropsRight)) {
                     // No Right DB Definition.  So we're going to create it.
                     createRight = Boolean.TRUE;
-                    dbDefRight = new TreeMap<String, String>();
-                    dbMirror.setProperty(Environment.RIGHT, dbDefRight);
+                    dbPropsRight = new TreeMap<String, String>();
+                    dbMirror.setProperty(Environment.RIGHT, dbPropsRight);
                 }
                 // Force Locations to ensure DB and new tables are created in the right locations.
                 forceLocations = Boolean.TRUE;
@@ -471,13 +470,13 @@ public class DatabaseService {
                 buildLeft = Boolean.FALSE;
                 buildRight = Boolean.TRUE;
                 // Build the Right Def as a Clone of the Left to Seed it.
-                if (isNull(dbDefRight)) {
+                if (isNull(dbPropsRight)) {
                     // No Right DB Definition.  So we're going to create it.
                     createRight = Boolean.TRUE;
 //                    dbDefRight = new TreeMap<String, String>(dbDefLeft);
-                    dbDefRight = new TreeMap<String, String>();
-                    dbDefRight.put(DB_NAME, HmsMirrorConfigUtil.getResolvedDB(dbMirror.getName(), config));
-                    dbMirror.setProperty(Environment.RIGHT, dbDefRight);
+                    dbPropsRight = new TreeMap<String, String>();
+                    dbPropsRight.put(DB_NAME, HmsMirrorConfigUtil.getResolvedDB(dbMirror.getName(), config));
+                    dbMirror.setProperty(Environment.RIGHT, dbPropsRight);
                 }
                 // Force Locations to ensure DB and new tables are created in the right locations.
                 if (config.getTransfer().getStorageMigration().getTranslationType() == TranslationTypeEnum.ALIGNED) {
@@ -592,7 +591,7 @@ public class DatabaseService {
                                         "So we're not going to set it and let it default to the ENV warehouse location: {}.", targetLocation, envWarehouse.getExternalDirectory());
                                 // The new target location is the same as the ENV warehouse location.  So we're not
                                 // going to set it and let it default to the ENV warehouse location.
-                                dbDefRight.put(DB_LOCATION, targetNamespace + targetLocation);
+                                dbPropsRight.put(DB_LOCATION, targetNamespace + targetLocation);
                                 dbMirror.addIssue(Environment.RIGHT, "The database location is the same as the ENV warehouse location.  The database location will NOT be set and will depend on the ENV warehouse location.");
                                 targetLocation = null;
                             }
@@ -651,7 +650,7 @@ public class DatabaseService {
                                 log.debug("The new target managed location: {} is the same as the ENV warehouse managed location.  " +
                                                 "So we're not going to set it and let it default to the ENV warehouse managed location: {}.",
                                         targetManagedLocation, envWarehouse.getManagedDirectory());
-                                dbDefRight.put(DB_MANAGED_LOCATION, targetNamespace + targetManagedLocation);
+                                dbPropsRight.put(DB_MANAGED_LOCATION, targetNamespace + targetManagedLocation);
                                 dbMirror.addIssue(Environment.RIGHT, "The database 'Managed' location is the same as the ENV warehouse Managed location.  The database location will NOT be set and will depend on the ENV warehouse location.");
                                 targetManagedLocation = null;
                             }
@@ -675,7 +674,7 @@ public class DatabaseService {
                 }
 
                 // Upsert Source DB Parameters to Target DB Parameters.
-                DatabaseUtils.upsertParameters(dbDefLeft, dbDefRight, skipList);
+                DatabaseUtils.upsertParameters(dbPropsLeft, dbPropsRight, skipList);
 
                 // Deal with ReadOnly.
                 if (config.isReadOnly()) {
@@ -749,16 +748,16 @@ public class DatabaseService {
                     String createDb = MessageFormat.format(CREATE_DB, targetDatabase);
                     StringBuilder sb = new StringBuilder();
                     sb.append(createDb).append("\n");
-                    if (dbDefLeft.get(COMMENT) != null && !dbDefLeft.get(COMMENT).trim().isEmpty()) {
-                        sb.append(COMMENT).append(" \"").append(dbDefLeft.get(COMMENT)).append("\"\n");
+                    if (dbPropsLeft.get(COMMENT) != null && !dbPropsLeft.get(COMMENT).trim().isEmpty()) {
+                        sb.append(COMMENT).append(" \"").append(dbPropsLeft.get(COMMENT)).append("\"\n");
                     }
                     if (nonNull(originalLocation)) {
                         sb.append(DB_LOCATION).append(" \"").append(originalLocation).append("\"\n");
-                        dbDefLeft.put(DB_LOCATION, originalLocation);
+                        dbPropsLeft.put(DB_LOCATION, originalLocation);
                     }
                     if (nonNull(originalManagedLocation)) {
                         sb.append(DB_MANAGED_LOCATION).append(" \"").append(originalManagedLocation).append("\"\n");
-                        dbDefLeft.put(DB_MANAGED_LOCATION, originalManagedLocation);
+                        dbPropsLeft.put(DB_MANAGED_LOCATION, originalManagedLocation);
                     }
                     dbMirror.getSql(Environment.LEFT).add(new Pair(CREATE_DB_DESC, sb.toString()));
 
@@ -784,21 +783,21 @@ public class DatabaseService {
                             if (!isBlank(targetLocation)) {
                                 String alterDbLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetLocation);
                                 dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbLoc));
-                                dbDefRight.put(DB_LOCATION, targetLocation);
+                                dbPropsRight.put(DB_LOCATION, targetLocation);
                             }
                         }
                         if (!config.getCluster(Environment.LEFT).isHdpHive3()) {
                             if (!isBlank(targetManagedLocation)) {
                                 String alterDbMngdLoc = MessageFormat.format(ALTER_DB_MNGD_LOCATION, targetDatabase, targetManagedLocation);
                                 dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
-                                dbDefRight.put(DB_MANAGED_LOCATION, targetManagedLocation);
+                                dbPropsRight.put(DB_MANAGED_LOCATION, targetManagedLocation);
                             }
                         } else {
                             if (!isBlank(targetManagedLocation)) {
                                 String alterDbMngdLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetManagedLocation);
                                 dbMirror.getSql(Environment.LEFT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
                                 dbMirror.addIssue(Environment.LEFT, HDPHIVE3_DB_LOCATION.getDesc());
-                                dbDefRight.put(DB_LOCATION, targetManagedLocation);
+                                dbPropsRight.put(DB_LOCATION, targetManagedLocation);
                             }
                         }
 
@@ -835,36 +834,36 @@ public class DatabaseService {
                         String createDbL = MessageFormat.format(CREATE_DB, targetDatabase);
                         StringBuilder sbL = new StringBuilder();
                         sbL.append(createDbL).append("\n");
-                        if (dbDefLeft.get(COMMENT) != null && !dbDefLeft.get(COMMENT).trim().isEmpty()) {
-                            sbL.append(COMMENT).append(" \"").append(dbDefLeft.get(COMMENT)).append("\"\n");
+                        if (dbPropsLeft.get(COMMENT) != null && !dbPropsLeft.get(COMMENT).trim().isEmpty()) {
+                            sbL.append(COMMENT).append(" \"").append(dbPropsLeft.get(COMMENT)).append("\"\n");
                         }
                         dbMirror.getSql(Environment.RIGHT).add(new Pair(CREATE_DB_DESC, sbL.toString()));
                         log.trace("RIGHT DB Create SQL: {}", sbL);
                     }
 
                     if (nonNull(targetLocation) && !config.getCluster(Environment.RIGHT).isHdpHive3()) {
-                        String origRightLocation = dbDefRight.get(DB_LOCATION);
+                        String origRightLocation = dbPropsRight.get(DB_LOCATION);
                         // If the original location is null or doesn't equal the target location, set it.
                         if (isNull(origRightLocation) || !origRightLocation.equals(targetLocation)) {
                             String alterDbLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetLocation);
                             dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbLoc));
-                            dbDefRight.put(DB_LOCATION, targetLocation);
+                            dbPropsRight.put(DB_LOCATION, targetLocation);
                             log.trace("RIGHT DB Location SQL: {}", alterDbLoc);
                         }
                     }
                     if (nonNull(targetManagedLocation)) {
-                        String origRightManagedLocation = config.getCluster(Environment.RIGHT).isHdpHive3() ? dbDefRight.get(DB_LOCATION) : dbDefRight.get(DB_MANAGED_LOCATION);
+                        String origRightManagedLocation = config.getCluster(Environment.RIGHT).isHdpHive3() ? dbPropsRight.get(DB_LOCATION) : dbPropsRight.get(DB_MANAGED_LOCATION);
                         if (isNull(origRightManagedLocation) || !origRightManagedLocation.equals(targetManagedLocation)) {
                             if (!config.getCluster(Environment.RIGHT).isHdpHive3()) {
                                 String alterDbMngdLoc = MessageFormat.format(ALTER_DB_MNGD_LOCATION, targetDatabase, targetManagedLocation);
                                 dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
-                                dbDefRight.put(DB_MANAGED_LOCATION, targetManagedLocation);
+                                dbPropsRight.put(DB_MANAGED_LOCATION, targetManagedLocation);
                                 log.trace("RIGHT DB Managed Location SQL: {}", alterDbMngdLoc);
                             } else {
                                 String alterDbMngdLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetManagedLocation);
                                 dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
                                 dbMirror.addIssue(Environment.RIGHT, HDPHIVE3_DB_LOCATION.getDesc());
-                                dbDefRight.put(DB_LOCATION, targetManagedLocation);
+                                dbPropsRight.put(DB_LOCATION, targetManagedLocation);
                                 log.trace("RIGHT DB Managed Location SQL: {}", alterDbMngdLoc);
                             }
                         }
@@ -873,7 +872,7 @@ public class DatabaseService {
                     // Build the DBPROPERITES
                     // Check if the user has specified any DB Properties to skip.
                     Set<String> lclSkipList = new HashSet<>(skipList);
-                    Map<String, String> dbProperties = DatabaseUtils.getParameters(dbDefRight, lclSkipList, config.getFilter().getDbPropertySkipListPattern());
+                    Map<String, String> dbProperties = DatabaseUtils.getParameters(dbPropsRight, lclSkipList, config.getFilter().getDbPropertySkipListPattern());
                     if (!dbProperties.isEmpty()) {
                         for (Map.Entry<String, String> entry : dbProperties.entrySet()) {
                             String alterDbProps = MessageFormat.format(ALTER_DB_PROPERTIES, targetDatabase, entry.getKey(), entry.getValue());
@@ -883,8 +882,8 @@ public class DatabaseService {
                     }
 
                     if (config.getOwnershipTransfer().isDatabase()) {
-                        String ownerFromLeft = dbDefLeft.get(OWNER_NAME);
-                        String ownerTypeFromLeft = dbDefLeft.get(OWNER_TYPE);
+                        String ownerFromLeft = dbPropsLeft.get(OWNER_NAME);
+                        String ownerTypeFromLeft = dbPropsLeft.get(OWNER_TYPE);
                         if (nonNull(ownerFromLeft) && nonNull(ownerTypeFromLeft)) {
                             log.info("Setting Owner: {} of type: {} on Database: {}", ownerFromLeft, ownerTypeFromLeft, targetDatabase);
                             if (ownerTypeFromLeft.equals("USER")) {

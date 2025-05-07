@@ -29,6 +29,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 @Service
@@ -67,7 +68,7 @@ public class RuntimeService {
                 if (runStatus.reset()) {
                     executeSessionService.getSession().getConfig().setExecute(!dryrun);
                     // Start job in a separate thread.
-                    Future<Boolean> runningTask = hmsMirrorAppService.run();
+                    CompletableFuture<Boolean> runningTask = hmsMirrorAppService.run();
                     // Set the running task reference in the RunStatus.
                     runStatus.setRunningTask(runningTask);
                 }
