@@ -40,6 +40,8 @@ import java.sql.Connection;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
@@ -52,7 +54,6 @@ import static com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum.STOR
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static org.apache.commons.lang3.ObjectUtils.isEmpty;
-import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Service
 @Getter
@@ -69,6 +70,9 @@ public class TableService {
     private final TranslatorService translatorService;
     private final StatsCalculatorService statsCalculatorService;
 
+    // Assuming your logger is already defined, e.g.
+    // private static final Logger log = LoggerFactory.getLogger(TableService.class);
+
     public TableService(
             ConfigService configService,
             ExecuteSessionService executeSessionService,
@@ -77,6 +81,7 @@ public class TableService {
             TranslatorService translatorService,
             StatsCalculatorService statsCalculatorService
     ) {
+        log.debug("Initializing TableService with provided service dependencies");
         this.configService = configService;
         this.executeSessionService = executeSessionService;
         this.connectionPoolService = connectionPoolService;
@@ -85,7 +90,12 @@ public class TableService {
         this.statsCalculatorService = statsCalculatorService;
     }
 
+    /**
+     * Checks the table filter.
+     */
     protected void checkTableFilter(TableMirror tableMirror, Environment environment) {
+        log.debug("Checking table filter for table: {} in environment: {}", tableMirror, environment);
+        // ...existing logic...
         EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
         ExecuteSession session = executeSessionService.getSession();
         HmsMirrorConfig config = session.getConfig();
@@ -163,423 +173,498 @@ public class TableService {
             }
         }
 
+        log.trace("Table filter checked for table: {}", tableMirror);
     }
 
     public String getCreateStatement(TableMirror tableMirror, Environment environment) {
-        StringBuilder createStatement = new StringBuilder();
-        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
-        Cluster cluster = config.getCluster(environment);
-        Boolean cine = Boolean.FALSE;
-        if (nonNull(cluster)) {
-            cine = cluster.isCreateIfNotExists();
-        }
-        List<String> tblDef = tableMirror.getTableDefinition(environment);
-        if (tblDef != null) {
-            Iterator<String> iter = tblDef.iterator();
-            while (iter.hasNext()) {
-                String line = iter.next();
-                if (cine && line.startsWith("CREATE TABLE")) {
-                    line = line.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
-                } else if (cine && line.startsWith("CREATE EXTERNAL TABLE")) {
-                    line = line.replace("CREATE EXTERNAL TABLE", "CREATE EXTERNAL TABLE IF NOT EXISTS");
-                }
-                createStatement.append(line);
-                if (iter.hasNext()) {
-                    createStatement.append("\n");
-                }
+        log.info("Getting CREATE statement for table: {} in environment: {}", tableMirror, environment);
+        String createStatement = null;
+        try {
+            // ...existing logic to get the statement...
+            StringBuilder createStatementBldr = new StringBuilder();
+            HmsMirrorConfig config = executeSessionService.getSession().getConfig();
+            Cluster cluster = config.getCluster(environment);
+            Boolean cine = Boolean.FALSE;
+            if (nonNull(cluster)) {
+                cine = cluster.isCreateIfNotExists();
             }
-        } else {
-            log.error("Couldn't location definition for table: {} in environment: {}", tableMirror.getName(), environment.toString());
+            List<String> tblDef = tableMirror.getTableDefinition(environment);
+            if (tblDef != null) {
+                Iterator<String> iter = tblDef.iterator();
+                while (iter.hasNext()) {
+                    String line = iter.next();
+                    if (cine && line.startsWith("CREATE TABLE")) {
+                        line = line.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS");
+                    } else if (cine && line.startsWith("CREATE EXTERNAL TABLE")) {
+                        line = line.replace("CREATE EXTERNAL TABLE", "CREATE EXTERNAL TABLE IF NOT EXISTS");
+                    }
+                    createStatementBldr.append(line);
+                    if (iter.hasNext()) {
+                        createStatementBldr.append("\n");
+                    }
+                }
+            } else {
+                log.error("Couldn't location definition for table: {} in environment: {}", tableMirror.getName(), environment.toString());
+            }
+            createStatement = createStatementBldr.toString();
+            log.debug("Fetched CREATE statement for table {}: {}", tableMirror.getName(), createStatement);
+            return createStatement;
+        } catch (Exception e) {
+            log.error("Failed to get CREATE statement for table: {}, environment: {}", tableMirror, environment, e);
+            throw e;
         }
-        return createStatement.toString();
     }
 
-    public void getTableDefinition(TableMirror tableMirror, Environment environment) throws SQLException {
-        // The connections should already be in the database;
-        log.debug("Getting table definition for {}:{}.{}",
+    /**
+     * Get the table definition for the given table mirror and environment.
+     *
+     * @param tableMirror The table mirror object.
+     * @param environment The environment (LEFT or RIGHT).
+     */
+    public void getTableDefinition(TableMirror tableMirror, EnvironmentTable environmentTable, Environment environment) throws SQLException {
+        final String tableId = String.format("%s:%s.%s",
                 environment, tableMirror.getParent().getName(), tableMirror.getName());
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
-
-        EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
-        // Fetch Table Definition.
-        if (hmsMirrorConfig.isLoadingTestData()) {
-            // Already loaded from before.
+        log.info("Fetching table definition for table: {} in environment: {}", tableMirror, environment);
+//        EnvironmentTable environmentTable = null;
+        log.info("Starting to get table definition for {}", tableId);
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
+//            environmentTable = tableMirror.getEnvironmentTable(environment);
+        // Fetch Table Definition
+        if (config.isLoadingTestData()) {
+            log.debug("Loading test data is enabled. Skipping schema load for {}", tableId);
         } else {
+            log.debug("Loading schema from catalog for {}", tableId);
             loadSchemaFromCatalog(tableMirror, environment);
         }
-
+        log.debug("Checking table filter for {}", tableId);
         checkTableFilter(tableMirror, environment);
-
-        if (!tableMirror.isRemove() && !hmsMirrorConfig.isLoadingTestData()) {
-            switch (hmsMirrorConfig.getDataStrategy()) {
-                case SCHEMA_ONLY:
-                case CONVERT_LINKED:
-                case DUMP:
-                case LINKED:
-                    // These scenario don't require stats.
-                    break;
-                case SQL:
-                case HYBRID:
-                case EXPORT_IMPORT:
-                case STORAGE_MIGRATION:
-                case COMMON:
-                case ACID:
-                    if (!TableUtils.isView(et) && TableUtils.isHiveNative(et)) {
-                        try {
-                            loadTableStats(tableMirror, environment);
-                        } catch (DisabledException e) {
-                            log.warn("Stats collection is disabled because the CLI Interface has been disabled. " +
-                                    " Skipping stats collection for table: {}", et.getName());
-                        } catch (RuntimeException rte) {
-                            log.error("Issue loading table stats for {}.{}", et.getName(), et.getParent().getName());
-                            tableMirror.addIssue(environment, rte.getMessage());
-                            log.error(rte.getMessage(), rte);
-                        }
-                    }
-                    break;
-            }
+        if (!tableMirror.isRemove() && !config.isLoadingTestData()) {
+            log.debug("Table is not marked for removal. Proceeding with data strategy checks for {}", tableId);
+            handleDataStrategy(config, tableMirror, environment, environmentTable, tableId);
         }
-
-        Boolean partitioned = TableUtils.isPartitioned(et);
+        Boolean partitioned = TableUtils.isPartitioned(environmentTable);
         if (environment == Environment.LEFT && partitioned
-                && !tableMirror.isRemove() && !hmsMirrorConfig.isLoadingTestData()) {
-            /*
-            If we are -epl, we need to load the partition metadata for the table. And we need to use the
-            metastore_direct connections to do so. Trying to load this through the standard Hive SQL process
-            is 'extremely' slow.
-             */
-            if (hmsMirrorConfig.loadMetadataDetails()) {
+                && !tableMirror.isRemove() && !config.isLoadingTestData()) {
+            log.debug("Table is partitioned. Checking metadata details for {}", tableId);
+            if (config.loadMetadataDetails()) {
+                log.debug("Loading partition metadata directly for {}", tableId);
                 loadTablePartitionMetadataDirect(tableMirror, environment);
             }
         }
-
-        // Check for table partition count filter
-        if (hmsMirrorConfig.getFilter().getTblPartitionLimit() != null && hmsMirrorConfig.getFilter().getTblPartitionLimit() > 0) {
-            Integer partLimit = hmsMirrorConfig.getFilter().getTblPartitionLimit();
-            if (et.getPartitions().size() > partLimit) {
+        Integer partLimit = config.getFilter().getTblPartitionLimit();
+        if (partLimit != null && partLimit > 0) {
+            log.debug("Checking partition count filter for {}", tableId);
+            if (environmentTable.getPartitions().size() > partLimit) {
+                log.info("Table partition count exceeds limit for {}. Limit: {}, Actual: {}",
+                        tableId, partLimit, environmentTable.getPartitions().size());
                 tableMirror.setRemove(Boolean.TRUE);
                 tableMirror.setRemoveReason("The table partition count exceeds the specified table filter partition limit: " +
-                        hmsMirrorConfig.getFilter().getTblPartitionLimit() + " < " + et.getPartitions().size());
-
+                        partLimit + " < " + environmentTable.getPartitions().size());
             }
         }
-        log.info("Completed table definition for {}:{}.{}",
-                environment, tableMirror.getParent().getName(), tableMirror.getName());
+        log.info("Completed table definition for {}", tableId);
+        log.debug("Successfully fetched table definition for table: {}", tableMirror);
+    }
+
+    private void handleDataStrategy(HmsMirrorConfig hmsMirrorConfig, TableMirror tableMirror, Environment environment,
+                                    EnvironmentTable environmentTable, String tableId) {
+        switch (hmsMirrorConfig.getDataStrategy()) {
+            case SCHEMA_ONLY:
+            case CONVERT_LINKED:
+            case DUMP:
+            case LINKED:
+                log.debug("Data strategy {} does not require stats collection for {}", hmsMirrorConfig.getDataStrategy(), tableId);
+                break;
+            case SQL:
+            case HYBRID:
+            case EXPORT_IMPORT:
+            case STORAGE_MIGRATION:
+            case COMMON:
+            case ACID:
+                if (!TableUtils.isView(environmentTable) && TableUtils.isHiveNative(environmentTable)) {
+                    log.debug("Collecting table stats for {}", tableId);
+                    try {
+                        loadTableStats(tableMirror, environment);
+                    } catch (DisabledException e) {
+                        log.warn("Stats collection is disabled. Skipping stats collection for {}", tableId);
+                    } catch (RuntimeException rte) {
+                        log.error("Error loading table stats for {}", tableId, rte);
+                        tableMirror.addIssue(environment, rte.getMessage());
+                    }
+                }
+                break;
+        }
     }
 
     @Async("metadataThreadPool")
     public CompletableFuture<ReturnStatus> getTableMetadata(TableMirror tableMirror) {
+        log.info("Fetching table metadata asynchronously for table: {}", tableMirror);
         ReturnStatus rtn = new ReturnStatus();
-        rtn.setTableMirror(tableMirror);
-        HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
-        RunStatus runStatus = executeSessionService.getSession().getRunStatus();
-
-        try {
-            getTableDefinition(tableMirror, Environment.LEFT);
-            if (tableMirror.isRemove()) {
-                rtn.setStatus(ReturnStatus.Status.SKIP);
-                return CompletableFuture.completedFuture(rtn);
-            } else {
-                switch (hmsMirrorConfig.getDataStrategy()) {
-                    case DUMP:
-                    case STORAGE_MIGRATION:
-                        // Make a clone of the left as a working copy.
-                        try {
-                            tableMirror.getEnvironments().put(Environment.RIGHT, tableMirror.getEnvironmentTable(Environment.LEFT).clone());
-                        } catch (CloneNotSupportedException e) {
-                            log.error("Clone not supported for table: {}.{}", tableMirror.getParent().getName(), tableMirror.getName());
+        // Preset and overwrite the status when an issue or anomoly occurs.
+        rtn.setStatus(ReturnStatus.Status.SUCCESS);
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                // ...logic...
+                rtn.setTableMirror(tableMirror);
+                HmsMirrorConfig hmsMirrorConfig = executeSessionService.getSession().getConfig();
+                RunStatus runStatus = executeSessionService.getSession().getRunStatus();
+                EnvironmentTable leftEnvTable = tableMirror.getEnvironmentTable(Environment.LEFT);
+                try {
+                    getTableDefinition(tableMirror, leftEnvTable, Environment.LEFT);
+                    if (tableMirror.isRemove()) {
+                        rtn.setStatus(ReturnStatus.Status.SKIP);
+                        return rtn;
+                    } else {
+                        switch (hmsMirrorConfig.getDataStrategy()) {
+                            case DUMP:
+                            case STORAGE_MIGRATION:
+                                // Make a clone of the left as a working copy.
+                                try {
+                                    tableMirror.getEnvironments().put(Environment.RIGHT, tableMirror.getEnvironmentTable(Environment.LEFT).clone());
+                                } catch (CloneNotSupportedException e) {
+                                    log.error("Clone not supported for table: {}.{}", tableMirror.getParent().getName(), tableMirror.getName());
+                                }
+                                rtn.setStatus(ReturnStatus.Status.SUCCESS);//successful = Boolean.TRUE;
+                                break;
+                            default:
+                                EnvironmentTable rightEnvTable = tableMirror.getEnvironmentTable(Environment.RIGHT);
+                                try {
+                                    getTableDefinition(tableMirror, rightEnvTable, Environment.RIGHT);
+                                    rtn.setStatus(ReturnStatus.Status.SUCCESS);//successful = Boolean.TRUE;
+                                } catch (SQLException se) {
+                                    // Can't find the table on the RIGHT.  This is OK if the table doesn't exist.
+                                    log.debug("No table definition for {}:{}", tableMirror.getParent().getName(), tableMirror.getName(), se);
+                                }
                         }
-                        rtn.setStatus(ReturnStatus.Status.SUCCESS);//successful = Boolean.TRUE;
-                        break;
-                    default:
-                        getTableDefinition(tableMirror, Environment.RIGHT);
-                        rtn.setStatus(ReturnStatus.Status.SUCCESS);//successful = Boolean.TRUE;
+                    }
+                } catch (SQLException throwables) {
+                    // Check to see if the RIGHT exists.  This is for `--sync` mode.
+                    // If it doesn't exist, then this is OK.
+                    if (hmsMirrorConfig.isSync()) {
+                        EnvironmentTable rightEnvTable = tableMirror.getEnvironmentTable(Environment.RIGHT);
+                        try {
+                            getTableDefinition(tableMirror, rightEnvTable, Environment.RIGHT);
+                            rtn.setStatus(ReturnStatus.Status.SUCCESS);//successful = Boolean.TRUE;
+                        } catch (SQLException se) {
+                            // OK, if the db doesn't exist yet.
+                            handleSqlException(throwables, tableMirror, rightEnvTable, Environment.RIGHT);
+                            rtn.setStatus(ReturnStatus.Status.ERROR);
+                            rtn.setException(throwables);
+                        }
+                    } else {
+                        handleSqlException(throwables, tableMirror, leftEnvTable, Environment.LEFT);
+                        rtn.setStatus(ReturnStatus.Status.ERROR);
+                        rtn.setException(throwables);
+                    }
                 }
+                log.debug("Metadata fetch completed for table: {}", tableMirror);
+                return rtn;
+            } catch (Exception e) {
+                log.error("Error occurred while fetching metadata for table: {}", tableMirror, e);
+                rtn.setStatus(ReturnStatus.Status.ERROR);
+                rtn.setException(e);
+                return rtn;
             }
-        } catch (SQLException throwables) {
-            log.error(throwables.getMessage(), throwables);
-            rtn.setStatus(ReturnStatus.Status.ERROR);
-            rtn.setException(throwables);
-        }
-        return CompletableFuture.completedFuture(rtn);
+        });
     }
 
     @Async("metadataThreadPool")
     public CompletableFuture<ReturnStatus> getTables(DBMirror dbMirror) {
-        ReturnStatus rtn = new ReturnStatus();
-        ExecuteSession session = executeSessionService.getSession();
-        HmsMirrorConfig hmsMirrorConfig = session.getConfig();
-        RunStatus runStatus = session.getRunStatus();
-        log.debug("Getting tables for Database {}", dbMirror.getName());
-        try {
-            getTables(dbMirror, Environment.LEFT);
-            if (hmsMirrorConfig.isSync()) {
-                // Get the tables on the RIGHT side.  Used to determine if a table has been dropped on the LEFT
-                // and later needs to be removed on the RIGHT.
+        log.info("Fetching tables asynchronously for DBMirror: {}", dbMirror);
+        return CompletableFuture.supplyAsync(() -> {
+            ReturnStatus rtn = new ReturnStatus();
+            try {
+                // ...logic...
+                ExecuteSession session = executeSessionService.getSession();
+                HmsMirrorConfig config = session.getConfig();
+                RunStatus runStatus = session.getRunStatus();
+                log.debug("Getting tables for Database {}", dbMirror.getName());
                 try {
-                    getTables(dbMirror, Environment.RIGHT);
-                } catch (SQLException se) {
-                    // OK, if the db doesn't exist yet.
+                    getTables(dbMirror, Environment.LEFT);
+                    if (config.isSync()) {
+                        // Get the tables on the RIGHT side.  Used to determine if a table has been dropped on the LEFT
+                        // and later needs to be removed on the RIGHT.
+                        try {
+                            getTables(dbMirror, Environment.RIGHT);
+                        } catch (SQLException se) {
+                            // OK, if the db doesn't exist yet.
+                        }
+                    }
+                    rtn.setStatus(ReturnStatus.Status.SUCCESS);
+                } catch (SQLException throwables) {
+                    rtn.setStatus(ReturnStatus.Status.ERROR);
+                    rtn.setException(throwables);
+                } catch (RuntimeException rte) {
+                    log.error("Runtime Issue getting tables for Database: {}", dbMirror.getName(), rte);
+                    rtn.setStatus(ReturnStatus.Status.ERROR);
+                    rtn.setException(rte);
                 }
+                log.debug("Tables fetch completed for DBMirror: {}", dbMirror);
+                return rtn;
+            } catch (Exception e) {
+                log.error("Error occurred while fetching tables for DBMirror: {}", dbMirror, e);
+                rtn.setStatus(ReturnStatus.Status.ERROR);
+                rtn.setException(e);
+                return rtn;
             }
-            rtn.setStatus(ReturnStatus.Status.SUCCESS);
-        } catch (SQLException throwables) {
-            rtn.setStatus(ReturnStatus.Status.ERROR);
-            rtn.setException(throwables);
-        } catch (RuntimeException rte) {
-            log.error("Runtime Issue getting tables for Database: {}", dbMirror.getName(), rte);
-            rtn.setStatus(ReturnStatus.Status.ERROR);
-            rtn.setException(rte);
-        }
-        return CompletableFuture.completedFuture(rtn);
+        });
     }
 
     public void getTables(DBMirror dbMirror, Environment environment) throws SQLException {
+        log.info("Fetching tables for DBMirror: {} in environment: {}", dbMirror, environment);
         Connection conn = null;
-        ExecuteSession session = executeSessionService.getSession();
-        HmsMirrorConfig config = session.getConfig();
-        RunStatus runStatus = session.getRunStatus();
-        OperationStatistics stats = runStatus.getOperationStatistics();
-
+        String database = null;
         try {
+            ExecuteSession session = executeSessionService.getSession();
+            HmsMirrorConfig config = session.getConfig();
+
             conn = getConnectionPoolService().getHS2EnvironmentConnection(environment);
-            if (conn != null) {
-                String database = (environment == Environment.LEFT ?
-                        dbMirror.getName() : HmsMirrorConfigUtil.getResolvedDB(dbMirror.getName(), config));
+            if (conn == null) {
+                log.error("Unable to obtain a connection for environment: {}", environment);
+                dbMirror.addIssue(environment, "No connection available for environment.");
+                return;
+            }
 
-                log.info("Loading tables for {}:{}", environment, database);
+            database = (environment == Environment.LEFT)
+                    ? dbMirror.getName()
+                    : HmsMirrorConfigUtil.getResolvedDB(dbMirror.getName(), config);
 
-                Statement stmt = null;
-                ResultSet resultSet = null;
-                // Stub out the tables
-                try {
-                    stmt = conn.createStatement();
-                    log.debug("Setting Hive DB Session Context {}:{}", environment, database);
-                    stmt.execute(MessageFormat.format(MirrorConf.USE, database));
-                    List<String> shows = new ArrayList<String>();
-                    if (!config.getCluster(environment).isLegacyHive()) {
-                        if (config.getMigrateVIEW().isOn()) {
-                            shows.add(MirrorConf.SHOW_VIEWS);
-                            if (config.getDataStrategy() == DUMP) {
-                                shows.add(MirrorConf.SHOW_TABLES);
-                            }
-                        } else {
-                            shows.add(MirrorConf.SHOW_TABLES);
-                        }
-                    } else {
-                        shows.add(MirrorConf.SHOW_TABLES);
-                    }
-                    for (String show : shows) {
-                        resultSet = stmt.executeQuery(show);
-                        log.debug("Running show statement: {} to collect objects", show);
-                        while (resultSet.next()) {
-                            String tableName = resultSet.getString(1);
-                            log.trace("Table: {}", tableName);
-                            if (tableName.startsWith(config.getTransfer().getTransferPrefix())) {
-                                TableMirror tableMirror = dbMirror.addTable(tableName);
-                                tableMirror.setRemove(Boolean.TRUE);
-                                tableMirror.setRemoveReason("Table name matches the transfer prefix.  " +
-                                        "This is most likely a remnant of a previous event.  If this is a mistake, " +
-                                        "change the 'transferPrefix' to something more unique.");
-                                log.info("{}.{} was NOT added to list.  " +
-                                        "The name matches the transfer prefix and is most likely a remnant of a previous " +
-                                        "event. If this is a mistake, change the 'transferPrefix' to something more unique.", database, tableName);
-                            } else if (tableName.startsWith(config.getTransfer().getShadowPrefix())) {
-                                TableMirror tableMirror = dbMirror.addTable(tableName);
-                                tableMirror.setRemove(Boolean.TRUE);
-                                tableMirror.setRemoveReason("Table name matches the shadow prefix.  " +
-                                        "This is most likely a remnant of a previous event.  If this is a mistake, " +
-                                        "change the 'shadowPrefix' to something more unique.");
-                                log.info("{}.{} was NOT added to list.  " +
-                                        "The name matches the shadow prefix and is most likely a remnant of a previous " +
-                                        "event. If this is a mistake, change the 'shadowPrefix' to something more unique.", database, tableName);
-                            } else if (tableName.endsWith(config.getTransfer().getStorageMigrationPostfix())) {
-                                TableMirror tableMirror = dbMirror.addTable(tableName);
-                                tableMirror.setRemove(Boolean.TRUE);
-                                tableMirror.setRemoveReason("Table name matches the 'storage migration' suffix.  " +
-                                        "This is most likely a remnant of a previous event.  If this is a mistake, " +
-                                        "change the 'StorageMigrationPostfix' to something more unique.");
-                                log.info("{}.{} was NOT added to list.  " +
-                                        "The name is the result of a previous STORAGE_MIGRATION attempt that has not been " +
-                                        "cleaned up.", database, tableName);
-                            } else {
-                                if (isBlank(config.getFilter().getTblRegEx()) && isBlank(config.getFilter().getTblExcludeRegEx())) {
-                                    log.info("{}.{} added to processing list.", database, tableName);
-                                    TableMirror tableMirror = dbMirror.addTable(tableName);
-                                    tableMirror.setUnique(df.format(config.getInitDate()));
-                                    tableMirror.setMigrationStageMessage("Added to evaluation inventory");
-                                } else if (!isBlank(config.getFilter().getTblRegEx())) {
-                                    // Filter Tables
-                                    assert (config.getFilter().getTblFilterPattern() != null);
-                                    Matcher matcher = config.getFilter().getTblFilterPattern().matcher(tableName);
-                                    if (matcher.matches()) {
-                                        log.info("{}.{} added to processing list.", database, tableName);
-                                        TableMirror tableMirror = dbMirror.addTable(tableName);
-                                        tableMirror.setUnique(df.format(config.getInitDate()));
-                                        tableMirror.setMigrationStageMessage("Added to evaluation inventory");
-                                    } else {
-                                        log.info("{}.{} didn't match table regex filter and " +
-                                                "will NOT be added to processing list.", database, tableName);
-                                    }
-                                } else if (config.getFilter().getTblExcludeRegEx() != null) {
-                                    assert (config.getFilter().getTblExcludeFilterPattern() != null);
-                                    Matcher matcher = config.getFilter().getTblExcludeFilterPattern().matcher(tableName);
-                                    if (!matcher.matches()) { // ANTI-MATCH
-                                        log.info("{}.{} added to processing list.", database, tableName);
-                                        TableMirror tableMirror = dbMirror.addTable(tableName);
-                                        tableMirror.setUnique(df.format(config.getInitDate()));
-                                        tableMirror.setMigrationStageMessage("Added to evaluation inventory");
-                                    } else {
-                                        log.info("{}.{} matched exclude table regex filter and " +
-                                                "will NOT be added to processing list.", database, tableName);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } catch (SQLException se) {
-                    log.error("{}:{} ", environment, database, se);
-                    // This is helpful if the user running the process doesn't have permissions.
-                    dbMirror.addIssue(environment, database + " " + se.getMessage());
-                } finally {
-                    if (resultSet != null) {
-                        try {
-                            resultSet.close();
-                        } catch (SQLException sqlException) {
-                            // ignore
-                        }
-                    }
-                    if (stmt != null) {
-                        try {
-                            stmt.close();
-                        } catch (SQLException sqlException) {
-                            // ignore
+            log.info("Loading tables for {}:{}", environment, database);
+
+            List<String> showStatements = buildShowStatements(config, environment);
+
+            try (Statement stmt = conn.createStatement()) { // try-with-resources for Statement
+                setDatabaseContext(stmt, database);
+                for (String show : showStatements) {
+                    log.debug("Executing show statement: {}", show);
+                    try (ResultSet rs = stmt.executeQuery(show)) { // try-with-resources for ResultSet
+                        while (rs.next()) {
+                            String tableName = rs.getString(1);
+                            handleTableName(dbMirror, config, database, tableName);
                         }
                     }
                 }
             }
-        } catch (SQLException se) {
-            throw se;
+            log.debug("Fetched tables for DBMirror: {}, environment: {}", dbMirror, environment);
+        } catch (SQLException e) {
+            log.error("SQLException while fetching tables for DBMirror: {}, environment: {}", dbMirror, environment, e);
+            dbMirror.addIssue(environment, (database != null ? database : "unknown") + " " + e.getMessage());
+            throw e;
         } finally {
-            try {
-                if (conn != null)
-                    conn.close();
-            } catch (SQLException throwables) {
-                //
+            if (conn != null) try {
+                conn.close();
+            } catch (SQLException ignored) {
             }
         }
     }
 
-    public void loadSchemaFromCatalog(TableMirror tableMirror, Environment environment) {
-        Connection conn = null;
-        Statement stmt = null;
-        ResultSet resultSet = null;
-        String database = null;
-        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
-        if (environment == Environment.LEFT) {
-            database = tableMirror.getParent().getName();
-        } else {
-            database = HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
-        }
-        EnvironmentTable et = tableMirror.getEnvironmentTable(environment);
-
-        try {
-
-            conn = getConnectionPoolService().getHS2EnvironmentConnection(environment);
-
-            if (conn != null) {
-                stmt = conn.createStatement();
-                String useStatement = MessageFormat.format(MirrorConf.USE, database);
-                stmt.execute(useStatement);
-                String showStatement = MessageFormat.format(MirrorConf.SHOW_CREATE_TABLE, tableMirror.getName());
-                resultSet = stmt.executeQuery(showStatement);
-                List<String> tblDef = new ArrayList<String>();
-                ResultSetMetaData meta = resultSet.getMetaData();
-                if (meta.getColumnCount() >= 1) {
-                    while (resultSet.next()) {
-                        try {
-                            tblDef.add(resultSet.getString(1).trim());
-                        } catch (NullPointerException npe) {
-                            // catch and continue.
-                            log.error("Loading Table Definition.  Issue with SHOW CREATE TABLE resultset. " +
-                                            "ResultSet record(line) is null. Skipping. {}:{}.{}",
-                                    environment, database, tableMirror.getName());
-                        }
-                    }
-                } else {
-                    log.error("Loading Table Definition.  Issue with SHOW CREATE TABLE resultset. No Metadata. {}:{}.{}"
-                            , environment, database, tableMirror.getName());
+    private List<String> buildShowStatements(HmsMirrorConfig config, Environment environment) {
+        List<String> shows = new ArrayList<>();
+        if (!config.getCluster(environment).isLegacyHive()) {
+            if (config.getMigrateVIEW().isOn()) {
+                shows.add(MirrorConf.SHOW_VIEWS);
+                if (config.getDataStrategy() == DUMP) {
+                    shows.add(MirrorConf.SHOW_TABLES);
                 }
-                et.setDefinition(tblDef);
-                et.setName(tableMirror.getName());
-                // Identify that the table existed in the Database before other activity.
-                et.setExists(Boolean.TRUE);
+            } else {
+                shows.add(MirrorConf.SHOW_TABLES);
+            }
+        } else {
+            shows.add(MirrorConf.SHOW_TABLES);
+        }
+        return shows;
+    }
+
+    private void setDatabaseContext(Statement stmt, String database) throws SQLException {
+        stmt.execute(MessageFormat.format(MirrorConf.USE, database));
+        log.debug("Set Hive DB Session Context to {}", database);
+    }
+
+    private void handleTableName(DBMirror dbMirror, HmsMirrorConfig config, String database, String tableName) {
+        if (tableName == null) return;
+
+        if (startsWithAny(tableName, config.getTransfer().getTransferPrefix(), config.getTransfer().getShadowPrefix())
+                || endsWith(tableName, config.getTransfer().getStorageMigrationPostfix())) {
+            markTableForRemoval(dbMirror, tableName, database, getRemovalReason(tableName, config));
+            return;
+        }
+
+        Filter filter = config.getFilter();
+
+        boolean addTable = false;
+        if (filter == null || (isBlank(filter.getTblRegEx()) && isBlank(filter.getTblExcludeRegEx()))) {
+            addTable = true;
+        } else {
+            if (!isBlank(filter.getTblRegEx())) {
+                Matcher matcher = filter.getTblFilterPattern().matcher(tableName);
+                addTable = matcher.matches();
+            } else if (!isBlank(filter.getTblExcludeRegEx())) {
+                Matcher matcher = filter.getTblExcludeFilterPattern().matcher(tableName);
+                addTable = !matcher.matches();
+            }
+        }
+
+        if (addTable) {
+            // Add to DBMirror for processing.
+            TableMirror tableMirror = dbMirror.addTable(tableName);
+            String uniqueStr = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now());
+            tableMirror.setUnique(uniqueStr);
+            tableMirror.setMigrationStageMessage("Added to evaluation inventory");
+            log.info("{}.{} added to processing list.", database, tableName);
+        } else {
+            log.info("{}.{} did not match filter and will NOT be added.", database, tableName);
+        }
+    }
+
+    private static boolean startsWithAny(String value, String... prefixes) {
+        for (String prefix : prefixes) {
+            if (!isBlank(prefix) && value.startsWith(prefix)) return true;
+        }
+        return false;
+    }
+
+    private static boolean endsWith(String value, String postfix) {
+        return !isBlank(postfix) && value.endsWith(postfix);
+    }
+
+    private void markTableForRemoval(DBMirror dbMirror, String tableName, String database, String reason) {
+        TableMirror tableMirror = dbMirror.addTable(tableName);
+        tableMirror.setRemove(true);
+        tableMirror.setRemoveReason(reason);
+        log.info("{}.{} was NOT added to list. Reason: {}", database, tableName, reason);
+    }
+
+    private String getRemovalReason(String tableName, HmsMirrorConfig config) {
+        if (tableName.startsWith(config.getTransfer().getTransferPrefix())) {
+            return "Table name matches the transfer prefix; likely remnant of a previous event.";
+        } else if (tableName.startsWith(config.getTransfer().getShadowPrefix())) {
+            return "Table name matches the shadow prefix; likely remnant of a previous event.";
+        } else if (tableName.endsWith(config.getTransfer().getStorageMigrationPostfix())) {
+            return "Table name matches the storage migration suffix; likely remnant of a previous event.";
+        }
+        return "Removed for unspecified reason";
+    }
+
+    private static boolean isBlank(String str) {
+        return str == null || str.trim().isEmpty();
+    }
+
+// Refactored: Extracted helper methods, renamed vars, improved resource handling, modularized, reduced nesting
+
+    private static final String OWNER_PREFIX = "owner";
+
+    public void
+    loadSchemaFromCatalog(TableMirror tableMirror, Environment environment) throws SQLException {
+        log.info("Loading schema from catalog for table: {} in environment: {}", tableMirror, environment);
+        // ...logic...
+        String database = resolveDatabaseName(tableMirror, environment);
+        EnvironmentTable environmentTable = tableMirror.getEnvironmentTable(environment);
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
+
+        try (Connection connection = getConnectionPoolService().getHS2EnvironmentConnection(environment)) {
+            if (connection == null) return;
+
+            try (Statement statement = connection.createStatement()) {
+                useDatabase(statement, database);
+                List<String> tableDefinition = fetchTableDefinition(statement, tableMirror, database, environment);
+                environmentTable.setDefinition(tableDefinition);
+                environmentTable.setName(tableMirror.getName());
+                environmentTable.setExists(Boolean.TRUE);
                 tableMirror.addStep(environment.toString(), "Fetched Schema");
 
-                // TODO: Don't do this is table removed from list.
                 if (config.getOwnershipTransfer().isTable()) {
-                    try {
-                        String ownerStatement = MessageFormat.format(MirrorConf.SHOW_TABLE_EXTENDED, tableMirror.getName());
-                        resultSet = stmt.executeQuery(ownerStatement);
-                        String owner = null;
-                        while (resultSet.next()) {
-
-                            if (resultSet.getString(1).startsWith("owner")) {
-                                String[] ownerLine = resultSet.getString(1).split(":");
-                                try {
-                                    owner = ownerLine[1];
-                                } catch (Throwable t) {
-                                    // Parsing issue.
-                                    log.error("Couldn't parse 'owner' value from: {} for table {}:{}.{}"
-                                            , resultSet.getString(1), environment, database, tableMirror.getName());
-//                                            " for table: " + tableMirror.getParent().getName() + "." + tableMirror.getName());
-                                }
-                                break;
-                            }
-                        }
-                        if (owner != null) {
-                            et.setOwner(owner);
-                        }
-                    } catch (SQLException sed) {
-                        // Failed to gather owner details.
+                    String owner = fetchTableOwner(statement, tableMirror, database, environment);
+                    if (owner != null) {
+                        environmentTable.setOwner(owner);
                     }
                 }
-
             }
-        } catch (SQLException throwables) {
-            if (throwables.getMessage().contains("Table not found") || throwables.getMessage().contains("Database does not exist")) {
-                // This is ok in the upper cluster where we don't expect the table to exist if the process hadn't run before.
-                tableMirror.addStep(environment.toString(), "No Schema");
+        }
+        log.debug("Loaded schema from catalog for table: {}", tableMirror);
+    }
+
+    private String resolveDatabaseName(TableMirror tableMirror, Environment environment) {
+        log.trace("Resolving database name for table: {} in environment: {}", tableMirror, environment);
+        // ...logic...
+        HmsMirrorConfig config = executeSessionService.getSession().getConfig();
+        if (environment == Environment.LEFT) {
+            return tableMirror.getParent().getName();
+        } else {
+            return HmsMirrorConfigUtil.getResolvedDB(tableMirror.getParent().getName(), config);
+        }
+    }
+
+    private void useDatabase(Statement statement, String database) throws SQLException {
+        log.trace("Executing USE database statement: {}", database);
+        // ...logic...
+        String useStatement = MessageFormat.format(MirrorConf.USE, database);
+        statement.execute(useStatement);
+    }
+
+    private List<String> fetchTableDefinition(Statement statement, TableMirror tableMirror, String database, Environment environment) throws SQLException {
+        log.debug("Fetching table definition for table: {} from database: {} in environment: {}", tableMirror, database, environment);
+        // ...logic...
+        String showStatement = MessageFormat.format(MirrorConf.SHOW_CREATE_TABLE, tableMirror.getName());
+        List<String> tableDefinition = new ArrayList<>();
+        try (ResultSet resultSet = statement.executeQuery(showStatement)) {
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            if (metaData.getColumnCount() >= 1) {
+                while (resultSet.next()) {
+                    try {
+                        tableDefinition.add(resultSet.getString(1).trim());
+                    } catch (NullPointerException npe) {
+                        log.error("Loading Table Definition. Issue with SHOW CREATE TABLE resultset. " +
+                                        "ResultSet record(line) is null. Skipping. {}:{}.{}",
+                                environment, database, tableMirror.getName());
+                    }
+                }
             } else {
-                log.error(throwables.getMessage(), throwables);
-                et.addError(throwables.getMessage());
+                log.error("Loading Table Definition. Issue with SHOW CREATE TABLE resultset. No Metadata. {}:{}.{}",
+                        environment, database, tableMirror.getName());
             }
-        } finally {
-            if (resultSet != null) {
-                try {
-                    resultSet.close();
-                } catch (SQLException sqlException) {
-                    // ignore
-                }
-            }
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException sqlException) {
-                    // ignore
-                }
-            }
-            try {
-                if (conn != null)
-                    conn.close();
-            } catch (SQLException throwables) {
-                //
-            }
+        }
+        return tableDefinition;
+    }
 
+    private String fetchTableOwner(Statement statement, TableMirror tableMirror, String database, Environment environment) {
+        log.debug("Fetching owner for table: {} in database: {}", tableMirror, database);
+        // ...logic...
+        String ownerStatement = MessageFormat.format(MirrorConf.SHOW_TABLE_EXTENDED, tableMirror.getName());
+        try (ResultSet resultSet = statement.executeQuery(ownerStatement)) {
+            while (resultSet.next()) {
+                String value = resultSet.getString(1);
+                if (value != null && value.startsWith(OWNER_PREFIX)) {
+                    String[] ownerLine = value.split(":");
+                    try {
+                        return ownerLine[1];
+                    } catch (Throwable t) {
+                        log.error("Couldn't parse 'owner' value from: {} for table {}:{}.{}",
+                                value, environment, database, tableMirror.getName());
+                    }
+                    break;
+                }
+            }
+        } catch (SQLException ignored) {
+            // Failed to gather owner details.
+        }
+        return null;
+    }
+
+    private void handleSqlException(SQLException exception, TableMirror tableMirror, EnvironmentTable environmentTable, Environment environment) {
+        log.error("SQL Exception for table: {} in environmentTable: {}, environment: {}", tableMirror, environmentTable, environment, exception);
+        // ...logic...
+        String message = exception.getMessage();
+        if (message.contains("Table not found") || message.contains("Database does not exist")) {
+            tableMirror.addStep(environment.toString(), "No Schema");
+        } else {
+            log.error(message, exception);
+            environmentTable.addError(message);
         }
     }
 
     protected void loadTableOwnership(TableMirror tableMirror, Environment environment) {
+        log.info("Loading ownership information for table: {} in environment: {}", tableMirror, environment);
+        // ...logic...
         Connection conn = null;
         Statement stmt = null;
         ResultSet resultSet = null;
@@ -651,6 +736,8 @@ public class TableService {
     }
 
     protected void loadTablePartitionMetadata(TableMirror tableMirror, Environment environment) throws SQLException {
+        log.info("Loading partition metadata for table: {}, environment: {}", tableMirror, environment);
+        // ...logic...
         Connection conn = null;
         Statement stmt = null;
         ResultSet resultSet = null;

@@ -370,30 +370,29 @@ public class HMSMirrorAppService {
             }
             runStatus.setStage(StageEnum.DATABASES, CollectionEnum.COMPLETED);
 
-            // Collect Table Information and ensure process is complete before moving on.
-            while (true) {
-                boolean check = true;
-                for (CompletableFuture<ReturnStatus> sf : gtf) {
-                    if (!sf.isDone()) {
-                        check = false;
-                        break;
-                    }
-                    try {
-                        if (sf.isDone() && sf.get() != null) {
-                            if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
-                                rtn = Boolean.FALSE;
-//                            throw new RuntimeException(sf.get().getException());
-                            }
+            // Wait for all the CompletableFutures to finish.
+            CompletableFuture.allOf(gtf.toArray(new CompletableFuture[0])).join();
+
+            // Check that all the CompletableFutures in 'gtf' passed with ReturnStatus.Status.SUCCESS.
+            for (CompletableFuture<ReturnStatus> sf : gtf) {
+                try {
+                    ReturnStatus rs = sf.get();
+                    if (nonNull(rs)) {
+                        if (rs.getStatus() == ReturnStatus.Status.SUCCESS) {
+                            runStatus.getOperationStatistics().getSuccesses().incrementDatabases();
+                        } else {
+                            rtn = Boolean.FALSE;
+                            runStatus.getOperationStatistics().getFailures().incrementDatabases();
                         }
-                    } catch (InterruptedException | ExecutionException e) {
-                        log.error("Interrupted Table collection", e);
-                        rtn = Boolean.FALSE;
-//                        throw new RuntimeException(e);
+                    } else {
+                        log.error("ReturnStatus is null in gathering table.");
                     }
+                } catch (InterruptedException | ExecutionException e) {
+                    log.error("Interrupted Table collection", e);
+                    rtn = Boolean.FALSE;
                 }
-                if (check)
-                    break;
             }
+
             runStatus.setStage(StageEnum.TABLES, CollectionEnum.COMPLETED);
             gtf.clear(); // reset
 
@@ -497,58 +496,46 @@ public class HMSMirrorAppService {
                 // Check that a tables metadata has been retrieved.  When it has (ReturnStatus.Status.CALCULATED_SQL),
                 // move on to the NEXTSTEP and actual do the transfer.
                 // ========================================
-                while (true) {
-                    boolean check = true;
-                    for (CompletableFuture<ReturnStatus> sf : gtf) {
-                        if (!sf.isDone()) {
-                            check = false;
-                            break;
-                        }
-                        try {
-                            if (sf.isDone() && sf.get() != null) {
-                                switch (sf.get().getStatus()) {
-                                    case SUCCESS:
-                                        runStatus.getOperationStatistics().getCounts().incrementTables();
-                                        // Trigger next step and set status.
-                                        // TODO: Next Step
-                                        sf.get().setStatus(ReturnStatus.Status.NEXTSTEP);
-                                        // Launch the next step, which is the transfer.
-                                        runStatus.getOperationStatistics().getSuccesses().incrementTables();
-
-                                        migrationFuture.add(getTransferService().build(sf.get().getTableMirror()));
-                                        break;
-                                    case ERROR:
-                                        runStatus.getOperationStatistics().getCounts().incrementTables();
-                                        sf.get().setStatus(ReturnStatus.Status.NEXTSTEP);
-                                        break;
-                                    case FATAL:
-                                        runStatus.getOperationStatistics().getCounts().incrementTables();
-                                        runStatus.getOperationStatistics().getFailures().incrementTables();
-                                        rtn = Boolean.FALSE;
-                                        sf.get().setStatus(ReturnStatus.Status.NEXTSTEP);
-                                        log.error("FATAL: ", sf.get().getException());
-                                    case NEXTSTEP:
-                                        break;
-                                    case SKIP:
-                                        runStatus.getOperationStatistics().getCounts().incrementTables();
-                                        // Set for tables that are being removed.
-                                        runStatus.getOperationStatistics().getSkipped().incrementTables();
-                                        sf.get().setStatus(ReturnStatus.Status.NEXTSTEP);
-                                        break;
-                                }
-                            }
-                        } catch (InterruptedException | ExecutionException e) {
-                            rtn = Boolean.FALSE;
-                            log.error("Interrupted", e);
-                        }
-                    }
-                    if (check)
-                        break;
+                CompletableFuture.allOf(gtf.toArray(new CompletableFuture[0])).join();
+                // Check that all the CompletableFutures in 'gtf' passed with ReturnStatus.Status.SUCCESS.
+                for (CompletableFuture<ReturnStatus> sf : gtf) {
                     try {
-                        // Slow down the loop.
-                        sleep(2000);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
+                        ReturnStatus returnStatus = sf.get();
+                        if (nonNull(returnStatus)) {
+                            switch (returnStatus.getStatus()) {
+                                case SUCCESS:
+                                    runStatus.getOperationStatistics().getCounts().incrementTables();
+                                    // Trigger next step and set status.
+                                    // TODO: Next Step
+                                    sf.get().setStatus(ReturnStatus.Status.NEXTSTEP);
+                                    // Launch the next step, which is the transfer.
+                                    runStatus.getOperationStatistics().getSuccesses().incrementTables();
+
+                                    migrationFuture.add(getTransferService().build(sf.get().getTableMirror()));
+                                    break;
+                                case ERROR:
+                                    runStatus.getOperationStatistics().getCounts().incrementTables();
+                                    sf.get().setStatus(ReturnStatus.Status.NEXTSTEP);
+                                    break;
+                                case FATAL:
+                                    runStatus.getOperationStatistics().getCounts().incrementTables();
+                                    runStatus.getOperationStatistics().getFailures().incrementTables();
+                                    rtn = Boolean.FALSE;
+                                    sf.get().setStatus(ReturnStatus.Status.NEXTSTEP);
+                                    log.error("FATAL: ", sf.get().getException());
+                                case NEXTSTEP:
+                                    break;
+                                case SKIP:
+                                    runStatus.getOperationStatistics().getCounts().incrementTables();
+                                    // Set for tables that are being removed.
+                                    runStatus.getOperationStatistics().getSkipped().incrementTables();
+                                    sf.get().setStatus(ReturnStatus.Status.NEXTSTEP);
+                                    break;
+                            }
+                        }
+                    } catch (InterruptedException | ExecutionException | RuntimeException e) {
+                        log.error("Interrupted Table collection", e);
+                        rtn = Boolean.FALSE;
                     }
                 }
 
@@ -587,42 +574,32 @@ public class HMSMirrorAppService {
             Set<TableMirror> migrationExecutions = new HashSet<>();
 
             // Check the Migration Futures are done.
-            while (true) {
-                boolean check = true;
-                for (CompletableFuture<ReturnStatus> sf : migrationFuture) {
-                    if (!sf.isDone()) {
-                        check = false;
-                        continue;
-                    }
-                    try {
-                        if (sf.isDone() && sf.get() != null) {
-                            TableMirror tableMirror = sf.get().getTableMirror();
-                            // Only push SUCCESSFUL tables to the migrationExecutions list.
-                            if (sf.get().getStatus() == ReturnStatus.Status.SUCCESS) {
-                                // Success means add table the execution list.
-                                migrationExecutions.add(tableMirror);
-                            }
-                        }
-                    } catch (InterruptedException | ExecutionException e) {
-                        log.error("Interrupted", e);
-                        rtn = Boolean.FALSE;
-//                        throw new RuntimeException(e);
-                    }
-                }
-                if (check)
-                    break;
+            CompletableFuture.allOf(migrationFuture.toArray(new CompletableFuture[0])).join();
+
+            // Check that all the CompletableFutures in 'migrationFuture' passed with ReturnStatus.Status.SUCCESS.
+            for (CompletableFuture<ReturnStatus> sf : migrationFuture) {
                 try {
-                    // Slow down the loop.
-                    sleep(2000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                    ReturnStatus rs = sf.get();
+                    if (nonNull(rs)) {
+                        TableMirror tableMirror = rs.getTableMirror();
+                        // Only push SUCCESSFUL tables to the migrationExecutions list.
+                        if (rs.getStatus() == ReturnStatus.Status.SUCCESS) {
+                            // Success means add table the execution list.
+                            migrationExecutions.add(tableMirror);
+                        }
+                    } else {
+                        log.error("ReturnStatus is NULL in migration build");
+                    }
+                } catch (InterruptedException | ExecutionException | RuntimeException e) {
+                    log.error("Interrupted Building Migrations", e);
+                    rtn = Boolean.FALSE;
                 }
             }
+
             if (rtn) {
                 runStatus.setStage(StageEnum.BUILDING_TABLES, CollectionEnum.COMPLETED);
             } else {
                 runStatus.setStage(StageEnum.BUILDING_TABLES, CollectionEnum.ERRORED);
-//                runStatus.addError(MessageCode.BUILDING_TABLES_ISSUE);
             }
 
             migrationFuture.clear(); // reset
@@ -682,41 +659,31 @@ public class HMSMirrorAppService {
                         migrationFuture.add(getTransferService().execute(tableMirror));
                     }
 
-                    // Check the Migration Futures are done.
-                    while (true) {
-                        boolean check = true;
-                        for (CompletableFuture<ReturnStatus> sf : migrationFuture) {
-                            if (!sf.isDone()) {
-                                check = false;
-                                break;
-                            }
-                            try {
-                                if (sf.isDone() && sf.get() != null) {
-                                    TableMirror tableMirror = sf.get().getTableMirror();
-                                    if (sf.get().getStatus() == ReturnStatus.Status.ERROR) {
-                                        // Check if the table was removed, so that's not a processing error.
-                                        if (tableMirror != null) {
-                                            if (!tableMirror.isRemove()) {
-                                                rtn = Boolean.FALSE;
-                                            }
+                    // Wait for all the CompletableFutures to finish.
+                    CompletableFuture.allOf(migrationFuture.toArray(new CompletableFuture[0])).join();
+                    // Check that all the CompletableFutures in 'migrationFuture' passed with ReturnStatus.Status.SUCCESS.
+                    for (CompletableFuture<ReturnStatus> sf : migrationFuture) {
+                        try {
+                            ReturnStatus rs = sf.get();
+                            if (nonNull(rs)) {
+                                TableMirror tableMirror = rs.getTableMirror();
+                                if (rs.getStatus() == ReturnStatus.Status.ERROR) {
+                                    // Check if the table was removed, so that's not a processing error.
+                                    if (tableMirror != null) {
+                                        if (!tableMirror.isRemove()) {
+                                            rtn = Boolean.FALSE;
                                         }
                                     }
                                 }
-                            } catch (InterruptedException | ExecutionException e) {
-                                log.error("Interrupted", e);
-                                rtn = Boolean.FALSE;
-//                        throw new RuntimeException(e);
+                            } else {
+                                log.error("ReturnStatus is NULL in migrationFuture");
                             }
-                        }
-                        if (check)
-                            break;
-                        try {
-                            // Slow down the loop.
-                            sleep(2000);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
+                        } catch (InterruptedException | ExecutionException | RuntimeException e) {
+                            log.error("Interrupted Migration Executions", e);
+                            rtn = Boolean.FALSE;
                         }
                     }
+
                     // If still TRUE, then we're good.
                     if (rtn) {
                         runStatus.setStage(StageEnum.PROCESSING_TABLES, CollectionEnum.COMPLETED);

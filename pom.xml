@@ -28,7 +28,7 @@
 
     <groupId>com.cloudera.utils.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>3.0.0.3</version>
+    <version>3.0.0.4</version>
     <packaging>jar</packaging>
 
     <name>hms-mirror</name>
