@@ -1,5 +1,25 @@
 # Troubleshooting
 
+## Error on Startup `cannot access LdapCtxFactory`
+
+This happens with `hms-mirror` 3.0.0.1-3.0.0.4 and **OracleJDK 17**.
+
+**Error**
+```
+Caused by: java.lang.IllegalStateException: java.lang.IllegalAccessError: class org.apache.hadoop.security.LdapGroupsMapping 
+  (in unnamed module @0x30ee2816) cannot access class com.sun.jndi.ldap.LdapCtxFactory (in module java.naming) 
+   because module java.naming does not export com.sun.jndi.ldap to unnamed module @0x30ee2816
+```
+
+**Solution**
+The OracleJDK 17 is pretty strict about accessing modules with older code compiled with Java 8.  The hadoop common libraries we're using where compiled with JDK 8 and are trying to access the `LdapCtxFactory` class in the `java.naming` module.
+
+Add the following environment variable before starting `hms-mirror`:
+
+```bash
+export JAVA_OPTS="--add-exports java.naming/com.sun.jndi.ldap=ALL-UNNAMED"
+````
+
 ## Application doesn't seem to be making progress
 
 All the counters for table processing aren't moving (review the hms-mirror.log) or (1.6.1.0+) the on screen logging of what tables are being added and metadata collected for has stopped.

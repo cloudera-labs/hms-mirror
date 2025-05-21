@@ -22,13 +22,13 @@
     <parent>
         <groupId>com.cloudera.utils</groupId>
         <artifactId>hadoop.parent</artifactId>
-        <version>1.4.0.0</version>
+        <version>1.5.0.0</version>
         <relativePath>../cloudera-utils</relativePath>
     </parent>
 
     <groupId>com.cloudera.utils.hadoop</groupId>
     <artifactId>hms-mirror</artifactId>
-    <version>3.0.0.4</version>
+    <version>3.1.0.0</version>
     <packaging>jar</packaging>
 
     <name>hms-mirror</name>
@@ -53,7 +53,7 @@
         <commonmark.version>0.17.1</commonmark.version>
         <cdp.scope>compile</cdp.scope>
 
-        <hadoop-cli.version>3.1.0.1</hadoop-cli.version>
+        <hadoop-cli.version>3.2.0.0</hadoop-cli.version>
         <hive-sre.version>3.0.1.8</hive-sre.version>
 
     </properties>
@@ -84,7 +84,7 @@
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-mapreduce</artifactId>
-            <version>${hadoop.version}.${cdp.version}</version>
+            <version>${hadoop.version}</version>
             <scope>${cdp.scope}</scope>
             <type>pom</type>
             <exclusions>
@@ -113,7 +113,7 @@
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-distcp</artifactId>
-            <version>${hadoop.version}.${cdp.version}</version>
+            <version>${hadoop.version}</version>
             <scope>${cdp.scope}</scope>
         </dependency>
 
@@ -206,6 +206,7 @@
         <plugins>
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
                 <configuration>
                     <archive>
                         <manifest>
