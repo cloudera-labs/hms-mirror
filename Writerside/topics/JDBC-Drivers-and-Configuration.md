@@ -1,8 +1,10 @@
 # Hive JDBC Drivers and Configuration
 
-`hms-mirror` requires JDBC drivers to connect to the various end-points needed to perform tasks.  The `LEFT` and `RIGHT` cluster endpoints for HiveServer2 require the standalone JDBC drivers that are specific to that Hive version.
+`hms-mirror` requires JDBC drivers to connect to the various end-points needed to perform tasks. The `LEFT` and `RIGHT`
+cluster endpoints for HiveServer2 require the standalone JDBC drivers that are specific to that Hive version.
 
-`hms-mirror` supports the Apache Hive packaged **standalone** drivers that are found with your distribution.  You can find a copy of this driver in: 
+`hms-mirror` supports the Apache Hive packaged **standalone** drivers that are found with your distribution. You can
+find a copy of this driver in:
 
 | Platform | Driver Location/Pattern                                                              |
 |----------|--------------------------------------------------------------------------------------|
@@ -10,10 +12,13 @@
 | CDP      | `/opt/cloudera/parcels/CDH/jars/hive-jdbc-<hive-platform-version>-standalone.jar`    |
 |          |                                                                                      |
 
+For CDP, we also support to Cloudera JDBC driver found and maintained at on
+the [Cloudera Hive JDBC Downloads Page](https://www.cloudera.com/downloads/connectors/hive/jdbc). Note that the URL
+configurations between the Apache and Cloudera JDBC drivers are different.
 
-For CDP, we also support to Cloudera JDBC driver found and maintained at on the [Cloudera Hive JDBC Downloads Page](https://www.cloudera.com/downloads/connectors/hive/jdbc).  Note that the URL configurations between the Apache and Cloudera JDBC drivers are different.
-
-Hive JDBC Drivers need to be inline with the version of HS2 you're connecting to.  If the cluster is an HDP cluster, get the appropriate **standalone** driver from that cluster.  These drivers(jar files) should be stored locally on the machine running `hms-mirror` and referenced in the configuration file. 
+Hive JDBC Drivers need to be inline with the version of HS2 you're connecting to. If the cluster is an HDP cluster, get
+the appropriate **standalone** driver from that cluster. These drivers(jar files) should be stored locally on the
+machine running `hms-mirror` and referenced in the configuration file.
 
 <warning>
 Do NOT put these drivers in ${HOME}/.hms-mirror/aux_libs or any sub-directory of that location.  `hms-mirror` connects to different versions of Hive and the drivers need to be specific to the version of Hive you're connecting to.  To do this, we need to manage the classpath and the drivers in a more controlled manner.  They should NOT be in the applications main classpath
@@ -37,18 +42,120 @@ hiveServer2:
     user: "xxx"
     password: "xxx"
 ```
+
 </tab>
 </tabs>
 
-Starting with the Apache Standalone driver shipped with **CDP 7.1.8 cummulative** hot fix parcels, you will need to include additional jars in the configuration `jarFile` configuration, due to some packaging adjustments.
+Starting with the Apache Standalone driver shipped with **CDP 7.1.8 cummulative** hot fix parcels, you will need to
+include additional jars in the configuration `jarFile` configuration, due to some packaging adjustments.
 
-For example: `jarFile: "<cdp_parcel_jars>/hive-jdbc-3.1.3000.7.1.8.28-1-standalone.jar:<cdp_parcel_jars>/log4j-1.2-api-2.18.0.jar:<cdp_parcel_jars>/log4j-api-2.18.0.jar:<cdp_parcel_jars>/log4j-core-2.18.0.jar"` NOTE: The jar file with the Hive Driver MUST be the first in the list of jar files.
+For example:
+`jarFile: "<cdp_parcel_jars>/hive-jdbc-3.1.3000.7.1.8.28-1-standalone.jar:<cdp_parcel_jars>/log4j-1.2-api-2.18.0.jar:<cdp_parcel_jars>/log4j-api-2.18.0.jar:<cdp_parcel_jars>/log4j-core-2.18.0.jar"`
+NOTE: The jar file with the Hive Driver MUST be the first in the list of jar files.
 
 The Cloudera JDBC driver shouldn't require additional jars.
 
+## Valid JDBC Driver Parameters (v3.1.0.1+)
+
+Each JDBC driver accepts specific parameters in the connection string URL. The Cloudera JDBC Driver is stricter about valid parameters, while the Apache Hive JDBC Driver is more lenient. The table below lists the valid parameters for each driver.
+
+| Apache Hive JDBC Driver | Cloudera JDBC Driver          |
+|-------------------------|-------------------------------|
+| host                    | AllowSelfSignedCerts          |
+| port                    | AsyncExecPollInterval         |
+| dbName                  | AuthMech                      |
+| sessionConfs            | BinaryColumnLength            |
+| hiveConfs               | CAIssuedCertsMismatch         |
+| hiveVars                | CatalogSchemaSwitch           |
+| transportMode           | DecimalColumnScale            |
+| principal               | DefaultStringColumnLength     |
+| saslQop                 | DelegationToken               |
+| user                    | DelegationUID                 |
+| password                | FastConnection                |
+| ssl                     | httpPath                      |
+| sslTrustStore           | IgnoreTransactions            |
+| trustStorePassword      | JWTString                     |
+| serviceDiscoveryMode    | KrbAuthType                   |
+| zookeeperKeyStoreType   | KrbHostFQDN                   |
+| zookeeperNamespace      | KrbRealm                      |
+| retries                 | KrbServiceName                |
+|                         | LoginTimeout                  |
+|                         | LogLevel                      |
+|                         | LogPath                       |
+|                         | NonRowcountQueryPrefixes      |
+|                         | PreparedMetaLimitZero         |
+|                         | PWD                           |
+|                         | RowsFetchedPerBlock           |
+|                         | SocketTimeout                 |
+|                         | SSL                           |
+|                         | SSLKeyStore                   |
+|                         | SSLKeyStoreProvider           |
+|                         | SSLKeyStorePwd                |
+|                         | SSLKeyStoreType               |
+|                         | SSLTrustStore                 |
+|                         | SSLTrustStoreProvider         |
+|                         | SSLTrustStorePwd              |
+|                         | SSLTrustStoreType             |
+|                         | TransportMode                 |
+|                         | UID                           |
+|                         | UseNativeQuery                |
+|                         | zk                            |
+
+## Connection Pooling Properties
+
+`hms-mirror` is a threaded application that uses connection pools to manage connections to Hive Server2 instances. For legacy platforms (e.g., HDP2 or CDH), the Apache Commons DBCP2 connection pool is used. For modern platforms (e.g., HDP3 or CDP), the HikariCP connection pool is used.
+
+Each connection pool has configurable properties to tune performance. The default settings are generally effective, but you can adjust them as needed. The following default overrides are applied:
+
+```yaml
+hikari:
+  idleTimeout: 10000
+  connectionTestQuery: "SELECT 1"
+  validationTimeout: 30000
+  initializationFailTimeout: 10000
+dbcp2:
+  maxWaitMillis: 10000
+  validationQuery: "SELECT 1"
+```
+
+### Customizing Connection Pool Settings (v3.1.0.1+)
+
+You can override these settings or add others when starting `hms-mirror` via the CLI or Web UI. In the Web UI, settings apply to all connections for every job.
+
+- **HikariCP Parameters**: See [HikariCP Configuration](https://github.com/brettwooldridge/HikariCP?tab=readme-ov-file#gear-configuration-knobs-baby).
+- **DBCP2 Parameters**: See [Apache Commons DBCP2 Configuration](https://commons.apache.org/proper/commons-dbcp/configuration.html).
+
+To add the parameters at the commandline when starting `hms-mirror`, use the `--spring.dbcp2.` or `--spring.hikari.` prefix followed by the parameter name in a `key=value` pair. Examples:
+
+- Set `maxWaitMillis` for DBCP2 and Run the CLI.
+  ```bash
+  hms-mirror --spring.dbcp2.maxWaitMillis=10000 ...
+  ```
+
+- Set multiple parameters (e.g., `maxWaitMillis` and `validationQuery` for DBCP2) and Run the CLI.
+  ```bash
+  hms-mirror --spring.dbcp2.maxWaitMillis=10000 --spring.dbcp2.validationQuery="SELECT 1" ...
+  ```
+
+- Set parameters for different pools (e.g., DBCP2 and HikariCP) and Run the CLI.
+  ```bash
+  hms-mirror --spring.dbcp2.maxWaitMillis=10000 --spring.hikari.idleTimeout=5000 ...
+  ```
+
+- Set parameters for different pools (e.g., DBCP2 and HikariCP) and Run the CLI.
+  ```bash
+  hms-mirror --spring.dbcp2.maxWaitMillis=10000 --spring.hikari.idleTimeout=5000 ...
+  ```
+
+- Set parameters for different pools (e.g., DBCP2 and HikariCP) and Run the Web UI.
+  ```bash
+  hms-mirror --service --spring.dbcp2.maxWaitMillis=10000 --spring.hikari.idleTimeout=5000 ...
+  ```
+
 ## Kerberized HS2 Connections
 
-We currently have validated **kerberos** HS2 connections to CDP clusters using the Hive JDBC driver you'll find in your target CDP distribution.
+We currently have validated **kerberos** HS2 connections to CDP clusters using the Hive JDBC driver you'll find in your
+target CDP distribution.
 
 <warning>
 Connections to Kerberized HS2 endpoints on NON-CDP clusters is NOT currently supported.  You will need to use KNOX in HDP to connect to a kerberized HS2 endpoint. For CDH, you can setup a non-kerberized HS2 endpoint to support the migration.
@@ -58,29 +165,37 @@ Connections to Kerberized HS2 endpoints on NON-CDP clusters is NOT currently sup
 This process has CHANGED compared to v1.x of `hms-mirror`.  Please adjust your configurations accordingly.
 </note>
 
-We NO LONGER need to have the hive JDBC driver in the `aux_libs` directory ($HOME/.hms-mirror/aux_libs).  The driver should be stored locally on the machine running `hms-mirror` and referenced in the configuration file via the `jarFile' attribute.  Follow the same procedure as above for **Kerberized** connections as is done for non-kerberized connections.
+We NO LONGER need to have the hive JDBC driver in the `aux_libs` directory ($HOME/.hms-mirror/aux_libs). The driver
+should be stored locally on the machine running `hms-mirror` and referenced in the configuration file via the `jarFile'
+attribute. Follow the same procedure as above for **Kerberized** connections as is done for non-kerberized connections.
 
 ![hs2_kerb_config.png](hs2_kerb_config.png)
 
-At this point, just like the previous version of `hms-mirror`, you'll need to have a valid kerberos ticket on the machine running `hms-mirror`.  This is required to authenticate to the kerberized HS2 endpoint.
+At this point, just like the previous version of `hms-mirror`, you'll need to have a valid kerberos ticket on the
+machine running `hms-mirror`. This is required to authenticate to the kerberized HS2 endpoint.
 
-REMOVE all 'hive' related JDBC jar files from `aux_libs`.  Leaving them there WILL cause conflicts during the service startup.
+REMOVE all 'hive' related JDBC jar files from `aux_libs`. Leaving them there WILL cause conflicts during the service
+startup.
 
 ## Validating HS2 Connectivity
 
-Once you have everything configured, you can validate all connections required by `hms-mirror` through the 
-'CONNECTIONS --> Validate' left menu option in the UI.  This will test the connectivity to the various endpoints 
+Once you have everything configured, you can validate all connections required by `hms-mirror` through the
+'CONNECTIONS --> Validate' left menu option in the UI. This will test the connectivity to the various endpoints
 required by `hms-mirror`.
 
 ## HDP 3 Connections
 
-The JDBC driver for HDP Hive 3 has some embedded classes for `log4j` that conflict with the `log4j` classes in the `hms-mirror` application.  To resolve this, you can use the Cloudera Apache JDBC driver for HDP 3 Hive.  This driver is compatible with HDP 3 and does not have the `log4j` conflict.
+The JDBC driver for HDP Hive 3 has some embedded classes for `log4j` that conflict with the `log4j` classes in the
+`hms-mirror` application. To resolve this, you can use the Cloudera Apache JDBC driver for HDP 3 Hive. This driver is
+compatible with HDP 3 and does not have the `log4j` conflict.
 
 ## Hive JDBC Driver Connection Pool Settings
 
-Hive 1/2, which includes HDP 2.x and CDH 5.x / 6.x environments will use the Apache Commons DBCP2 Connection Pool libraries. Hive 3/4, which includes HDP 3.x and CDH 7.x environments will use the HikariCP Connection Pool libraries.
+Hive 1/2, which includes HDP 2.x and CDH 5.x / 6.x environments will use the Apache Commons DBCP2 Connection Pool
+libraries. Hive 3/4, which includes HDP 3.x and CDH 7.x environments will use the HikariCP Connection Pool libraries.
 
-There are a few settings that you can adjust in the `hms-mirror` configuration file to tune the connection pool settings.
+There are a few settings that you can adjust in the `hms-mirror` configuration file to tune the connection pool
+settings.
 
 For the DBCP2 connection pool, you can set the `maxWaitMillis` setting, which has a default of `5000` milliseconds.
 
@@ -94,12 +209,16 @@ The default setting have been pretty successful in our testing, but you can adju
 <tabs>
 <tab title="CLI">
 
-The DBCP2 connection pool settings can be adjustment through the CLI via the `-pt|--pass-through` option using one of more of the following setting:
+The DBCP2 connection pool settings can be adjustment through the CLI via the `-pt|--pass-through` option using one of
+more of the following setting:
+
 - `dbcp2.maxWaitMillis`
 
 EG: `-pt dbcp2.maxWaitMillis=10000`
 
-The Hikari connection pool settings can be adjusted through the CLI via the `-pt|--pass-through` option using one of more of the following setting:
+The Hikari connection pool settings can be adjusted through the CLI via the `-pt|--pass-through` option using one of
+more of the following setting:
+
 - `hikari.connectionTimeout`
 - `hikari.validationTimeout`
 - `hikari.initializationFailTimeout`

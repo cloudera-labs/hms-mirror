@@ -91,40 +91,9 @@
                        readonly/>
             </div>
             <div class="pure-control-group">
-                <label
-                        th:text="#{hive.server2.max.wait.ms}"/>
-                <input type="number"
-                       autocomplete="off"
-                       th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[maxWaitMillis]}"/>
+                    <a th:text="#{jdbc.connection.pooling.docs}"
+                       th:href="#{docs.link('jdbc-drivers-and-configuration.html#valid-jdbc-driver-parameters-v3-1-0-1')}" target="_blank"/>
             </div>
-            <div class="pure-control-group">
-                <label
-                        th:text="#{hive.server2.hikari.connectionTimeout}"/>
-                <input type="number"
-                       autocomplete="off"
-                       th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[hikari.connectionTimeout]}"/>
-            </div>
-            <div class="pure-control-group">
-                <label
-                        th:text="#{hive.server2.hikari.validationTimeout}"/>
-                <input type="number"
-                       autocomplete="off"
-                       th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[hikari.validationTimeout]}"/>
-            </div>
-            <div class="pure-control-group">
-                <label
-                        th:text="#{hive.server2.hikari.initializationFailTimeout}"/>
-                <input type="number"
-                       autocomplete="off"
-                       th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[hikari.initializationFailTimeout]}"/>
-            </div>
-            <!--                                    <div class="pure-control-group">-->
-            <!--                                        <label for="hs2maxTotal" th:text="#{hive.server2.max.total}"/>-->
-            <!--            <input class="pure-input-3-4" type="hidden"-->
-            <!--                   autocomplete="off"-->
-            <!--                   th:field="*{clusters[__${env}__].hiveServer2.connectionProperties[maxTotal]}"/>-->
-            <!--                                               th:value="${CONFIG.clusters[__${env}__].hiveServer2.connectionProperties[maxTotal]}"/>-->
-            <!--                                    </div>-->
             <div class="pure-control-group">
                 <label th:text="#{hive.server2.jars}"/>
                 <textarea rows="2" cols="50"

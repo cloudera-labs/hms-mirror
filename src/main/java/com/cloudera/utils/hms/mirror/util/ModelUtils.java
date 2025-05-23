@@ -21,6 +21,7 @@ import com.cloudera.utils.hive.config.DBStore;
 import com.cloudera.utils.hms.mirror.domain.support.ConnectionPoolType;
 import com.cloudera.utils.hms.mirror.domain.support.DataMovementStrategyEnum;
 import com.cloudera.utils.hms.mirror.domain.support.DataStrategyEnum;
+import com.cloudera.utils.hms.mirror.domain.support.HiveDriverEnum;
 import com.cloudera.utils.hms.mirror.web.controller.ControllerReferences;
 import lombok.extern.slf4j.Slf4j;
 
@@ -106,8 +107,7 @@ public class ModelUtils implements ControllerReferences {
     }
 
     public static void configSupportedHiveDriverClassesForModel(Map<String, Object> map) {
-        map.put(SUPPORTED_HIVE_DRIVER_CLASSES,
-                new String[]{"org.apache.hive.jdbc.HiveDriver", "com.cloudera.hive.jdbc.HS2Driver"});
+        map.put(SUPPORTED_HIVE_DRIVER_CLASSES, HiveDriverEnum.getDriverClassNames());
     }
 
     public static void enumForMap(Class<?> clazz, Map<String, Object> map) {

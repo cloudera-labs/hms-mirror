@@ -29,13 +29,6 @@ import java.sql.SQLException;
 
 public interface ConnectionPools {
 
-    String HIKARI_CONNECTION_TIMEOUT = "hikari.connectionTimeout";
-    String HIKARI_CONNECTION_TIMEOUT_DEFAULT = "60000";
-    String HIKARI_VALIDATION_TIMEOUT = "hikari.validationTimeout";
-    String HIKARI_VALIDATION_TIMEOUT_DEFAULT = "30000";
-    String HIKARI_INITIALIZATION_FAIL_TIMEOUT = "hikari.initializationFailTimeout";
-    String HIKARI_INITIALIZATION_FAIL_TIMEOUT_DEFAULT = "10000";
-
     void addHiveServer2(Environment environment, HiveServer2Config hiveServer2);
 
     void addMetastoreDirect(Environment environment, DBStore dbStore);

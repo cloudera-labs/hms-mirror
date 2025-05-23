@@ -23,6 +23,7 @@ import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
 import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
+import com.cloudera.utils.hms.mirror.service.ConnectionPoolService;
 import com.cloudera.utils.hms.mirror.service.PasswordService;
 import com.cloudera.utils.hms.util.DriverUtils;
 import com.zaxxer.hikari.HikariConfig;
@@ -51,6 +52,7 @@ public abstract class ConnectionPoolsBase implements ConnectionPools {
     private ConnectionState connectionState = ConnectionState.DISCONNECTED;
     protected ExecuteSession executeSession;
     protected PasswordService passwordService;
+    protected ConnectionPoolService connectionPoolService;
 
     protected final Map<Environment, DataSource> hs2DataSources = new TreeMap<>();
     protected final Map<Environment, Driver> hs2Drivers = new TreeMap<>();

@@ -63,13 +63,6 @@ public class HmsMirrorCommandLineOptions {
     }
 
 
-//    public static void main(String[] args) {
-//        HmsMirrorCommandLineOptions pcli = new HmsMirrorCommandLineOptions();
-//        String[] convertedArgs = pcli.toSpringBootOption(Boolean.TRUE, args);
-//        String newCmdLn = String.join(" ", convertedArgs);
-//        System.out.println(newCmdLn);
-//    }
-
     @Bean
     @Order(1)
     @ConditionalOnProperty(
@@ -635,74 +628,6 @@ public class HmsMirrorCommandLineOptions {
     @Bean
     @Order(1)
     @ConditionalOnProperty(
-            name = "dbcp2.maxWaitMillis")
-    CommandLineRunner configDBCP2MaxWaitMillis(HmsMirrorConfig config, @Value("${dbcp2.maxWaitMillis}") String value) {
-        return args -> {
-            log.info("dbcp2.maxWaitMillis: {}", value);
-            // Get Array of Environment values for LEFT and RIGHT
-            Environment[] envs = new Environment[]{Environment.LEFT, Environment.RIGHT};
-            for (Environment env: envs) {
-                if (nonNull(config.getCluster(env)) && nonNull(config.getCluster(env).getHiveServer2())) {
-                    config.getCluster(env).getHiveServer2().getConnectionProperties().put("maxWaitMillis", value);
-                }
-            }
-        };
-    }
-
-    @Bean
-    @Order(1)
-    @ConditionalOnProperty(
-            name = "hikari.connectionTimeout")
-    CommandLineRunner configHikariConnectionTimeout(HmsMirrorConfig config, @Value("${hikari.connectionTimeout}") String value) {
-        return args -> {
-            log.info("hikari.connectionTimeout: {}", value);
-            // Get Array of Environment values for LEFT and RIGHT
-            Environment[] envs = new Environment[]{Environment.LEFT, Environment.RIGHT};
-            for (Environment env: envs) {
-                if (nonNull(config.getCluster(env)) && nonNull(config.getCluster(env).getHiveServer2())) {
-                    config.getCluster(env).getHiveServer2().getConnectionProperties().put("hikari.connectionTimeout", value);
-                }
-            }
-        };
-    }
-
-    @Bean
-    @Order(1)
-    @ConditionalOnProperty(
-            name = "hikari.validationTimeout")
-    CommandLineRunner configHikariValidationTimeout(HmsMirrorConfig config, @Value("${hikari.validationTimeout}") String value) {
-        return args -> {
-            log.info("hikari.validationTimeout: {}", value);
-            // Get Array of Environment values for LEFT and RIGHT
-            Environment[] envs = new Environment[]{Environment.LEFT, Environment.RIGHT};
-            for (Environment env: envs) {
-                if (nonNull(config.getCluster(env)) && nonNull(config.getCluster(env).getHiveServer2())) {
-                    config.getCluster(env).getHiveServer2().getConnectionProperties().put("hikari.validationTimeout", value);
-                }
-            }
-        };
-    }
-
-    @Bean
-    @Order(1)
-    @ConditionalOnProperty(
-            name = "hikari.initializationFailTimeout")
-    CommandLineRunner configHikariInitializationFailTimeout(HmsMirrorConfig config, @Value("${hikari.initializationFailTimeout}") String value) {
-        return args -> {
-            log.info("hikari.initializationFailTimeout: {}", value);
-            // Get Array of Environment values for LEFT and RIGHT
-            Environment[] envs = new Environment[]{Environment.LEFT, Environment.RIGHT};
-            for (Environment env: envs) {
-                if (nonNull(config.getCluster(env)) && nonNull(config.getCluster(env).getHiveServer2())) {
-                    config.getCluster(env).getHiveServer2().getConnectionProperties().put("hikari.initializationFailTimeout", value);
-                }
-            }
-        };
-    }
-
-    @Bean
-    @Order(1)
-    @ConditionalOnProperty(
             name = "hms-mirror.config.iceberg-table-property-overrides")
     CommandLineRunner configIcebergTablePropertyOverrides(HmsMirrorConfig config, @Value("${hms-mirror.config.iceberg-table-property-overrides}") String value) {
         return args -> {
@@ -733,20 +658,11 @@ public class HmsMirrorCommandLineOptions {
     CommandLineRunner configInPlace(HmsMirrorConfig hmsMirrorConfig) {
         return args -> {
             log.info("in-place downgrade acid tables: {}", Boolean.TRUE);
-//            if (hmsMirrorConfig.getMigrateACID().isOn()) {
-                // Downgrade ACID tables inplace
-                // Only work on LEFT cluster definition.
-//                hmsMirrorConfig.getMigrateACID().setDowngrade(Boolean.TRUE);
                 hmsMirrorConfig.getMigrateACID().setInplace(Boolean.TRUE);
-                // For 'in-place' downgrade, only applies to ACID tables.
-                // Implies `-mao`.
-//                log.info("Only ACID Tables will be looked at since 'ip' was specified.");
-//                hmsMirrorConfig.getMigrateACID().setOnly(Boolean.TRUE);
                 // Remove RIGHT cluster and enforce mao
                 log.info("RIGHT Cluster definition will be disconnected if exists since this is a LEFT cluster ONLY operation");
                 if (nonNull(hmsMirrorConfig.getCluster(Environment.RIGHT)) && nonNull(hmsMirrorConfig.getCluster(Environment.RIGHT).getHiveServer2()))
                     hmsMirrorConfig.getCluster(Environment.RIGHT).getHiveServer2().setDisconnected(Boolean.TRUE);
-//            }
         };
     }
 
@@ -1033,30 +949,6 @@ public class HmsMirrorCommandLineOptions {
             hmsMirrorConfig.setResetRight(Boolean.FALSE);
         };
     }
-
-//    @Bean
-//    @Order(2)
-//    @ConditionalOnProperty(
-//            name = "hms-mirror.config.reset-to-default-location",
-//            havingValue = "true")
-//    CommandLineRunner configResetToDefaultLocationTrue(HmsMirrorConfig hmsMirrorConfig) {
-//        return args -> {
-//            log.info("reset-to-default-location: {}", Boolean.TRUE);
-//            hmsMirrorConfig.setResetToDefaultLocation(Boolean.TRUE);
-//        };
-//    }
-
-//    @Bean
-//    @Order(2)
-//    @ConditionalOnProperty(
-//            name = "hms-mirror.config.reset-to-default-location",
-//            havingValue = "false")
-//    CommandLineRunner configResetToDefaultLocationFalse(HmsMirrorConfig hmsMirrorConfig) {
-//        return args -> {
-//            log.info("reset-to-default-location: {}", Boolean.FALSE);
-//            hmsMirrorConfig.setResetToDefaultLocation(Boolean.FALSE);
-//        };
-//    }
 
     @Bean
     @Order(1)
@@ -2165,8 +2057,22 @@ public class HmsMirrorCommandLineOptions {
     }
 
     public static String[] toSpringBootOption(Boolean withoutWeb, String[] args) {
-        CommandLine cmd = getCommandLine(args);
+        List<String> options = new ArrayList(Arrays.asList(args));
         List<String> springOptions = new ArrayList<>();
+
+        // Remove any item from options that starts with '--spring.' and place them into springOptions.
+        // This is the way Spring Boot handles the command line arguments.
+        for (int i = options.size() - 1; i >= 0; i--) {
+            String option = options.get(i);
+            if (option.startsWith("--spring.")) {
+                springOptions.add(option.replaceFirst("--spring.", "--"));
+                options.remove(i);
+            }
+        }
+
+        String[] reducedArgs = options.toArray(new String[0]);
+        CommandLine cmd = getCommandLine(reducedArgs);
+
         // Turn off web ui
         if (withoutWeb) {
             springOptions.add("--spring.main.web-application-type=none");

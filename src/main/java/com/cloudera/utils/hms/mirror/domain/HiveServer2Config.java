@@ -17,6 +17,7 @@
 
 package com.cloudera.utils.hms.mirror.domain;
 
+import com.cloudera.utils.hms.mirror.domain.support.HiveDriverEnum;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
@@ -31,14 +32,17 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Setter
 public class HiveServer2Config implements Cloneable {
     @JsonIgnore
-    public static final String APACHE_HIVE_DRIVER_CLASS_NAME = "org.apache.hive.jdbc.HiveDriver";
+    public static final String APACHE_HIVE_DRIVER = "org.apache.hive.jdbc.HiveDriver";
+    @JsonIgnore
+    public static final String CLOUDERA_HIVE_DRIVER = "com.cloudera.hive.jdbc.HS2Driver";
+
     @Schema(description = "The JDBC URI for the HiveServer2 connections. EG: jdbc:hive2://<host>:<port>")
     private String uri = null;
     private boolean disconnected = Boolean.FALSE;
     @Schema(description = "The connections properties for the HiveServer2 connections. EG: user, password, etc.")
     private Properties connectionProperties = new Properties();
     @Schema(description = "The driver class name for the HiveServer2 connections. Default is org.apache.hive.jdbc.HiveDriver. Specify this if you are using a different driver.")
-    private String driverClassName = APACHE_HIVE_DRIVER_CLASS_NAME; // default driver.
+    private String driverClassName = APACHE_HIVE_DRIVER; // default driver.
     @Schema(description = "The path to the jar file for the HiveServer2 connections. Must be specified for non-kerberos connections.  Should be null for kerberos connections and driver should be in 'aux_libs'.")
     private String jarFile = null;
     private String version = null;

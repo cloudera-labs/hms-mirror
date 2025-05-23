@@ -25,6 +25,8 @@ import com.cloudera.utils.hms.mirror.connections.ConnectionPools;
 import com.cloudera.utils.hms.mirror.connections.ConnectionPoolsDBCP2Impl;
 import com.cloudera.utils.hms.mirror.connections.ConnectionPoolsHikariImpl;
 import com.cloudera.utils.hms.mirror.connections.ConnectionPoolsHybridImpl;
+import com.cloudera.utils.hms.mirror.domain.DBCP2Properties;
+import com.cloudera.utils.hms.mirror.domain.HikariProperties;
 import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.support.*;
 import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
@@ -40,6 +42,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.cloudera.utils.hms.mirror.MessageCode.ENVIRONMENT_CONNECTION_ISSUE;
@@ -62,23 +65,29 @@ public class ConnectionPoolService {
     private final CliEnvironment cliEnvironment;
     private final ConfigService configService;
     private final PasswordService passwordService;
+    private final HikariProperties hikariProperties;
+    private final DBCP2Properties dbcp2Properties;
 
     /**
      * Constructor for ConnectionPoolService.
      *
      * @param environmentService Service for environment operations
-     * @param passwordService Service for password operations
-     * @param cliEnvironment CLI environment
-     * @param configService Service for configuration
+     * @param passwordService    Service for password operations
+     * @param cliEnvironment     CLI environment
+     * @param configService      Service for configuration
      */
-    public ConnectionPoolService(EnvironmentService environmentService, 
-                               PasswordService passwordService, 
-                               CliEnvironment cliEnvironment, 
-                               ConfigService configService) {
+    public ConnectionPoolService(EnvironmentService environmentService,
+                                 PasswordService passwordService,
+                                 CliEnvironment cliEnvironment,
+                                 ConfigService configService,
+                                 HikariProperties hikariProperties,
+                                 DBCP2Properties dbcp2Properties) {
         this.environmentService = environmentService;
         this.passwordService = passwordService;
         this.cliEnvironment = cliEnvironment;
         this.configService = configService;
+        this.hikariProperties = hikariProperties;
+        this.dbcp2Properties = dbcp2Properties;
         log.debug("ConnectionPoolService initialized");
     }
 
@@ -158,15 +167,15 @@ public class ConnectionPoolService {
         switch (cpt) {
             case DBCP2:
                 log.info("Using DBCP2 Connection Pooling Libraries");
-                rtn = new ConnectionPoolsDBCP2Impl(executeSession, passwordService);
+                rtn = new ConnectionPoolsDBCP2Impl(executeSession, passwordService, this);
                 break;
             case HIKARICP:
                 log.info("Using HIKARICP Connection Pooling Libraries");
-                rtn = new ConnectionPoolsHikariImpl(executeSession, passwordService);
+                rtn = new ConnectionPoolsHikariImpl(executeSession, passwordService, this);
                 break;
             case HYBRID:
                 log.info("Using HYBRID Connection Pooling Libraries");
-                rtn = new ConnectionPoolsHybridImpl(executeSession, passwordService);
+                rtn = new ConnectionPoolsHybridImpl(executeSession, passwordService, this);
                 break;
         }
         // Initialize the connections pools
@@ -462,11 +471,11 @@ public class ConnectionPoolService {
                         }
 
                         // Create an array of strings with various settings to run.
-                        String[] sessionSets = {
+                        // Only set this when we need to know we need compute and we need to establish a session.
+                        String[] sessionSets = config.isExecute()?new String[]{
                                 "SET hive.query.results.cache.enabled=false",
-                                "SET hive.fetch.task.conversion = none",
-                                "SELECT 1"
-                        };
+                                "SET hive.fetch.task.conversion = none"}:new String[0];
+
                         for (String s : sessionSets) {
                             connections.getHiveServer2Connections().get(target).getProperties().add(s);
                             log.info("Running session check: {} on {} connection", s, target);

@@ -35,6 +35,9 @@
     <logger name="com.cloudera.utils" level="${logging.threshold:-debug}" additivity="false">
         <appender-ref ref="RollingFile" />
     </logger>
+    <logger name="com.cloudera.utils.hms.mirror.connections" level="info" additivity="true">
+        <appender-ref ref="Console" />
+    </logger>
     <logger name="com.cloudera.utils.hms.mirror.cli.HmsMirrorCommandLineOptions" level="info" additivity="true">
         <appender-ref ref="Console" />
     </logger>
@@ -59,18 +62,22 @@
     <logger name="com.cloudera.utils.hms.mirror.web" level="debug" additivity="true">
         <appender-ref ref="Console" />
     </logger>
-    <logger name="com.zaxxer.hikari" level="warn" additivity="false">
+    <logger name="com.zaxxer.hikari" level="error" additivity="false">
         <appender-ref ref="RollingFile" />
         <appender-ref ref="Console" />
     </logger>
-    <logger name="org.apache" level="warn" additivity="false">
+    <logger name="org.apache" level="error" additivity="false">
         <appender-ref ref="RollingFile" />
         <appender-ref ref="Console" />
     </logger>
+<!--    <logger name="org.apache.hadoop.org.apache.zookeeper" level="fatal" additivity="false">-->
+<!--        <appender-ref ref="RollingFile" />-->
+<!--        <appender-ref ref="Console" />-->
+<!--    </logger>-->
     <logger name="com.jcabi" level="warn" additivity="false">
         <appender-ref ref="RollingFile" />
     </logger>
-    <logger name="org.apache.hadoop" level="warn" additivity="false">
+    <logger name="org.apache.hadoop" level="error" additivity="false">
         <appender-ref ref="RollingFile" />
         <appender-ref ref="Console" />
     </logger>

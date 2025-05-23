@@ -177,7 +177,7 @@ public class TableService {
     }
 
     public String getCreateStatement(TableMirror tableMirror, Environment environment) {
-        log.info("Getting CREATE statement for table: {} in environment: {}", tableMirror, environment);
+        log.info("Getting CREATE statement for table: {} in environment: {}", tableMirror.getName(), environment);
         String createStatement = null;
         try {
             // ...existing logic to get the statement...
@@ -224,7 +224,7 @@ public class TableService {
     public void getTableDefinition(TableMirror tableMirror, EnvironmentTable environmentTable, Environment environment) throws SQLException {
         final String tableId = String.format("%s:%s.%s",
                 environment, tableMirror.getParent().getName(), tableMirror.getName());
-        log.info("Fetching table definition for table: {} in environment: {}", tableMirror, environment);
+        log.info("Fetching table definition for table: {} in environment: {}", tableMirror.getName(), environment);
 //        EnvironmentTable environmentTable = null;
         log.info("Starting to get table definition for {}", tableId);
         HmsMirrorConfig config = executeSessionService.getSession().getConfig();
@@ -298,7 +298,7 @@ public class TableService {
 
     @Async("metadataThreadPool")
     public CompletableFuture<ReturnStatus> getTableMetadata(TableMirror tableMirror) {
-        log.info("Fetching table metadata asynchronously for table: {}", tableMirror);
+        log.info("Fetching table metadata asynchronously for table: {}", tableMirror.getName());
         ReturnStatus rtn = new ReturnStatus();
         // Preset and overwrite the status when an issue or anomoly occurs.
         rtn.setStatus(ReturnStatus.Status.SUCCESS);
@@ -370,7 +370,7 @@ public class TableService {
 
     @Async("metadataThreadPool")
     public CompletableFuture<ReturnStatus> getTables(DBMirror dbMirror) {
-        log.info("Fetching tables asynchronously for DBMirror: {}", dbMirror);
+        log.info("Fetching tables asynchronously for DBMirror: {}", dbMirror.getName());
         return CompletableFuture.supplyAsync(() -> {
             ReturnStatus rtn = new ReturnStatus();
             try {
@@ -402,7 +402,7 @@ public class TableService {
                 log.debug("Tables fetch completed for DBMirror: {}", dbMirror);
                 return rtn;
             } catch (Exception e) {
-                log.error("Error occurred while fetching tables for DBMirror: {}", dbMirror, e);
+                log.error("Error occurred while fetching tables for DBMirror: {}", dbMirror.getName(), e);
                 rtn.setStatus(ReturnStatus.Status.ERROR);
                 rtn.setException(e);
                 return rtn;
@@ -411,7 +411,7 @@ public class TableService {
     }
 
     public void getTables(DBMirror dbMirror, Environment environment) throws SQLException {
-        log.info("Fetching tables for DBMirror: {} in environment: {}", dbMirror, environment);
+        log.info("Fetching tables for DBMirror: {} in environment: {}", dbMirror.getName(), environment);
         Connection conn = null;
         String database = null;
         try {
@@ -447,7 +447,7 @@ public class TableService {
             }
             log.debug("Fetched tables for DBMirror: {}, environment: {}", dbMirror, environment);
         } catch (SQLException e) {
-            log.error("SQLException while fetching tables for DBMirror: {}, environment: {}", dbMirror, environment, e);
+            log.error("SQLException while fetching tables for DBMirror: {}, environment: {}", dbMirror.getName(), environment, e);
             dbMirror.addIssue(environment, (database != null ? database : "unknown") + " " + e.getMessage());
             throw e;
         } finally {
@@ -555,7 +555,7 @@ public class TableService {
 
     public void
     loadSchemaFromCatalog(TableMirror tableMirror, Environment environment) throws SQLException {
-        log.info("Loading schema from catalog for table: {} in environment: {}", tableMirror, environment);
+        log.info("Loading schema from catalog for table: {} in environment: {}", tableMirror.getName(), environment);
         // ...logic...
         String database = resolveDatabaseName(tableMirror, environment);
         EnvironmentTable environmentTable = tableMirror.getEnvironmentTable(environment);
@@ -602,7 +602,7 @@ public class TableService {
     }
 
     private List<String> fetchTableDefinition(Statement statement, TableMirror tableMirror, String database, Environment environment) throws SQLException {
-        log.debug("Fetching table definition for table: {} from database: {} in environment: {}", tableMirror, database, environment);
+        log.debug("Fetching table definition for table: {} from database: {} in environment: {}", tableMirror.getName(), database, environment);
         // ...logic...
         String showStatement = MessageFormat.format(MirrorConf.SHOW_CREATE_TABLE, tableMirror.getName());
         List<String> tableDefinition = new ArrayList<>();

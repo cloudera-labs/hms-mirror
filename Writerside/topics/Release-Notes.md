@@ -10,11 +10,15 @@ The latest set of enhancement requests can be found [here](https://github.com/cl
 
 If there is something you'd like to see, add a new issue [here](https://github.com/cloudera-labs/hms-mirror/issues)
 
+## 3.1.0.1
+
+**What's New**
+Better connection and connection pooling property management, validation, and configuration.  See [JDBC Connections](JDBC-Drivers-and-Configuration.md#valid-jdbc-driver-parameters-v3-1-0-1)
+
 ## 3.1.0.0
 
 **What's New**
 Upgraded `hadoop-common` to 3.4.1 for JDK17 compile-time compatibility. This avoids the need to `add-exports` for the `java.naming` module.
-
 
 ## 3.0.0.2
 

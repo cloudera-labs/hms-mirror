@@ -7,6 +7,14 @@ server:
   port: 8090
   servlet:
     context-path: /hms-mirror
+hikari:
+  idleTimeout: 10000
+  connectionTestQuery: "SELECT 1"
+  validationTimeout: 30000
+  initializationFailTimeout: 10000
+dbcp2:
+  maxWaitMillis: 10000
+  validationQuery: "SELECT 1"
 springdoc:
   swagger-ui:
     path: "/swagger-ui.html"

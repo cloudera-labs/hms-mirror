@@ -33,7 +33,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
         @ComponentScan(basePackages = "com.cloudera.utils.hadoop")
         , @ComponentScan(basePackages = "com.cloudera.utils.hms.mirror.cli")
         , @ComponentScan(basePackages = "com.cloudera.utils.hms.mirror.datastrategy")
-        , @ComponentScan(basePackages = "com.cloudera.utils.hms.mirror.domain.support")
+        , @ComponentScan(basePackages = "com.cloudera.utils.hms.mirror.domain")
         , @ComponentScan(basePackages = "com.cloudera.utils.hms.mirror.reporting")
         , @ComponentScan(basePackages = "com.cloudera.utils.hms.mirror.service")
         , @ComponentScan(basePackages = "com.cloudera.utils.hms.mirror.util")
@@ -47,7 +47,6 @@ public class Mirror {
         // Translate the legacy command line arguments to Spring Boot arguments
         //    before starting the application.
         log.info("Translating command line arguments to Spring Boot arguments");
-//        HmsMirrorCommandLineOptions hmsMirrorCommandLineOptions = new HmsMirrorCommandLineOptions();
         String[] springArgs = HmsMirrorCommandLineOptions.toSpringBootOption(Boolean.TRUE, args);
         log.info("Translated Spring Boot arguments: {}", String.join(" ", springArgs));
         log.info("STARTING THE APPLICATION");

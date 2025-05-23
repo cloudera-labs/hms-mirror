@@ -21,8 +21,10 @@ import com.cloudera.utils.hive.config.DBStore;
 import com.cloudera.utils.hms.mirror.domain.HiveServer2Config;
 import com.cloudera.utils.hms.mirror.domain.support.Environment;
 import com.cloudera.utils.hms.mirror.domain.support.ExecuteSession;
+import com.cloudera.utils.hms.mirror.domain.support.HiveDriverEnum;
 import com.cloudera.utils.hms.mirror.exceptions.EncryptionException;
 import com.cloudera.utils.hms.mirror.exceptions.SessionException;
+import com.cloudera.utils.hms.mirror.service.ConnectionPoolService;
 import com.cloudera.utils.hms.mirror.service.PasswordService;
 import com.cloudera.utils.hms.util.ConfigUtils;
 import com.cloudera.utils.hms.util.DriverUtils;
@@ -46,9 +48,10 @@ import static java.util.Objects.nonNull;
 @Slf4j
 public class ConnectionPoolsDBCP2Impl extends ConnectionPoolsBase implements ConnectionPools {
 
-    public ConnectionPoolsDBCP2Impl(ExecuteSession executeSession, PasswordService passwordService) {
+    public ConnectionPoolsDBCP2Impl(ExecuteSession executeSession, PasswordService passwordService, ConnectionPoolService connectionPoolService) {
         this.executeSession = executeSession;
         this.passwordService = passwordService;
+        this.connectionPoolService = connectionPoolService;
     }
 
     protected void initHS2PooledDataSources() throws SessionException, EncryptionException {
@@ -59,7 +62,13 @@ public class ConnectionPoolsDBCP2Impl extends ConnectionPoolsBase implements Con
             if (!hs2Config.isDisconnected()) {
                 // Make a copy.
                 Properties connProperties = new Properties();
-                connProperties.putAll(hs2Config.getConnectionProperties());
+                // Trim properties to include only those supported by the driver.
+                connProperties.putAll(HiveDriverEnum.getDriverEnum(hs2Config.getDriverClassName()).reconcileForDriver(hs2Config.getConnectionProperties()));
+
+                // Get the DBCP2 properties established in the configs and add them to the connection properties.
+                connProperties.putAll(connectionPoolService.getDbcp2Properties().toProperties());
+
+                // Set Datasource properties.
                 // If the ExecuteSession has the 'passwordKey' set, resolve Encrypted PasswordApp first.
                 if (executeSession.getConfig().isEncryptedPasswords()) {
                     if (nonNull(executeSession.getConfig().getPasswordKey()) && !executeSession.getConfig().getPasswordKey().isEmpty()) {
@@ -70,7 +79,7 @@ public class ConnectionPoolsDBCP2Impl extends ConnectionPoolsBase implements Con
                         throw new SessionException("Passwords encrypted, but no password key present.");
                     }
                 }
-
+                log.info("{} - HS2 DBCP2 Connection Properties: {}", environment, connProperties);
                 ConnectionFactory connectionFactory =
                         new DriverManagerConnectionFactory(hs2Config.getUri(), connProperties);
 
@@ -88,7 +97,6 @@ public class ConnectionPoolsDBCP2Impl extends ConnectionPoolsBase implements Con
                     queueOverrides.add(queueOverride);
                     poolableConnectionFactory.setConnectionInitSql(queueOverrides);
                 }
-                poolableConnectionFactory.setValidationQuery("SELECT 1");
 
                 PoolingDataSource<PoolableConnection> poolingDatasource = new PoolingDataSource<>(connectionPool);
 //            poolingDatasource.setLoginTimeout(10);
