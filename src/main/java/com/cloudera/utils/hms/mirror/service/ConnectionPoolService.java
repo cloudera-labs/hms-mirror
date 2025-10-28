@@ -474,7 +474,12 @@ public class ConnectionPoolService {
                         for (String s : sessionSets) {
                             connections.getHiveServer2Connections().get(target).getProperties().add(s);
                             log.info("Running session check: {} on {} connection", s, target);
-                            stmt.execute(s);
+                            try {
+                                stmt.execute(s);
+                            } catch (SQLException setse) {
+                                // Warning and continue
+                                log.warn(setse.getMessage(), setse);
+                            }
                         }
 
                         log.info("HS2 Connection validated (resources) for {}", target);
