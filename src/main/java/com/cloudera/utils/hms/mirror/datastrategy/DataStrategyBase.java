@@ -249,7 +249,7 @@ public abstract class DataStrategyBase implements DataStrategy {
                     if (!TableUtils.isACID(source)) {
                         // Non ACID tables.
                         if (copySpec.isUpgrade() && TableUtils.isManaged(source)) {
-                            converted = TableUtils.makeExternal(target);
+                            converted = TableUtils.makeExternal(target, config);
                             if (converted) {
                                 target.addIssue("Schema 'converted' from LEGACY managed to EXTERNAL");
                                 target.addProperty(HMS_MIRROR_LEGACY_MANAGED_FLAG, converted.toString());
@@ -264,7 +264,7 @@ public abstract class DataStrategyBase implements DataStrategy {
                             }
                         } else {
                             if (copySpec.isMakeExternal()) {
-                                converted = TableUtils.makeExternal(target);
+                                converted = TableUtils.makeExternal(target, config);
                             }
                             if (copySpec.isTakeOwnership()) {
                                 if (TableUtils.isACID(source)) {
@@ -281,12 +281,14 @@ public abstract class DataStrategyBase implements DataStrategy {
                         if (copySpec.isMakeNonTransactional()) {
                             TableUtils.removeTblProperty(TRANSACTIONAL, target);
                             TableUtils.removeTblProperty(TRANSACTIONAL_PROPERTIES, target);
-                            TableUtils.removeTblProperty(BUCKETING_VERSION, target);
+                            if (!config.getTransfer().getStorageMigration().isDistcp()) {
+                                TableUtils.removeTblProperty(BUCKETING_VERSION, target);
+                            }
                         }
 
                         // We should also convert to external if we've enabled the conversion to Iceberg.
                         if (copySpec.isMakeExternal() || config.getIcebergConversion().isEnable()) {
-                            converted = TableUtils.makeExternal(target);
+                            converted = TableUtils.makeExternal(target, config);
                         }
 
                         if (copySpec.isTakeOwnership()) {
@@ -313,7 +315,7 @@ public abstract class DataStrategyBase implements DataStrategy {
                         }
 
                         if (config.getMigrateACID().isDowngrade() && copySpec.isMakeExternal()) {
-                            converted = TableUtils.makeExternal(target);
+                            converted = TableUtils.makeExternal(target, config);
                             if (!config.isNoPurge()) {
                                 target.addProperty(EXTERNAL_TABLE_PURGE, Boolean.TRUE.toString());
                             }
@@ -501,7 +503,9 @@ public abstract class DataStrategyBase implements DataStrategy {
                         // remove newer flags;
                         TableUtils.removeTblProperty(EXTERNAL_TABLE_PURGE, target);
                         TableUtils.removeTblProperty(DISCOVER_PARTITIONS, target);
-                        TableUtils.removeTblProperty(BUCKETING_VERSION, target);
+                        if (!config.getTransfer().getStorageMigration().isDistcp()) {
+                            TableUtils.removeTblProperty(BUCKETING_VERSION, target);
+                        }
                     }
 
                 } else if (TableUtils.isView(target)) {

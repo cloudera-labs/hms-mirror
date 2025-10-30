@@ -191,7 +191,7 @@ public class DistCpService {
                                 String targetProtocol = NamespaceUtils.getProtocol(target);
 
                                 if (nonNull(sourceProtocol) && nonNull(targetProtocol) && !sourceProtocol.equals(targetProtocol)) {
-                                        distcpScriptSb.append("#  Source and target protocols are different. This may cause issues with 'distcp' is -skipcrccheck isn't set.");
+                                        distcpScriptSb.append("#  Source and target protocols are different. This may cause issues with 'distcp' if -skipcrccheck isn't set.").append("\n");
                                         // Add -skipcrccheck to the distcp command
                                         distcpScriptSb.append("hadoop distcp ${DISTCP_OPTS} -skipcrccheck ").append(source).append(" ").append(target).append("\n").append("\n");
                                 } else {

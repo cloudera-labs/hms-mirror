@@ -21,6 +21,7 @@ import com.cloudera.utils.hms.mirror.domain.EnvironmentTable;
 import com.cloudera.utils.hms.mirror.MirrorConf;
 import com.cloudera.utils.hms.mirror.TablePropertyVars;
 import com.cloudera.utils.hms.mirror.domain.Cluster;
+import com.cloudera.utils.hms.mirror.domain.HmsMirrorConfig;
 import com.cloudera.utils.hms.mirror.domain.support.SerdeType;
 import com.cloudera.utils.hms.mirror.feature.IcebergState;
 import lombok.extern.slf4j.Slf4j;
@@ -551,7 +552,7 @@ public class TableUtils {
         return rtn;
     }
 
-    public static Boolean makeExternal(EnvironmentTable envTable) {
+    public static Boolean makeExternal(EnvironmentTable envTable, HmsMirrorConfig config) {
         Boolean rtn = Boolean.FALSE;
         if (isManaged(envTable)) {
             log.debug("Converting table: {} to EXTERNAL", envTable.getName());
@@ -566,7 +567,9 @@ public class TableUtils {
             // If ACID, remove transactional property to complete conversion to external.
             removeTblProperty(TablePropertyVars.TRANSACTIONAL, envTable.getDefinition());
             removeTblProperty(TablePropertyVars.TRANSACTIONAL_PROPERTIES, envTable.getDefinition());
-            removeTblProperty(TablePropertyVars.BUCKETING_VERSION, envTable.getDefinition());
+            if (!config.getTransfer().getStorageMigration().isDistcp()) {
+                removeTblProperty(TablePropertyVars.BUCKETING_VERSION, envTable.getDefinition());
+            }
         }
         return rtn;
     }
