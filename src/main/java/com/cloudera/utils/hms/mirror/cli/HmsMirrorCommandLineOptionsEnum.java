@@ -29,6 +29,7 @@ public enum HmsMirrorCommandLineOptionsEnum {
     COMMENT("com", "comment", null, "Comments to add to report output."),
     CONCURRENCY("c", "concurrency", "threads", ""),
     CONSOLIDATE_TABLES_FOR_DISTCP("ctfd", "consolidate-tables-for-distcp", null, ""),
+    CONSOLIDATE_DB_CREATE_STATEMENTS("cdcs", "consolidate-db-create-statements", null, ""),
     CREATE_IF_NOT_EXIST("cine", "create-if-not-exist", null, ""),
     TARGET_NAMESPACE("tns", "target-namespace", "target", ""),
     COMPRESS_TEXT_OUTPUT("cto", "compress-text-output", null, ""),

@@ -61,6 +61,13 @@
             </div>
 
             <div class="pure-control-group">
+                <label for="consolidateDBCreateStatements" th:text="#{config.consolidateDBCreateStatements}"></label>
+                <input type="checkbox" name="consolidateDBCreateStatements"
+                       th:field="*{consolidateDBCreateStatements}"
+                       th:checked="${CONFIG.consolidateDBCreateStatements}"/>
+            </div>
+
+            <div class="pure-control-group">
                 <label for="readOnly" th:text="#{config.readOnly}"></label>
                 <input type="checkbox" name="readOnly"
                        th:field="*{readOnly}"

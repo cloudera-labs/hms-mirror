@@ -1079,6 +1079,19 @@ public class HmsMirrorCommandLineOptions {
     @Bean
     @Order(1)
     @ConditionalOnProperty(
+            name = "hms-mirror.config.database.consolidate-db-create-statements",
+            havingValue = "true")
+    CommandLineRunner configconsolidateDBCreate(HmsMirrorConfig hmsMirrorConfig) {
+        return args -> {
+            log.info("consolidate-db-create-statements: {}", Boolean.TRUE);
+            hmsMirrorConfig.setConsolidateDBCreateStatements(Boolean.TRUE);
+        };
+    }
+
+
+    @Bean
+    @Order(1)
+    @ConditionalOnProperty(
             name = "hms-mirror.config.skip-link-check",
             havingValue = "false")
     CommandLineRunner configSkipLinkCheckFalse(HmsMirrorConfig hmsMirrorConfig) {
@@ -1497,6 +1510,12 @@ public class HmsMirrorCommandLineOptions {
         flipOption.setOptionalArg(Boolean.FALSE);
         flipOption.setRequired(Boolean.FALSE);
         options.addOption(flipOption);
+
+        Option cdcs = new Option("cdcs", "consolidate-db-create-statements", false,
+                "Database Create with Locations will be consolidated into a single CREATE DATABASE statement.");
+        cdcs.setOptionalArg(Boolean.FALSE);
+        cdcs.setRequired(Boolean.FALSE);
+        options.addOption(cdcs);
 
         Option smDistCpOption = new Option("dc", "distcp", false,
                 "Build the 'distcp' workplans.  Optional argument (PULL, PUSH) to define which cluster is running " +

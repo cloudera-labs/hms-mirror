@@ -761,7 +761,6 @@ public class DatabaseService {
                     }
                     dbMirror.getSql(Environment.LEFT).add(new Pair(CREATE_DB_DESC, sb.toString()));
 
-
                     // TODO: DB Properties.
 
                     break;
@@ -827,7 +826,7 @@ public class DatabaseService {
                             altRightDB = Boolean.TRUE;
                         }
                     }
-
+                    StringBuilder sbDef = new StringBuilder();
                     // Create the DB on the RIGHT is it doesn't exist.
                     if (createRight) {
                         log.debug("Building RIGHT DB SQL for {} -> CREATE", dbMirror.getName());
@@ -837,7 +836,10 @@ public class DatabaseService {
                         if (dbPropsLeft.get(COMMENT) != null && !dbPropsLeft.get(COMMENT).trim().isEmpty()) {
                             sbL.append(COMMENT).append(" \"").append(dbPropsLeft.get(COMMENT)).append("\"\n");
                         }
-                        dbMirror.getSql(Environment.RIGHT).add(new Pair(CREATE_DB_DESC, sbL.toString()));
+                        if (!config.isConsolidateDBCreateStatements()) {
+                            dbMirror.getSql(Environment.RIGHT).add(new Pair(CREATE_DB_DESC, sbL.toString()));
+                        }
+                        sbDef.append(sbL.toString());
                         log.trace("RIGHT DB Create SQL: {}", sbL);
                     }
 
@@ -846,7 +848,11 @@ public class DatabaseService {
                         // If the original location is null or doesn't equal the target location, set it.
                         if (isNull(origRightLocation) || !origRightLocation.equals(targetLocation)) {
                             String alterDbLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetLocation);
-                            dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbLoc));
+                            if (!config.isConsolidateDBCreateStatements()) {
+                                dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbLoc));
+                            } else {
+                                sbDef.append(DB_LOCATION).append(" \"").append(targetLocation).append("\"\n");
+                            }
                             dbPropsRight.put(DB_LOCATION, targetLocation);
                             log.trace("RIGHT DB Location SQL: {}", alterDbLoc);
                         }
@@ -856,17 +862,28 @@ public class DatabaseService {
                         if (isNull(origRightManagedLocation) || !origRightManagedLocation.equals(targetManagedLocation)) {
                             if (!config.getCluster(Environment.RIGHT).isHdpHive3()) {
                                 String alterDbMngdLoc = MessageFormat.format(ALTER_DB_MNGD_LOCATION, targetDatabase, targetManagedLocation);
-                                dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
+                                if (!config.isConsolidateDBCreateStatements()) {
+                                    dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_MNGD_LOCATION_DESC, alterDbMngdLoc));
+                                } else {
+                                    sbDef.append(DB_MANAGED_LOCATION).append(" \"").append(targetManagedLocation).append("\"\n");
+                                }
                                 dbPropsRight.put(DB_MANAGED_LOCATION, targetManagedLocation);
                                 log.trace("RIGHT DB Managed Location SQL: {}", alterDbMngdLoc);
                             } else {
                                 String alterDbMngdLoc = MessageFormat.format(ALTER_DB_LOCATION, targetDatabase, targetManagedLocation);
-                                dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
+                                if (!config.isConsolidateDBCreateStatements()) {
+                                    dbMirror.getSql(Environment.RIGHT).add(new Pair(ALTER_DB_LOCATION_DESC, alterDbMngdLoc));
+                                } else {
+                                    sbDef.append(DB_LOCATION).append(" \"").append(targetManagedLocation).append("\"\n");
+                                }
                                 dbMirror.addIssue(Environment.RIGHT, HDPHIVE3_DB_LOCATION.getDesc());
                                 dbPropsRight.put(DB_LOCATION, targetManagedLocation);
                                 log.trace("RIGHT DB Managed Location SQL: {}", alterDbMngdLoc);
                             }
                         }
+                    }
+                    if (config.isConsolidateDBCreateStatements()) {
+                        dbMirror.getSql(Environment.RIGHT).add(new Pair(CREATE_DB_DESC, sbDef.toString()));
                     }
 
                     // Build the DBPROPERITES

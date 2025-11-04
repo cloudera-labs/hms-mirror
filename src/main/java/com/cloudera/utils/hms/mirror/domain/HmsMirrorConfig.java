@@ -101,6 +101,9 @@ public class HmsMirrorConfig implements Cloneable {
     */
     private String dbPrefix = null;
     private String dbRename = null;
+
+    private boolean consolidateDBCreateStatements = Boolean.FALSE;
+
     private Environment dumpSource = Environment.LEFT;
     private boolean execute = Boolean.FALSE;
     /*
