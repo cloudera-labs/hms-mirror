@@ -1079,7 +1079,7 @@ public class HmsMirrorCommandLineOptions {
     @Bean
     @Order(1)
     @ConditionalOnProperty(
-            name = "hms-mirror.config.database.consolidate-db-create-statements",
+            name = "hms-mirror.config.consolidate-db-create-statements",
             havingValue = "true")
     CommandLineRunner configconsolidateDBCreate(HmsMirrorConfig hmsMirrorConfig) {
         return args -> {

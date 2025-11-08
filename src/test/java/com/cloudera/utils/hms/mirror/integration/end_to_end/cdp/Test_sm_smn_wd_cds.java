@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
                 "--hms-mirror.config.warehouse-directory=/warehouse/managed",
                 "--hms-mirror.config.external-warehouse-directory=/warehouse/external",
                 "--hms-mirror.conversion.test-filename=/test_data/assorted_tbls_02.yaml",
-                "--hms-mirror.config.database.consolidate-db-create-statements=true",
+                "--hms-mirror.config.consolidate-db-create-statements=true",
                 "--hms-mirror.config.filename=/config/default.yaml.cdp",
                 "--hms-mirror.config.output-dir=${user.home}/.hms-mirror/test-output/e2e/cdp/sm_smn_wd_cds"
         })
